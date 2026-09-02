@@ -30,7 +30,7 @@ import {
   deckCapFor, freePacks, isCleared, isOpen, type StoryRegion, type StorySave,
 } from "../data/story";
 import { loadSquads } from "../data/squads";
-import { activeAvatar, avatarArt, earnedAvatars, playerLevel } from "../data/player";
+import { activeAvatar, avatarStyle, earnedAvatars, playerLevel } from "../data/player";
 import { CARDS, TOKENS, getDef } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
 import { boardOfRun, runOver, runReward } from "../data/gauntlet";
@@ -82,9 +82,8 @@ export function HomeScreen(props: {
    *  Sits next to Collection because that is where a player looks for a card;
    *  it is a different question, though, and the tile says so. */
   onGallery: () => void;
-  /** Wear a boss head, or `undefined` to go back to the initial. Persisted by
-   *  the caller; the picker here only ever offers heads the save has earned. */
-  onAvatar: (cardId: string | undefined) => void;
+  /** Open the profile — name, trophies and the all-time stats. */
+  onProfile: () => void;
   /** Open the account panel — email sign-in and the cloud save. */
   onAccount: () => void;
   /** Open the rules book. Home needs its own route because the onboarding card
@@ -105,12 +104,6 @@ export function HomeScreen(props: {
   const heads = earnedAvatars(save);
   const worn = activeAvatar(save);
   const level = playerLevel(save);
-  /** Next head in the earned list, wrapping through "none" so a player can
-   *  always get back to their initial without a second control. */
-  const cycleHead = () => {
-    const at = worn ? heads.indexOf(worn) : -1;
-    props.onAvatar(at + 1 >= heads.length ? undefined : heads[at + 1]);
-  };
   const shards = hero?.shards ?? 0;
   const essence = hero?.essence ?? {};
   const totalEssence = Object.values(essence).reduce((a, b) => a + b, 0);
@@ -198,17 +191,11 @@ export function HomeScreen(props: {
               two things. */}
           <button
             className={`home-av${worn ? " has-head" : ""}`}
-            onClick={heads.length ? cycleHead : undefined}
-            disabled={!heads.length}
-            title={
-              heads.length
-                ? `${worn ? getDef(worn).name : "No trophy"} — tap to change (${heads.length} earned)`
-                : "Beat a Void Tower boss to wear its head"
-            }
+            onClick={props.onProfile}
+            style={worn ? avatarStyle(worn) : undefined}
+            title={`${hero?.name ?? "Keeper"} — profile, trophies and stats`}
           >
-            {worn
-              ? <img src={avatarArt(worn)} alt="" draggable={false} />
-              : (hero?.name ?? "?").slice(0, 1).toUpperCase()}
+            {worn ? "" : (hero?.name ?? "?").slice(0, 1).toUpperCase()}
           </button>
           <span className="home-name">{hero?.name ?? "Keeper"}</span>
           {/* LEVEL = cards collected + bosses beaten. Beside the name because it

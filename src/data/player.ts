@@ -63,3 +63,106 @@ export function activeAvatar(save: StorySave): string | undefined {
  *  head. Named from the id like every other plate. */
 export const avatarArt = (cardId: string): string =>
   `/cards/${getDef(cardId).art ?? cardId}.webp`;
+
+/** WHERE THE HEAD IS, per boss, and how far to zoom in on it.
+ *
+ *  A single crop rule cannot fit twenty paintings. The first cut used one
+ *  (`object-position: 50% 14%`) and it worked for exactly the boss it was
+ *  written against: Basilisk's head sits at 60% DOWN the canvas, so the frame
+ *  showed swamp canopy; Thunderfangs is at 27% ACROSS; Kato is a tank with no
+ *  head at all. Read off each plate by eye, once, and recorded.
+ *
+ *  `x`/`y` are the point in the ART that should land in the middle of the frame,
+ *  as a percentage — the exact semantics of `background-position` when the image
+ *  is larger than its box. That is why this renders as a background rather than
+ *  an <img>: with `object-fit: cover` on a SQUARE frame, a 3:4 plate is scaled
+ *  until the width fits exactly, so the horizontal crop is a no-op and
+ *  `object-position`'s X is silently ignored. Half the control was missing.
+ *
+ *  `zoom` is `background-size`, so 400 means the art is drawn four frames wide.
+ *  It varies because the SUBJECTS vary: Kheiringer's face is a twentieth of her
+ *  plate and Kato's prow is a third of its.
+ */
+export interface AvatarFocus { x: number; y: number; zoom: number }
+
+export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
+  boss_rotroot:      { x: 45, y: 13, zoom: 520 },
+  boss_skeleeze:     { x: 37, y: 31, zoom: 560 },
+  boss_xilty:        { x: 48, y: 30, zoom: 470 },
+  boss_permafrost:   { x: 32, y: 18, zoom: 430 },
+  boss_overclock:    { x: 44, y: 23, zoom: 520 },
+  boss_nightshrike:  { x: 48, y: 41, zoom: 520 },
+  boss_basilisk:     { x: 47, y: 56, zoom: 330 },
+  boss_helion:       { x: 44, y: 18, zoom: 520 },
+  boss_hoarfell:     { x: 50, y: 26, zoom: 400 },
+  boss_thunderfangs: { x: 26, y: 56, zoom: 360 },
+  boss_vulcanyx:     { x: 72, y: 17, zoom: 300 },
+  boss_umbranova:    { x: 48, y: 44, zoom: 380 },
+  boss_cryovex:      { x: 61, y: 30, zoom: 430 },
+  boss_kazehaya:     { x: 37, y: 22, zoom: 480 },
+  boss_kato:         { x: 32, y: 58, zoom: 260 },
+  boss_smolder:      { x: 38, y: 30, zoom: 480 },
+  boss_spindle:      { x: 52, y: 26, zoom: 380 },
+  boss_skybreaker:   { x: 47, y: 17, zoom: 560 },
+  boss_continental:  { x: 60, y: 19, zoom: 480 },
+  boss_kheiringer:   { x: 60, y: 18, zoom: 650 },
+};
+
+/** The focus for a head, with a sane fallback so a boss added tomorrow renders
+ *  as a portrait crop rather than as nothing. */
+export const avatarFocus = (cardId: string): AvatarFocus =>
+  AVATAR_FOCUS[cardId] ?? { x: 50, y: 22, zoom: 450 };
+
+/** The inline style that frames a head. One place, so the home row, the picker
+ *  and anywhere else this lands cannot crop it three different ways. */
+export function avatarStyle(cardId: string): Record<string, string> {
+  const f = avatarFocus(cardId);
+  return {
+    backgroundImage: `url(${avatarArt(cardId)})`,
+    backgroundSize: `${f.zoom}% auto`,
+    backgroundPosition: `${f.x}% ${f.y}%`,
+    backgroundRepeat: "no-repeat",
+  };
+}
+
+// ── all-time stats ──────────────────────────────────────────────────────────
+
+/** One line of the profile panel. `of` is present when the stat is a fraction
+ *  of a known total, which is most of them — "34 cards" says less than
+ *  "34 / 381", and a completion percentage is the whole appeal of a collection. */
+export interface PlayerStat { label: string; value: number; of?: number; hint: string }
+
+/** EVERY NUMBER THE SAVE ALREADY KNOWS, in one place.
+ *
+ *  Derived, never stored: each of these is counted off the save at read time, so
+ *  there is no second copy to drift and no migration for a save written before
+ *  the panel existed. A stat that cannot be computed from what the game already
+ *  persists does not belong here — it would mean adding a counter that only this
+ *  screen reads, and counters like that are how two screens end up disagreeing.
+ */
+export function playerStats(save: StorySave, opts: {
+  totalCards: number; totalNodes: number;
+}): PlayerStat[] {
+  const beaten = bossesBeaten(save).length;
+  const hero = save.hero;
+  return [
+    { label: "Level", value: playerLevel(save),
+      hint: "Cards collected plus bosses beaten" },
+    { label: "Cards", value: new Set(save.collection ?? []).size, of: opts.totalCards,
+      hint: "Unique cards in your collection" },
+    { label: "Bosses", value: beaten, of: VOID_BOSSES.length,
+      hint: "Void Tower bosses put down — each one is a head you may wear" },
+    { label: "Nodes", value: new Set(save.cleared ?? []).size, of: opts.totalNodes,
+      hint: "Campaign nodes cleared at least once" },
+    { label: "Shinies", value: (hero?.shiny ?? []).length,
+      hint: "Foil cards pulled" },
+    { label: "Tamed", value: Object.keys(save.tamed ?? {}).length,
+      hint: "Bosses that now fight for you" },
+    { label: "Best streak", value: save.ladder?.best ?? 0,
+      hint: "Longest Arena win streak" },
+    { label: "Shards", value: hero?.shards ?? 0,
+      hint: "Booster currency, earned by winning anywhere" },
+    { label: "Essence", value: Object.values(hero?.essence ?? {}).reduce((a, b) => a + b, 0),
+      hint: "Crafting currency, across every element" },
+  ];
+}

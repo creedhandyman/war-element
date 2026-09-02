@@ -61,6 +61,7 @@ import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
+import { ProfilePanel } from "./ProfilePanel";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
@@ -115,6 +116,7 @@ import {
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
+  PLACED_CARDS, ALL_NODES,
 } from "../data/story";
 
 function newSeed(): number {
@@ -308,6 +310,16 @@ export function App() {
    *  Online: only the host's choice counts — the guest receives the host's whole
    *  state, board size included, so there is nothing to agree on. */
   const [boardSize, setBoardSize] = useState(4);
+  /** The profile overlay — name, trophies, all-time stats. */
+  const [profileOpen, setProfileOpen] = useState(false);
+  /** Both write STRAIGHT to disk: a name or a trophy that survived until reload
+   *  and then vanished is worse than one that could not be set. `ownsAvatar` is
+   *  re-checked on read (see `activeAvatar`), so persisting an id here can never
+   *  grant a head the save has not earned. */
+  const patchHero = (patch: Partial<NonNullable<StorySave["hero"]>>) => {
+    const next = { ...story, hero: { ...(story.hero ?? newHero()), ...patch } };
+    setStory(next); saveStory(next);
+  };
   /** How many seats a Domination match deals. Two everywhere else — the other
    *  battlefields have one Home row per side and nowhere to put a third. */
   const [seatCount, setSeatCount] = useState(2);
@@ -4322,13 +4334,7 @@ export function App() {
         <HomeScreen
           save={story}
           regionId={nav.regionId}
-          onAvatar={(cardId) => {
-            // Straight to disk: a trophy you picked and lost on reload is worse
-            // than one you could not pick. `ownsAvatar` is re-checked on read
-            // (see activeAvatar), so writing an id here can never grant one.
-            const next = { ...story, hero: { ...(story.hero ?? newHero()), avatar: cardId } };
-            setStory(next); saveStory(next);
-          }}
+          onProfile={() => setProfileOpen(true)}
           onStory={(rid) => {
             setTab("story");
             // A row that names a region has to open THAT map — `open` alone
@@ -4384,6 +4390,21 @@ export function App() {
             navDo({ t: "open" });
           }}
           onOpenBuilder={() => navDo({ t: "builder", open: true })}
+        />
+      )}
+
+      {/* THE PROFILE. Rendered outside the `tab === "home"` gate so it survives
+          a tab change behind it, the same shape the other overlays use. Totals
+          come from here rather than from inside the panel because App already
+          owns them and two sources would disagree about "how many cards exist". */}
+      {profileOpen && (
+        <ProfilePanel
+          save={story}
+          totalCards={PLACED_CARDS.length}
+          totalNodes={ALL_NODES.length}
+          onName={(name) => patchHero({ name })}
+          onAvatar={(avatar) => patchHero({ avatar })}
+          onClose={() => setProfileOpen(false)}
         />
       )}
 

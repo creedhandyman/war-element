@@ -1,7 +1,7 @@
 // PLAYER LEVEL and the boss-head trophies.
 import { describe, expect, it } from "vitest";
 import { VOID_BOSSES, trialEventId } from "../../data/void-tower";
-import { activeAvatar, avatarArt, bossesBeaten, earnedAvatars, ownsAvatar, playerLevel } from "../../data/player";
+import { AVATAR_FOCUS, activeAvatar, avatarArt, avatarStyle, bossesBeaten, earnedAvatars, ownsAvatar, playerLevel } from "../../data/player";
 import { newSave, newHero, type StorySave } from "../../data/story";
 
 const save = (over: Partial<StorySave> = {}): StorySave => ({ ...newSave(), ...over });
@@ -54,5 +54,38 @@ describe("boss heads are earned, not set", () => {
   it("every boss's head has art on disk to wear", () => {
     // A trophy that renders as a broken image is worse than no trophy.
     for (const b of VOID_BOSSES) expect(avatarArt(b.cardId)).toMatch(/^\/cards\/.+\.webp$/);
+  });
+});
+
+describe("boss heads are framed on the head", () => {
+  it("every boss has a focal point, and it is not the default", () => {
+    // The first cut used ONE crop rule for twenty paintings. Basilisk's head is
+    // 56% down its plate and Thunderfangs is 26% across; a single rule showed
+    // swamp canopy and empty sky. Each of these was read off a crosshair
+    // rendered over the art, so a boss shipping without one is a boss framed by
+    // a guess.
+    for (const b of VOID_BOSSES) {
+      const f = AVATAR_FOCUS[b.cardId];
+      expect(f, `${b.cardId} has no focal point`).toBeTruthy();
+      expect(f.x, `${b.cardId} x`).toBeGreaterThan(0);
+      expect(f.x, `${b.cardId} x`).toBeLessThan(100);
+      expect(f.y, `${b.cardId} y`).toBeGreaterThan(0);
+      expect(f.y, `${b.cardId} y`).toBeLessThan(100);
+      // Below 100% the art would be SMALLER than the frame and tile.
+      expect(f.zoom, `${b.cardId} zoom`).toBeGreaterThan(100);
+    }
+  });
+
+  it("they are genuinely different — a shared table would mean a shared guess", () => {
+    const pts = VOID_BOSSES.map((b) => `${AVATAR_FOCUS[b.cardId].x},${AVATAR_FOCUS[b.cardId].y}`);
+    expect(new Set(pts).size, "distinct focal points").toBeGreaterThan(VOID_BOSSES.length * 0.8);
+  });
+
+  it("avatarStyle frames a head from its focal point", () => {
+    const st = avatarStyle("boss_basilisk");
+    const f = AVATAR_FOCUS.boss_basilisk;
+    expect(st.backgroundPosition).toBe(`${f.x}% ${f.y}%`);
+    expect(st.backgroundSize).toBe(`${f.zoom}% auto`);
+    expect(st.backgroundImage).toContain("boss_basilisk.webp");
   });
 });

@@ -4727,14 +4727,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* No trophies yet: it is still the initial, and it must not look tappable. */
 .home-av:disabled { cursor: default; }
-/* WEARING A HEAD. The plate is a full 750x1000 card, so it is scaled up and
-   pulled to the TOP of the frame — a boss's face is in the upper third of its
-   art and `object-fit: cover` alone would centre on its chest. */
-.home-av.has-head { background: #000; border-color: var(--gold-lit); }
-.home-av img {
-  width: 100%; height: 100%; object-fit: cover; object-position: 50% 14%;
-  display: block; transform: scale(1.35);
+/* WEARING A HEAD. Framed by a BACKGROUND rather than an <img>, because with
+   `object-fit: cover` on a square frame a 3:4 plate is scaled until its width
+   fits exactly — the horizontal crop becomes a no-op and object-position's X is
+   silently ignored, which is half the control gone. The per-boss position and
+   zoom are inline, from AVATAR_FOCUS. */
+.home-av.has-head, .pp-me.has-head, .pp-pick-art {
+  /* A VIGNETTE, because several plates are monochrome — Helion is gold on gold,
+     Permafrost white on white, Cryovex and Skybreaker blue on blue. Darkening the
+     rim pushes the eye to the middle, which is where the focal point put the face.
+     It costs nothing on the high-contrast ones. */
+  box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.8);
 }
+.home-av.has-head { background-color: #000; border-color: var(--gold-lit); }
 .home-lvl {
   font-size: 10px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-dim);
   border: 1px solid var(--panel-line); border-radius: 999px; padding: 1px 6px;
@@ -7092,3 +7097,69 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   cursor: pointer;
 }
 .chat-send:disabled { opacity: 0.4; cursor: default; }
+
+
+/* ── PROFILE PANEL ────────────────────────────────────────────────────────
+   Name, trophies and the all-time stats, reached from the home avatar it
+   edits. One panel because the three are one idea: how you present, and the
+   evidence behind it. */
+.pp-wrap { display: grid; place-items: center; padding: 16px; }
+.pp {
+  width: min(560px, 100%); max-height: min(86vh, 760px); overflow: auto;
+  background: linear-gradient(180deg, #14121f, #0c0a14);
+  border: 1px solid var(--gold-line); border-radius: 14px; padding: 14px;
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.7);
+}
+.pp-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.pp-me {
+  width: 62px; height: 62px; border-radius: 50%; flex: none; display: grid;
+  place-items: center; background: linear-gradient(150deg, #3a3358, #1b1830);
+  border: 2px solid var(--gold-line); font-size: 24px; font-weight: 600;
+  color: var(--gold-lit);
+}
+.pp-me.has-head { background-color: #000; border-color: var(--gold-lit); }
+.pp-name { flex: 1; min-width: 0; display: grid; gap: 3px; }
+.pp-name span { font-size: 9px; letter-spacing: 0.1em; color: var(--ink-dim); }
+.pp-name input {
+  width: 100%; background: var(--void-2); border: 1px solid var(--panel-line);
+  border-radius: 8px; padding: 7px 9px; color: var(--ink);
+  font-family: var(--font-ui); font-size: 15px; font-weight: 600;
+}
+.pp-name input:focus { outline: none; border-color: var(--gold-lit); }
+.pp-x {
+  flex: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  background: transparent; border: 1px solid var(--panel-line); color: var(--ink-dim);
+}
+.pp-sec {
+  font-size: 9px; letter-spacing: 0.12em; color: var(--ink-dim);
+  margin: 14px 0 7px; border-top: 1px solid var(--panel-line); padding-top: 10px;
+}
+.pp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(74px, 1fr)); gap: 8px; }
+.pp-pick {
+  display: grid; gap: 4px; justify-items: center; padding: 6px 3px; cursor: pointer;
+  background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 10px;
+}
+.pp-pick b {
+  font-size: 9px; font-weight: 600; color: var(--ink-dim); max-width: 100%;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.pp-pick.on { border-color: var(--gold-lit); background: rgba(201, 162, 75, 0.12); }
+.pp-pick.on b { color: var(--gold-lit); }
+.pp-pick.locked { opacity: 0.45; cursor: default; }
+.pp-pick-art {
+  width: 46px; height: 46px; border-radius: 50%; background-color: #000;
+  border: 1px solid var(--panel-line); display: grid; place-items: center;
+  color: var(--ink-dim); font-size: 15px; font-weight: 700;
+}
+.pp-pick-art.is-none { background: linear-gradient(150deg, #3a3358, #1b1830); color: var(--gold-lit); }
+.pp-pick.on .pp-pick-art { border-color: var(--gold-lit); }
+.pp-stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; }
+.pp-stat {
+  background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 10px;
+  padding: 8px 10px; display: grid; gap: 3px;
+}
+.pp-stat-l { font-size: 9px; letter-spacing: 0.08em; color: var(--ink-dim); }
+.pp-stat-v { font-size: 17px; font-weight: 700; color: var(--gold-lit); line-height: 1.1; }
+.pp-stat-v i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink-dim); }
+.pp-bar { height: 3px; border-radius: 2px; background: var(--panel-line); overflow: hidden; }
+.pp-bar i { display: block; height: 100%; background: var(--gold-lit); }
