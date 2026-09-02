@@ -214,16 +214,27 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
       desc: "end of round, deals a quarter of its current basic damage to every opponent in reach.",
     });
   // Passive-flavoured keywords: the chip names them, this says what it means.
+  //
+  // ...and a card may give its own keyword a NAME, the way it names any other
+  // passive — `passiveNames.BLOCK`, `passiveNames.REGEN`, and so on. The RULE
+  // stays shared, which is the whole point of this list; what the name adds is
+  // the flavour that makes it this card's, so Blue Whale's BLOCK 2 reads "Thick
+  // Fat" rather than being the same anonymous chip nine other cards carry.
+  // Absent, nothing changes — every existing carrier renders exactly as before.
   const kw = def.keywords;
-  if (kw.REGEN) shared.push({ kind: "keyword", label: `REGEN ${kw.REGEN}`, desc: `heals ${kw.REGEN} HP at the end of each round.` });
-  if (kw.LIFESTEAL) shared.push({ kind: "keyword", label: "LIFESTEAL", desc: "basic attacks heal it for the damage dealt." });
+  const kwLabel = (key: string, base: string) => {
+    const n = def.passiveNames?.[key];
+    return n ? `${n} — ${base}` : base;
+  };
+  if (kw.REGEN) shared.push({ kind: "keyword", label: kwLabel("REGEN", `REGEN ${kw.REGEN}`), desc: `heals ${kw.REGEN} HP at the end of each round.` });
+  if (kw.LIFESTEAL) shared.push({ kind: "keyword", label: kwLabel("LIFESTEAL", "LIFESTEAL"), desc: "basic attacks heal it for the damage dealt." });
   if (kw.DRAIN)
-    shared.push({ kind: "keyword", label: "DRAIN", desc: "basic attacks heal it for the damage dealt AND steal 1 max HP from the target — it grows as it feeds (DUSK lifesteal)." });
-  if (kw.BLOCK) shared.push({ kind: "keyword", label: `BLOCK ${kw.BLOCK}`, desc: `every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.` });
-  if (kw.REFLECT) shared.push({ kind: "keyword", label: `REFLECT ${kw.REFLECT}`, desc: `returns ${kw.REFLECT} DMG to attackers.` });
-  if (kw.EVASION) shared.push({ kind: "keyword", label: "EVASION", desc: "~50% chance to dodge each incoming hit." });
+    shared.push({ kind: "keyword", label: kwLabel("DRAIN", "DRAIN"), desc: "basic attacks heal it for the damage dealt AND steal 1 max HP from the target — it grows as it feeds (DUSK lifesteal)." });
+  if (kw.BLOCK) shared.push({ kind: "keyword", label: kwLabel("BLOCK", `BLOCK ${kw.BLOCK}`), desc: `every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.` });
+  if (kw.REFLECT) shared.push({ kind: "keyword", label: kwLabel("REFLECT", `REFLECT ${kw.REFLECT}`), desc: `returns ${kw.REFLECT} DMG to attackers.` });
+  if (kw.EVASION) shared.push({ kind: "keyword", label: kwLabel("EVASION", "EVASION"), desc: "~50% chance to dodge each incoming hit." });
   if (kw.TRAMPLE)
-    shared.push({ kind: "keyword", label: "TRAMPLE", desc: "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction. The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
+    shared.push({ kind: "keyword", label: kwLabel("TRAMPLE", "TRAMPLE"), desc: "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction. The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
   // THE FOUR THAT SAID NOTHING. This list stopped at TRAMPLE, so FLYING, CRIT,
   // PEN and STEALTH rendered as dead grey chips — a word on the card and no
   // rule anywhere on the surface a player reads mid-fight. FLYING is the

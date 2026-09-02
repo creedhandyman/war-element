@@ -155,9 +155,12 @@ export const VOID_BOSSES: VoidBoss[] = [
     tribeElement: "DUSK",
     mechanicElement: "BOLT",
     tribe: "Spider",
-    // 4 + 4 + 3 + 1 = 12. The doc's list said Silkstalker 3 and totalled 13 —
-    // Silkstalker is cost 4, so one Spider comes off.
-    summons: ["dusk_sarachnid", "dusk_silkstalker", "dusk_widowbite", "dusk_spider"],
+    // 4 + 4 + 2 + 1 + 1 = 12. The doc's list said Silkstalker 3 and totalled 13
+    // — Silkstalker is cost 4, so one Spider came off. The SECOND Spider went
+    // back on when Widowbite was re-costed 3 -> 2 and left the formation a point
+    // short: a brood is the right way for a Spider boss to spend a spare gold,
+    // and it is a body already in the formation rather than a new face.
+    summons: ["dusk_sarachnid", "dusk_silkstalker", "dusk_widowbite", "dusk_spider", "dusk_spider"],
     puzzle: "The status lock: bring cleanse or immunity.",
   },
   {

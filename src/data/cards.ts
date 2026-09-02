@@ -865,10 +865,16 @@ export const CARDS: CardDef[] = [
     element: "DUSK",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 3,
+    // 7 + 6 + 7 = 20 = 5*2+10. Down from cost 3, and the five points come
+    // entirely off the BODY — which is the one stat this card is happier
+    // without. Lingering Venom pays out when Widowbite DIES, so a cheaper,
+    // flimsier spider is a better spider: 2 gold buys something that trades
+    // itself for 15 damage of venom on whatever ate it. The bite and the legs
+    // are what it needs to get there, so both are untouched.
+    cost: 2,
     dmg: 7,
     hits: 1,
-    hp: 11,
+    hp: 6,
     sp: 7,
     shields: 0,
     keywords: {},
@@ -12058,12 +12064,19 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     tribe: "Stars",
     attackType: "Melee",
-    cost: 3,
-    // 7 + 9 + 9 = 25 = 5*3+10.
-    dmg: 7,
+    // 5 + 8 + 7 = 20 = 5*2+10. Down from cost 3, and the five points come off
+    // all three rather than out of one, because Outshine is what this card IS
+    // and every stat feeds it: the BLIND rides the basic, so it has to reach a
+    // body, connect with it, and still be standing next round to do it again.
+    // Damage gives up the most (7 -> 5) since the payload is the blindness
+    // rather than the hit, and SP stops at 7 on purpose — SP_SLOW_MAX is 5, so
+    // anything above it still strides 2, and dropping to 4 would have cost a
+    // whole movement tier for one budget point.
+    cost: 2,
+    dmg: 5,
     hits: 1,
-    hp: 9,
-    sp: 9,
+    hp: 8,
+    sp: 7,
     shields: 0,
     keywords: {},
     // OUTSHINE, and it is now a BLIND rather than a CRIT. Quasar and Sunspot
@@ -12078,14 +12091,16 @@ export const CARDS: CardDef[] = [
     // the more interesting of the two.
     passiveNames: { onHitStatus: "Outshine" },
     onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
-    talent: {
-      name: "Starfall",
-      text: "Once per game, free: 7 DMG (PEN) to an adjacent opponent and BLIND it for 2 rounds.",
-      // BLINDs, like its basic now does -- Starfall is the same job done at
-      // PEN and at range, for the turn you need the mark to land through armour.
-      handler: "strike",
-      params: { dmg: 7, pen: 1, statusKind: "BLIND", statusDuration: 2 },
-    },
+    // STARFALL IS GONE, and the re-cost is why: a Talent is a cost-3 Rare's
+    // trick and nothing else's (passives.test.ts), because a Talent is free
+    // against the stat budget and pinning it to the 3-drop is what stops it
+    // becoming a rider on every rung of the curve. The grandfathered list is
+    // three cards and deliberately closed, so a cost-2 Quasar cannot keep one.
+    //
+    // Outshine is what it keeps, which is the same test's other half: a Rare
+    // off the 3-drop earns its texture from PASSIVES. That is the better half
+    // anyway — Starfall was one PEN strike per game, Outshine is a BLIND on
+    // every basic for the whole match, and it was always the card's identity.
   },
   {
     id: "dawn_meridian",
@@ -12398,12 +12413,21 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 4,
-    // 9 + 13 + 2*2 + 4 = 30 = 5*4+10. Warrior, NOT Tank: BORE's Tanks were the
-    // element's surplus at 8, and a rhino is the obvious card to get that wrong.
-    dmg: 9,
+    // 7 + 18 + 2*2 + 2 = 31, one over 5*4+10 and inside the +/-2 the curve
+    // allows. Warrior, NOT Tank: BORE's Tanks were the element's surplus at 8,
+    // and a rhino is the obvious card to get that wrong.
+    //
+    // Re-cut from 9/13/4 into something slower and thicker, and the HORN pays
+    // for most of it: DMG 9 -> 7 and SP 4 -> 2 buy HP 13 -> 18. The speed is
+    // sold for nothing lost — SP_SLOW_MAX is 5, so 4 and 2 are the same one-step
+    // reach, and Full Charge is a Special that closes ground for it anyway. What
+    // actually changes hands is damage for staying power: it hits softer and it
+    // is there for two more rounds to keep hitting. Trample Through and Horn
+    // Toss both want that, since both are riders on being ALIVE and adjacent.
+    dmg: 7,
     hits: 1,
-    hp: 13,
-    sp: 4,
+    hp: 18,
+    sp: 2,
     shields: 2,
     keywords: { TRAMPLE: true },
     passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
@@ -12482,13 +12506,21 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 6,
-    // 11 + 18 + 2*2 + 7 = 40 = 5*6+10. Fills the thinnest cost slot in the set
+    // 8 + 28 + 0 + 4 = 40 = 5*6+10. Fills the thinnest cost slot in the set
     // -- BORE had only 2 cards at cost 6.
-    dmg: 11,
+    //
+    // Re-cut from 11/18/7 with 2 shields into a far heavier, far slower body,
+    // and the ARMOUR is what pays for it: hide rather than plate. A shield pool
+    // costs 2 budget points each and runs out; 28 HP does not, and on a card
+    // whose Gorge passive feeds on kills the thing worth protecting is the time
+    // it stays on the board. Owner-specified DMG 8 / HP 28 / SP 4 — shields to
+    // 0 is what lands that line exactly on the cost-6 budget without moving it
+    // to cost 7.
+    dmg: 8,
     hits: 1,
-    hp: 18,
-    sp: 7,
-    shields: 2,
+    hp: 28,
+    sp: 4,
+    shields: 0,
     keywords: {},
     passiveNames: { onKill: "Gorge" },
     // CAPPED, using the ceiling added for Vulcanyx. An uncapped +DMG per kill on
@@ -12994,8 +13026,17 @@ export const CARDS: CardDef[] = [
     hp: 33,
     sp: 2,
     shields: 1,
-    keywords: {},
-    passiveNames: { pushImmune: "Deep Ballast" },
+    // THICK FAT. Blubber is the armour: every incoming hit comes off by 2
+    // BEFORE shields, and PEN does not get through it either — which is the
+    // difference between a big HP pool and a body that is genuinely hard to
+    // hurt. The 33 HP was already there; this is what makes the 33 hold.
+    //
+    // Free, and deliberately: keywords sit outside the stat budget
+    // (dmg*hits + hp + shields*2 + sp), so the line stays exactly on its cost-6
+    // 40. That is the Tank half of the bargain — 3 DMG is what it pays for it,
+    // and BLOCK 2 is well-trodden ground (nine other cards carry it).
+    keywords: { BLOCK: 2 },
+    passiveNames: { pushImmune: "Deep Ballast", BLOCK: "Thick Fat" },
     pushImmune: true,
     special: {
       name: "Breach",
