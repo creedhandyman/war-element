@@ -64,7 +64,7 @@ import { DeckBuilder } from "./DeckBuilder";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
-import { rawStoredLoadouts } from "../data/story";
+import { newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import {
   ENRAGE_SCALE, TAME_SCALE, VOID_GATE, bossWallSeats, voidBossById, voidBossElements,
@@ -4322,6 +4322,13 @@ export function App() {
         <HomeScreen
           save={story}
           regionId={nav.regionId}
+          onAvatar={(cardId) => {
+            // Straight to disk: a trophy you picked and lost on reload is worse
+            // than one you could not pick. `ownsAvatar` is re-checked on read
+            // (see activeAvatar), so writing an id here can never grant one.
+            const next = { ...story, hero: { ...(story.hero ?? newHero()), avatar: cardId } };
+            setStory(next); saveStory(next);
+          }}
           onStory={(rid) => {
             setTab("story");
             // A row that names a region has to open THAT map — `open` alone

@@ -2559,6 +2559,15 @@ export interface Hero {
   /** Spell ids unlocked so far. NOT the book taken into a fight — that is
    *  capped at 5 (8 on a large board), so this is the shelf you choose from. */
   spells: string[];
+  /** The profile picture: the card id of a Void Tower boss this save has BEATEN,
+   *  worn as a trophy. Absent = the hero's initial, which is what every save
+   *  before this had and what a player who has cleared no floors still gets.
+   *
+   *  Stored as an id rather than an image path so it survives an art rename, and
+   *  re-validated against the tower on load — see `ownsAvatar` in player.ts. A
+   *  head is the one cosmetic in the game that cannot be bought, rolled or
+   *  crafted, so it has to be impossible to arrive at by editing a save. */
+  avatar?: string;
   /** Element id -> essence banked. The crafting currency: buys one EXACT card,
    *  slowly, in the element that paid for it. */
   essence: Record<string, number>;
@@ -2852,6 +2861,12 @@ export function loadStory(): StorySave {
           shiny: Array.isArray(h.shiny)
             ? [...new Set(h.shiny.filter((x): x is string => typeof x === "string" && !!CARD_INDEX[x]))]
             : [],
+          // Kept only if it names a real card. Whether the player has EARNED it
+          // is a second question and deliberately not asked here: this module
+          // cannot see the tower (void-tower.ts imports this one), so ownership
+          // is enforced by `activeAvatar` at the point of use, which re-checks
+          // it on every render rather than trusting what was written to disk.
+          avatar: typeof h.avatar === "string" && CARD_INDEX[h.avatar] ? h.avatar : undefined,
         };
       })(),
       decks: Object.fromEntries(
