@@ -8,7 +8,7 @@ import { canCastSpell } from "../rules";
 import { SPELLS, spellPickKind, getSpell } from "../spells";
 import { getDef } from "../../data/cards";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
-import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+import { atCleanup, bigPrepState, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
 /** Give P1 a single spell and enough magic to cast it. */
@@ -484,6 +484,85 @@ describe("AoE spells (row / two-row)", () => {
     expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(false); // P2 Home, not reached
     place(s, "leaf_alpha", "P1", 2, 3); // a P1 card in a Mid row unlocks the reach
     expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(true);
+  });
+
+  // ── the two-row SPILL is gated too, at BOTH seats ──────────────────────────
+  // A "tworows" sweep hits the picked row AND the row behind it, but the rule
+  // used to check only the pick. The hole was ASYMMETRIC and that is the part
+  // worth pinning: P2's Home is row 0 and P1's is the far edge, while the spill
+  // always runs toward +1, so P1's second row falls back onto P1's own side
+  // (harmless) and P2's lands on the enemy Home row. Only P2 could buy its way
+  // past the Home-slot gate — pick the row in FRONT of P1's Home and hit P1's
+  // Home anyway. Both seats are asserted so a fix that simply refuses more
+  // rows, or one that repairs P2 and quietly breaks P1, fails here.
+
+  /** P2 holding priority with Glacial Wave (the AQUA two-row sweep) in hand. */
+  function armP2Wave(s: GameState) {
+    s.players.P2.spellbook = [{ defId: "aqua_glacial_wave", used: false }];
+    s.players.P2.magicPool = 8;
+    return s;
+  }
+
+  it("P2's two-row sweep can't spill onto P1's Home row without a beachhead", () => {
+    const s = armP2Wave(prepState(42, "P2")); // 4x4: P1 Home = row 3, P2 Home = row 0
+    place(s, "dusk_gool", "P2", 0, 0); // everything still on P2's own Home row
+    const king = place(s, "leaf_alpha", "P1", 3, 1, { curHp: 20, maxHp: 20 });
+
+    // Aiming AT P1's Home was always refused, and still is.
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok).toBe(false);
+    // Row 2 is a legal row on its own — but the sweep also lands on row 3, so
+    // the whole cast is refused. This is the line that used to return true.
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(false);
+    // ...and the reducer refuses it too, not just the pre-check.
+    expect(() =>
+      applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 2 }),
+    ).toThrow();
+    expect(statusOf(s.cards[king.instanceId], "FREEZE"), "never touched").toBeFalsy();
+
+    // Commit a card past P2's own Home row and the reach is earned honestly.
+    place(s, "dusk_crow", "P2", 1, 0);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(true);
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 2,
+    });
+    // And the spill is real — which is exactly why it had to be gated.
+    expect(statusOf(next.cards[king.instanceId], "FREEZE")).toBeTruthy();
+  });
+
+  it("P1's two-row sweep spills toward P1's own side, so it stays legal", () => {
+    const s = prepState(); // P1 has priority
+    armSpell(s, "aqua_glacial_wave", 8);
+    place(s, "leaf_alpha", "P1", 3, 0); // everything still on P1's own Home row
+    const foe = place(s, "dusk_gool", "P2", 0, 1, { curHp: 20, maxHp: 20 });
+
+    // P2's Home is row 0, and no pick can spill INTO it (the spill is row+1),
+    // so the only way P1 reaches it is by aiming at it — still refused.
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 0 }).ok).toBe(false);
+    // Row 1 spills onto row 2, both Mid: legal before the fix and legal after.
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 1 }).ok).toBe(true);
+    // Row 2 spills onto row 3 — P1's OWN Home, which nothing gates.
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 2 }).ok).toBe(true);
+    // The last row has nothing behind it, so it is refused for a different
+    // reason entirely, and that reason has to survive the fix.
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 3 }).reason).toBe(
+      "No row behind that one",
+    );
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 1,
+    });
+    expect(statusOf(next.cards[foe.instanceId], "FREEZE"), "row 0 was never in the blast").toBeFalsy();
+  });
+
+  it("the spill gate follows the board's edges, not row numbers (5x5)", () => {
+    // The large board has a third row between the homes, so a rule that names
+    // rows by number rather than by their relation to the edges is right on the
+    // 4x4 and wrong here. P1 Home = row 4, P2 Home = row 0.
+    const s = armP2Wave(bigPrepState(42, "P2"));
+    place(s, "dusk_gool", "P2", 0, 0);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "spills onto row 4").toBe(false);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok, "spills onto row 3").toBe(true);
+    place(s, "dusk_crow", "P2", 1, 0);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "beachhead earns it").toBe(true);
   });
 });
 

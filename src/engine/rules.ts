@@ -1452,6 +1452,33 @@ export function canAoeRow(state: GameState, player: PlayerId, row: number): bool
   if (row === homeRow(enemyOf(player), state.boardSize) && !spellReachesEnemyHome(state, player)) return false;
   return true;
 }
+
+/** EVERY row an area Spell actually lands on, given the row that was picked.
+ *  A "tworows" sweep also hits the row behind the pick, and that spill is a row
+ *  the spell HITS — the resolver reads the same shape. One answer to "where
+ *  does it land", shared by the rule, the highlight and the damage. */
+export function aoeRowsHit(spell: SpellDef, row: number): number[] {
+  return spell.area === "tworows" ? [row, row + 1] : [row];
+}
+
+/** Can `player` aim this area Spell at `row`? The Home-slot gate is applied to
+ *  every row in the blast, not just the picked one.
+ *
+ *  Checking only the pick left a hole, and an ASYMMETRIC one, which is what
+ *  made it worth naming: `homeRow` puts P2's Home at row 0 and P1's at the far
+ *  edge, while the spill always runs toward +1. So P1's second row falls back
+ *  toward P1's own side and reaches nobody it was not already allowed to reach,
+ *  and P2's runs straight INTO the enemy Home row. On a 4x4 a P2 with nothing
+ *  past its own Home was correctly refused row 3, then took row 2 and hit row 3
+ *  anyway — one seat could buy its way past a rule the other could not. */
+export function canAoeSpellRow(
+  state: GameState,
+  player: PlayerId,
+  spell: SpellDef,
+  row: number,
+): boolean {
+  return aoeRowsHit(spell, row).every((r) => canAoeRow(state, player, r));
+}
 export function canSpellHitEnemy(
   state: GameState,
   player: PlayerId,
@@ -1593,9 +1620,12 @@ export function canCastSpell(
   if (spell.kind === "aoe") {
     if (spell.area === "board") return { ok: true }; // hits every opponent, no pick
     if (opts.row == null) return { ok: false, reason: "Pick a row" };
-    if (!canAoeRow(state, player, opts.row)) return { ok: false, reason: "Can't reach that row" };
     if (spell.area === "tworows" && opts.row + 1 >= state.boardSize)
       return { ok: false, reason: "No row behind that one" };
+    // EVERY row the sweep lands on, not just the one that was picked: the
+    // resolver hits the spill row too, so the spill row faces the same gate.
+    if (!canAoeSpellRow(state, player, spell, opts.row))
+      return { ok: false, reason: "Can't reach that row" };
     return { ok: true };
   }
   if (spell.swapAllies) {
