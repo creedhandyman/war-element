@@ -63,7 +63,7 @@ export const PYRO_LORE: Record<string, string> = {
     "It only eats what is already cooking. So it makes very sure that everything is.",
 
   pyro_scully: // Scallywag
-    "The pirate lanes pay by the head, and she charges extra for showing off. Use a Special near her and it costs you.",
+    "The pirate lanes pay by the head, and he charges extra for showing off. Use a Special near him and it costs you.",
 
   pyro_liza:
     "She never lights anything herself. She finds what is already burning and tells it to take its time.",

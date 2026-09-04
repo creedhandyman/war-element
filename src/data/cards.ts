@@ -2870,7 +2870,11 @@ export const CARDS: CardDef[] = [
     hp: 26, // Element_Cores' corrected value (the printed 65-total 21-HP was a checksum error)
     sp: 4,
     shields: 10,
-    keywords: {},
+    // BLOCK 2 on top of the ten shields, and the two do different jobs: shields
+    // are a pool that runs out, BLOCK is a flat toll on every hit that never
+    // does. It is what stops a cost-10 emperor being chipped down by a swarm of
+    // small hits once the plate is gone. Free against the curve.
+    keywords: { BLOCK: 2 },
     // Triple Sun — Crowned: CLEANSE all allies each round (strip negatives).
     // (Order's shield-on-ally-summon and Chaos/Awakening remain deferred — the
     //  "Awakening" bonus-attack mechanic is undefined elsewhere in the docs.)
@@ -4036,6 +4040,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 5,
     keywords: {},
+    tribe: "Volcanic",
     // Feeds on the slain: each kill grants a permanent +2 DMG.
     passiveNames: { onKill: "Feeds on the slain" },
     onKill: { buffDmg: 2 },
@@ -8601,9 +8606,18 @@ export const CARDS: CardDef[] = [
       name: "100,000°",
       cost: 2,
       handler: "empower",
-      params: { selfDmg: 11, selfPen: 1, selfRangedShots: 1, buffRounds: 1 },
+      // TWO ROUNDS, and one was a bug rather than a balance choice. Buffs tick
+      // down in CLEANUP (phases.ts), and a card takes exactly one battle action
+      // — Basic or Special, never both — so a charge fired this round can only
+      // ever be spent NEXT round. At `buffRounds: 1` it was decremented to zero
+      // at the end of the very round it was cast and dropped before the attack
+      // it exists to power: 2 Magic for nothing, every time. The card's own
+      // comment already said "the blow lands NEXT round", which is exactly what
+      // could not happen. Two rounds survives one Cleanup and is spent on the
+      // following basic, then expires — the printed behaviour, at last.
+      params: { selfDmg: 11, selfPen: 1, selfRangedShots: 1, buffRounds: 2 },
       targetSide: "self",
-      text: "Charge: your next basic attack fires at RANGE for +11 DMG (PEN).",
+      text: "Charge: your NEXT round's basic attack fires at RANGE for +11 DMG (PEN).",
     },
   },
   {
@@ -12672,7 +12686,10 @@ export const CARDS: CardDef[] = [
     hp: 26,
     sp: 5,
     shields: 4,
-    keywords: { PEN: true },
+    // BLOCK 1 with the PEN: he cuts through armour and shrugs the first point
+    // off everything coming back. Free against the curve — keywords are not in
+    // the stat formula — so the line stays at 50 = 5*8+10.
+    keywords: { PEN: true, BLOCK: 1 },
     passiveNames: { onKill: "Made Man", contractPayout: "Payout" },
     onKill: { buffDmg: 2, buffDmgMax: 6, gainShields: 1 },
     // PAYOUT — the contract pays when it is FILLED, not when it is signed.
