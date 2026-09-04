@@ -169,20 +169,36 @@ export function GuideOverlay(props: {
    *  visible. `useHole` already re-measures on scroll (capture phase), so the
    *  ring follows on its own.
    *
-   *  Keyed on the anchor id, so it happens once per step and not on every
-   *  re-measure — a scroll that re-ran on its own result would fight the player. */
+   *  IT HAS TO WAIT FOR THE TARGET TO EXIST. This used to look once, on a flat
+   *  160ms timeout, and give up silently if the element was not there yet —
+   *  which is precisely the case it was written for. A step that switches tab
+   *  and points into the new one fires at the same render as the switch, and
+   *  160ms is not reliably enough for the Shop to mount. The guide then drew its
+   *  ring anyway (`useHole` polls for ~600ms and finds it eventually) while the
+   *  scroll had already run and returned, so the symptom was a spotlight in the
+   *  right place with the panel still at `scrollTop: 0` and the card sitting on
+   *  the pack art — the exact bug this was supposed to have fixed.
+   *
+   *  So it waits for the HOLE rather than for a clock: `useHole` already owns
+   *  "is the target on screen and laid out", and this is downstream of that
+   *  answer. Recorded per anchor so it still happens once per step — a scroll
+   *  that re-ran on its own result would fight the player.
+   *
+   *  `hole` is deliberately NOT a dependency: it changes on every re-measure,
+   *  and the ref is what makes this once-per-step. `found` is the boolean of it.
+   *  The ref holds the LAST anchor scrolled to, so a step the player comes back
+   *  to scrolls again — which is right, they have moved the screen since. */
+  const scrolledFor = useRef<string | null>(null);
+  const found = !!hole;
   useEffect(() => {
-    if (!props.anchor || suppressed) return;
+    if (!props.anchor || suppressed || !found) return;
+    if (scrolledFor.current === props.anchor) return;
     const el = guideTarget(props.anchor);
     if (!el) return;
-    const id = window.setTimeout(
-      () => el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" }),
-      // After the tab switch this step may have just triggered, or it scrolls
-      // the outgoing screen.
-      160,
-    );
-    return () => window.clearTimeout(id);
-  }, [props.anchor, suppressed]);
+    scrolledFor.current = props.anchor;
+    el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" });
+  }, [props.anchor, suppressed, found]);
+
   /** MINIMISED, not skipped. The core steps deliberately cannot be skipped until
    *  the first pack and the first battle are done, and that rule is worth
    *  keeping — but "you may not dismiss this" and "this sits on top of the thing

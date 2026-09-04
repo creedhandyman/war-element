@@ -5493,6 +5493,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   pointer-events: none;
 }
 .pack-swipe i { font-style: normal; font-size: 15px; animation: swipeNudge 1.6s ease-in-out infinite; }
+
+/* The way out of the remaining turns. Quiet on purpose — it is the control for
+   someone who has stopped wanting the animation, not a second call to action
+   competing with the card. */
+.pack-rest {
+  margin: 10px auto 0; display: block; background: none; border: 0;
+  color: var(--ink-faint); font-size: var(--fs-1); letter-spacing: 0.06em;
+  text-transform: uppercase; cursor: pointer; padding: 6px 10px; border-radius: 8px;
+}
+.pack-rest:hover { color: var(--ink); background: rgba(255,255,255,0.06); }
+
+/* Confirmation that the squad on screen is the squad on disk. Quiet: it is a
+   receipt, not an announcement. */
+.db-saved-note {
+  margin-top: 8px; font-size: var(--fs-1); color: var(--ink-faint);
+  text-align: center; line-height: 1.4;
+}
+.db-saved-note b { color: var(--ink); font-weight: 600; }
 @keyframes swipeNudge { 0%, 100% { transform: translateY(0); opacity: .55; } 50% { transform: translateY(4px); opacity: 1; } }
 
 /* Everything already turned, so the pack accumulates in front of you rather

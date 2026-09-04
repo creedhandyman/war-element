@@ -188,6 +188,24 @@ export function Shop(props: {
   /** Swipe DOWN to turn the next card. A tap counts too — this is the same
    *  sheet on a desktop, where there is no swipe to make. */
   const SWIPE_PX = 56;
+  /** WHICH OF THE TWO TO PRINT. Both gestures have always worked; the label
+   *  only ever named the phone one, so on a desktop the pack said "swipe down"
+   *  at someone holding a mouse — an instruction they cannot follow, over a
+   *  card that would have turned on the click they were already about to make.
+   *  A new player reads that as a stuck screen.
+   *
+   *  Asked as a media query rather than of the user agent, and re-asked on
+   *  change: a tablet with a keyboard attached is both, and the answer flips
+   *  under you. */
+  const [coarse, setCoarse] = useState(true);
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(pointer: coarse)");
+    const read = () => setCoarse(mq.matches);
+    read();
+    mq.addEventListener?.("change", read);
+    return () => mq.removeEventListener?.("change", read);
+  }, []);
   const nextCard = () => {
     dragPx.current = 0;
     setDrag(0);
@@ -579,9 +597,27 @@ export function Shop(props: {
               })}
               <span className="pack-swipe">
                 <i aria-hidden="true">⌄</i>
-                swipe down
+                {coarse ? "swipe down" : "click to turn"}
               </span>
             </div>
+            )}
+
+            {/* A WAY OUT OF THE REMAINING TURNS. Five cards is five gestures,
+                and the one-at-a-time reveal is the good part of buying a pack
+                — but it is the good part the FIRST time. A player opening
+                their tenth is doing four presses to reach a tally they can
+                already guess, and the pack does not become more exciting for
+                being unskippable.
+
+                Offered only after the first card, so the beat is always felt
+                once, and only while two or more are left, so it never appears
+                as a button that saves a single press. It turns the rest at
+                once rather than animating through them: this is the control
+                for someone who has stopped wanting the animation. */}
+            {!allShown && shown > 0 && reveal.length - shown > 1 && (
+              <button className="pack-rest" onClick={() => { setDrag(0); setShown(reveal.length); }}>
+                Turn the last {reveal.length - shown}
+              </button>
             )}
 
             {/* What has already been turned, small, so the pack accumulates

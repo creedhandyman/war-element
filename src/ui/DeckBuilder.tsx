@@ -122,6 +122,15 @@ export function DeckBuilder(props: {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
+  /** The squad just written, as a name plus a signature of what was in it.
+   *
+   *  DERIVED, not timed. The note has to disappear when it stops being true —
+   *  the moment the player edits the squad it describes — and a timer would
+   *  either outlive that or expire while they are still reading. Comparing the
+   *  signature answers the real question ("is what is on screen still what was
+   *  saved?") and needs no effect, so it also cannot fight the very save that
+   *  set it. */
+  const [justSaved, setJustSaved] = useState<{ name: string; sig: string } | null>(null);
   const [pickedSpells, setPickedSpells] = useState<string[]>([]);
   const [filter, setFilter] = useState<Element | "ALL">("ALL");
   const [classFilter, setClassFilter] = useState<CardClass | "ALL">("ALL");
@@ -428,6 +437,11 @@ export function DeckBuilder(props: {
     // what the empty-box report was.
     setPanel(phone ? null : "comp");
   }
+  /** What the squad IS, flattened. Order matters and that is fine: reordering
+   *  the picks is an edit like any other. */
+  const squadSig = (label: string, cards: string[], spells: string[]) =>
+    `${label}|${cards.join(",")}|${spells.join(",")}`;
+
   function save() {
     if (!check.ok) return;
     const label = name.trim() || (story ? `${story.element ?? "New"} squad` : "Untitled squad");
@@ -448,8 +462,22 @@ export function DeckBuilder(props: {
     // One write, one library. The campaign is only told WHICH squad, so the
     // prep screen can come back to it — `saveSquad` matches by name, so that is
     // how the id is recovered.
-    if (story) story.onSaved(picked, squadNamed(next, label)?.id);
-    reset();
+    const saved = squadNamed(next, label);
+    if (story) story.onSaved(picked, saved?.id);
+    // AND IT STAYS ON SCREEN. This used to `reset()`, which emptied the picks
+    // and the name — so the reward for saving a squad was a builder reading
+    // "0 cards · Nothing picked yet", which is exactly what a FAILED save would
+    // look like. A player coming from the campaign had just chosen the team
+    // they were about to fight with; being handed back an empty screen reads as
+    // having lost it.
+    //
+    // Clearing is still one tap away and always was: the Clear button is right
+    // there beside this one. Saving now does what saving does everywhere else —
+    // it keeps the thing, and the screen switches to editing it, so the button
+    // becomes "Update squad" and says what a second press would do.
+    setEditingId(saved?.id ?? editingId);
+    setName(label);
+    setJustSaved({ name: label, sig: squadSig(label, picked, pickedSpells) });
   }
   function remove(id: string) {
     const next = deleteSquad(id);
@@ -737,6 +765,11 @@ export function DeckBuilder(props: {
               </button>
               <button className="ghost" onClick={reset}>Clear</button>
             </div>
+            {justSaved && justSaved.sig === squadSig(name.trim() || justSaved.name, picked, pickedSpells) && (
+              <div className="db-saved-note" role="status">
+                Saved · <b>{justSaved.name}</b> — still loaded, edit and update any time.
+              </div>
+            )}
 
             {/* THE SQUAD ITSELF. Always on screen: the only way to remove a
                 card used to be finding it again among three hundred in the pool
