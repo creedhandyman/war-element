@@ -21,7 +21,7 @@
 import type { CardDef, CardInstance, GameState, PlayerId, Pos, StatusKind } from "./types";
 import { boardCards, hasStatus, enemyCards } from "./state";
 import { getDef } from "../data/cards";
-import { specialTargets } from "./rules";
+import { farRowCells, specialTargets } from "./rules";
 
 export interface BossTelegraph {
   /** The boss instance the clock belongs to. */
@@ -176,7 +176,22 @@ function reached(
     // means the two can never disagree.
     default: {
       const list = specialTargets(state, card.instanceId);
-      return { cards: list, strikes: Math.min(cap, list.length) };
+      // THE FAR ROW. `barrage` can reach PAST the row it sweeps — farRowDmg /
+      // farRowStatus / farRowRootNext all land two rows ahead of the caster in
+      // a separate pass that reads the board itself, and `specialTargets`
+      // knows nothing about any of them. No boss carries one today; the point
+      // is that the day one does, it telegraphs a zone smaller than its blast,
+      // and under-reporting is the one thing this module must never do.
+      const far = card.pos ? farRowCells(state.boardSize, card.owner, card.pos, p) : [];
+      const caught = far.length
+        ? livingFoes(state, card).filter(
+            (e) => far.some((c) => c.row === e.pos!.row && c.col === e.pos!.col)
+              && !list.some((l) => l.instanceId === e.instanceId),
+          )
+        : [];
+      // The far burst is uncapped — `targets` bounds the near volley only — so
+      // its victims are added to the strike count rather than folded into it.
+      return { cards: [...list, ...caught], strikes: Math.min(cap, list.length) + caught.length };
     }
   }
 }

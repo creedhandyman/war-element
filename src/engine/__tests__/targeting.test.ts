@@ -119,19 +119,17 @@ describe("previewOnSummonArea (placement preview)", () => {
     expect(struck).toEqual(drawn);
   });
 
-  it("...and never promises more than it delivers (Aftermath)", () => {
-    // Subset rather than equality, deliberately and temporarily. Aftermath also
-    // carries `farRowDmg`, a SECOND band two rows ahead, and no preview path in
-    // the app knows about it yet — it is being added alongside the two-row
-    // spells and `smite`, which are the same class of omission.
-    //
-    // The direction is what matters here and it is the safe one: the preview
-    // UNDER-reports, so nothing it draws is a lie. Over-reporting is the bug
-    // this change fixed, and this asserts it has not come back. When the far row
-    // lands, the two sets become equal and this still passes.
+  it("...and BOTH of Aftermath's bands are drawn, not just the near one", () => {
+    // This was a subset check while the far row was missing: Aftermath carries
+    // `farRowDmg`, a SECOND band two rows ahead, and no preview path knew about
+    // it. The preview UNDER-reported — the safe direction, but still a square
+    // that took damage without ever lighting up. The far row now lands
+    // (`farRowCells`), so the two sets are equal, which is what the fixture was
+    // written to become: (2,1) and (2,3) in the near band, (1,2) in the far one.
     const { drawn, struck } = struckBySummoning("pyro_aftermath");
     expect(drawn.size, "drew nothing at all").toBeGreaterThan(0);
-    for (const cell of drawn) expect(struck, `previewed ${cell} but it took nothing`).toContain(cell);
+    expect(struck.has("1,2"), "the far band did not fire — the fixture is wrong").toBe(true);
+    expect(drawn).toEqual(struck);
   });
 });
 

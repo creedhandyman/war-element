@@ -4,9 +4,11 @@ import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
 import {
-  areaBlastCells, blastArea, canBasicAttack, canFireSpecial, isActionBlocked,
-  previewSpecialArea, specialAreaShape, splashCells,
+  aoeRowsHit, areaBlastCells, blastArea, canBasicAttack, canFireSpecial, farRowCells,
+  hasFarRow, isActionBlocked, previewOnSummonArea, previewSpecialArea, previewSpecialFarRow,
+  specialAreaShape, specialTargets, splashCells,
 } from "../rules";
+import { getSpell } from "../spells";
 import { effectiveDmg, effectiveSp } from "../state";
 import { DUSK_DRAIN } from "../auras";
 import { CARDS, getDef } from "../../data/cards";
@@ -1656,5 +1658,167 @@ describe("an area Special shows its footprint before it fires", () => {
     const plainDef = CARDS.find((c) => c.special && !specialAreaShape(c.special) && !c.boss)!;
     const c = place(s, plainDef.id, "P1", 3, 0);
     expect(previewSpecialArea(s, c.instanceId, at(1, 1))).toBeNull();
+  });
+});
+
+
+/* -- THE THREE SHAPES THAT STILL COMMITTED BLIND -----------------------------
+   The aim-then-fire footprint above covered the Specials anchored on a pick.
+   A survey turned up three more places where the board hits squares it never
+   drew - and one of them, `smite`, was the failure telegraph.ts names as the
+   only one that must never happen: the lit set was a strict SUBSET of the hit
+   set. Each is pinned here against the ENGINE's own behaviour rather than
+   against a second copy of the geometry, because a preview checked against a
+   copy of itself proves nothing. */
+describe("a two-row sweep shows BOTH rows before it lands", () => {
+  it("aoeRowsHit names the spill row, and the resolver hits exactly those two", () => {
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "aqua_glacial_wave", used: false }];
+    s.players.P1.magicPool = 8;
+    const spell = getSpell("aqua_glacial_wave");
+    // The pick is row 1; the sweep also takes row 2. THIS is the pair the aim
+    // draws, and the pair the click used to commit to without ever showing.
+    expect(aoeRowsHit(spell, 1)).toEqual([1, 2]);
+    const picked = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 14, maxHp: 14 });
+    const spill = place(s, "leaf_greegon", "P2", 2, 1, { curHp: 14, maxHp: 14 });
+    const outside = place(s, "bore_armadillo", "P2", 0, 2, { curHp: 15, maxHp: 15 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 1,
+    });
+    expect(statusOf(next.cards[picked.instanceId], "FREEZE")).toBeTruthy();
+    // The row the player was never shown. Frozen all the same.
+    expect(statusOf(next.cards[spill.instanceId], "FREEZE")).toBeTruthy();
+    expect(statusOf(next.cards[outside.instanceId], "FREEZE")).toBeFalsy();
+  });
+
+  it("and the invisible row decided the caster's OWN shields too", () => {
+    // `allyShieldInArea` reads the same two rows (phases.ts), so the half that
+    // was never drawn was picking friendly targets as well as enemy ones.
+    const s = prepState();
+    s.players.P1.spellbook = [{ defId: "aqua_glacial_wave", used: false }];
+    s.players.P1.magicPool = 8;
+    const inSpill = place(s, "aqua_cryo", "P1", 2, 0, { curShields: 0 });
+    const outside = place(s, "aqua_cryo", "P1", 3, 1, { curShields: 0 });
+    const next = applyIntent(s, {
+      type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 1,
+    });
+    expect(next.cards[inSpill.instanceId].curShields).toBe(2);
+    expect(next.cards[outside.instanceId].curShields).toBe(0);
+  });
+
+  it("every two-row spell in the set spills the same way", () => {
+    // The asymmetry is documented at the rule (the spill always runs toward
+    // +1), so it is worth pinning that no card quietly does it the other way.
+    for (const id of ["aqua_glacial_wave", "gale_gale_force", "bore_landslide"]) {
+      const spell = getSpell(id);
+      expect(spell.area, id).toBe("tworows");
+      expect(aoeRowsHit(spell, 1), id).toEqual([1, 2]);
+    }
+  });
+});
+
+describe("the far row is drawn, not just hit", () => {
+  const key = (p: { row: number; col: number }) => `${p.row},${p.col}`;
+
+  it("hasFarRow answers for the three riders that reach it, and nothing else", () => {
+    expect(hasFarRow(getDef("pyro_aftermath").onSummon?.params)).toBe(true);   // farRowDmg
+    expect(hasFarRow(getDef("leaf_season").special?.params)).toBe(true);       // farRowRootNext
+    expect(hasFarRow({ farRowStatus: 1, statusKind: "ROOT" })).toBe(true);
+    // A status with no kind to apply reaches nobody - the same gate the
+    // handler keeps, so the preview must not draw a row it will not touch.
+    expect(hasFarRow({ farRowStatus: 1 })).toBe(false);
+    expect(hasFarRow({ dmg: 5, rowAhead: 1 })).toBe(false);
+    expect(hasFarRow(undefined)).toBe(false);
+  });
+
+  it("farRowCells is the whole row TWO ahead, and empty off the board", () => {
+    // P1 fires toward row 0, so from row 3 the far row is row 1.
+    const cells = farRowCells(4, "P1", { row: 3, col: 0 } as never, { farRowDmg: 3 });
+    expect(cells.map(key).sort()).toEqual(["1,0", "1,1", "1,2", "1,3"]);
+    // P2 fires the other way: from row 0 the far row is row 2.
+    expect(farRowCells(4, "P2", { row: 0, col: 1 } as never, { farRowDmg: 3 }).map(key).sort())
+      .toEqual(["2,0", "2,1", "2,2", "2,3"]);
+    // Already up against the enemy line - nothing behind it to reach.
+    expect(farRowCells(4, "P1", { row: 1, col: 0 } as never, { farRowDmg: 3 })).toEqual([]);
+    expect(farRowCells(4, "P1", { row: 3, col: 0 } as never, { dmg: 5 })).toEqual([]);
+  });
+
+  it("Aftermath's on-summon preview covers the back line its Explosion burns", () => {
+    const s = prepState();
+    s.players.P1.gold = 8;
+    const near = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 14, maxHp: 14, curShields: 0 });
+    const far = place(s, "leaf_greegon", "P2", 1, 1, { curHp: 14, maxHp: 14, curShields: 0 });
+    // What the board would have drawn under the staged summon...
+    const drawn = new Set(
+      previewOnSummonArea(s, getDef("pyro_aftermath"), "P1", { row: 3, col: 0 } as never).map(key),
+    );
+    expect(drawn.has("2,0")).toBe(true); // the adjacent row it always showed
+    expect(drawn.has("1,1")).toBe(true); // ...and the row beyond, which it did not
+    // ...against what the summon actually does.
+    const handId = giveHand(s, "P1", "pyro_aftermath");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[near.instanceId].curHp).toBeLessThan(14);
+    expect(next.cards[far.instanceId].curHp).toBeLessThan(14);
+    // NOTHING was damaged outside the drawn cells - the rule the whole
+    // footprint idea rests on, checked the only way that means anything.
+    for (const c of Object.values(next.cards)) {
+      if (c.owner === "P1" || !c.pos) continue;
+      const before = s.cards[c.instanceId];
+      if (before && c.curHp < before.curHp) expect(drawn.has(key(c.pos)), key(c.pos)).toBe(true);
+    }
+  });
+
+  it("previewSpecialFarRow lights Evera's far row the moment the Special is armed", () => {
+    const s = prepState();
+    const evera = place(s, "leaf_season", "P1", 3, 0);
+    // No pick needed: the row is fixed by where the CASTER stands, which is why
+    // it is not part of the anchored footprint.
+    expect(previewSpecialFarRow(s, evera.instanceId).map(key).sort())
+      .toEqual(["1,0", "1,1", "1,2", "1,3"]);
+    // A Special with no far-row rider draws none.
+    const plain = place(s, "leaf_sumerose", "P1", 3, 1);
+    expect(previewSpecialFarRow(s, plain.instanceId)).toEqual([]);
+  });
+});
+
+describe("a smite's glow covers everything the sky hits", () => {
+  it("Thunder Strike reaches the enemy home row the Home-Slot rule hid", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    // Storm alone in its own home row: nothing committed forward, so the
+    // Home-Slot rule refuses the enemy home row to ordinary targeting.
+    const storm = place(s, "bolt_storm", "P1", 3, 0);
+    const zapped = place(s, "leaf_alpha", "P2", 0, 1, {
+      curHp: 14, maxHp: 14, curShields: 0,
+      status: { kind: "ELECTRIFIED", duration: 2, power: 0, source: "BOLT" },
+    });
+    // It was invisible to the picker and hit by the Special - the one direction
+    // a preview must never be wrong in.
+    expect(specialTargets(s, storm.instanceId).map((t) => t.instanceId)).toContain(zapped.instanceId);
+    const next = applyIntent(battleWith(s, storm.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: zapped.instanceId,
+    });
+    expect(next.cards[zapped.instanceId].curHp).toBeLessThan(14);
+  });
+
+  it("...and passes over an opponent without the status", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 5;
+    const storm = place(s, "bolt_storm", "P1", 3, 0);
+    const clean = place(s, "leaf_alpha", "P2", 0, 1, { curHp: 14, maxHp: 14, curShields: 0 });
+    // requireStatus is the one filter `smite` DOES keep, so the glow keeps it too.
+    expect(specialTargets(s, storm.instanceId)).toHaveLength(0);
+    expect(canFireSpecial(s, storm.instanceId).ok).toBe(false);
+    expect(clean.curHp).toBe(14);
+  });
+
+  it("the lit set IS the struck set, for a smite with no status gate at all", () => {
+    // Meteor Fall names no status: every living opponent, wherever it stands.
+    const s = prepState();
+    const boss = place(s, "boss_umbranova", "P2", 0, 0);
+    const a = place(s, "leaf_alpha", "P1", 3, 0);
+    const b = place(s, "leaf_greegon", "P1", 3, 3);
+    const lit = specialTargets(s, boss.instanceId).map((t) => t.instanceId).sort();
+    expect(lit).toEqual([a.instanceId, b.instanceId].sort());
   });
 });

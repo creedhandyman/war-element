@@ -31,7 +31,9 @@ import {
   summonLandingRow,
   summonSquare,
   previewSpecialArea,
+  previewSpecialFarRow,
   specialAreaShape,
+  aoeRowsHit,
   previewOnSummonArea,
   spellEnemyTargets,
   spellAllyTargets,
@@ -227,6 +229,7 @@ export function App() {
     setSel(null);
     setPending(null);
     setPicks([]);
+    setAimedSpellRow(null);
     setSurrenderArmed(false);
   };
   /** The action bar's overflow menu. Shut by default — the bar is one row. */
@@ -289,6 +292,16 @@ export function App() {
   // Reroute alternates card -> slot -> card -> slot; Rewire collects two cards
   // and no slots, because the pair simply trade squares.
   const [spellPicks, setSpellPicks] = useState<{ ids: string[]; slots: Pos[] }>({ ids: [], slots: [] });
+  /** THE AIMED ROW of a two-row Spell, held between the pick and the cast.
+   *
+   *  A "tworows" sweep (Glacial Wave, Gale Force, Landslide — all cost 8) hits
+   *  the row you click AND the one behind it, and the click used to cast on the
+   *  spot. Four candidate rows glowed, one was clicked, and a row that had
+   *  never been drawn took the FREEZE — while the same area decides which of
+   *  the caster's OWN cards get the shield (`allyShieldInArea`), so the
+   *  invisible half was picking friendly targets too. Now the click aims and
+   *  the cast is a second, separate press, like an area Special's FIRE. */
+  const [aimedSpellRow, setAimedSpellRow] = useState<number | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
   /** WHO IS PLAYING — one value, not two booleans.
@@ -2147,6 +2160,7 @@ export function App() {
       setPending(null);
       setPicks([]);
       setSpellPicks({ ids: [], slots: [] });
+      setAimedSpellRow(null);
       setHint(`Casting <b>${spell.name}</b> — click ${max} ${spell.element} allies to carry out the order.`);
       return;
     }
@@ -2167,6 +2181,7 @@ export function App() {
     setPending(null);
     setPicks([]);
     setSpellPicks({ ids: [], slots: [] });
+    setAimedSpellRow(null);
     // Walls + row/two-row AoE pick a row; traps pick a single empty SLOT;
     // damage spells pick an enemy.
     const picksRow = spell.kind === "wall" || spell.kind === "aoe";
@@ -2177,6 +2192,8 @@ export function App() {
         ? `Casting <b>${spell.name}</b> — click one of your cards, then where it should go.`
       : spell.kind === "trap"
         ? `Setting <b>${spell.name}</b> — click a glowing empty slot. Only you will see it.`
+        : spell.kind === "aoe" && spell.area === "tworows"
+          ? `Casting <b>${spell.name}</b> — click a glowing row to <b>aim</b> it; the two rows it sweeps light up, then press <b>Cast</b>.`
         : picksRow
           ? `Casting <b>${spell.name}</b> — click a glowing row.`
         : spellPickKind(spell) === "ally"
@@ -2210,6 +2227,7 @@ export function App() {
     setPending(null);
     setPicks([]);
     setSpellPicks({ ids: [], slots: [] });
+    setAimedSpellRow(null);
     setHint(
       mode === "shield"
         ? `Casting <b>${spell.name}</b> — click the ${spell.element} ally to shield.`
@@ -2422,7 +2440,29 @@ export function App() {
         }
         return;
       }
-      // Walls + row/two-row AoE spells drop onto any slot of a glowing row.
+      // A TWO-ROW SWEEP IS AIMED, NOT CAST, BY THE CLICK — the same rule an
+      // anchored area Special follows, and for the same reason. `aoeRowsHit`
+      // spills the blast into row+1, the UI lit only the legal CANDIDATE rows,
+      // and the click fired: the player saw four glowing rows, clicked one, and
+      // a row they had never been shown was frozen. The spill is asymmetric
+      // (rules.ts: it always runs toward +1), so it is not something a player
+      // can infer from which seat they hold either. Now the click lights both
+      // rows and Cast is a separate press.
+      if (spell.kind === "aoe" && spell.area === "tworows") {
+        const chk = canCastSpell(game, me, sel.spellId, { row });
+        if (!chk.ok) {
+          if (clicked) setDetailId(clicked.instanceId);
+          else setHint(`⚠ ${chk.reason}`);
+          return;
+        }
+        setAimedSpellRow(row);
+        const rows = aoeRowsHit(spell, row).map((r) => r + 1).join(" and ");
+        setHint(`Aimed at rows <b>${rows}</b> — the lit rows are the sweep. Press <b>Cast</b>, or click another row to re-aim.`);
+        return;
+      }
+      // Walls + single-row AoE spells drop onto any slot of a glowing row. No
+      // aim step: the row they land on is the row that was clicked, and it is
+      // already lit.
       if (spell.kind === "wall" || (spell.kind === "aoe" && spell.area !== "board")) {
         const chk = canCastSpell(game, me, sel.spellId, { row });
         if (chk.ok) {
@@ -2587,19 +2627,55 @@ export function App() {
   // fixed zone with only a Confirm, and the engine then anchored the 4x4 on
   // whatever happened to be first in the list. One pick names the corner.
   const aimedArea = !!activeDef?.special && specialAreaShape(activeDef.special) !== null;
+  // A SMITE HAS NOTHING TO AIM. `smite` reads neither the pick nor the range:
+  // it takes every living opponent carrying the required status and hits them,
+  // wherever they stand. `specialTargets` now says so (rules.ts), and the whole
+  // set glows — so asking the player to choose one of them would be asking for
+  // a decision the Special does not have. It is a fixed zone with a Confirm,
+  // exactly like the board-wide volleys already treated as one.
+  const smiteZone = activeDef?.special?.handler === "smite";
   const specialAoE =
     !aimedCorridor && !aimedArea &&
-    !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
-  /** The footprint under the current aim — the cells the Special would cover
-   *  anchored on the picked card. Empty until a pick exists: there is no anchor
-   *  yet and nothing honest to draw. Computed by the same function the engine
-   *  filters with, so it cannot disagree with where the shell actually lands. */
+    !!activeDef?.special &&
+    (smiteZone || Number(activeDef.special.params?.targets ?? 1) >= specialValid.length);
+  /** THE FOOTPRINT UNDER THE ARMED SPECIAL — every square it covers, drawn
+   *  before it fires.
+   *
+   *  Two halves, and they arrive at different moments:
+   *
+   *  · the ANCHORED area (Airburst's N x N, Mega Icicle's 2x2, a splash ring)
+   *    needs a pick, because the pick IS the anchor. Empty until then — there
+   *    is nothing honest to draw yet.
+   *  · the FAR ROW (Aftermath's Explosion, Evera's Spiraling Root Coil) is
+   *    fixed by where the CASTER stands, so it is known the instant the Special
+   *    is armed and lights up then. It was drawn nowhere at all: the row two
+   *    ahead took damage, or next round's ROOT, out of squares that had never
+   *    been marked.
+   *
+   *  Both computed by the functions the engine itself reads, so neither can
+   *  disagree with where the blast actually lands. */
   const aimArea: Pos[] = useMemo(() => {
-    if (pending !== "special" || !awaitingId || !aimedArea || picks.length === 0) return [];
+    if (pending !== "special" || !awaitingId) return [];
+    const far = previewSpecialFarRow(game, awaitingId);
+    if (!aimedArea || picks.length === 0) return far;
     const anchor = game.cards[picks[0]];
-    if (!anchor?.pos) return [];
-    return previewSpecialArea(game, awaitingId, anchor.pos) ?? [];
+    if (!anchor?.pos) return far;
+    return [...(previewSpecialArea(game, awaitingId, anchor.pos) ?? []), ...far];
   }, [pending, awaitingId, aimedArea, picks, game]);
+  /** The two rows an aimed sweep will land on — the spill row included, which
+   *  is the entire point of the aim step. */
+  const aimSpellRows: number[] = useMemo(() => {
+    if (sel?.kind !== "spell" || aimedSpellRow === null) return [];
+    const spell = getSpell(sel.spellId);
+    if (spell.kind !== "aoe" || spell.area !== "tworows") return [];
+    return aoeRowsHit(spell, aimedSpellRow).filter((r) => r >= 0 && r < game.boardSize);
+  }, [sel, aimedSpellRow, game.boardSize]);
+  const aimSpellCells: Pos[] = useMemo(() => {
+    const out: Pos[] = [];
+    for (const r of aimSpellRows)
+      for (let c = 0; c < game.boardSize; c++) out.push({ row: r, col: c } as Pos);
+    return out;
+  }, [aimSpellRows, game.boardSize]);
 
   /* ── the four battle verbs, in one place ──────────────────────────────────
      Hoisted out of the buttons because they are now rendered TWICE: as the
@@ -2951,7 +3027,7 @@ export function App() {
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}
             previewArea={previewArea}
-            aimArea={aimArea}
+            aimArea={[...aimArea, ...aimSpellCells]}
             blast={blast}
             telegraphs={telegraphs}
             stagedSlot={stagedSlot}
@@ -2982,6 +3058,36 @@ export function App() {
             onSlotDragOver={onSlotDragOver}
             onSlotDrop={onSlotDrop}
           />
+
+          {/* THE SECOND PRESS for a two-row sweep. Same shape and same place as
+              the staged-summon confirm above it: the footprint is on the board,
+              and the commit is a deliberate, separate tap. */}
+          {myPrep && sel?.kind === "spell" && aimedSpellRow !== null && aimSpellRows.length > 0 && me !== null && (() => {
+            const spell = getSpell(sel.spellId);
+            const rows = aimSpellRows.map((r) => r + 1).join(" and ");
+            return (
+              <div className="summon-confirm spell-aim">
+                <span className="sc-text">
+                  <b>{spell.name}</b> sweeps rows {rows} · <span className="sc-gold">gold = the whole area</span>
+                </span>
+                <button
+                  className="lockin sc-yes"
+                  onClick={() => {
+                    const chk = canCastSpell(game, me, sel.spellId, { row: aimedSpellRow });
+                    if (!chk.ok) { setHint(`⚠ ${chk.reason}`); return; }
+                    setAimedSpellRow(null);
+                    castSpell(
+                      { type: "CAST_SPELL", player: me, spellId: sel.spellId, row: aimedSpellRow },
+                      `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`,
+                    );
+                  }}
+                >
+                  Cast
+                </button>
+                <button className="ghost sc-no" onClick={clearAction}>Cancel</button>
+              </div>
+            );
+          })()}
 
           {staged && me !== null && (() => {
             const h = game.players[me].hand.find((c) => c.handId === staged.handId);

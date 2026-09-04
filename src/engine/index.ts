@@ -35,6 +35,7 @@ export {
   homeSlots,
   summonSquare,
   previewSpecialArea,
+  previewSpecialFarRow,
   specialAreaShape,
   summonLandingRow,
   openHomeSlots,
@@ -65,6 +66,8 @@ export {
   canAoeRow,
   canAoeSpellRow,
   aoeRowsHit,
+  farRowCells,
+  hasFarRow,
 } from "./rules";
 export type { PlannedAction } from "./rules";
 export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellPickKind, spellbookFor, spellbookFromIds, MAX_SPELLBOOK, spellCostCap, spellCapForId, legalSpellIds, SPELL_COST_CAPS } from "./spells";

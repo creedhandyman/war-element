@@ -872,6 +872,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .summon-confirm { position: absolute; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: var(--z-hud); display: flex; align-items: center; gap: 10px; padding: 10px 16px; border-radius: 12px; background: linear-gradient(180deg, rgba(24, 20, 15, 0.98), rgba(15, 13, 10, 0.98)); border: 1px solid var(--threat); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 22px var(--threat-soft); }
 .sc-text { font-size: 13px; color: var(--ink); }
 .sc-red { color: var(--threat); font-weight: 800; }
+/* The same bar, wearing the aim's gold rather than the summon's red — it is
+   confirming a footprint that is drawn in gold on the board behind it, and a
+   red frame around it would name a colour that is nowhere in the picture. */
+.summon-confirm.spell-aim { border-color: rgba(232, 200, 119, 0.85); box-shadow: 0 10px 32px rgba(0, 0, 0, 0.65), 0 0 22px rgba(232, 200, 119, 0.35); }
+.sc-gold { color: #e8c877; font-weight: 800; }
 .summon-confirm .lockin { padding: 8px 16px; font-size: 12px; margin: 0; }
 .summon-confirm .ghost { padding: 8px 14px; }
 /* Capture marker. Was a bare 12px emoji at 85% opacity in the corner, which on

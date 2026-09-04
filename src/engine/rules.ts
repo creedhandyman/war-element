@@ -1377,6 +1377,71 @@ export function onSummonTargets(
  *  `rowAhead` is not a sourcing rule at all, so Aftermath and Infernus Rex
  *  reached the handler holding every enemy on the board, and the preview
  *  faithfully drew all of them. */
+/** The row directly ahead of `owner` — a step toward the enemy home.
+ *
+ *  The same arithmetic `rowAhead` in combat.ts does, spelled out here because
+ *  rules.ts sits upstream of the resolver and must not import it. Two lines,
+ *  and the direction is the game's oldest convention. */
+function rowAheadOf(owner: PlayerId, row: number): number {
+  return owner === "P1" ? row - 1 : row + 1;
+}
+
+/** Does this params blob carry a FAR-ROW rider?
+ *
+ *  Three of them exist, and they are the reason this function does: `barrage`
+ *  can reach past the row it sweeps and hit the one BEYOND it — `farRowDmg`
+ *  (Aftermath's Explosion, 3 to the back line), `farRowStatus`, and
+ *  `farRowRootNext` (Evera's Spiraling Root Coil, a ROOT that lands there next
+ *  round). Mirrors the gates in the handler exactly, `statusKind` included: a
+ *  farRowStatus with no kind to apply reaches nobody. */
+export function hasFarRow(params: Record<string, unknown> | undefined): boolean {
+  const p = params ?? {};
+  return (
+    Number(p.farRowDmg ?? 0) > 0 ||
+    (Number(p.farRowStatus ?? 0) > 0 && typeof p.statusKind === "string" && !!p.statusKind) ||
+    Number(p.farRowRootNext ?? 0) > 0
+  );
+}
+
+/** The cells a far-row rider covers: the whole row TWO ahead of `pos`.
+ *
+ *  Empty for params with no such rider, and empty when that row is off the
+ *  board — a caster already up against the enemy home has nothing behind it to
+ *  reach. CELLS, like every other footprint here: who is standing in them when
+ *  it lands is the engine's business.
+ *
+ *  ONE definition, read by the on-summon preview, the armed-Special footprint
+ *  and the boss telegraph — the three places that each, separately, did not
+ *  know this row existed. */
+export function farRowCells(
+  boardSize: number,
+  owner: PlayerId,
+  pos: Pos,
+  params: Record<string, unknown> | undefined,
+): Pos[] {
+  if (!hasFarRow(params)) return [];
+  const row = rowAheadOf(owner, rowAheadOf(owner, pos.row));
+  if (row < 0 || row >= boardSize) return [];
+  const out: Pos[] = [];
+  for (let col = 0; col < boardSize; col++) out.push({ row, col } as Pos);
+  return out;
+}
+
+/** The far row `casterId`'s Special reaches, if its Special reaches one.
+ *
+ *  NOT anchored on a pick, which is why it is separate from
+ *  `previewSpecialArea`: the row is fixed by where the CASTER stands, so it is
+ *  known the moment the Special is armed and lights up then — before the player
+ *  has chosen anything. Evera's roots snake into it whichever four targets are
+ *  picked in front of it. */
+export function previewSpecialFarRow(state: GameState, casterId: string): Pos[] {
+  const caster = state.cards[casterId];
+  if (!caster?.pos) return [];
+  const sp = getDef(caster.defId).special;
+  if (!sp) return [];
+  return farRowCells(state.boardSize, caster.owner, caster.pos, sp.params);
+}
+
 export function previewOnSummonArea(
   state: GameState,
   def: CardDef,
@@ -1386,6 +1451,26 @@ export function previewOnSummonArea(
   const os = def.onSummon;
   if (!os || os.targetSide === "ally") return [];
   const p = os.params ?? {};
+  // THE FAR ROW, which nothing here knew about. Aftermath's Explosion is
+  // printed as "5 DMG to the adjacent row and 3 to the row beyond", and the
+  // preview drew only the adjacent one — the back line took damage out of a
+  // square that had never lit up. `volleyFilters` cannot help: it NARROWS the
+  // near sweep to `rowAhead`, and the far burst is a separate pass in the
+  // handler that reads the board itself, with no reach filter of any kind — so
+  // EVERY enemy on that row is in it.
+  //
+  // Drawn as VICTIMS rather than as ground, unlike the gold aim footprint,
+  // because this preview's red already means "this card gets hit" and it
+  // cannot mean anything else: a MELEE rowAhead sweep is the row INTERSECTED
+  // with king reach (Infernus Rex), so the near half can never be drawn as a
+  // whole row. One colour, one meaning, in one picture.
+  const farRow = farRowCells(state.boardSize, owner, pos, p);
+  const far = farRow.length
+    ? enemyCards(state, owner)
+        .filter((e) => e.curHp > 0 && e.pos
+          && farRow.some((c) => c.row === e.pos!.row && c.col === e.pos!.col))
+        .map((e) => ({ ...e.pos! }))
+    : [];
 
   // A CORRIDOR IS A SHAPE, and shapes are drawn as ground rather than as the
   // bodies standing on it — every square the blast covers, empty ones included,
@@ -1412,7 +1497,7 @@ export function previewOnSummonArea(
         out.push({ row: r as Pos["row"], col: c as Pos["col"] });
       }
     }
-    return out;
+    return [...out, ...far];
   }
 
   // Everything else names VICTIMS rather than ground, so the preview marks the
@@ -1429,7 +1514,7 @@ export function previewOnSummonArea(
   // Bane) hits ONE and the preview must not paint the whole board red behind it.
   // Absent `targets` means one, which is what a `strike` does.
   const cap = Math.max(1, Number(p.targets ?? 1));
-  return list.slice(0, cap).filter((t) => t.pos).map((t) => ({ ...t.pos! }));
+  return [...list.slice(0, cap).filter((t) => t.pos).map((t) => ({ ...t.pos! })), ...far];
 }
 
 /** Unique by instanceId, keeping first-seen order. */
@@ -1449,6 +1534,27 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   if (special.targetSide === "self") return [card];
   if (special.targetSide === "ally") return validAllyTargets(state, instanceId);
   const p = special.params ?? {};
+  // SMITE IGNORES EVERYTHING, and says so in its own docstring while this
+  // function quietly disagreed. `smite` (combat.ts) takes the living enemies,
+  // filters them by `requireStatus`, and hits them — no reach, no STEALTH
+  // screen, no Home-slot rule. Falling through to `validSpecialTargets` made
+  // the glowing set a strict SUBSET of what the sky actually lands on, which
+  // is the one direction a preview must never be wrong in: a lit square that
+  // turns out to be safe costs a cautious turn, an unlit one that turns out to
+  // be hit costs the card. The boss side already carved this out
+  // (telegraph.ts `case "smite"`) for exactly this reason; this is the
+  // player-facing half of the same carve-out.
+  //
+  // Widening the list cannot widen the Special: the handler takes `_targets`
+  // and never reads it. What it does change is `canFireSpecial` — Storm may now
+  // fire Thunder Strike at an ELECTRIFIED foe standing out of reach, which is
+  // what the card has always said it does.
+  if (special.handler === "smite") {
+    const need = typeof p.requireStatus === "string" ? p.requireStatus : "";
+    return enemyCards(state, card.owner).filter(
+      (e) => e.curHp > 0 && (!need || hasStatus(e, need as StatusKind)),
+    );
+  }
   /** A Special whose work is done by OTHER cards is not bound by the caster's
    *  reach — the SWARM does the reaching.
    *
