@@ -43,6 +43,31 @@ const PAD = 8;
 
 
 
+/** IS SOMETHING MORE IMPORTANT ON SCREEN?
+ *
+ *  A surface marked `data-guide-suppress` owns the screen while it is up and the
+ *  walkthrough gets out of the way. The pack reveal is the case this was written
+ *  for: the step says "open your free pack", the player does, and the guide
+ *  advanced to the NEXT step and planted its card on top of the card they had
+ *  just pulled — covering both the art and the button to dismiss it.
+ *
+ *  Asked of the DOM rather than threaded through props, for the same reason the
+ *  hole is: the guide already refuses to encode another component's layout, and
+ *  a surface that wants the screen can say so where it is rendered instead of
+ *  App having to learn about every modal in the app.
+ */
+function useSuppressed(): boolean {
+  const [hidden, setHidden] = useState(false);
+  useEffect(() => {
+    const look = () => setHidden(!!document.querySelector("[data-guide-suppress]"));
+    look();
+    const mo = new MutationObserver(look);
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => mo.disconnect();
+  }, []);
+  return hidden;
+}
+
 export function guideTarget(id: string): HTMLElement | null {
   if (typeof document === "undefined") return null;
   return document.querySelector<HTMLElement>(`[data-guide="${CSS.escape(id)}"]`);
@@ -128,6 +153,18 @@ export function GuideOverlay(props: {
   stepCount: number;
 }) {
   const hole = useHole(props.anchor);
+  const suppressed = useSuppressed();
+  /** MINIMISED, not skipped. The core steps deliberately cannot be skipped until
+   *  the first pack and the first battle are done, and that rule is worth
+   *  keeping — but "you may not dismiss this" and "this sits on top of the thing
+   *  it is describing" are two different promises, and only the first one was
+   *  intended. Collapsing leaves the step live, the pips visible and the CTA one
+   *  tap away, while giving the screen back.
+   *
+   *  Resets whenever the STEP changes: a new instruction has not been read yet,
+   *  so it earns one showing. */
+  const [minimised, setMinimised] = useState(false);
+  useEffect(() => { setMinimised(false); }, [props.title]);
   const [bubble, setBubble] = useState<HTMLDivElement | null>(null);
   const [above, setAbove] = useState(false);
 
@@ -149,6 +186,24 @@ export function GuideOverlay(props: {
       height: hole.height + PAD * 2,
     }
     : null;
+
+  // A surface that owns the screen has said so. Hooks all ran first, so this
+  // early return cannot change their order between renders.
+  if (suppressed) return null;
+
+  if (minimised) {
+    return (
+      <div className="gd-wrap" role="dialog" aria-label="Getting started">
+        <button className="gd-mini" onClick={() => setMinimised(false)}
+          title="Show the walkthrough again">
+          <img src={TEACHER_ART} alt="" draggable={false}
+            onError={(e) => { e.currentTarget.style.display = "none"; }} />
+          <b>{props.title}</b>
+          <i aria-hidden="true">▲</i>
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div className="gd-wrap" role="dialog" aria-label="Getting started" aria-live="polite">
@@ -189,6 +244,8 @@ export function GuideOverlay(props: {
             <b>{TEACHER_NAME}</b>
             <i>your first card</i>
           </span>
+          <button className="gd-min" onClick={() => setMinimised(true)}
+            title="Tuck this away — it stays on this step" aria-label="Minimise">▾</button>
           <span className="gd-pips" aria-label={`Step ${props.stepIndex + 1} of ${props.stepCount}`}>
             {Array.from({ length: props.stepCount }, (_, n) => (
               <i key={n} className={n < props.stepIndex ? "done" : n === props.stepIndex ? "on" : ""} aria-hidden="true" />

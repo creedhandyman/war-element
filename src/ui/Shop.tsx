@@ -468,8 +468,13 @@ export function Shop(props: {
       {/* The pack itself, for as long as it takes to tear it. The reveal is
           mounted behind this and simply not seen yet, so the two cannot
           disagree about what was pulled. */}
+      {/* `data-guide-suppress` on both pack surfaces: the walkthrough steps aside
+          while a pack is being opened. See GuideOverlay — the reveal IS the thing
+          the step told you to do, and the guide advanced to the NEXT step and
+          planted its card on top of the card you had just pulled, covering the
+          art and the button to dismiss it. */}
       {opened && tearing && (
-        <div className="overlay on-top pack-tear" onClick={skipTear}>
+        <div className="overlay on-top pack-tear" data-guide-suppress onClick={skipTear}>
           <span className="tear-bloom" aria-hidden="true" />
           {/* The seam is a CHILD of the pack's stage, not a sibling centred in
               the overlay: it has to sit on the crimp, and the crimp moves with
@@ -485,7 +490,7 @@ export function Shop(props: {
       )}
 
       {opened && !tearing && (
-        <div className="overlay on-top" onClick={() => setOpened(null)}>
+        <div className="overlay on-top" data-guide-suppress onClick={() => setOpened(null)}>
           <div className={`modal pack-reveal ${allShown ? "" : "revealing"}`} onClick={(e) => e.stopPropagation()}>
             {/* Header, tally and buttons all wait. While you are turning cards
                 the screen is the card — chrome around it is just competition

@@ -6517,10 +6517,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 0 0 1px rgba(201, 162, 75, 0.12), 0 12px 34px rgba(0, 0, 0, 0.6);
   animation: gd-rise 220ms ease-out both;
 }
-/* No anchor on screen — the step's control is on another tab and its own button
-   is what goes there. Centred, so it reads as a card rather than as a spotlight
-   pointing confidently at nothing. */
-.gd-mid { top: 50%; left: 50%; transform: translate(-50%, -50%); }
+/* NO ANCHOR ON SCREEN — the step's control is on another tab, and its own button
+   is what goes there. It used to be CENTRED, which read nicely and sat squarely
+   on the content: on Home the card covered both "A pack is waiting" and the
+   first battle node, i.e. the two things it was telling the player to go and do.
+   The tip is `pointer-events: auto` (its button has to be clickable), so this
+   was not merely visual — it ate the taps as well.
+   Docked to the bottom instead, above the nav. It still reads as a card rather
+   than a spotlight pointing confidently at nothing, and the middle of the screen
+   — where the thing it is describing lives — stays visible and tappable. */
+.gd-mid {
+  left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h, 72px) + 14px);
+}
 @keyframes gd-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 .gd-mid { animation: none; }
 
@@ -7163,3 +7172,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pp-stat-v i { font-style: normal; font-size: 11px; font-weight: 600; color: var(--ink-dim); }
 .pp-bar { height: 3px; border-radius: 2px; background: var(--panel-line); overflow: hidden; }
 .pp-bar i { display: block; height: 100%; background: var(--gold-lit); }
+
+/* MINIMISE, not skip. The core steps cannot be skipped until the first pack and
+   first battle are done and that stays true — but a card that may not be
+   dismissed still must not sit on the thing it is describing. Collapsed, the
+   step is live, the CTA is one tap away, and the screen is back. */
+.gd-min {
+  margin-left: auto; width: 22px; height: 22px; flex: none; cursor: pointer;
+  background: transparent; border: 1px solid var(--panel-line); border-radius: 6px;
+  color: var(--ink-dim); font-size: 11px; line-height: 1;
+}
+.gd-pips { margin-left: 8px; }
+.gd-mini {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: calc(var(--nav-h, 72px) + 12px);
+  pointer-events: auto; cursor: pointer;
+  display: flex; align-items: center; gap: 8px;
+  max-width: calc(100vw - 32px); padding: 7px 12px 7px 7px; border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--gold-lit) 42%, var(--panel-line));
+  background: linear-gradient(160deg, rgba(201, 162, 75, 0.16), rgba(10, 10, 17, 0.94));
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.55);
+}
+.gd-mini img { width: 24px; height: 24px; border-radius: 50%; object-fit: cover; flex: none; }
+.gd-mini b {
+  font-size: 11px; font-weight: 600; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.gd-mini i { font-style: normal; font-size: 9px; color: var(--gold-lit); flex: none; }
