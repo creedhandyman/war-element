@@ -2226,6 +2226,10 @@ export interface SpellDef {
   allyHeal?: number;
   allyHealIfRooted?: number; // heal this instead when any opponent is ROOTed
   allySp?: number; // grant the ally +N SP (Tailwind)
+  /** Grant +N MAX HP permanently (Grove's Blessing). Current HP rises with it,
+   *  so the card is bigger rather than freshly wounded — the same shape
+   *  `summonScaleFromEnemy` uses. Honours `maxHpCap`. */
+  allyMaxHp?: number;
   allyStatus?: { kind: StatusKind; duration: number; power: number }; // e.g. EVASION (Shadow Step)
   /** Apply the ally rider(s) to EVERY living ally of the spell's element instead
    *  of a single auto-picked one (Fortify, team heals). */

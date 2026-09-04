@@ -32,7 +32,10 @@ describe("spellbookFromIds", () => {
   it("the cap is a COST tier, and the tiers are the printed ones", () => {
     for (const sp of SPELLS) {
       const cap = spellCapForId(sp.id);
-      if (sp.cost >= 6) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(1);
+      // FIVE is the boundary, not six: the cost-5 rung holds the team spells
+      // (heal the line, shield it, grow it) and two of those answer the same
+      // question twice, which is what the tier rule exists to stop.
+      if (sp.cost >= 5) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(1);
       else if (sp.cost >= 3) expect(cap, `${sp.id} costs ${sp.cost}`).toBe(2);
       else expect(cap, `${sp.id} costs ${sp.cost}`).toBe(Infinity);
     }

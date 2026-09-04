@@ -1068,9 +1068,9 @@ export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): Spell
  *  distinct 6-cost — eight of them on the large board, which is a book with no
  *  curve in it at all.
  *
- *    cost 6-10  ->  1 of each cost    the finishers: one six, one seven,
+ *    cost 5-10  ->  1 of each cost    the finishers: one six, one seven,
  *                                     one eight, one nine, one ten
- *    cost 3-5   ->  2 of each cost
+ *    cost 3-4   ->  2 of each cost
  *    cost 1-2   ->  unlimited         the book's own size is the only cap
  *
  *  The per-tier form STRICTLY SUBSUMES the copy cap it replaced — two copies of
@@ -1085,7 +1085,10 @@ export function spellbookFor(deck: string[], cap: number = MAX_SPELLBOOK): Spell
  *  end "unlimited" means unlimited copies of the SAME spell, since that is all
  *  an element has at that cost. */
 export const SPELL_COST_CAPS: readonly { minCost: number; perCost: number }[] = [
-  { minCost: 6, perCost: 1 },
+  // FIVE, not six. The cost-5 rung is where the team spells live — heal the
+  // whole line, shield it, and now grow it — and two of those in one book is
+  // the same "answer the question twice" the tier rule exists to stop.
+  { minCost: 5, perCost: 1 },
   { minCost: 3, perCost: 2 },
   { minCost: 0, perCost: Infinity },
 ];

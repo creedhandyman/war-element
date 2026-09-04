@@ -1055,6 +1055,11 @@ function resolveSpell(
       // matchup), and a spell that strips the burn shouldn't be taxed by the
       // burn it removes. Matches the `heal` Special handler's ordering.
       if (spell.cleanse) cleanseCard(ally, spell.cleanse);
+      // Max HP BEFORE the heal, so the heal fills the new headroom instead of
+      // capping against the old ceiling. `gainMaxHp` returns what was actually
+      // granted (a card at its `maxHpCap` gains nothing), and current HP rises
+      // by the same amount so the buff reads as growth, not a fresh wound.
+      if (spell.allyMaxHp) ally.curHp += gainMaxHp(ally, spell.allyMaxHp);
       if (healAmt > 0) healCard(draft, ally, healAmt, player);
       if (spell.allyShield) ally.curShields += spell.allyShield;
       // Grace's "+1 DMG for the round" — declared on the spell since it was
