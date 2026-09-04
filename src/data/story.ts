@@ -1546,11 +1546,12 @@ export const onlineMatchShards = (opts: { won: boolean; surrendered: boolean }):
 /** What a pack costs, and what it holds. Five cards, one of them Epic or better
  *  — the guarantee is what stops a pack ever feeling like nothing happened.
  *
- *  40 -> 70 at the owner's call. `BOX_COST` is DERIVED from this (five paid
- *  packs), so the box moved 200 -> 350 with it and the "priced at five packs
- *  exactly" promise below still holds without a second edit — which is the
- *  whole reason it was written as a derivation rather than a second number. */
-export const PACK_COST = 70;
+ *  40 -> 70 -> 50, each at the owner's call. `BOX_COST` is DERIVED from this
+ *  (five paid packs), so the box has tracked it every time — 200 -> 350 -> 250
+ *  — and the "priced at five packs exactly" promise below still holds without a
+ *  second edit, which is the whole reason it was written as a derivation rather
+ *  than a second number. `BOX_SAVING` rides the same derivation (now 100). */
+export const PACK_COST = 50;
 
 /** The booster BOX: five packs bought, two thrown in, seven opened.
  *
