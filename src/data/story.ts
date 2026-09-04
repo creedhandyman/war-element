@@ -1519,13 +1519,20 @@ export function addShiny(save: StorySave, ids: readonly string[]): StorySave {
  *  two shards a match for as long as you cared to click, and the Gauntlet exists
  *  because that had to stop being the fast way to earn. A human opponent is not
  *  infinite. Somebody has to show up, and the match takes as long as it takes,
- *  so it can afford to be the best rate in the game — a pack in four wins.
+ *  so it can afford to be the best rate in the game — a pack in five wins.
  *
  *  Paying the loser is the same argument pushed one step: an online loss that
  *  paid nothing is twenty minutes for nothing, against an opponent who could
  *  simply be better than you, and the thing that gets quit is the mode. Half
- *  price keeps winning worth twice as much without making losing a waste. */
-export const SHARDS_PER_WIN = { story: 3, arena: 2, online: 10 } as const;
+ *  price keeps winning worth twice as much without making losing a waste.
+ *
+ *  STORY 3 -> 5, at the owner's call, alongside the pack dropping to 50: the
+ *  campaign is the mode the game wants played, and at 3 a pack was seventeen
+ *  nodes. Ten is a run of the map rather than a grind of it. It stays under the
+ *  online rate, which is the ordering the whole block argues for — a human
+ *  opponent is the scarce thing — and comfortably over the Arena, which is
+ *  still the place you go to practise. */
+export const SHARDS_PER_WIN = { story: 5, arena: 2, online: 10 } as const;
 
 /** Consolation for an online LOSS. No other mode pays one — see above. */
 export const SHARDS_ONLINE_LOSS = 5;
