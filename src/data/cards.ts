@@ -13171,8 +13171,16 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 2,
     keywords: { BLOCK: 1 },
-    passiveNames: { roundTick: "First Response", onSummon: "Hose Down" },
+    passiveNames: {
+      roundTick: "First Response", onSummon: "Hose Down", onHitPush: "High Pressure",
+    },
     roundTick: { healWoundedAllies: { underHp: 8, amount: 2 } },
+    // HIGH PRESSURE — the hose does not stop after the arrival. Hose Down blows
+    // the front line back once, on summon; this is the same jet on every basic,
+    // which is what makes Firefighter a Support that can hold a lane instead of
+    // a healer that happens to be standing in one. Free against the curve:
+    // `onHitPush` is a passive, and the stat line is untouched at 35 = 5*5+10.
+    onHitPush: 1,
     // HOSE DOWN — it arrives with the line already charged and blows the front
     // back a space. `statusNova` rather than a 0-damage `barrage`: nova runs
     // `applyDebuffRiders` (which owns `push`) and `maybeStatus` no-ops without a
