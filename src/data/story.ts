@@ -1671,12 +1671,43 @@ export const canOpenPack = (save: StorySave): boolean =>
  *  packs as a fallback — means a player holding both pays for every pack until
  *  their shards run dry, so the gift only arrives once they are broke and the
  *  balance they were saving quietly evaporates instead. */
+/** THE FIRST PACK WALKS STRAIGHT INTO THE SQUAD.
+ *
+ *  A brand-new player owns one card, opens one pack, and owns six — against a
+ *  squad cap of six. The onboarding then sent them to the Squad Builder, which
+ *  is a screen for making a CHOICE, to make a choice that does not exist: every
+ *  card they own fits, so the only correct action is "take all of them". Walking
+ *  the opening as a new player, that step cost four interactions (Build the
+ *  squad, Auto-fill, Save, Close) and a full-screen modal, at the exact moment
+ *  the player wants to be fighting.
+ *
+ *  So when the whole collection fits the cap there is nothing to decide and the
+ *  cards are simply in. The Squad Builder is then something you go and find when
+ *  you have more cards than slots — which is when it starts being interesting —
+ *  rather than a toll gate before the first battle.
+ *
+ *  BOUNDED TO THE OPENING, deliberately. `firstFightWon` closes it: an
+ *  established player who happens to own few cards mid-campaign has their own
+ *  reasons for the squad they are carrying, and this must never overwrite it. */
+function foldIntoSquad(save: StorySave): StorySave {
+  // The opening node, derived rather than the literal "L1" that Onboarding.tsx
+  // names — and NOT imported from there: that is a UI module and it already
+  // imports this one, so reaching back would invert the layering and close a
+  // cycle. Structurally it is the first node of the first region either way.
+  const opener = REGIONS[0]?.nodes[0]?.id;
+  if (!opener || save.cleared.includes(opener)) return save;
+  const owned = [...new Set(save.collection)];
+  if (owned.length > deckCapFor(save.cleared)) return save;   // a real choice exists
+  if (owned.every((id) => save.deck.includes(id))) return save;
+  return { ...save, deck: owned };
+}
+
 export function applyPack(save: StorySave, result: PackResult): StorySave {
   const hero = save.hero ?? newHero();
   const essence = { ...hero.essence };
   for (const [el, n] of Object.entries(result.refund)) essence[el] = (essence[el] ?? 0) + n;
   const free = hero.freePacks > 0;
-  return addShiny(
+  return foldIntoSquad(addShiny(
     markUnseen({
       ...save,
       collection: [...save.collection, ...result.fresh],
@@ -1688,7 +1719,7 @@ export function applyPack(save: StorySave, result: PackResult): StorySave {
       },
     }, result.fresh),
     result.shiny,
-  );
+  ));
 }
 
 /** Bank free packs. Mints a hero when the save has none, for the same reason

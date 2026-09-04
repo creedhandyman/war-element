@@ -154,6 +154,35 @@ export function GuideOverlay(props: {
 }) {
   const hole = useHole(props.anchor);
   const suppressed = useSuppressed();
+
+  /** BRING THE TARGET SOMEWHERE THE CARD FITS.
+   *
+   *  The bubble goes below its target, or above when there is no room below.
+   *  Both are correct and both can still land on top of something worth seeing:
+   *  the Shop's pack button sits near the bottom of its panel, so the card went
+   *  ABOVE it and covered the pack art and its "5 card booster pack" label — the
+   *  product the step is telling you to open.
+   *
+   *  Scrolling the target to the MIDDLE fixes it at the cause rather than
+   *  nudging the card around: from there the room below is real, the bubble
+   *  takes the ordinary below-placement, and what is above the target stays
+   *  visible. `useHole` already re-measures on scroll (capture phase), so the
+   *  ring follows on its own.
+   *
+   *  Keyed on the anchor id, so it happens once per step and not on every
+   *  re-measure — a scroll that re-ran on its own result would fight the player. */
+  useEffect(() => {
+    if (!props.anchor || suppressed) return;
+    const el = guideTarget(props.anchor);
+    if (!el) return;
+    const id = window.setTimeout(
+      () => el.scrollIntoView({ block: "center", inline: "nearest", behavior: "smooth" }),
+      // After the tab switch this step may have just triggered, or it scrolls
+      // the outgoing screen.
+      160,
+    );
+    return () => window.clearTimeout(id);
+  }, [props.anchor, suppressed]);
   /** MINIMISED, not skipped. The core steps deliberately cannot be skipped until
    *  the first pack and the first battle are done, and that rule is worth
    *  keeping — but "you may not dismiss this" and "this sits on top of the thing
