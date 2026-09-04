@@ -1454,8 +1454,20 @@ function startRound(draft: GameState): void {
 }
 
 function doDrawPhase(draft: GameState): void {
-  // Draw 1 each round, with a +2 bonus refuel (draw 3) on rounds 10 and 15.
-  const n = draft.round === 10 || draft.round === 15 ? 3 : 1;
+  // Draw 1 each round, with a +2 bonus refuel (draw 3) every FIFTH round.
+  //
+  // A CADENCE, not two hard-coded rounds. It was 10 and 15, which gave a long
+  // match exactly two refuels and then nothing for the remaining thirty-five
+  // rounds of the fifty-round clock — the back half of a grind ran on one card
+  // a round with a deck still full of them. Every fifth is the rule the numbers
+  // were always reaching for, and it keeps paying for as long as the match does.
+  //
+  // Round 5 comes back with it. It is the smallest of the refuels in practice,
+  // because HAND_CAP is 7 and hands are usually still near it that early — a
+  // draw that would overflow is HELD rather than queued (see below), so an early
+  // bonus is partly self-limiting. That is the right shape: it pays most in the
+  // long games that needed it and least in the short ones that did not.
+  const n = draft.round % 5 === 0 ? 3 : 1;
   for (const player of seatsOf(draft)) {
     const drawn = drawCards(draft, player, n);
     if (drawn > 0) draft.log.push(`${player} draws ${drawn}.`);

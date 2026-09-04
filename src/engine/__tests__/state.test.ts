@@ -231,13 +231,20 @@ describe("mulligan", () => {
 });
 
 describe("draw math", () => {
-  it("draws 1 per normal round, 3 on rounds 10 and 15", () => {
+  it("draws 1 per normal round, 3 on every fifth", () => {
+    // A CADENCE rather than a pair of hard-coded rounds: it was 10 and 15, so a
+    // long match got two refuels and then nothing for the back thirty-five
+    // rounds of the fifty-round clock. Both ends are checked — the first bonus
+    // and one well past where the old rule stopped.
     for (const [round, expected] of [
       [4, 1],
-      [5, 1], // no longer a bonus round
+      [5, 3],
+      [9, 1],
       [10, 3],
       [15, 3],
-      [20, 1],
+      [20, 3],
+      [21, 1],
+      [45, 3],
     ] as const) {
       const s = freshGame(9);
       s.phase = "draw";

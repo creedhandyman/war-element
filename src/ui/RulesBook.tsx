@@ -420,7 +420,7 @@ export function RulesBook(props: { onClose: () => void }) {
               </li>
               <li>Spells are one-shot effects from your spellbook — cast in Prep.</li>
               <li>Tap any card to inspect its full stats, Special, and passives.</li>
-              <li><b>Bonus draw</b> — +2 extra cards on rounds 10 and 15.</li>
+              <li><b>Bonus draw</b> — +2 extra cards every <b>fifth</b> round (5, 10, 15…).</li>
             </ul>
           </section>
 
@@ -430,7 +430,9 @@ export function RulesBook(props: { onClose: () => void }) {
               <li>
                 <b>Round starts.</b> You gain 1 Gold plus 1 per Home slot you hold,
                 gain Magic (see the table above), and draw a card — with a +2 bonus
-                draw on rounds 10 and 15.
+                draw every fifth round. A draw that would take you over the hand
+                cap of <b>7</b> is held, not queued, so a refuel with a full hand
+                is partly lost.
               </li>
               <li>
                 <b>Prep — you have priority.</b> Spend Gold to summon a Ranger onto a
