@@ -80,8 +80,8 @@ describe("the tutorial curriculum", () => {
     });
 
     it("hand lessons go up, so the fan stays visible", () => {
-      // Both of these ask the player to use cards in hand.
-      for (const id of ["mulligan", "summon"]) {
+      // This one asks the player to use cards in hand.
+      for (const id of ["summon"]) {
         const s = TUTORIAL_STEPS.find((x) => x.id === id);
         expect(s, id).toBeTruthy();
         expect(s!.place, `${id} would cover the hand`).toBe("top");
@@ -97,6 +97,16 @@ describe("the tutorial curriculum", () => {
       // constant, not a placement, and this file would be lying about why.
       expect(new Set(TUTORIAL_STEPS.map((s) => s.place)).size).toBe(2);
     });
+  });
+
+  // THE MULLIGAN IS A MODAL, and it teaches its own lesson in its own copy.
+  // A coach card floating over it made the player's first two seconds of the
+  // game two panels competing for the same moment, so the step was removed
+  // rather than repositioned — there is no position over a modal that is not
+  // over the modal. If a mulligan step ever comes back, this fails and the
+  // reviewer has to justify the second surface.
+  it("has no mulligan step, because the mulligan modal already has one", () => {
+    expect(TUTORIAL_STEPS.map((s) => s.id)).not.toContain("mulligan");
   });
 
   it("starts a fresh save with nothing taught, and survives a round trip", () => {

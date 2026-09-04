@@ -44,7 +44,13 @@ export interface TutorialStep {
  *
  *  Deliberately short: five ideas, one screen each, no card names. A tutorial
  *  that teaches the whole rulebook is the rulebook, and that already exists
- *  under "How to play" for anyone who wants it. */
+ *  under "How to play" for anyone who wants it.
+ *
+ *  THERE IS NO MULLIGAN STEP, and its absence is deliberate. The mulligan is a
+ *  modal — it owns the screen — and a coach card floating over it was two
+ *  teaching surfaces stacked at the very first moment of play. The lesson did
+ *  not need a second panel; it needed to be IN the one already there, so it now
+ *  lives in the mulligan modal's own copy (App.tsx). One moment, one surface. */
 export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "goal",
@@ -53,13 +59,6 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       + "everything they have. Most matches end on that row. But it is a march, not a "
       + "sprint: read the next card before you run at it.",
     place: "bottom",
-  },
-  {
-    id: "mulligan",
-    title: "Your opening hand",
-    body: "Send back anything you cannot afford yet. Gold arrives slowly, so a hand of "
-      + "expensive cards is a hand of cards you watch instead of play.",
-    place: "top",
   },
   {
     id: "summon",
@@ -119,6 +118,13 @@ export function TutorialCoach(props: {
    *  offset at zero and the card sits at the ordinary bottom edge.
    */
   const [bottomGap, setBottomGap] = useState(0);
+  /** The same question at the other end. `.tut-top` used to sit at a flat
+   *  `top: 8px`, which put it over the phase ribbon — the round counter and the
+   *  phase pills, i.e. the one place a player looks to find out what the game is
+   *  waiting for. Measured for the same reason the bottom is: the ribbon's
+   *  height changes across three media queries in styles.css, and a number
+   *  copied out of one of them is wrong in the other two. */
+  const [topGap, setTopGap] = useState(0);
 
   /** The player's override of the step's own end of the screen. Each step picks
    *  the end that is clear of what IT is about, which is right for the lesson
@@ -135,8 +141,12 @@ export function TutorialCoach(props: {
     const step = (id: string) => TUTORIAL_STEPS.find((s) => s.id === id)!;
     const untaught = (id: string) => !taught.includes(id);
     if (game.phase === "gameover") return null;
+    // SILENT UNDER A MODAL. The mulligan owns the whole screen, and "how you
+    // win" printed over the top of it was the player's first two seconds of the
+    // game asking them to read two panels at once. The board is not visible
+    // then either, so the lesson has nothing to point at. It waits.
+    if (game.phase === "mulligan") return null;
     if (untaught("goal")) return step("goal");
-    if (game.phase === "mulligan" && untaught("mulligan")) return step("mulligan");
     // Deployment reuses the prep phase but nothing may move, so the move lesson
     // would be a lie during it — hold it until the ordinary prep turn.
     if (game.phase === "prep" && game.opening && untaught("summon")) return step("summon");
@@ -173,6 +183,17 @@ export function TutorialCoach(props: {
         }
       }
       setBottomGap(Number.isFinite(highest) ? Math.max(0, window.innerHeight - highest + 8) : 0);
+
+      // And the mirror of it. Only furniture in the UPPER half counts, and only
+      // its BOTTOM edge — the ribbon is the thing to clear, not to align with.
+      let lowest = 0;
+      for (const el of Array.from(document.querySelectorAll<HTMLElement>(".phase-ribbon"))) {
+        const r = el.getBoundingClientRect();
+        if (r.height < 1) continue;
+        if (r.bottom > window.innerHeight * 0.5) continue;
+        lowest = Math.max(lowest, r.bottom);
+      }
+      setTopGap(lowest > 0 ? lowest + 8 : 0);
     };
     measure();
     window.addEventListener("resize", measure);
@@ -196,7 +217,11 @@ export function TutorialCoach(props: {
     <div
       className={`tut-coach tut-${place}`}
       role="note"
-      style={place === "bottom" && bottomGap > 0 ? { bottom: bottomGap } : undefined}
+      style={
+        place === "bottom"
+          ? (bottomGap > 0 ? { bottom: bottomGap } : undefined)
+          : (topGap > 0 ? { top: topGap } : undefined)
+      }
     >
       <div className="tut-head">
         <img className="tut-face" src={TEACHER_ART} alt="" draggable={false}

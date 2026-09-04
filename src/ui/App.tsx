@@ -221,6 +221,23 @@ export function App() {
     "Mulligan: click cards to send back, then confirm.",
   );
   const [mullToss, setMullToss] = useState<string[]>([]);
+  /** A mulligan the player has CONFIRMED but that has not been applied yet.
+   *
+   *  Online, both seats mulligan at the same time — nobody waits for a stranger
+   *  to read four cards. But the two applies cannot BOTH happen: `applyMulligan`
+   *  reshuffles through `shuffle(draft, ...)`, which advances the state's shared
+   *  `rngState`, and this transport syncs whole STATES under a Lamport clock
+   *  that keeps only the strictly-newer one. Two seats acting on the same parent
+   *  is the one case `online.ts` says cannot happen ("the game is turn-based, so
+   *  two states never share a parent") — and the loser does not merely lose its
+   *  mulligan, it ends up on a different RNG cursor from its opponent, which
+   *  desyncs every coin flip and crit roll for the rest of the match.
+   *
+   *  So the CHOOSING is simultaneous and the APPLYING is serialised: confirm
+   *  whenever you like, and the intent goes out when the seat order reaches you.
+   *  `needsInput` already returns the first seat that has not gone, so it is the
+   *  turnstile; nothing new has to agree about ordering. */
+  const [mullHeld, setMullHeld] = useState<string[] | null>(null);
   const [surrenderArmed, setSurrenderArmed] = useState(false);
   /** Drop everything in flight: the selected card, a half-built battle action,
    *  the targets armed for it, and a primed Surrender. One function so the bar's
@@ -1353,7 +1370,13 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [rematchMine, rematchTheirs, online]);
 
-  function dispatch(intent: Intent) {
+  /** `doneHint` is a FUNCTION of the resulting state, not a string, because the
+   *  useful thing to say after a move is usually a fact about the board it left
+   *  behind — "keep going" is a lie if the move just spent the last Gold. The
+   *  reducer is pure and hands `next` back synchronously, so the honest version
+   *  costs nothing: ask the same engine questions the UI already asks, against
+   *  the state the player is about to be looking at. */
+  function dispatch(intent: Intent, doneHint?: (next: GameState) => string) {
     try {
       const next = applyIntent(game, intent);
       setGame(next);
@@ -1362,6 +1385,7 @@ export function App() {
       setPicks([]);
       setSpellPicks({ ids: [], slots: [] }); // never carry a half-built cast over
       setStaged(null);
+      if (doneHint) setHint(doneHint(next));
       if (online) broadcast(next); // sync my move to the other client
     } catch (e) {
       setHint(`⚠ ${(e as Error).message}`);
@@ -1752,18 +1776,93 @@ export function App() {
   });
   useEffect(() => () => barRoRef.current?.disconnect(), []);
 
+  /** Where a card summoned into this column ACTUALLY lands — the same
+   *  resolution `stagedSlot` does, pulled out so the click handlers can ask the
+   *  question before anything is staged. */
+  function landingSlotFor(col: number, row?: number): Pos | null {
+    if (me === null) return null;
+    if (game.domination) return row === undefined ? null : ({ row, col } as Pos);
+    return { row: summonLandingRow(game, me, col) ?? homeRow(me, game.boardSize), col } as Pos;
+  }
+
+  /** DOES THIS PLACEMENT HAVE ANYTHING TO CONFIRM?
+   *
+   *  The confirm step exists for ONE reason: a card with a hostile on-summon
+   *  effect paints a red area when it is staged, and that area is information
+   *  the player did not have when they picked the square. Committing before
+   *  they can read it would be asking them to agree to something unseen.
+   *
+   *  A card with no such effect paints nothing. For those the confirm was a
+   *  second press that added no fact — and it charged for it: three taps per
+   *  card, a bar over the hand, and a full opening deploy costing eighteen
+   *  presses instead of twelve. Note that moving a card on the board has never
+   *  asked twice, so the summon was also the odd one out.
+   *
+   *  So: confirm when there is a picture to read, place when there is not. */
+  function needsConfirm(handId: string, col: number, row?: number): boolean {
+    if (me === null) return false;
+    const h = game.players[me].hand.find((c) => c.handId === handId);
+    const slot = landingSlotFor(col, row);
+    if (!h || !slot) return true; // unknown = ask; never commit on a guess
+    return previewOnSummonArea(game, getDef(h.defId), me, slot).length > 0;
+  }
+
+  /** WHAT TO SAY AFTER A SUMMON LANDS.
+   *
+   *  It used to be the flat "Summoned. Keep going, or Pass Priority." every
+   *  time — including when the summon had just spent the last Gold, which is
+   *  the first thing a new player reads after their opening deploy. "Keep
+   *  going" then sends them tapping at a hand where nothing is playable, and
+   *  the game looks broken rather than finished.
+   *
+   *  `summonSquare` is the same question the hand's own glow asks, so this
+   *  cannot disagree with which cards are lit. */
+  function summonHint(next: GameState): string {
+    if (me === null) return "Summoned.";
+    const verb = next.opening ? "Deployed" : "Summoned";
+    if (next.players[me].hand.some((h) => summonSquare(next, me, h.handId)))
+      return `${verb}. Keep going, or <b>Pass Priority</b>.`;
+    // Nothing else is playable — say WHICH wall was hit, because the two have
+    // opposite answers: a full row wants a card moved forward, an empty purse
+    // wants the round to end.
+    const roomLeft = next.domination
+      ? homeSlots(next, me).some((sq) => !cardAt(next, sq.row, sq.col))
+      : openHomeSlots(next, me).length > 0;
+    if (!roomLeft) return `${verb}. Your Home row is full — <b>Pass Priority</b>.`;
+    return next.opening
+      ? `${verb}. Nothing else fits your opening — <b>Pass Priority</b>.`
+      : `${verb}. Nothing else in hand is affordable yet — <b>Pass Priority</b>.`;
+  }
+
+  /** Stage for confirm, or just place it — see `needsConfirm`. */
+  function stageOrPlace(handId: string, col: number, row?: number) {
+    if (needsConfirm(handId, col, row)) {
+      setStaged({ handId, col, row });
+      setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
+      return;
+    }
+    placeSummon(handId, col, row);
+  }
+
   // Confirm / cancel a staged summon placement.
   function confirmSummon() {
-    if (!staged || me === null) return;
-    const staging = game.players[me].hand.find((h) => h.handId === staged.handId);
+    if (!staged) return;
+    placeSummon(staged.handId, staged.col, staged.row);
+  }
+
+  /** Commit a summon. Reached from the confirm bar, and directly from the slot
+   *  click / drop for the placements that have nothing to confirm. */
+  function placeSummon(handId: string, col: number, row?: number) {
+    if (me === null) return;
+    const staging = game.players[me].hand.find((h) => h.handId === handId);
     const intent: Intent = {
-      type: "SUMMON", player: me, handId: staged.handId, col: staged.col, row: staged.row,
+      type: "SUMMON", player: me, handId, col, row,
       // The player's remembered default for this card, if they set one. Read
       // here and sent WITH the intent, so the engine stays pure and an online
       // peer replaying it lands on the same mode.
       autoMode: staging ? autoPrefFor(staging.defId) : undefined,
     };
-    const card = game.players[me].hand.find((h) => h.handId === staged.handId);
+    const card = staging;
     // A legendary+ gets its art up BEFORE it lands, the same hold-then-dispatch
     // the spell flash uses. Guarded on the timer so a second summon can't land
     // mid-announcement and dispatch out of order.
@@ -1776,13 +1875,11 @@ export function App() {
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
         setAnnounce(null);
-        dispatch(intent);
-        setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
+        dispatch(intent, summonHint);
       }, 2000);
       return;
     }
-    dispatch(intent);
-    setHint("Summoned. Keep going, or <b>Pass Priority</b>.");
+    dispatch(intent, summonHint);
   }
   function cancelSummon() {
     setStaged(null);
@@ -1816,10 +1913,11 @@ export function App() {
     if (drag === null || me === null) return;
     // Try the square itself first (a Domination shrine), then the column.
     if (game.domination && canSummon(game, me, drag, col, _row).ok) {
-      setStaged({ handId: drag, col, row: _row });
+      const handId = drag;
       setDrag(null);
       setDragCol(null);
       setDragRow(null);
+      stageOrPlace(handId, col, _row);
       return;
     }
     const chk = canSummon(game, me, drag, col);
@@ -1830,11 +1928,15 @@ export function App() {
       setDragRow(null);
       return;
     }
-    setStaged({ handId: drag, col });
+    const handId = drag;
     setDrag(null);
     setDragCol(null);
     setDragRow(null);
-    setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
+    // A DROP IS ALREADY A DELIBERATE, AIMED GESTURE — and the drag painted the
+    // red area live the whole way in, so for these there is even less left to
+    // confirm than for a tap. It still asks when there IS an area, because the
+    // finger is over the square and the picture is under it.
+    stageOrPlace(handId, col);
   }
 
   // ── legality highlights ───────────────────────────────────────────────────
@@ -2493,12 +2595,11 @@ export function App() {
       if (clicked) {
         setDetailId(clicked.instanceId);
       } else if (game.domination && canSummon(game, me, sel.handId, col, row).ok) {
-        // A shrine names its own square, so the staged placement carries the row.
-        setStaged({ handId: sel.handId, col, row });
+        // A shrine names its own square, so the placement carries the row.
+        stageOrPlace(sel.handId, col, row);
       } else if (canSummon(game, me, sel.handId, col).ok
         && row === (summonLandingRow(game, me, col) ?? homeRow(me, game.boardSize))) {
-        setStaged({ handId: sel.handId, col });
-        setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
+        stageOrPlace(sel.handId, col);
       } else {
         // No reason means the COLUMN is fine and the square is not — the card
         // lands somewhere else in it, and the glow is already showing where.
@@ -2586,12 +2687,33 @@ export function App() {
     if (online) broadcast(next); // keep the other client in sync
   }
 
+  /** Send a mulligan that was confirmed before this seat's turn came round.
+   *
+   *  Runs on every state change, so the trigger is the opponent's own mulligan
+   *  arriving. Guarded on still being in the phase and still not done, because a
+   *  resend of an already-applied state must not fire a second MULLIGAN —
+   *  `applyMulligan` throws on a repeat, which `dispatch` would show as an error
+   *  hint for something the player did correctly. */
+  useEffect(() => {
+    if (!online || mullHeld === null || me === null) return;
+    if (game.phase !== "mulligan" || game.players[me].mulliganDone) { setMullHeld(null); return; }
+    if (needsInput(game) !== me) return;
+    setMullHeld(null);
+    setMullToss([]);
+    dispatch({ type: "MULLIGAN", player: me, returnHandIds: mullHeld });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [game, mullHeld, me, online]);
+
   // ── mulligan ──────────────────────────────────────────────────────────────
   const inMulligan =
     started &&
     game.phase === "mulligan" &&
     me !== null &&
-    !game.players[me].mulliganDone;
+    !game.players[me].mulliganDone &&
+    // A held pick is a decision already made: the sheet comes down when the
+    // player commits, not when the engine gets round to it. Leaving it up would
+    // show four cards they have finished with and invite a second confirm.
+    mullHeld === null;
 
   // ── battle prompt ─────────────────────────────────────────────────────────
   const activeCard = awaitingId ? game.cards[awaitingId] : null;
@@ -3449,10 +3571,17 @@ export function App() {
         <div className="overlay">
           <div className="modal">
             <h1>{twoPlayer ? `${me} — Opening Hand` : "Opening Hand"}</h1>
+            {/* THE MULLIGAN LESSON LIVES HERE, not in a coach card floating over
+                this modal. The tutorial used to print "Your opening hand" on top
+                of this sheet, which made a new player's first two seconds of the
+                game two panels saying the same thing. A modal that owns the
+                screen should own the lesson too — so the WHY moved in here and
+                the coach step went away (see TutorialCoach.tsx). */}
             <p>
               {twoPlayer ? `Player ${me}: hand the device over. ` : ""}
-              Click any cards to send back — you'll reshuffle and redraw to 4. Keeping a
-              cheap curve (1–4) makes the early rounds playable.
+              Click any cards to send back — you'll reshuffle and redraw to 4. Send back
+              anything you cannot afford yet: Gold arrives slowly, so a hand of expensive
+              cards is a hand of cards you watch instead of play.
             </p>
             <div className="mull-cards">
               {game.players[me].hand.map((h) => {
@@ -3499,6 +3628,13 @@ export function App() {
               className="lockin"
               onClick={() => {
                 if (!me) return;
+                // Hot-seat and solo are already serial — one device, one actor —
+                // so only the online race needs the turnstile.
+                if (online && needsInput(game) !== me) {
+                  setMullHeld(mullToss);
+                  setHint("Locked in — waiting for your opponent's hand.");
+                  return;
+                }
                 dispatch({ type: "MULLIGAN", player: me, returnHandIds: mullToss });
                 setMullToss([]);
               }}

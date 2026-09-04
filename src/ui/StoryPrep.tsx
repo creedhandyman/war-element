@@ -255,6 +255,48 @@ export function StoryPrep(props: {
     if (save.lastTeamId === id) props.onSave({ ...save, lastTeamId: undefined });
   };
 
+  /** NOTHING ON THIS SCREEN IS A CHOICE.
+   *
+   *  The map's node panel already has a Fight button. Tapping it lands here, on
+   *  a second Fight button — which is worth the stop whenever there is something
+   *  between them to decide, and is a turnstile when there is not. On a brand
+   *  new save there is not: six cards, a cap of at least six, no saved squads,
+   *  no packing to do and no spells unlocked. Every control below is either
+   *  disabled or a no-op, and the only path through is the button that repeats
+   *  the one just pressed.
+   *
+   *  So the test is the affordances themselves, one per panel, rather than "is
+   *  this the first battle". That matters: this stops being true the moment the
+   *  player owns more cards than they can field — a pack or two in — and the
+   *  screen comes back on its own, without a flag to remember or a special case
+   *  to keep in step with the campaign.
+   *
+   *  `legal.ok` is in here because an auto-fight must never launch a deck the
+   *  Fight button itself would have refused. */
+  const perfunctory =
+    legal.ok &&
+    pool.length <= cap &&      // no deck to choose — you field what you have
+    !canPack &&                // no expedition to pack
+    teams.length === 0 &&      // no saved squad to swap in
+    fightBook.length === 0;    // no spells to walk in with
+
+  /** Fired once per node. `onFight` unmounts this screen (App flips `started`),
+   *  so this is belt and braces — but an effect that can start a battle twice is
+   *  not the place to rely on someone else's unmount. */
+  const autoFought = useRef<string | null>(null);
+  useEffect(() => {
+    if (!perfunctory || mustPack) return;
+    if (autoFought.current === node.id) return;
+    autoFought.current = node.id;
+    props.onFight(deck, book);
+    // Deliberately keyed on the node, not on `deck`/`book`: those are state this
+    // screen owns and they settle on the first render for exactly the saves this
+    // applies to.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [perfunctory, mustPack, node.id]);
+  // Render nothing rather than flashing a screen the player is not going to see.
+  if (perfunctory && !mustPack) return null;
+
   // ── packing step ──────────────────────────────────────────────────────────
   // You are standing at a border you have not taken with more cards than you can
   // carry. Nothing else on this screen matters until the expedition is chosen,
