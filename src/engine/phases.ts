@@ -6,7 +6,7 @@ import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
-  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, matchesVsTarget, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -56,6 +56,7 @@ import {
   validTargets,
   domMap,
   corridorDir,
+  onSummonTargets,
 } from "./rules";
 import type {
   EnchantMode,
@@ -214,53 +215,20 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // Ally-buff on summon (Smith Reforged / Duster Dust Off).
           applyAllyOnSummon(draft, inst, os.handler, params);
         } else if (os.handler) {
-          const targets =
-            // Wildfire (Scorch): a ZONE, not an attack — it sets the enemy home
-            // row alight from wherever it stands. Sourced here rather than
-            // filtered from validTargets, because the Home Slot rule blocks a
-            // card in its OWN home row from targeting the enemy's at all, so
-            // the normal list comes back empty and the effect never fired.
-            Number(params.enemyHomeRow ?? 0) > 0
-              ? enemyCards(draft, inst.owner).filter(
-                  (e) => e.curHp > 0 && e.pos?.row === homeRow(enemyOf(inst.owner), draft.boardSize),
-                )
-            // Back-ups (Saltjacks): a LINE down its own column, and the same
-            // ZONE argument as Wildfire above — so it is sourced from the board
-            // for the same reason, and this is the bug that reasoning was
-            // written for and then not applied to.
-            //
-            // Saltjacks summons into its own home row and shoots down its
-            // column. The Home Slot rule blocks a home-row card from targeting
-            // the enemy's home row, so validTargets came back empty whenever the
-            // foe in that column was standing on its home row — and an empty
-            // list means the `picked.length > 0` gate below never calls the
-            // handler at all. Not a weaker shot: NO shot, and no log line
-            // either. Worst of all in the opening, where every enemy card is on
-            // its home row by definition and a cost-1 body is most likely to be
-            // played.
-            //
-            // barrage re-filters by column itself, so this is idempotent — it
-            // widens what reaches the handler, it does not change what is hit.
-            : Number(params.sameColumn ?? 0) > 0 && inst.pos
-              ? enemyCards(draft, inst.owner).filter(
-                  (e) => e.curHp > 0 && e.pos?.col === inst.pos!.col,
-                )
-            : Number(params.spread ?? -1) >= 0
-              ? forwardAreaTargets(draft, inst, Number(params.spread), params.forwardDepth != null ? Number(params.forwardDepth) : undefined)
-              // No spread → every enemy in normal targeting range. For a melee
-              // card that's king's-move reach (the 8 adjacent tiles). `false` =
-              // not a basic attack, so a Ranged card's on-summon burst keeps its
-              // full-board reach instead of being cut to the queen line.
-              // A charging on-summon aims as far as it can travel, for the same
-              // reason a charging Special does: the list is measured from the
-              // home row it just landed in, and a Melee card standing there can
-              // see nothing, so the ability never ran and the charge never
-              // happened. ThunderCat's arrival pounce did nothing for exactly
-              // this reason.
-              : validTargets(
-                  draft, inst.instanceId, false,
-                  Number(params.chargeFirst ?? 0) > 0 ? Number(params.charge ?? 0) : 0,
-                );
+          // WHO IT REACHES lives in `onSummonTargets` (rules.ts), because the
+          // red placement preview has to answer the identical question BEFORE
+          // the card lands — and when the two cascades were written separately
+          // they disagreed in both directions: the preview understood only
+          // `spread`, so Saltjacks' single column lit up the whole board, while
+          // a `reachNearest` pounce lit only the melee neighbours it was never
+          // limited to. Same function now, so a new shape teaches both at once.
+          //
+          // The zone shapes (Wildfire's enemy home row, Saltjacks' column) are
+          // sourced from the board rather than filtered out of validTargets,
+          // because the Home Slot rule blocks a card in its OWN home row from
+          // targeting the enemy's at all — the normal list came back empty and
+          // the effect silently never fired.
+          const targets = onSummonTargets(draft, inst, def);
           // Dragon's Bane ambush (Drakonbane): a hunter pounces its prey wherever
           // it stands, so this scans the WHOLE board for a bane-worthy enemy and
           // strikes the NEAREST — the same reach DAWN's own Awakening aura uses,
@@ -268,19 +236,12 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // adjacency it effectively never fired: Drakonbane lands on its home
           // row and a big enemy is rarely sitting next to it at summon. Still
           // exists only when there IS something worth ambushing (the filter).
-          const picked = Number(params.onlyVsTarget ?? 0) > 0
-            ? enemyCards(draft, inst.owner)
-                .filter((t) => t.curHp > 0 && matchesVsTarget(def, t) && t.pos != null)
-                .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
-          // reachNearest (Sticks' Boon Striker): pounce the NEAREST enemy
-          // anywhere, same as the bane path but unfiltered. Gated on melee
-          // king's-reach it almost never fired — Sticks lands on its home row
-          // and a foe is rarely adjacent, so the sap "did nothing" on summon.
-            : Number(params.reachNearest ?? 0) > 0
-            ? enemyCards(draft, inst.owner)
-                .filter((t) => t.curHp > 0 && t.pos != null)
-                .sort((a, b) => manhattan(inst.pos!, a.pos!) - manhattan(inst.pos!, b.pos!))
-            : targets;
+          // Dragon's Bane (onlyVsTarget) and Boon Striker (reachNearest) both
+          // reach the WHOLE board, nearest first — gated on melee king's-reach
+          // they almost never fired, since these cards land on their own home
+          // row with no foe adjacent. Both now live in `onSummonTargets` with
+          // the rest of the cascade, so the preview knows about them too.
+          const picked = targets;
           // Most on-summon handlers are attacks, so no target means nothing to
           // do. But a few do not aim at anything — `spawn` drops a token beside
           // the summoner — and gating those on `picked.length` meant they

@@ -5,7 +5,7 @@ import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, previewOnSummonAr
 import { applyStatus, SPECIAL_HANDLERS } from "../combat";
 import { applyIntent } from "../phases";
 import { CARDS, getDef } from "../../data/cards";
-import { bigPrepState, place, prepState } from "./helpers";
+import { bigPrepState, giveHand, place, prepState } from "./helpers";
 import type { Pos } from "../types";
 
 const key = (p: Pos) => `${p.row},${p.col}`;
@@ -28,6 +28,110 @@ describe("previewOnSummonArea (placement preview)", () => {
   it("ally / no-on-summon cards preview nothing", () => {
     const s = prepState();
     expect(previewOnSummonArea(s, getDef("leaf_greegon"), "P1", { row: 3, col: 1 })).toHaveLength(0);
+  });
+
+  // THE PREVIEW USED TO OVER-PROMISE, and badly. It understood exactly one
+  // shape — `spread` — and everything else fell through to "normal targeting
+  // reach", which for a Ranged card is EVERY enemy on the board. So Saltjacks,
+  // whose on-summon is a line down its own column, lit the whole board red; so
+  // did Aftermath and Infernus Rex for a one-row sweep. The narrowing those
+  // cards actually get is applied by `barrage` AFTER the targets are sourced,
+  // and the preview never ran it.
+  //
+  // It also under-promised in the other direction: a `reachNearest` pounce
+  // reaches the whole board, and the preview lit only the melee neighbours.
+  //
+  // Both halves are now one cascade (`onSummonTargets`) plus one narrowing
+  // (`volleyFilters`), shared with the engine — so these pin the SHAPES, and the
+  // test after them pins that the preview and the engine agree exactly.
+  it("sameColumn (Saltjacks) → its own column only, not the whole board", () => {
+    const s = prepState();
+    const inCol = place(s, "dusk_vamp", "P2", 0, 1);
+    place(s, "dusk_gool", "P2", 0, 0);   // same row, different column
+    place(s, "dusk_harve", "P2", 1, 3);  // nowhere near the column
+    const area = previewOnSummonArea(s, getDef("aqua_buccaneers"), "P1", { row: 3, col: 1 });
+    expect(area.map(key)).toEqual([key(inCol.pos!)]);
+  });
+
+  it("rowAhead (Aftermath) → the row directly ahead only", () => {
+    const s = prepState();
+    // Aftermath is Ranged: before the fix its preview was every enemy alive.
+    const ahead = place(s, "dusk_vamp", "P2", 2, 0);
+    const alsoAhead = place(s, "dusk_gool", "P2", 2, 3);
+    place(s, "dusk_harve", "P2", 0, 1);  // two rows further on — not the row ahead
+    const area = new Set(previewOnSummonArea(s, getDef("pyro_aftermath"), "P1", { row: 3, col: 1 }).map(key));
+    expect(area).toEqual(new Set([key(ahead.pos!), key(alsoAhead.pos!)]));
+  });
+
+  it("rowAhead on a MELEE card (Infernus Rex) is still bounded by its reach", () => {
+    // Worth pinning because it is the one place `rowAhead` does NOT widen
+    // anything: the row is a filter applied to what the card could already see,
+    // and a Melee card sees its eight neighbours. So the sweep is the row ahead
+    // INTERSECTED with king reach — the far end of the row is never touched,
+    // and the preview that shows only the near square is telling the truth.
+    const s = prepState();
+    const near = place(s, "dusk_vamp", "P2", 2, 1);
+    place(s, "dusk_gool", "P2", 2, 3); // same row, out of a melee's reach
+    const area = new Set(previewOnSummonArea(s, getDef("pyro_infernus_rex"), "P1", { row: 3, col: 1 }).map(key));
+    expect(area).toEqual(new Set([key(near.pos!)]));
+  });
+
+  it("reachNearest (Krakler) → the nearest enemy anywhere, and only that one", () => {
+    const s = prepState();
+    // Nothing is king-adjacent, which is exactly the case the old preview got
+    // wrong in the OTHER direction: it drew nothing at all, while the engine
+    // reached across the board and struck.
+    const nearest = place(s, "dusk_vamp", "P2", 1, 1);
+    place(s, "dusk_gool", "P2", 0, 3);
+    const area = previewOnSummonArea(s, getDef("aqua_krakler"), "P1", { row: 3, col: 1 });
+    expect(area.map(key)).toEqual([key(nearest.pos!)]);
+  });
+
+  /** Summon `id` at (3,1) for real and report which planted enemies it hurt. */
+  function struckBySummoning(id: string) {
+    const s = prepState();
+    s.players.P1.gold = 99;
+    const victims = [
+      place(s, "dusk_vamp", "P2", 2, 1),
+      place(s, "dusk_gool", "P2", 2, 3),
+      place(s, "dusk_harve", "P2", 0, 1),
+      place(s, "dusk_zhunk", "P2", 1, 2),
+    ];
+    const before = new Map(victims.map((v) => [v.instanceId, v.curHp]));
+    const drawn = new Set(previewOnSummonArea(s, getDef(id), "P1", { row: 3, col: 1 }).map(key));
+    const handId = giveHand(s, "P1", id);
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 1 });
+    const struck = new Set<string>();
+    for (const v of victims) {
+      const after = next.cards[v.instanceId];
+      // Gone entirely, or lighter than it was — either way the volley reached it.
+      if (!after || after.curHp < before.get(v.instanceId)!) struck.add(key(v.pos!));
+    }
+    return { drawn, struck };
+  }
+
+  it("the preview is exactly what the volley hits (Saltjacks)", () => {
+    // The claim the refactor rests on: ONE cascade, read by the engine on
+    // arrival and by the preview beforehand. Rather than trusting that, summon
+    // the card for real and compare the damaged set to the drawn set.
+    const { drawn, struck } = struckBySummoning("aqua_buccaneers");
+    expect(struck.size, "the volley hit nothing — the fixture is wrong").toBeGreaterThan(0);
+    expect(struck).toEqual(drawn);
+  });
+
+  it("...and never promises more than it delivers (Aftermath)", () => {
+    // Subset rather than equality, deliberately and temporarily. Aftermath also
+    // carries `farRowDmg`, a SECOND band two rows ahead, and no preview path in
+    // the app knows about it yet — it is being added alongside the two-row
+    // spells and `smite`, which are the same class of omission.
+    //
+    // The direction is what matters here and it is the safe one: the preview
+    // UNDER-reports, so nothing it draws is a lie. Over-reporting is the bug
+    // this change fixed, and this asserts it has not come back. When the far row
+    // lands, the two sets become equal and this still passes.
+    const { drawn, struck } = struckBySummoning("pyro_aftermath");
+    expect(drawn.size, "drew nothing at all").toBeGreaterThan(0);
+    for (const cell of drawn) expect(struck, `previewed ${cell} but it took nothing`).toContain(cell);
   });
 });
 

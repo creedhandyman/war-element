@@ -1262,6 +1262,121 @@ export function previewSpecialArea(
   }
 }
 
+/** Is `target` what this card is built to hunt? (Drakonbane's Dragon's Bane.)
+ *  Shared by the basic-attack bonus, the Special's damage split, and the
+ *  on-summon ambush, so the three can never disagree about what counts.
+ *
+ *  Lives HERE rather than in combat.ts because the placement preview needs it
+ *  too, and rules.ts is the half of that pair combat is allowed to import. */
+export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
+  const vt = def.vsTarget;
+  if (!vt) return false;
+  const tDef = getDef(target.defId);
+  if (vt.tribe != null) {
+    const tribe = tDef.tribe;
+    const has = Array.isArray(tribe) ? tribe.includes(vt.tribe) : tribe === vt.tribe;
+    if (has) return true;
+  }
+  if (vt.maxHpFrom != null && target.maxHp >= vt.maxHpFrom) return true;
+  return false;
+}
+
+/** The barrage handler's OWN target filters, applied to a candidate list.
+ *
+ *  `barrage` narrows what it was handed before it fires — a row-ahead sweep only
+ *  hits the row ahead, however many enemies were passed in. Anything drawing a
+ *  preview has to narrow the same way or it over-reports, so this is the one
+ *  copy of that rule, read by the Special preview (`specialTargets`) and the
+ *  placement preview (`previewOnSummonArea`) alike. */
+export function volleyFilters(
+  state: GameState,
+  card: CardInstance,
+  p: Record<string, number | string>,
+  list: CardInstance[],
+): CardInstance[] {
+  let out = list;
+  if (Number(p.enemyHomeRow ?? 0) > 0)
+    out = out.filter((t) => t.pos?.row === homeRow(enemyOf(card.owner), state.boardSize));
+  if (Number(p.sameColumn ?? 0) > 0 && card.pos)
+    out = out.filter((t) => t.pos?.col === card.pos!.col);
+  if (Number(p.rowAhead ?? 0) > 0 && card.pos) {
+    const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
+    out = out.filter((t) => t.pos?.row === ahead);
+  }
+  if (typeof p.requireStatus === "string" && p.requireStatus)
+    out = out.filter((t) => hasStatus(t, p.requireStatus as StatusKind));
+  const belowHp = Number(p.requireBelowHp ?? 0);
+  if (belowHp > 0) out = out.filter((t) => t.curHp < belowHp);
+  if (Number(p.closest ?? 0) > 0 && card.pos) {
+    out = [...out].sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!))
+      .slice(0, Number(p.targets ?? 1));
+  }
+  return out;
+}
+
+/** WHO A CARD'S ON-SUMMON EFFECT REACHES, sourced exactly as the engine sources
+ *  it when the card actually lands.
+ *
+ *  One function, two readers: `phases.ts` builds the real arrival target list
+ *  from it, and `previewOnSummonArea` draws the red placement preview from it.
+ *  They were two separate cascades and they disagreed in BOTH directions — the
+ *  preview understood only `spread`, so Saltjacks' single COLUMN lit up the
+ *  whole board, while a `reachNearest` pounce lit only the melee neighbours it
+ *  was never limited to.
+ *
+ *  Takes a CardInstance rather than an id because the preview's caller has no
+ *  card on the board yet: it asks with a ghost standing on the square being
+ *  considered, which is the whole question. */
+export function onSummonTargets(
+  state: GameState,
+  card: CardInstance,
+  def: CardDef,
+): CardInstance[] {
+  const os = def.onSummon;
+  if (!os) return [];
+  const params = os.params ?? {};
+  const alive = () => enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos != null);
+
+  // Dragon's Bane (Drakonbane): a hunter pounces its prey wherever it stands —
+  // the whole board, nearest first, and only when there IS something worth it.
+  if (Number(params.onlyVsTarget ?? 0) > 0) {
+    return alive()
+      .filter((t) => matchesVsTarget(def, t))
+      .sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!));
+  }
+  // reachNearest (Sticks' Boon Striker): pounce the NEAREST enemy anywhere.
+  if (Number(params.reachNearest ?? 0) > 0) {
+    return alive().sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!));
+  }
+
+  // Wildfire (Scorch): a ZONE, not an attack — sourced from the board because
+  // the Home Slot rule blocks a card in its own home row from targeting the
+  // enemy's at all, so the normal list comes back empty and it never fired.
+  if (Number(params.enemyHomeRow ?? 0) > 0)
+    return alive().filter((e) => e.pos!.row === homeRow(enemyOf(card.owner), state.boardSize));
+  // Back-ups (Saltjacks): a LINE down its own column, same argument.
+  if (Number(params.sameColumn ?? 0) > 0 && card.pos)
+    return alive().filter((e) => e.pos!.col === card.pos!.col);
+  if (Number(params.spread ?? -1) >= 0)
+    return forwardAreaTargets(state, card, Number(params.spread),
+      params.forwardDepth != null ? Number(params.forwardDepth) : undefined);
+  // No spread → normal targeting reach. `false` = not a basic, so a Ranged card
+  // keeps its full-board reach; a charging on-summon aims as far as it can
+  // travel, measured from the home row it just landed in.
+  return enemyCards(state, card.owner).filter((t) => canTarget(
+    state, card, t, false, false,
+    Number(params.chargeFirst ?? 0) > 0 ? Number(params.charge ?? 0) : 0,
+  ));
+}
+
+/** Where a card's ON-SUMMON effect would land if summoned at `pos`.
+ *
+ *  Sources through `onSummonTargets` — the same function the engine uses when
+ *  the card really lands — and then narrows by `volleyFilters`, because the
+ *  handler narrows again before it fires. Sourcing alone was not enough:
+ *  `rowAhead` is not a sourcing rule at all, so Aftermath and Infernus Rex
+ *  reached the handler holding every enemy on the board, and the preview
+ *  faithfully drew all of them. */
 export function previewOnSummonArea(
   state: GameState,
   def: CardDef,
@@ -1271,11 +1386,14 @@ export function previewOnSummonArea(
   const os = def.onSummon;
   if (!os || os.targetSide === "ally") return [];
   const p = os.params ?? {};
+
+  // A CORRIDOR IS A SHAPE, and shapes are drawn as ground rather than as the
+  // bodies standing on it — every square the blast covers, empty ones included,
+  // exactly like the aimed-Special footprint. That is the honest picture for a
+  // placement decision: the player is choosing WHERE to stand, and an enemy
+  // that walks into the corridor later is still going to be in it.
   const spread = Number(p.spread ?? -1);
-  const out: Pos[] = [];
   if (spread >= 0) {
-    // Forward corridor: `spread` cols each side, `forwardDepth` rows deep
-    // (Ranged reaches the enemy home when no depth is given).
     const dir = owner === "P1" ? -1 : 1;
     const enemyHome = homeRow(enemyOf(owner), state.boardSize);
     const maxDepth =
@@ -1284,6 +1402,7 @@ export function previewOnSummonArea(
         : def.attackType === "Ranged"
           ? Math.max(1, Math.abs(enemyHome - pos.row))
           : 1;
+    const out: Pos[] = [];
     for (let d = 1; d <= maxDepth; d++) {
       const r = pos.row + dir * d;
       if (r < 0 || r >= state.boardSize) continue;
@@ -1295,12 +1414,22 @@ export function previewOnSummonArea(
     }
     return out;
   }
-  // No spread → normal targeting reach (king's move for Melee, full for Ranged).
-  const ghost = { defId: def.id, owner, pos, attackedThisRound: false } as unknown as CardInstance;
-  for (const t of enemyCards(state, owner)) {
-    if (t.pos && canTarget(state, ghost, t)) out.push({ ...t.pos });
-  }
-  return out;
+
+  // Everything else names VICTIMS rather than ground, so the preview marks the
+  // cards that will actually be struck. A ghost standing on the square being
+  // considered — not on the board and not in `state.cards`, which is why the
+  // cascade takes an instance rather than an id.
+  const ghost = {
+    defId: def.id, owner, pos, attackedThisRound: false,
+    curHp: 1, maxHp: 1, statuses: [], instanceId: "__preview__",
+  } as unknown as CardInstance;
+  const list = volleyFilters(state, ghost, p, onSummonTargets(state, ghost, def));
+  // ...and no more of them than the volley actually fires at. `barrage` ends on
+  // `ordered.slice(0, targets)`, so a nearest-first list (Boon Striker, Dragon's
+  // Bane) hits ONE and the preview must not paint the whole board red behind it.
+  // Absent `targets` means one, which is what a `strike` does.
+  const cap = Math.max(1, Number(p.targets ?? 1));
+  return list.slice(0, cap).filter((t) => t.pos).map((t) => ({ ...t.pos! }));
 }
 
 /** Unique by instanceId, keeping first-seen order. */
@@ -1365,25 +1494,9 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // Mirror the barrage handler's own target filters, so the preview shows EXACTLY
   // what the volley will hit — not everything the card can see. Without these the
   // damage-area highlight over-reports (a row-ahead sweep lit up the whole board).
-  if (Number(p.enemyHomeRow ?? 0) > 0)
-    list = list.filter((t) => t.pos?.row === homeRow(enemyOf(card.owner), state.boardSize));
-  if (Number(p.sameColumn ?? 0) > 0 && card.pos)
-    list = list.filter((t) => t.pos?.col === card.pos!.col);
-  if (Number(p.rowAhead ?? 0) > 0 && card.pos) {
-    const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
-    list = list.filter((t) => t.pos?.row === ahead);
-  }
-  if (typeof p.requireStatus === "string" && p.requireStatus)
-    list = list.filter((t) => hasStatus(t, p.requireStatus as StatusKind));
-  // Extinguisher (Squall): a finisher — only aimable at foes below the HP line.
-  const belowHp = Number(p.requireBelowHp ?? 0);
-  if (belowHp > 0) list = list.filter((t) => t.curHp < belowHp);
-  // closest N (Highroller): the volley auto-picks the nearest few — preview just those.
-  if (Number(p.closest ?? 0) > 0 && card.pos) {
-    list = [...list].sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!))
-      .slice(0, Number(p.targets ?? 1));
-  }
-  return list;
+  // The rule itself lives in `volleyFilters`, because the on-summon preview needs
+  // the identical narrowing and two copies is how the two drift apart.
+  return volleyFilters(state, card, p, list);
 }
 
 /** Would this card's basic attack accomplish literally nothing? True only for a

@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -2592,21 +2592,10 @@ function num(params: Record<string, number | string>, key: string, fallback = 0)
   return typeof v === "number" ? v : fallback;
 }
 
-/** Is `target` what this card is built to hunt? (Drakonbane's Dragon's Bane.)
- *  Shared by the basic-attack bonus, the Special's damage split, and the
- *  on-summon ambush, so the three can never disagree about what counts. */
-export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
-  const vt = def.vsTarget;
-  if (!vt) return false;
-  const tDef = getDef(target.defId);
-  if (vt.tribe != null) {
-    const tribe = tDef.tribe;
-    const has = Array.isArray(tribe) ? tribe.includes(vt.tribe) : tribe === vt.tribe;
-    if (has) return true;
-  }
-  if (vt.maxHpFrom != null && target.maxHp >= vt.maxHpFrom) return true;
-  return false;
-}
+/** Re-exported from rules.ts, where it moved so the placement preview could
+ *  read it too. Kept exported HERE because phases.ts and the tests import it
+ *  from combat, and it is the same function either way. */
+export { matchesVsTarget } from "./rules";
 
 /** Does a card carry `tribe`? Cards may hold several (Ravven is Dark AND
  *  Avian), so this has to handle both shapes. */
