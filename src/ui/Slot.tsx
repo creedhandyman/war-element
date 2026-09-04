@@ -36,6 +36,7 @@ export function Slot(props: {
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
   preview: boolean; // on-summon damage-area preview → red
+  aim: boolean; // inside the footprint of an armed area Special → gold wash
   /** This square is inside a boss Special that lands at the end of this round. */
   blast: boolean;
   /** A boss stands here — its countdown badge hangs on this tile. */
@@ -78,6 +79,7 @@ export function Slot(props: {
     props.legal ? "legal" : "",
     props.isTarget ? "target" : "",
     props.preview ? "preview" : "",
+    props.aim ? "aim" : "",
     props.blast ? "blast" : "",
     props.staged ? "staged" : "",
     props.dimmed ? "dimmed" : "",

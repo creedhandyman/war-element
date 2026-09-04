@@ -1125,6 +1125,143 @@ export function forwardAreaTargets(
  *  Returns board positions (the forward corridor tiles for a spread blast, or the
  *  reachable enemy card slots otherwise). Empty for ally / no-on-summon cards.
  *  Mirrors the on-summon target resolution in phases.ts. */
+/** The squares an anchored N x N burst covers — Airburst Shell's shape.
+ *
+ *  The square is anchored AT the picked victim and grows AWAY from the caster:
+ *  the one you point at is the near corner and the shell bursts onward through
+ *  the squares behind it. Predictable, and it is the half of the area a shooter
+ *  can actually see.
+ *
+ *  ONE definition, because there are now two readers. The engine filters its
+ *  victims through this (`barrage` in combat.ts) and the board draws the same
+ *  cells under the player's finger before they commit. A preview computed from
+ *  a second copy of the maths is a preview that lies the day either copy moves,
+ *  and a lying preview is worse than none — it is the thing they aimed with.
+ *
+ *  Returns the CELLS, not the victims: the footprint is what the player needs to
+ *  see, including the empty squares that tell them the shell is off the board.
+ */
+export function blastArea(
+  boardSize: number,
+  casterPos: Pos | null,
+  anchor: Pos,
+  size: number,
+): Pos[] {
+  if (size <= 1) return [{ row: anchor.row, col: anchor.col } as Pos];
+  // Sign of the step away from the caster; a caster level with the anchor on an
+  // axis (or off the board entirely) grows positively, matching the engine's
+  // `|| 1` and keeping the shape defined for every position.
+  const rStep = casterPos ? (Math.sign(anchor.row - casterPos.row) || 1) : 1;
+  const cStep = casterPos ? (Math.sign(anchor.col - casterPos.col) || 1) : 1;
+  const out: Pos[] = [];
+  for (let dr = 0; dr < size; dr++)
+    for (let dc = 0; dc < size; dc++) {
+      const row = anchor.row + dr * rStep;
+      const col = anchor.col + dc * cStep;
+      if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) continue;
+      out.push({ row, col } as Pos);
+    }
+  return out;
+}
+
+/** Does an anchored burst of `size` reach `p`? The engine's half of
+ *  `blastArea`, kept beside it so the two can never disagree. */
+export function inBlast(
+  boardSize: number,
+  casterPos: Pos | null,
+  anchor: Pos,
+  size: number,
+  p: Pos,
+): boolean {
+  return blastArea(boardSize, casterPos, anchor, size)
+    .some((c) => c.row === p.row && c.col === p.col);
+}
+
+/** Cryo's Mega Icicle: a 2x2 anchored on the pick.
+ *
+ *  NOT the same rule as `blastArea`, and the difference is test-pinned
+ *  (domination.test "leaves a standard board's fixed quadrant alone"): on a
+ *  Domination board the square grows AWAY from the caster like Airburst does,
+ *  but on a standard board it is a fixed down-and-right quadrant whoever threw
+ *  it. Changing that would be a balance edit nobody asked for, so the shape
+ *  carries its own rule rather than borrowing the other one. */
+export function areaBlastCells(
+  boardSize: number,
+  domination: boolean,
+  casterPos: Pos | null,
+  anchor: Pos,
+): Pos[] {
+  const away = domination && !!casterPos;
+  const rStep = away ? (Math.sign(anchor.row - casterPos!.row) || 1) : 1;
+  const cStep = away ? (Math.sign(anchor.col - casterPos!.col) || 1) : 1;
+  const raw = [
+    [anchor.row, anchor.col], [anchor.row, anchor.col + cStep],
+    [anchor.row + rStep, anchor.col], [anchor.row + rStep, anchor.col + cStep],
+  ];
+  return raw
+    .filter(([r, c]) => r >= 0 && r < boardSize && c >= 0 && c < boardSize)
+    .map(([row, col]) => ({ row, col } as Pos));
+}
+
+/** A splash: the struck square and its chess-king ring. */
+export function splashCells(boardSize: number, anchor: Pos): Pos[] {
+  const out: Pos[] = [];
+  for (let dr = -1; dr <= 1; dr++)
+    for (let dc = -1; dc <= 1; dc++) {
+      const row = anchor.row + dr, col = anchor.col + dc;
+      if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) continue;
+      out.push({ row, col } as Pos);
+    }
+  return out;
+}
+
+/** Which AREA a Special lands around its pick, if it lands one at all.
+ *
+ *  Three shapes in the set take ONE pick and hit a footprint around it, and
+ *  until now the player saw none of them: Airburst Shell's N x N `blastSize`,
+ *  Mega Icicle's 2x2 `areaBlast`, and every `strike` that carries a `splash`
+ *  ring — Supernova's Gamma Ray Burst splashes for as much as it hits, so which
+ *  cluster you aim into IS the card. Null means an ordinary pick. */
+export function specialAreaShape(
+  special: CardDef["special"] | undefined,
+): "blast" | "areaBlast" | "splash" | null {
+  if (!special) return null;
+  const p = special.params ?? {};
+  if (Number(p.blastSize ?? 0) > 1) return "blast";
+  if (special.handler === "areaBlast") return "areaBlast";
+  if (special.handler === "strike" && Number(p.splash ?? 0) > 0) return "splash";
+  return null;
+}
+
+/** The squares `casterId`'s Special would cover if anchored on `anchor` — drawn
+ *  under the player's finger BEFORE they commit, which is the whole point.
+ *
+ *  Exact for the FOOTPRINT, and the footprint is what is promised: these are
+ *  the cells, including empty ones and ones holding the player's own cards,
+ *  because "the shell lands here" is the thing they are aiming with. Who inside
+ *  them actually takes damage is the engine's business (each shape hits enemies
+ *  only) and is not restated here. Null for a Special with no area. */
+export function previewSpecialArea(
+  state: GameState,
+  casterId: string,
+  anchor: Pos,
+): Pos[] | null {
+  const caster = state.cards[casterId];
+  if (!caster) return null;
+  const def = getDef(caster.defId);
+  const shape = specialAreaShape(def.special);
+  if (!shape) return null;
+  const casterPos = caster.pos ?? null;
+  switch (shape) {
+    case "blast":
+      return blastArea(state.boardSize, casterPos, anchor, Number(def.special!.params!.blastSize));
+    case "areaBlast":
+      return areaBlastCells(state.boardSize, !!state.domination, casterPos, anchor);
+    case "splash":
+      return splashCells(state.boardSize, anchor);
+  }
+}
+
 export function previewOnSummonArea(
   state: GameState,
   def: CardDef,

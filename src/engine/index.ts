@@ -34,6 +34,8 @@ export {
   canSummon,
   homeSlots,
   summonSquare,
+  previewSpecialArea,
+  specialAreaShape,
   summonLandingRow,
   openHomeSlots,
   canMove,

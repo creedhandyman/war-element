@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, canTarget, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets, domMap } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -4029,17 +4029,14 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // same rule `areaBlast` uses: the victim you pick is the near corner and the
     // shell bursts onward through the squares behind it. Predictable, and it is
     // the half of the area a shooter can actually see.
+    // The shape itself lives in `blastArea` (rules.ts) because the BOARD draws
+    // it too, under the player's finger, before they commit. Two copies of this
+    // arithmetic is a preview that lies the day one of them moves.
     const blast = num(params, "blastSize");
-    if (blast > 1 && targets[0]?.pos) {
-      const { row, col } = targets[0].pos;
-      const rStep = attacker.pos ? (Math.sign(row - attacker.pos.row) || 1) : 1;
-      const cStep = attacker.pos ? (Math.sign(col - attacker.pos.col) || 1) : 1;
-      const inSquare = (p: { row: number; col: number }) => {
-        const dr = (p.row - row) * rStep;
-        const dc = (p.col - col) * cStep;
-        return dr >= 0 && dr < blast && dc >= 0 && dc < blast;
-      };
-      targets = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && e.pos && inSquare(e.pos));
+    const anchor = targets[0]?.pos;
+    if (blast > 1 && anchor) {
+      targets = enemyCards(draft, attacker.owner).filter((e) =>
+        e.curHp > 0 && e.pos && inBlast(draft.boardSize, attacker.pos ?? null, anchor, blast, e.pos));
     }
     // requireStatus (Sentry's Static Blaster): only foes carrying the named
     // status are eligible — a paralyze-payoff nuke, not an unconditional AoE.
@@ -4891,12 +4888,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // the throw looks like and the half of the area a shooter can actually see.
     // Predictable rather than clever — the player picks a victim and knows what
     // else is going to be caught, which a hit-the-most rule would not give them.
-    const dm = attacker.pos && draft.domination ? domMap(draft) : undefined;
-    const rStep = dm ? (Math.sign(row - attacker.pos!.row) || 1) : 1;
-    const cStep = dm ? (Math.sign(col - attacker.pos!.col) || 1) : 1;
-    const cells = [
-      [row, col], [row, col + cStep], [row + rStep, col], [row + rStep, col + cStep],
-    ];
+    //
+    // The shape itself lives in `areaBlastCells` (rules.ts), because the board
+    // now draws it under the player's finger BEFORE they commit. A second copy
+    // of the quadrant rule here is a preview that lies the day either moves.
+    // Same cells, same order, same fixed-quadrant-off-Domination rule.
+    const cells = areaBlastCells(draft.boardSize, !!draft.domination, attacker.pos ?? null, { row, col } as Pos)
+      .map((p) => [p.row, p.col] as const);
     const hit = new Set<string>();
     for (const [r, c] of cells) {
       const victim = enemyCards(draft, attacker.owner).find(

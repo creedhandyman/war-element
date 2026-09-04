@@ -30,6 +30,8 @@ import {
   openHomeSlots,
   summonLandingRow,
   summonSquare,
+  previewSpecialArea,
+  specialAreaShape,
   previewOnSummonArea,
   spellEnemyTargets,
   spellAllyTargets,
@@ -2227,6 +2229,10 @@ export function App() {
     // rather than a victim — the engine fills the rest of the lane in itself.
     if (pending === "special" && game.domination &&
         Number(def.special?.params?.forwardDepth ?? 0) > 0) return 1;
+    // An anchored AREA takes exactly one pick too: the pick is the near corner
+    // of the footprint, and the engine fills the square in behind it. Without
+    // this Airburst's `targets: 99` became a one-click-per-body volley.
+    if (pending === "special" && specialAreaShape(def.special)) return 1;
     const cap = Number(def.special?.params?.targets ?? 1);
     return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
@@ -2263,6 +2269,19 @@ export function App() {
       if (pending === "talent") {
         if (clicked) setDetailId(clicked.instanceId);
         else setHint("This Talent takes no target — press <b>Confirm</b> to use it, or <b>✕</b> to cancel.");
+        return;
+      }
+      // AN ANCHORED AREA IS AIMED, NOT FIRED, BY THE PICK. Every other pick
+      // auto-fires the moment it reaches the cap, which is exactly why the
+      // corridor precedent shows nothing before it commits. Here the tap sets
+      // the anchor, the footprint lights up, and FIRE is a separate press — so
+      // the player sees the 4x4 before it lands. A second tap on a different
+      // card RE-AIMS (replaces the pick) rather than appending, because the
+      // engine anchors on targets[0] and a two-element list would leave the
+      // first, stale pick in charge of where the shell goes.
+      if (pending === "special" && aimedArea && clicked && legalTargetIds.includes(clicked.instanceId)) {
+        setPicks([clicked.instanceId]);
+        setHint(`Aimed — the lit squares are the burst. Press <b>Fire</b>, or tap another target to re-aim.`);
         return;
       }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
@@ -2563,9 +2582,24 @@ export function App() {
     !!game.domination &&
     !!activeDef?.special &&
     Number(activeDef.special.params?.forwardDepth ?? 0) > 0;
+  // An ANCHORED AREA is not an area Special either, for the same reason as the
+  // corridor: `targets: 99` on Airburst Shell made the board treat it as a
+  // fixed zone with only a Confirm, and the engine then anchored the 4x4 on
+  // whatever happened to be first in the list. One pick names the corner.
+  const aimedArea = !!activeDef?.special && specialAreaShape(activeDef.special) !== null;
   const specialAoE =
-    !aimedCorridor &&
+    !aimedCorridor && !aimedArea &&
     !!activeDef?.special && Number(activeDef.special.params?.targets ?? 1) >= specialValid.length;
+  /** The footprint under the current aim — the cells the Special would cover
+   *  anchored on the picked card. Empty until a pick exists: there is no anchor
+   *  yet and nothing honest to draw. Computed by the same function the engine
+   *  filters with, so it cannot disagree with where the shell actually lands. */
+  const aimArea: Pos[] = useMemo(() => {
+    if (pending !== "special" || !awaitingId || !aimedArea || picks.length === 0) return [];
+    const anchor = game.cards[picks[0]];
+    if (!anchor?.pos) return [];
+    return previewSpecialArea(game, awaitingId, anchor.pos) ?? [];
+  }, [pending, awaitingId, aimedArea, picks, game]);
 
   /* ── the four battle verbs, in one place ──────────────────────────────────
      Hoisted out of the buttons because they are now rendered TWICE: as the
@@ -2619,6 +2653,8 @@ export function App() {
         });
       } else if (picks.length > 0) {
         firePicks(picks);
+      } else if (aimedArea) {
+        setHint("⚠ Aim it first — tap a glowing target to place the burst.");
       }
       return;
     }
@@ -2635,6 +2671,8 @@ export function App() {
     setHint(
       specialAoE
         ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
+        : aimedArea
+          ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
         : aimedCorridor
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick a glowing target to <b>aim</b> it; the blast fires down that lane.`
           : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
@@ -2800,7 +2838,7 @@ export function App() {
               title: plummetCheck.ok
                 ? `Plummet: destroy an opponent under ${activeDef.dmg} HP and take its square (costs ${activeDef.plummet.selfDmg} HP)`
                 : plummetCheck.reason ?? "Cannot dive" }
-          : { key: "special", short: pending === "special" ? (specialAoE ? "CONFIRM" : picks.length > 0 ? `FIRE ${picks.length}` : "SPECIAL") : "SPECIAL",
+          : { key: "special", short: pending === "special" ? (specialAoE ? "CONFIRM" : picks.length > 0 ? (aimedArea ? "FIRE" : `FIRE ${picks.length}`) : aimedArea ? "AIM" : "SPECIAL") : "SPECIAL",
               tone: "#c9a24b", disabled: !specialCheck.ok, armed: pending === "special", onClick: actSpecial,
               title: activeDef.special
                 ? `${activeDef.special.name}: ${activeDef.special.text}`
@@ -2913,10 +2951,14 @@ export function App() {
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}
             previewArea={previewArea}
+            aimArea={aimArea}
             blast={blast}
             telegraphs={telegraphs}
             stagedSlot={stagedSlot}
-            pickCounts={picks.reduce<Record<string, number>>((acc, id) => {
+            // An aim anchor is a crosshair, not a hit count: "x1 · 1 hit(s)
+            // assigned" on the corner of a burst about to hit four bodies is
+            // the wrong noun and the wrong number, so the badge stays off.
+            pickCounts={aimedArea ? {} : picks.reduce<Record<string, number>>((acc, id) => {
               acc[id] = (acc[id] ?? 0) + 1;
               return acc;
             }, {})}
@@ -3044,7 +3086,9 @@ export function App() {
                       ? `★ ${activeDef.special.name}`
                       : `✦ Special${activeDef.special ? ` (${specCost})` : ""}`;
                     if (pending === "special")
-                      return specialAoE ? "✦ Confirm" : picks.length > 0 ? `🔥 Fire (${picks.length}/${maxPicks})` : rest;
+                      return specialAoE ? "✦ Confirm"
+                        : picks.length > 0 ? (aimedArea ? "🔥 Fire the burst" : `🔥 Fire (${picks.length}/${maxPicks})`)
+                        : aimedArea ? "🎯 Aim…" : rest;
                     return rest;
                   })()}
                 </button>

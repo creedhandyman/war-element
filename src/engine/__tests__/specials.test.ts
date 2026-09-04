@@ -3,7 +3,10 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
-import { canBasicAttack, canFireSpecial, isActionBlocked } from "../rules";
+import {
+  areaBlastCells, blastArea, canBasicAttack, canFireSpecial, isActionBlocked,
+  previewSpecialArea, specialAreaShape, splashCells,
+} from "../rules";
 import { effectiveDmg, effectiveSp } from "../state";
 import { DUSK_DRAIN } from "../auras";
 import { CARDS, getDef } from "../../data/cards";
@@ -1568,5 +1571,90 @@ describe("Ice Crash Claw is two claws, aimed separately", () => {
         targetIds: [x.instanceId, y.instanceId, x.instanceId],
       }),
     ).toThrow(/Too many targets/);
+  });
+});
+
+// THE AREA YOU AIM WITH. Airburst Shell is a 4x4 and the player could not see
+// it before firing — worse, `targets: 99` made the board treat it as a fixed
+// zone with only a Confirm, so the engine anchored the square on whatever was
+// first in its list. The fix is one pick that names the corner, and a footprint
+// drawn under that pick from the SAME function the engine filters with. These
+// pin the shapes, and that the preview and the engine cannot disagree.
+describe("an area Special shows its footprint before it fires", () => {
+  const at = (row: number, col: number) => ({ row, col });
+  const key = (p: { row: number; col: number }) => `${p.row},${p.col}`;
+  const set = (ps: { row: number; col: number }[]) => new Set(ps.map(key));
+
+  it("blastArea grows AWAY from the caster, anchored on the pick", () => {
+    // P1 casts from the bottom (row 3); the anchor is up and to the right, so
+    // the square runs upward and rightward from it.
+    const cells = blastArea(4, at(3, 0), at(2, 1), 2);
+    expect(set(cells)).toEqual(set([at(2, 1), at(2, 2), at(1, 1), at(1, 2)]));
+    // A caster level with the anchor on an axis grows positively — the same
+    // `|| 1` the engine uses, so the preview shows the real, if arbitrary, side.
+    const level = blastArea(4, at(2, 0), at(2, 1), 2);
+    expect(set(level)).toEqual(set([at(2, 1), at(2, 2), at(3, 1), at(3, 2)]));
+  });
+
+  it("blastArea clips at the board edge instead of inventing squares", () => {
+    // Growing AWAY from the caster means a corner anchor with the caster in
+    // the far corner grows OFF the board — so the whole-footprint case needs
+    // room behind the anchor. On a 7x7, anchored mid-board with the caster
+    // beyond it, all sixteen squares fit.
+    const cells = blastArea(7, at(6, 6), at(3, 3), 4);
+    expect(cells).toHaveLength(16);
+    // Anchored one in from the edge with the caster on the far side, it spills
+    // off the top and left and only the on-board part is returned.
+    const clipped = blastArea(4, at(3, 3), at(1, 1), 4);
+    expect(clipped.every((p) => p.row >= 0 && p.col >= 0 && p.row < 4 && p.col < 4)).toBe(true);
+    expect(clipped.length).toBeLessThan(16);
+  });
+
+  it("areaBlastCells keeps Mega Icicle's fixed quadrant OFF Domination, and aims it ON", () => {
+    // Test-pinned elsewhere as a balance decision: on a standard board the 2x2
+    // is down-and-right from the pick whoever threw it.
+    expect(set(areaBlastCells(4, false, at(0, 3), at(1, 1))))
+      .toEqual(set([at(1, 1), at(1, 2), at(2, 1), at(2, 2)]));
+    // In Domination it falls away from the caster like Airburst does.
+    expect(set(areaBlastCells(7, true, at(6, 6), at(3, 3))))
+      .toEqual(set([at(3, 3), at(3, 2), at(2, 3), at(2, 2)]));
+  });
+
+  it("splashCells is the pick and its chess-king ring, clipped", () => {
+    expect(splashCells(4, at(1, 1))).toHaveLength(9);
+    expect(splashCells(4, at(0, 0))).toHaveLength(4);
+  });
+
+  it("names the three shapes, and nothing else", () => {
+    expect(specialAreaShape(getDef("pyro_mortar").special)).toBe("blast");
+    expect(specialAreaShape(getDef("aqua_cryo").special)).toBe("areaBlast");
+    const splasher = CARDS.find((c) => c.special?.handler === "strike" && Number(c.special.params?.splash ?? 0) > 0);
+    expect(splasher, "no strike-with-splash card in the set").toBeTruthy();
+    expect(specialAreaShape(splasher!.special)).toBe("splash");
+    // An ordinary single-target Special has no footprint to draw.
+    const plain = CARDS.find((c) => c.special && !specialAreaShape(c.special));
+    expect(plain).toBeTruthy();
+    expect(specialAreaShape(plain!.special)).toBeNull();
+    expect(specialAreaShape(undefined)).toBeNull();
+  });
+
+  it("previewSpecialArea draws Airburst's 4x4 from the caster's real position", () => {
+    const s = prepState();
+    const mortar = place(s, "pyro_mortar", "P1", 3, 0);
+    place(s, "dusk_vamp", "P2", 1, 1);
+    const cells = previewSpecialArea(s, mortar.instanceId, at(1, 1))!;
+    expect(cells).not.toBeNull();
+    // Anchored at (1,1), growing up (toward row 0) and right, clipped by the
+    // top edge: rows 1 and 0, columns 1..3 — six of the sixteen.
+    expect(set(cells)).toEqual(set([at(1, 1), at(1, 2), at(1, 3), at(0, 1), at(0, 2), at(0, 3)]));
+    // ...and it is the engine's own shape, not a second copy of the maths.
+    expect(set(cells)).toEqual(set(blastArea(4, mortar.pos!, at(1, 1), 4)));
+  });
+
+  it("previewSpecialArea is null for a Special with no area", () => {
+    const s = prepState();
+    const plainDef = CARDS.find((c) => c.special && !specialAreaShape(c.special) && !c.boss)!;
+    const c = place(s, plainDef.id, "P1", 3, 0);
+    expect(previewSpecialArea(s, c.instanceId, at(1, 1))).toBeNull();
   });
 });

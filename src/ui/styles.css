@@ -622,6 +622,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0%, 100% { box-shadow: inset 0 0 14px var(--threat-soft), 0 0 8px var(--threat-soft); }
   50% { box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25); }
 }
+/* THE AIM — the footprint of an armed area Special (Airburst's 4x4, Mega
+   Icicle's 2x2, a splash ring) drawn under the player's pick BEFORE they fire.
+   Gold, and only a wash: it sets neither border-color nor box-shadow, so an
+   enemy inside the footprint keeps `.target`'s red rim and pulse untouched and
+   reads as "a legal anchor, and inside the burst" — two facts on one tile
+   without either erasing the other. Red would have been the red the targets
+   already are; purple is the boss telegraph. */
+.slot.aim {
+  background-image:
+    linear-gradient(rgba(232, 200, 119, 0.22), rgba(232, 200, 119, 0.22));
+  outline: 2px solid rgba(232, 200, 119, 0.85);
+  outline-offset: -3px;
+  z-index: 2;
+}
 /* ── BOSS DETAIL (BossDetail.tsx) ────────────────────────────────────────────
    The page a tower tile opens: the face at the size the tile promised, then
    lore, then what the fight is actually made of, then the taming controls.
