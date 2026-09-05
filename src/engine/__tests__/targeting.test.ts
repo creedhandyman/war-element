@@ -647,6 +647,24 @@ describe("a Special is gated on who actually reaches — the swarm does the reac
     expect(canFireSpecial(s, sar.instanceId).ok).toBe(false);
   });
 
+  it("counts a MULTI-tribe spider in the swarm, the way the handler does", () => {
+    // Webster is ARC and Spider. `tribeSwarm` reads membership with a helper
+    // that accepts the array form; the castability gate here used to read
+    // `def.tribe === "Spider"`, which is false for every multi-tribe card. So
+    // Webster swung when the ability resolved but did not count toward whether
+    // it could be cast — Sarachnid with only Webster in reach had Silk Chase
+    // refused and her turn skipped. Latent until a Spider carried two tribes.
+    const s = prepState(5);
+    const sar = place(s, "dusk_sarachnid", "P1", 3, 0);
+    place(s, "bolt_webster", "P1", 1, 3);                       // beside the foe
+    place(s, "pyro_staph", "P2", 0, 3, { curHp: 90, maxHp: 90 });
+    s.players.P1.magicPool = 10;
+    const tribe = getDef("bolt_webster").tribe;
+    expect(Array.isArray(tribe) && tribe.length > 1, "the case under test").toBe(true);
+    expect(specialTargets(s, sar.instanceId).length, "Webster's reach counts").toBe(1);
+    expect(canFireSpecial(s, sar.instanceId).ok).toBe(true);
+  });
+
   it("lets Bolder's Vengeance answer the shooter that hurt it", () => {
     // Iron Ore halves Ranger and Assassin damage, so what actually hurts Bolder
     // is usually standing as far away as it can. Gated on the melee square, the

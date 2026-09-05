@@ -1523,6 +1523,21 @@ function dedupeCards(list: CardInstance[]): CardInstance[] {
   return list.filter((c) => (seen.has(c.instanceId) ? false : (seen.add(c.instanceId), true)));
 }
 
+/** Tribe membership, accepting the multi-tribe form. A local copy: `tribeOf` in
+ *  combat.ts is module-private and combat.ts imports FROM here, so reaching for
+ *  it would close a cycle.
+ *
+ *  It has to agree with the handler exactly. `tribeSwarm` moved to a version of
+ *  this and left the CASTABILITY gate below on `def.tribe === tribe`, so a
+ *  multi-tribe ally swung in the swarm but did not count toward whether the
+ *  Special could be cast at all: Sarachnid with only Webster (ARC/Spider) in
+ *  reach had Silk Chase refused and her turn skipped. Latent until a Spider
+ *  carried two tribes; Webster is the first. */
+function inTribe(card: CardInstance, tribe: string): boolean {
+  const t = getDef(card.defId).tribe;
+  return Array.isArray(t) ? t.includes(tribe) : t === tribe;
+}
+
 /** The enemy/ally set a card's Special reaches — ally-targeted, a forward
  *  corridor (forwardDepth), or the normal special reach. */
 export function specialTargets(state: GameState, instanceId: string): CardInstance[] {
@@ -1570,7 +1585,7 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
     const tribe = p.tribe;
     const swarm = boardCards(state, card.owner).filter(
       (a) => a.curHp > 0 && a.pos
-        && (a.instanceId === card.instanceId || getDef(a.defId).tribe === tribe),
+        && (a.instanceId === card.instanceId || inTribe(a, tribe)),
     );
     const seen = new Set<string>();
     const out: CardInstance[] = [];

@@ -2353,7 +2353,15 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: {},
-    tribe: "ARC",
+    // Both, and the order matters only for reading: he is an ARC card that
+    // happens to be a spider, so the Voltis/ARC auras he was built around keep
+    // reaching him and Broodmother is the new thing. Those two DMG auras run on
+    // SEPARATE channels — `aura` is picked (non-stacking, best-of) while
+    // `tribeDmgAura` is SUMMED on top — so a board with both a Voltis holder and
+    // Aranea gives him +2 and +2, not the +2 a same-channel pair would. That is
+    // the price of a second tribe on a card that already had a good one, and it
+    // costs two legendary bodies in two elements to collect.
+    tribe: ["ARC", "Spider"],
     // Electro Wrap (On Hit twice in one round): MUTE the target for the round.
     passiveNames: { onHitStatus: "Electro Wrap" },
     onHitStatus: { kind: "MUTED", duration: 1, power: 0, onSecondHit: true },
@@ -5884,6 +5892,11 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: { EVASION: true },
+    // A thorn-legged forest spider, and now tagged as one. At cost 1 it is the
+    // cheapest body Silk Chase can call, and Broodmother's +2 lands on all THREE
+    // of its jabs — the largest proportional swing the aura has, which is what a
+    // 1-cost pays a 6-cost legendary to be worth playing beside.
+    tribe: "Spider",
     // Sticky: the little jabs BUILD one wound rather than overwriting it —
     // BLEED stacks, to 4, for 2 rounds. It used to apply BLEED 1 for 1 round per
     // hit, which (since a status REPLACES a same-kind one) meant the jabs left
