@@ -123,6 +123,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: { REGEN: 2 }, // Canopy: REGEN 2 at end of round
+    tribe: ["Dragon", "Reptile"],
     // Bramble: its basic leaves BLEED 1 for 2 rounds. Greegon was a pure wall —
     // 4 DMG, REGEN, and nothing offensive — so it never closed anything and got
     // never closed anything. The thorns give it a bite — a BLEED DoT on the foe.
@@ -2625,7 +2626,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { stealthWhenIdle: "Swamp Monster" },
     stealthWhenIdle: true,
-    tribe: "SeaC",
+    tribe: ["SeaC", "Reptile"],
     special: {
       name: "Bog Ambush",
       cost: 3,
@@ -2900,10 +2901,15 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 9,
+    // SP 15 -> 12, HP 23 -> 24, paying for Brood Command doubling to +2/+2.
+    // 12 + 24 + 3*2 + 12 = 54 against a cost-9 budget of 55, one under; it was
+    // 56, one over. Two points off its own line for two points handed to every
+    // Reptile on the board, which on a full brood is a trade it wins many times
+    // over — the aura is the card, and the body is what pays for it.
     dmg: 12,
     hits: 1,
-    hp: 23,
-    sp: 15,
+    hp: 24,
+    sp: 12,
     shields: 3,
     keywords: {},
     passiveNames: { summonSpawn: "The Hatching" },
@@ -2912,7 +2918,7 @@ export const CARDS: CardDef[] = [
     // king's-reach slots (fills what's open; no spawn if none are).
     summonSpawn: { token: "leaf_reptilian_tok", count: 3 },
     // Brood Command: Reptile allies (incl. Trinezer) gain +1 DMG / +1 SP.
-    aura: { scope: "tribe", match: "Reptile", dmg: 1, sp: 1 },
+    aura: { scope: "tribe", match: "Reptile", dmg: 2, sp: 2 },
     special: {
       name: "Jungle Culling",
       cost: 4,
@@ -4063,6 +4069,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "Reptile",
     // Deathroll (On Death): deal 5 DMG to the attacker — but only one it can
     // actually reach. A death roll is a melee thrash; it was landing on ranged
     // killers clear across the board.

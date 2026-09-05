@@ -112,7 +112,16 @@ describe("Drakonbane", () => {
     // inclusive, so this checks the card one under the line.
     const s = prepState();
     const dk = place(s, "dawn_drakonbane", "P1", 3, 0);
-    const small = place(s, "leaf_greegon", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
+    // ALPHA, not Greegon: Greegon was tagged Dragon, which made this control a
+    // bane target and turned the test into a check of the positive case wearing
+    // the negative case's name.
+    //
+    // And not Gool either, which was my first swap and wrong for a subtler
+    // reason: Drakonbane is DAWN and Gool is DUSK, so the matchup multiplier
+    // hands it +25% and the control reads 11 instead of 9 without any bane
+    // firing at all. A control for a DAWN attacker has to be elementally
+    // NEUTRAL. Alpha is LEAF and not a Dragon.
+    const small = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
     const after = applyIntent(battleWith(s, dk.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: small.instanceId,
     });
@@ -129,7 +138,7 @@ describe("Drakonbane", () => {
     const plain = prepState();
     plain.players.P1.magicPool = 9;
     const b = place(plain, "dawn_drakonbane", "P1", 3, 0);
-    const foe = place(plain, "leaf_greegon", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const foe = place(plain, "leaf_alpha", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
     expect(20 - fire(plain, b.instanceId, foe.instanceId).cards[foe.instanceId].curHp).toBe(10);
   });
 
@@ -161,7 +170,7 @@ describe("Drakonbane", () => {
   it("the on-summon ambush fires at a bane target and NOT at a small one", () => {
     const worthy = prepState();
     worthy.players.P1.gold = 20;
-    place(worthy, "leaf_greegon", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    place(worthy, "leaf_alpha", "P2", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     worthy.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const w = applyIntent(worthy, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
     // 7 ambush + Awakening, which is a SHARE of its printed 9 rather than all of
@@ -174,7 +183,7 @@ describe("Drakonbane", () => {
     // and this used to place one at 10/30 and expect to be spared.
     const spared = prepState();
     spared.players.P1.gold = 20;
-    place(spared, "leaf_greegon", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
+    place(spared, "leaf_alpha", "P2", 2, 0, { curHp: 24, maxHp: 24, curShields: 0 });
     spared.players.P1.hand = [{ handId: "h1", defId: "dawn_drakonbane" }];
     const sp = applyIntent(spared, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
     expect(boardCards(sp, "P2")[0].curHp).toBe(24 - awaken); // Awakening only — no ambush

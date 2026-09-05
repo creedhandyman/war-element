@@ -55,7 +55,7 @@ describe("token spawning", () => {
 });
 
 describe("per-card auras", () => {
-  it("Trinezer's Brood Command gives Reptile allies +1 DMG / +1 SP", () => {
+  it("Trinezer's Brood Command gives Reptile allies +2 DMG / +2 SP", () => {
     const s = prepState();
     place(s, "leaf_trinezer", "P1", 3, 0);
     const rep = place(s, "leaf_reptilian_tok", "P1", 3, 1); // Reptile
@@ -63,8 +63,8 @@ describe("per-card auras", () => {
     // Read the base off the def — hardcoding it meant a stat tweak to Reptilian
     // failed this test, which is about the AURA, not about Reptilian's numbers.
     const base = getDef("leaf_reptilian_tok");
-    expect(effectiveDmg(s, rep)).toBe(base.dmg + 1);
-    expect(effectiveSp(s, rep)).toBe(base.sp + 1);
+    expect(effectiveDmg(s, rep)).toBe(base.dmg + 2);
+    expect(effectiveSp(s, rep)).toBe(base.sp + 2);
     expect(effectiveDmg(s, nonRep)).toBe(getDef("leaf_alpha").dmg); // untouched
     expect(effectiveSp(s, nonRep)).toBe(getDef("leaf_alpha").sp);
   });
@@ -72,9 +72,14 @@ describe("per-card auras", () => {
   it("the aura is gone once Trinezer leaves the board (non-stacking, board-tied)", () => {
     const s = prepState();
     const rep = place(s, "leaf_reptilian_tok", "P1", 3, 1);
-    expect(effectiveDmg(s, rep)).toBe(3); // no Trinezer → no buff
+    // Read off the def and the aura rather than hardcoded, so a re-cut of either
+    // does not turn this into a test of two stale numbers. The point is the
+    // DIFFERENCE, and that it is zero with no holder on the board.
+    const base = getDef("leaf_reptilian_tok").dmg;
+    const grant = getDef("leaf_trinezer").aura!.dmg!;
+    expect(effectiveDmg(s, rep)).toBe(base); // no Trinezer → no buff
     place(s, "leaf_trinezer", "P1", 3, 0);
-    expect(effectiveDmg(s, rep)).toBe(4); // buffed while Trinezer is alive
+    expect(effectiveDmg(s, rep)).toBe(base + grant); // buffed while Trinezer is alive
   });
 
   it("Skyrend's Skyborn aura gives AVIAN allies +1 DMG and +3 SP", () => {
