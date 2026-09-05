@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent, needsInput } from "../phases";
-import { boardCards, isContested, isEliminated } from "../state";
+import { boardCards, hasCaptureWin, isContested, isEliminated, spawnTokens } from "../state";
 import { createInitialState } from "../index";
 import { seatsOf } from "../types";
 import { DOMINATION_7X7, newDomination } from "../../data/domination";
@@ -237,5 +237,48 @@ describe("win conditions", () => {
     place(s, "leaf_alpha", "P1", 3, 0);
     const next = advance(atCleanup(s));
     expect(next.win).toEqual({ winner: "P1", by: "capture" });
+  });
+});
+
+// SPAWNING IS NOT A LOOPHOLE ROUND CAPTURE.
+//
+// `summonLandingRow`'s forward hatch was closed in a duel because letting a seat
+// answer a captured Home row was answering a game it had already lost. Spawning
+// was the same hole one door along: tokens never go near the Home row, so a seat
+// whose back line was entirely held still conjured fresh bodies — and their only
+// remaining job was to kill the occupiers before Cleanup could score them.
+//
+// The gate is the LOST state, not merely a blocked one. A seat jammed by its own
+// bodies keeps every spawn, because that is an ordinary crowded board it can fix
+// by moving a card.
+describe("a seat whose Home row is already theirs cannot spawn its way out", () => {
+  const spawnerAt = (s: GameState, row: number, col: number) =>
+    place(s, "bolt_zipp", "P2", row, col);
+
+  it("refuses while the opponent holds every one of its Home slots", () => {
+    const s = prepState();
+    const home = 0; // P2's home row on the 4x4
+    for (let c = 0; c < s.boardSize; c++) place(s, "leaf_alpha", "P1", home, c);
+    expect(hasCaptureWin(s, "P1"), "not actually the lost state").toBe(true);
+    const sp = spawnerAt(s, 1, 1);
+    expect(spawnTokens(s, sp, "bolt_drone_tok", 1)).toEqual([]);
+  });
+
+  it("...but a row jammed by its OWN bodies still spawns", () => {
+    // Not lost, just crowded — and one move re-opens it. Blocking here would
+    // punish a seat for holding its own line, which is what pays its income.
+    const s = prepState();
+    for (let c = 0; c < s.boardSize; c++) place(s, "dusk_vamp", "P2", 0, c);
+    expect(hasCaptureWin(s, "P1")).toBe(false);
+    const sp = spawnerAt(s, 1, 1);
+    expect(spawnTokens(s, sp, "bolt_drone_tok", 1).length).toBe(1);
+  });
+
+  it("...and the Tower is exempt, where capture does not exist", () => {
+    const s = prepState();
+    s.voidTower = true;
+    for (let c = 0; c < s.boardSize; c++) place(s, "leaf_alpha", "P1", 0, c);
+    const sp = spawnerAt(s, 1, 1);
+    expect(spawnTokens(s, sp, "bolt_drone_tok", 1).length).toBe(1);
   });
 });

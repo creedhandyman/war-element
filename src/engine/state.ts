@@ -897,6 +897,29 @@ export function spawnTokens(
 ): CardInstance[] {
   if (!spawner.pos) return [];
   const owner = spawner.owner;
+  // NOT WHILE YOUR BACK LINE IS ALREADY THEIRS.
+  //
+  // `summonLandingRow`'s forward hatch was closed in a duel for this reason and
+  // this is the same hole one door along: the player takes every one of a seat's
+  // Home slots, and its cards answer by conjuring fresh bodies that never went
+  // near the Home row at all. Owner-reported on the AI, and measured — across 80
+  // AI duels, a seat with no open Home slot still gained 1,012 new bodies, every
+  // single one a TOKEN (Zombie Husk, Beebot, Crow, Skeleton, Spider). Summoning
+  // was shut; spawning was wide open, and from the outside they look identical.
+  //
+  // The condition is deliberately the LOST one, not merely the blocked one:
+  // `hasCaptureWin` for the opponent means every Home slot is captured by them
+  // or standing under them, which is the state that ends the match at the very
+  // next Cleanup. A seat jammed by its OWN bodies is not this and keeps its
+  // spawns — that is an ordinary crowded board, and it can move a card to fix
+  // it. So this can only ever fire in a position that is already decided, where
+  // the spawn's only remaining job was to kill the occupiers before Cleanup
+  // could score them.
+  //
+  // Void Tower and Domination are exempt because capture is switched off in
+  // both, so the state this tests for cannot arise and the call would be a
+  // pointless scan.
+  if (!draft.voidTower && !draft.domination && hasCaptureWin(draft, enemyOf(owner))) return [];
   // Never drop a body onto the OPPONENT's summoning row. A token landing there
   // sits in the enemy's home slots — free pressure the raiser never had to walk
   // in, and it clogs the squares the opponent needs to summon into. Tokens push
