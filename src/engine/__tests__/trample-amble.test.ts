@@ -12,6 +12,7 @@
 // rest of the game's pushes do.
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
+import { effectiveMaxHp } from "../state";
 import { canMove, shoveTarget, validTargets } from "../rules";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
@@ -89,10 +90,26 @@ describe("Trample Through", () => {
   });
 
   it("refuses an enemy that is not weaker", () => {
-    // The gate is effective MAX HP, and Bastion at 31 does not move Bearocks 30
-    // …but Bearocks does not move Bastion either. Same-or-bigger is a wall.
-    const { s, mover, to } = facing("bore_bearocks", "bore_bastion");
+    // The gate is effective MAX HP, and same-or-bigger is a wall.
+    //
+    // The pairing used to be Bearocks against Bastion at 30 against 31. It is
+    // not that any more, and the reason is worth having here: Bearocks carries
+    // Mountain Kin, a tribe aura worth +2 max HP that reaches its own holder,
+    // so it walks in at 32 and Bastion's 31 no longer stops it. Skullking, also
+    // 32, is the honest replacement — a body it genuinely cannot move.
+    const { s, mover, to } = facing("bore_bearocks", "dusk_skullking");
     expect(canMove(s, "P1", mover.instanceId, to).ok).toBe(false);
+  });
+
+  it("...and Mountain Kin is what decides some of those matchups", () => {
+    // The aura does not merely make the tribe harder to kill: TRAMPLE compares
+    // max HP, so +2 widens the set of bodies a Mountain Beast can shove. Bastion
+    // at 31 walled Bearocks at 30 and does not wall it at 32. Pinned because it
+    // is the load-bearing half of an aura that otherwise reads as a small
+    // survivability bump.
+    const { s, mover, to } = facing("bore_bearocks", "bore_bastion");
+    expect(effectiveMaxHp(s, s.cards[mover.instanceId]), "lifted by its own aura").toBe(32);
+    expect(canMove(s, "P1", mover.instanceId, to).ok, "31 is no longer a wall").toBe(true);
   });
 
   it("KNOCKS ASIDE when the slot behind the victim is taken", () => {

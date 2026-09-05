@@ -869,9 +869,21 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 2,
     keywords: { TRAMPLE: true },
+    tribe: "Mountain Beasts",
     trampleDmg: 3,
-    passiveNames: { statusImmune: "Hibernation" },
+    passiveNames: { statusImmune: "Hibernation", aura: "Mountain Kin" },
     statusImmune: true, // Hibernation: immune to status effects
+    // Mountain Kin: the oldest thing on the range lends its bulk to the rest of
+    // it — +2 max HP to every Mountain Beast while Bearocks lives, itself
+    // included (a tribe aura reaches its holder, the way Pyrogon's Dragon does).
+    //
+    // MAX HP rather than damage, deliberately. The tribe is Armadillo,
+    // Ankylosaur, Crystal Rhino, Crystal Sabor, Spinosaur, Monger and Bolder —
+    // heavy bodies that mostly carry TRAMPLE, and TRAMPLE compares max HP to
+    // decide what it walks through. So this does not merely make them harder to
+    // kill; it widens the set of things they can shove, which is the one
+    // buff that reads as "mountain" rather than as a generic team pump.
+    aura: { scope: "tribe", match: "Mountain Beasts", maxHp: 2 },
     // Trample Through: 30 HP walks through most of the board's front line.
     // On Death: revive once at 24 HP, then SLEEP itself for 1 round.
     onRevive: { heal: 24, sleep: 1 },
@@ -4937,6 +4949,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 1,
     keywords: {},
+    tribe: "Mountain Beasts",
     // Pride Guardian: the first hit any teammate takes, Monger throws it a slab.
     passiveNames: { onAllyHitShield: "Pride Guardian" },
     onAllyHitShield: 2,
@@ -5268,6 +5281,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
+    tribe: "Mountain Beasts",
     mounted: true, // War Mount — a king-move in Prep
     passiveNames: { summonSelfShields: "War Mount", meleeBonusDmg: "War Mount" },
     summonSelfShields: 3, // rides in armoured...
@@ -6805,6 +6819,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 3,
     keywords: { TRAMPLE: true },
+    tribe: "Mountain Beasts",
     // A third of attack, the same ratio every other carrier took.
     trampleDmg: 2,
     // Iron Ore: take half damage (round down) from Ranger + Assassin attackers.
@@ -12770,6 +12785,7 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 2,
     keywords: { TRAMPLE: true },
+    tribe: "Mountain Beasts",
     passiveNames: { trampleDmg: "Trample Through", onHitPush: "Horn Toss" },
     trampleDmg: 3,
     onHitPush: 1,
@@ -12868,6 +12884,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 0,
     keywords: {},
+    tribe: "Mountain Beasts",
     passiveNames: { onKill: "Gorge" },
     // CAPPED, using the ceiling added for Vulcanyx. An uncapped +DMG per kill on
     // an 11-DMG body is the exact runaway that made enraged Apex Hunger a wall.
