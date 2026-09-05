@@ -3372,6 +3372,24 @@ export function App() {
                   Special unavailable: {"reason" in specialCheck ? specialCheck.reason : ""}
                 </div>
               )}
+              {/* THE HINT, WHERE A PHONE CAN ACTUALLY READ IT.
+                  `.hint` is not merely hidden mid-action — it is `display: none`
+                  on the portrait and short-landscape tiers in EVERY phase (see
+                  the two rules it is paired with in styles.css). That is a
+                  deliberate trade: the row costs ~28px and a phone would rather
+                  have the board. It is the right call for idle chatter and the
+                  wrong one for the sentence that tells you how to get out of an
+                  action you have armed — "press CANCEL first to switch to the
+                  Special" is unreadable on the only device where CANCEL is
+                  hard to find.
+                  So the hint is echoed HERE, into the prompt the phone does
+                  show, and only when it is load-bearing: something is armed, or
+                  the line is a warning. Desktop never sees this copy — `.bp-hint`
+                  is hidden exactly where `.hint` is shown, so the pair can never
+                  both be on screen. */}
+              {(pending !== null || hint.startsWith("⚠")) && (
+                <div className="bp-text bp-hint" dangerouslySetInnerHTML={{ __html: hint }} />
+              )}
             </div>
           ) : null}
           </div>

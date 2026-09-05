@@ -1638,6 +1638,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .controls { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; width: 238px; }
 .hint { font-size: 11px; color: var(--ink-dim); text-align: right; line-height: 1.3; max-height: 30px; overflow: hidden; }
 .hint b { color: var(--ink); }
+/* THE HINT'S STAND-IN, inside the action prompt. Off wherever `.hint` itself is
+   on, so the two can never both be on screen; switched on beside each of the two
+   rules that hide `.hint`, so the pairing is visible at both ends rather than
+   being a rule here and a coincidence there. */
+.bp-hint { display: none; }
+.bp-hint b { color: var(--ink); }
 /* Pass Priority: primary, full-width; the pass-dots ride inside it. */
 .pass-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 7px 12px; }
 .pass-btn .pass-dots { margin: 0; }
@@ -3164,6 +3170,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     text-align: center; text-align-last: center; max-width: none;
   }
   .hint { display: none; }
+  /* ...so the action prompt carries it instead while a card is up. See the
+     `.bp-hint` block beside `.hint` in the base sheet. */
+  .bottom.acting .bp-hint { display: block; }
   /* Big primary action, held to ONE LINE and one row-height. Sharing its row
      with the ⋯ took 50px off its width and "Pass Priority" wrapped, growing a
      44px bar to 62 — the opposite of the point. */
@@ -3634,6 +3643,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .gem-opp { display: none; }
   .controls { width: auto; flex: 1; flex-direction: row; align-items: center; justify-content: flex-end; gap: 6px; }
   .hint { display: none; }
+  .bottom.acting .bp-hint { display: block; }
   .pass-btn { flex: 0 1 auto; padding: 7px 14px; font-size: 12px; }
   .ctl-sub { flex: 0 0 auto; gap: 4px; flex-wrap: nowrap; }
   .ctl-sub .mv { display: none; }
