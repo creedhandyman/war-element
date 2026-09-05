@@ -1328,6 +1328,9 @@ export const CARDS: CardDef[] = [
     id: "aqua_phrost",
     name: "Phrost",
     tribe: ["Dragon", "Ice"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    passiveNames: { onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Support",
@@ -2411,7 +2414,7 @@ export const CARDS: CardDef[] = [
     // Powertrip (On Kill, once per round): 5 DMG to all ELECTRIFIED opponents
     // (= any statused enemy, the BOLT "electrified" proxy).
     passiveNames: { onKill: "Powertrip" },
-    onKill: { aoeDmgElectrified: 5 },
+    onKill: { buffDmg: 1, aoeDmgElectrified: 5 },
     special: {
       name: "Gigavolt Strike",
       cost: 4,
@@ -3766,6 +3769,9 @@ export const CARDS: CardDef[] = [
     // counter, and DUSK is not short of them.
     keywords: { FLYING: true },
     tribe: ["Dragon", "Skeleton"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    passiveNames: { onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     // Purple Flames (On Summon): apply DOT 2 for 3 rounds to the row directly ahead.
     onSummon: { handler: "barrage", params: { dmg: 0, spread: 1, forwardDepth: 1, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 2 } },
   },
@@ -4847,6 +4853,9 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: { EVASION: true },
     tribe: "Dragon",
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    passiveNames: { onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     // Dragon's Blade: it grows into the fight — +1 DMG and +1 SP every 2nd round,
     // stacking with no ceiling.
     roundTick: { buffDmgEveryN: { n: 2, amount: 1, sp: 1, maxTicks: 5 } },
@@ -7433,11 +7442,13 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: "Dragon",
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     // Bloodscale: its basic opens a wound. BLEED 2 for 2 rounds, the same cut
     // Stickviper makes — Greegon's Bramble is the weaker version of the same
     // idea, which is the right way round for the dragon and the sapling it
     // plants.
-    passiveNames: { summonSpawn: "Ancient Protection", onHitStatus: "Bloodscale" },
+    passiveNames: { onKill: "Dragon's Fury", summonSpawn: "Ancient Protection", onHitStatus: "Bloodscale" },
     onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     // Ancient Protection (On Summon): spawn Greegon (the existing card) in an
     // adjacent slot. Dragon's Dance then adds an 8-DMG blow while Greegon lives.
@@ -7914,8 +7925,10 @@ export const CARDS: CardDef[] = [
     // can be screened and one that cannot.
     keywords: { FLYING: true },
     tribe: ["Dragon", "Avian"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     // Vision Guard (On Hit): 50% chance to deflect — take half, deal half back.
-    passiveNames: { onHitDeflect: "Vision Guard" },
+    passiveNames: { onKill: "Dragon's Fury", onHitDeflect: "Vision Guard" },
     onHitDeflect: 50,
     // Dark Wind Wave: 5 DMG to the far row, shoving survivors toward the near row.
     special: {
@@ -8196,6 +8209,9 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: { BLOCK: 2 },
     tribe: "Dragon",
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    passiveNames: { onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     // Hardened Stainless Steel: BLOCK 2 (each shield harder to break) and immune
     // to status/DOT.
     statusImmune: true,
@@ -8559,9 +8575,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { CRIT: true },
     tribe: ["Ice", "Dragon"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     // Frozen Serpent: basics FREEZE a foe (50%), and a hit on an already-FROZEN
     // target shatters the ice — 3 splash to everyone adjacent to it.
-    passiveNames: { onHitStatus: "Frozen Serpent" },
+    passiveNames: { onKill: "Dragon's Fury", onHitStatus: "Frozen Serpent" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
     shatterFrozen: 3,
     // Icy Storm: 3 DMG to 2 opponents, then vanish into STEALTH for 2 rounds.
@@ -9171,10 +9189,12 @@ export const CARDS: CardDef[] = [
     // Both, and it answers to either aura: a Dragon by shape, a Star by what it
     // is. Tribes are free-text and may be arrays, so nothing had to give.
     tribe: ["Dragon", "Stars"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     // Immediate Impact (On Summon): 2 DMG to all opponents on arrival.
     onSummon: { handler: "barrage", params: { dmg: 2, targets: 99 } },
     // Blinding Star (Aura): every enemy basic attack rolls a 10% miss.
-    passiveNames: { blindingStar: "Blinding Star" },
+    passiveNames: { onKill: "Dragon's Fury", blindingStar: "Blinding Star" },
     blindingStar: true,
     // Gamma Ray Burst: 14 DMG to a target AND to opponents adjacent to it (same
     // damage — a blast zone around the mark); Supernova pays 5 HP.
@@ -11218,6 +11238,8 @@ export const CARDS: CardDef[] = [
     // Fall about what kind of boss this is.
     ignoresHomeRule: true,
     tribe: "Dragon",
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     boss: true,
     // Floor 4 — THE RAIN, and it is the first boss the board cannot answer.
     // Every other fight in the tower is decided by WHERE you stand: get out of
@@ -11235,7 +11257,7 @@ export const CARDS: CardDef[] = [
     // immunity to Melee outright, and "own ranged cards or you cannot
     // participate" is the lockout that came off Nightshrike. A boss whose
     // damage already ignores position must not also be unreachable.
-    passiveNames: { ignoresHomeRule: "Skyfire", onSpecialUse: "Kindling", alwaysHit: "Coronal", roundTick: "High Circle" },
+    passiveNames: { onKill: "Dragon's Fury", ignoresHomeRule: "Skyfire", onSpecialUse: "Kindling", alwaysHit: "Coronal", roundTick: "High Circle" },
     // Coronal, the DAWN half: light does not miss. Deterministic, which the
     // mode requires — a board-wide nuke that sometimes whiffs would make the
     // countdown unreadable.
@@ -11322,7 +11344,7 @@ export const CARDS: CardDef[] = [
     // The crystals keep the freezes running and burst into another freeze when
     // killed, which is what makes Deep Freeze climb without Cryovex having to do
     // anything itself.
-    onKill: { spawnToken: { token: "aqua_blackice_crystal_tok", count: 1, maxAlive: 3 } },
+    onKill: { buffDmg: 1, spawnToken: { token: "aqua_blackice_crystal_tok", count: 1, maxAlive: 3 } },
     roundTick: { fireSpecialEveryN: 3, advanceEveryN: 2 },
     special: {
       name: "Absolute Zero",
@@ -13641,6 +13663,9 @@ export const CARDS: CardDef[] = [
     element: "PYRO",
     cardClass: "Mage",
     tribe: ["Avian", "Dragon"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    passiveNames: { onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     attackType: "Ranged",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
