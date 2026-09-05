@@ -378,7 +378,7 @@ export function HomeScreen(props: {
             page and never competes with a tile for a thumb. The boot splash
             (index.html) carries the same line, so the first screen and the home
             screen say the same thing. */}
-        <div className="home-legal">War Element™ &middot; 2026 &middot; Bernard</div>
+        <div className="home-legal">War Element™ &middot; &copy; 2026 Bernard</div>
       </div>
     </div>
   );
