@@ -2094,10 +2094,20 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 7, // LEGENDARY
+    cost: 6, // LEGENDARY
+    // 9 + 16 + 1*2 + 13 = 40 = 5*6+10, exactly, down a rung from 7.
+    //
+    // THE THREE POINTS COME OFF THE BODY, and deliberately not off the other
+    // two stats. SP 13 clears SP_MID_MAX, so Klipso moves like a king and cuts
+    // corners; dropping it to 10 to pay for the re-cost would have bought the
+    // cheaper card by taking away the movement that makes an Assassin an
+    // Assassin. EVASION is the same story — it is the card's identity and the
+    // stat formula does not price it anyway, which is what the note below has
+    // always said. So the HP goes: 19 -> 16, a knife that is easier to reach
+    // and easier to afford.
     dmg: 9,
     hits: 1,
-    hp: 19,
+    hp: 16,
     sp: 13,
     shields: 1,
     // EVASION paid for in HP: the stat formula doesn't price keywords, so the
@@ -14686,7 +14696,12 @@ export const TOKENS: CardDef[] = [
     hp: 10,
     sp: 9,
     shields: 0,
-    keywords: {},
+    // FLYING, with the Rare whose art it wears — the two read as one creature
+    // and only one of them was leaving the ground. Free against the budget
+    // (keywords are not priced, and a token is off the curve regardless), and
+    // at SP 9 it does not clear SP_MID_MAX, so the king-move is a real grant
+    // here rather than something it already had.
+    keywords: { FLYING: true },
     tribe: "Skeleton",
   },
   {

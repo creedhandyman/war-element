@@ -528,6 +528,12 @@ export const VOID_BOSSES: VoidBoss[] = [
       "gale_thundering_hurricane_tok",
       "gale_wista", "bolt_thunder", "gale_rayfen",
       "gale_sirocco", "gale_sirocco", "gale_sirocco",
+      // Sightwing is the gold Klipso gave back when it moved 7 -> 6. Floor 5's
+      // budget is asserted EXACTLY, so a re-cost anywhere in the set has to be
+      // answered here; another Sirocco was not available (rare, and x3 is
+      // already its cap), and a cost-1 scout is the cheapest thing that keeps
+      // the front a wind formation rather than padding it with a stranger.
+      "gale_syt_bird",
     ],
     puzzle: "The storm has legs: kill the hurricane and it is stranded, leave it and it blinks into your line.",
   },
