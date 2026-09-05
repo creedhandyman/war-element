@@ -1167,7 +1167,11 @@ export const CARDS: CardDef[] = [
     hp: 21,
     sp: 10,
     shields: 2,
-    keywords: {},
+    // TRAMPLE on the lightest body of the five, and that is the point rather
+    // than an oversight: the shove needs strictly MORE effective max HP than
+    // the victim, so at 21 HP Skelider bulls through chaff and stops dead at
+    // anything solid. A cavalry card that can be walled is the right shape.
+    keywords: { TRAMPLE: true },
     // Mounted until Dismount: below 10 HP it loses the mount, and with it the
     // king-move — `transformed` gates that, so a dismounted rider walks.
     mounted: true,
@@ -1266,7 +1270,7 @@ export const CARDS: CardDef[] = [
     hp: 22,
     sp: 4,
     shields: 0,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     tribe: "Ice",
     // Polar Storm (On Summon): give allies in the row directly ahead +1 shield.
     // (Simplified from the canon 3-round ally buff + AoE — owner's call: shields only.)
@@ -9693,7 +9697,7 @@ export const CARDS: CardDef[] = [
     hp: 23,
     sp: 12,
     shields: 4,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     tribe: "Suns",
     // 24K Stallion (On Summon): the mount arrives with +20 HP. Down from 24 —
     // the Suns aura below is new power on a card that was already on budget,
@@ -13025,7 +13029,7 @@ export const CARDS: CardDef[] = [
     hp: 22,
     sp: 3,
     shields: 3,
-    keywords: {},
+    keywords: { TRAMPLE: true },
     passiveNames: { pushImmune: "Planted Hooves", roundTick: "Herd Warmth" },
     pushImmune: true,
     roundTick: { healAlliesInRange: 3 },
@@ -13213,7 +13217,7 @@ export const CARDS: CardDef[] = [
     // BLOCK is flat per-hit reduction applied BEFORE shields and even to PEN, so
     // it is brutal against this set's multi-hit style. Precedented (Ice Wall,
     // Granite Armadillo), but this is the number to cut first if the batch runs hot.
-    keywords: { BLOCK: 2 },
+    keywords: { BLOCK: 2, TRAMPLE: true },
     passiveNames: { onShieldBreak: "Blowout", aura: "Forge Plating" },
     onShieldBreak: { status: { kind: "BURN", duration: 3, power: 3 } },
     // FORGE PLATING — the kiln armours its own. Tribe-scoped, so it reaches the
