@@ -571,7 +571,12 @@ shiftLateral?: number;
  *  to living allies matching `scope`. `match` names the tribe/class for those
  *  scopes; the `element` scope uses the aura-holder's own element. */
 export interface AuraBonusDef {
-  scope: "element" | "tribe" | "class" | "all" | "adjacent";
+  /** `card` matches ONE card def by id — `match` is the id, not a tribe name.
+   *  For an aura whose subject is a specific body rather than a category:
+   *  Keeper's Hive Command powers ITS swarm, and inventing a one-token tribe to
+   *  express that put a "Bot" pill in the tribe filter that meant nothing to a
+   *  player and could be broken by any edit to the token's tribe line. */
+  scope: "element" | "tribe" | "class" | "all" | "adjacent" | "card";
   match?: string;
   /** Narrow ANY scope to one element as well. Rodd's Conduction is a BOLT
    *  conduit: it powers the grid, not whatever happens to be standing beside
@@ -1198,7 +1203,11 @@ export interface CardDef {
    *  damage aimed at this card. Applied AFTER the shield gate, so it splits
    *  what would actually have reached HP — and capped by what the swarm can
    *  actually take, since a 3 HP Beebot cannot absorb 20. */
-  hiveAbsorb?: { tribe: string; pct: number };
+  /** Exactly one of `tribe` / `defId` selects the swarm — a category of ally,
+   *  or one specific card def by id. See `AuraBonusDef`'s "card" scope: the two
+   *  fields exist for the same reason, and Keeper uses the id form so its Hive
+   *  Mind is tied to the Beebot rather than to a tribe string. */
+  hiveAbsorb?: { tribe?: string; defId?: string; pct: number };
   /** Periodic self effect resolved each Cleanup. */
   roundTick?: RoundTickDef;
   /** On-death revival (Bearocks). */

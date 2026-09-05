@@ -1492,7 +1492,8 @@ export function resolveHit(
     if (hive && toHp > 0) {
       let quota = Math.floor((toHp * hive.pct) / 100);
       const swarm = boardCards(draft, target.owner).filter(
-        (c) => c.curHp > 0 && c.instanceId !== target.instanceId && tribeOf(c, hive.tribe),
+        (c) => c.curHp > 0 && c.instanceId !== target.instanceId
+          && (hive.defId ? getDef(c.defId).id === hive.defId : !!hive.tribe && tribeOf(c, hive.tribe)),
       );
       for (const bot of swarm) {
         if (quota <= 0) break;

@@ -119,6 +119,26 @@ describe("Keeper", () => {
     expect(withKeeper - effectiveDmg(next, bots[0])).toBe(3); // Hive Command
   });
 
+  it("the hive is ONE CARD, not a category — another BOLT ally is neither buffed nor eaten", () => {
+    // Hive Command and Hive Mind used to match `tribe: "Bot"`, a tribe invented
+    // for one token. Both are scoped to the Beebot itself now (`scope: "card"`
+    // / `hiveAbsorb.defId`), and the thing that must not regress is the reach:
+    // a Keeper deck is full of other BOLT allies and none of them are the swarm.
+    const s = prepState();
+    const keep = place(s, "bolt_keeper", "P1", 3, 0, { curHp: 17, maxHp: 17, curShields: 0 });
+    const ally = place(s, "bolt_rodd", "P1", 3, 1, { curHp: 12, maxHp: 12, curShields: 0 });
+    const hitter = place(s, "dusk_gool", "P2", 3, 2, { curHp: 30, maxHp: 30 });
+    directDamage(s, s.cards[hitter.instanceId], s.cards[keep.instanceId], 6, true);
+    expect(s.cards[ally.instanceId].curHp, "a non-Beebot soaks nothing").toBe(12);
+    expect(s.cards[keep.instanceId].curHp, "so Keeper takes the whole hit").toBe(17 - 6);
+    // Hive Command measured the way the Beebot test measures it: the DELTA from
+    // removing Keeper. Reading the ally's damage twice with Keeper alive both
+    // times would pass whatever the aura did.
+    const withKeeper = effectiveDmg(s, s.cards[ally.instanceId]);
+    delete s.cards[keep.instanceId];
+    expect(withKeeper - effectiveDmg(s, s.cards[ally.instanceId]), "and gains no Hive Command").toBe(0);
+  });
+
   it("Hive Mind puts half of Keeper's incoming damage into the swarm", () => {
     const s = prepState();
     const keep = place(s, "bolt_keeper", "P1", 3, 0, { curHp: 17, maxHp: 17, curShields: 0 });

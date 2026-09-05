@@ -370,6 +370,8 @@ function auraMatches(a: AuraBonusDef, holder: CardInstance, target: CardInstance
     case "tribe": return targetDef.tribe != null && a.match != null &&
       (Array.isArray(targetDef.tribe) ? targetDef.tribe.includes(a.match) : targetDef.tribe === a.match);
     case "class": return targetDef.cardClass === a.match;
+    // ONE named card, by def id. `match` is an id here, not a tribe.
+    case "card": return targetDef.id === a.match;
     // Touching allies only — Lightning Rod's field reaches the 8 surrounding
     // slots (self is distance 0, so it never buffs itself).
     case "adjacent": return !!holder.pos && !!target.pos && chebyshev(holder.pos, target.pos) === 1;

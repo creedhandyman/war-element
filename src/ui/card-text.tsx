@@ -877,8 +877,13 @@ export function describePassives(def: CardDef): string[] {
     named("onHitRampUntilSpecial", `Volcanic Fury: each landed basic grants +${def.onHitRampUntilSpecial} DMG, building until the Special is used (then it resets).`);
   if (def.stealthWhenIdle)
     named("stealthWhenIdle", "Buried in the muck: hidden and untargetable each round it neither moves nor attacks — doing either gives it up until the next round it stays still.");
-  if (def.hiveAbsorb)
-    named("hiveAbsorb", `Living ${def.hiveAbsorb.tribe} allies soak up to ${def.hiveAbsorb.pct}% of the damage aimed at this card, as far as their own HP stretches.`);
+  if (def.hiveAbsorb) {
+    // Name the CARD when the swarm is one card ("Living Beebots soak…"), the
+    // tribe when it is a category. Reading the def is what keeps the line right
+    // if the token is ever renamed.
+    const who = def.hiveAbsorb.defId ? `${getDef(def.hiveAbsorb.defId).name}s` : `${def.hiveAbsorb.tribe}`;
+    named("hiveAbsorb", `Living ${who} allies soak up to ${def.hiveAbsorb.pct}% of the damage aimed at this card, as far as their own HP stretches.`);
+  }
   if (def.contagionAura)
     named("contagionAura", "Aura: while this card lives, every one of your Zombies that dies deals 2 DMG to each opponent beside it.");
   // The rekindle is a real ability with a real clock, and it was reaching the

@@ -260,19 +260,18 @@ export const tribesOf = (def: CardDef): string[] =>
 /** Every tribe anyone can filter on, MOST POPULATED FIRST.
  *
  *  Derived from the card data rather than typed out, because tribes are
- *  free-text: a hand-written list is a second source of truth that goes stale
- *  the first time a card invents a tribe, and cards do — "Bot" and "Kraken" are
- *  each carried by exactly one card. (This list used to name "Sun's Army" and
- *  "Ice Kingdom" alongside them; both have since been folded into the real
- *  tribes they were flavour for, which is what a derived list makes painless
- *  and a hand-written one would have made a second edit.) Built from
- *  CARDS and TOKENS together so the gallery — the one grid that shows tokens
- *  and bosses — can filter them too.
+ *  free-text and the set MOVES. Every one-card tribe this list was originally
+ *  written to complain about — "Dragon Born", "Sun's Army", "Ice Kingdom",
+ *  "Bot" — has since been folded into the real tribe it was flavour for, or
+ *  replaced by a mechanic that did not need a tribe at all. Each of those was
+ *  one edit because the list is derived; a hand-written copy would have been
+ *  two, and the second one is the edit people forget. Built from CARDS and
+ *  TOKENS together so the gallery — the one grid that shows tokens and bosses
+ *  — can filter them too.
  *
- *  Ordered by how many cards carry it. Alphabetical would put the eight
- *  one-card tribes among the ones people actually look for, and a 33-pill row
- *  needs its useful half at the front; ties break by name so the order is
- *  stable. */
+ *  Ordered by how many cards carry it. Alphabetical would scatter the small
+ *  tribes through the ones people actually look for, and a 30-pill row needs
+ *  its useful half at the front; ties break by name so the order is stable. */
 export const TRIBES: string[] = (() => {
   const n = new Map<string, number>();
   for (const d of [...CARDS, ...TOKENS]) for (const t of tribesOf(d)) n.set(t, (n.get(t) ?? 0) + 1);

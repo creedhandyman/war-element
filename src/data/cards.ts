@@ -2567,11 +2567,17 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Hive Command: the swarm is only a threat because of this. A 2 DMG Beebot
     // stings for 5 while Keeper lives, and drops back to 2 the moment it dies.
-    aura: { scope: "tribe", match: "Bot", dmg: 3 },
+    //
+    // Scoped to the CARD, not to a tribe. This used to match `tribe: "Bot"`, a
+    // tribe invented for one token and carried by nothing else — so it put a
+    // meaningless "Bot" pill in the tribe filter, and any edit to the token's
+    // tribe line silently unhooked Keeper's whole identity. The subject here was
+    // never a category; it was always the Beebot.
+    aura: { scope: "card", match: "bolt_beebot", dmg: 3 },
     // Hive Mind: half of everything aimed at a 17 HP body goes into the swarm
     // instead — but only as far as the swarm's own HP will stretch.
     passiveNames: { hiveAbsorb: "Hive Mind", summonSpawn: "Hive Mind", roundTick: "Hive Command" },
-    hiveAbsorb: { tribe: "Bot", pct: 50 },
+    hiveAbsorb: { defId: "bolt_beebot", pct: 50 },
     summonSpawn: { token: "bolt_beebot", count: 2 },
     // Hive Command also breeds: one fresh Beebot at the end of every round,
     // replacing the ones that spent themselves stinging. Capped so the swarm
@@ -14831,7 +14837,8 @@ export const TOKENS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: {},
-    tribe: "Bot",
+    // NO TRIBE. "Bot" existed so Keeper could point at this token, which
+    // `scope: "card"` now does directly.
     // Stinger Buzz: every sting leaves 2 DOT for 2 rounds — BOLT's ONLY DOT, a
     // deliberate exception for Keeper's swarm — and the bee dies at the Cleanup
     // of the round it stings. A one-shot: it lands, it poisons, it's gone.
