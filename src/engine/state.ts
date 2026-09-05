@@ -2,6 +2,7 @@
 // incoming state once (structuredClone) and mutate only the clone.
 
 import { getDef, deckById } from "../data/cards";
+import { dominationMap, isImpassable } from "../data/domination";
 import { hasElementAura, tailwindDmg, weakenMult, weakenStacks } from "./auras";
 import { coin, shuffle } from "./rng";
 import { BURN_HEAL_MULT } from "./matchups";
@@ -925,9 +926,29 @@ export function spawnTokens(
   // in, and it clogs the squares the opponent needs to summon into. Tokens push
   // out from their spawner; they don't teleport onto the enemy's back line.
   const enemyHome = homeRow(enemyOf(owner), draft.boardSize);
+  // DOMINATION IS A DIFFERENT MAP AND THIS RULE WAS BOTH TOO STRICT AND TOO
+  // LOOSE ON IT.
+  //
+  // Too loose: nothing here ever asked whether a square can be STOOD on, so a
+  // spawn dropped tokens straight into a Point's citadel — measured, 16 of 16
+  // attempts with a spawner placed beside one. Those four squares are exactly
+  // the ones `slotIsImpassable` exists to protect: a body there cannot be
+  // reached, cannot be moved, and cannot be shifted by anything that respects
+  // the terrain, so it squats on the objective for the rest of the match.
+  //
+  // Too strict: the Home-row ban means nothing on a map with no Home row. For a
+  // P2 spawner it barred row 6, which on this map is six Point-ring slots and a
+  // shrine — ordinary contested ground — and it barred the MIRROR row for P1,
+  // so the two seats played by different rules. `homeRow` has no answer at all
+  // for a third or fourth seat, which Domination is the only board to seat.
+  //
+  // So each mode gets the guard that means something on it. In a duel there is
+  // no map and no impassable square, which is why the terrain half is asked
+  // only where a map exists rather than unconditionally.
+  const map = draft.domination ? dominationMap(draft.domination.mapId) : undefined;
   const isOpen = (r: number, c: number) =>
     r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
-    r !== enemyHome &&
+    (map ? !isImpassable(map, r, c) : r !== enemyHome) &&
     !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
   const slots: Pos[] = [];
   const push = (r: number, c: number) => {

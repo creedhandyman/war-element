@@ -13,14 +13,14 @@ import {
 } from "../../data/domination";
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
-import { cardAt, moveReach, summonCard } from "../state";
+import { cardAt, moveReach, spawnTokens, summonCard } from "../state";
 import { pushBack } from "../combat";
 import { pickBasicTarget } from "../phases";
 import { aiPrepIntent, pointGoals } from "../ai";
 import { atBattle } from "./helpers";
 import { deckLimits } from "../../data/custom-decks";
 import { getDef } from "../../data/cards";
-import type { GameState, PlayerId } from "../types";
+import type { GameState, PlayerId, Pos } from "../types";
 import { homeRow } from "../types";
 
 const M = DOMINATION_7X7;
@@ -1244,5 +1244,57 @@ describe("the AI seats do not all go for the same square", () => {
       return poi?.id;
     });
     expect(new Set(firsts).size, `seats want ${firsts.join(",")}`).toBe(4);
+  });
+});
+
+// SPAWNED BODIES OBEY THE MAP.
+//
+// `spawnTokens` placed tokens by occupancy alone — it never asked whether a
+// square could be stood on. On the 7x7 that put them straight into a Point's
+// CITADEL: measured, 16 of 16 attempts with a spawner beside one. Those four
+// squares are what `slotIsImpassable` exists to protect, so a body there could
+// not be reached, moved, or shifted by anything that respects the terrain — a
+// permanent squatter on the objective.
+//
+// The same rule was wrong in the other direction too. Its Home-row ban means
+// nothing on a map with no Home row, and it barred a DIFFERENT row for each
+// seat (row 6 for P2, row 0 for P1) — six Point-ring slots and a shrine of
+// perfectly ordinary contested ground, refused asymmetrically.
+describe("spawns respect the terrain", () => {
+  const impassables = (s: GameState): Pos[] => {
+    const out: Pos[] = [];
+    for (let r = 0; r < s.boardSize; r++)
+      for (let c = 0; c < s.boardSize; c++)
+        if (isImpassable(M, r, c)) out.push({ row: r, col: c } as Pos);
+    return out;
+  };
+
+  it("never drops a token on a citadel, however crowded the ring", () => {
+    const s = domState();
+    const dead = impassables(s);
+    expect(dead.length, "the map has no impassable squares to test").toBeGreaterThan(0);
+    for (const d of dead) {
+      const s2 = domState();
+      // Stand the spawner right beside it and ask for more tokens than the
+      // neighbourhood can hold, so the search is forced to widen.
+      const spot = { row: d.row, col: d.col + 1 } as Pos;
+      if (isImpassable(M, spot.row, spot.col)) continue;
+      const sp = put(s2, "bolt_zipp", "P2", spot.row, spot.col);
+      for (const t of spawnTokens(s2, sp, "bolt_drone_tok", 8))
+        expect(t.pos && isImpassable(M, t.pos.row, t.pos.col), `landed on ${t.pos?.row},${t.pos?.col}`)
+          .toBe(false);
+    }
+  });
+
+  it("...and DOES use the row the Home-row ban used to refuse", () => {
+    // Row 6 is P1's home row on a 4x4/5x5 and means nothing here; on this map it
+    // carries Point-ring slots and a shrine.
+    const s = domState();
+    const row = s.boardSize - 1;
+    const sp = put(s, "bolt_zipp", "P2", row - 1, 3);
+    const out = spawnTokens(s, sp, "bolt_drone_tok", 6);
+    expect(out.length, "nothing spawned at all").toBeGreaterThan(0);
+    expect(out.some((t) => t.pos?.row === row), "the phantom Home-row ban is still on")
+      .toBe(true);
   });
 });
