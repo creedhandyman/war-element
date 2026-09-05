@@ -13778,7 +13778,12 @@ export const TOKENS: CardDef[] = [
     element: "VOID",
     cardClass: "Mage",
     tribe: "Watcher",
-    attackType: "Ranged",
+    // MELEE. An eye this size does not shoot — it looms, and what it looks at
+    // has to be in front of it. The basic drops from reach 2 to adjacency, which
+    // is a real cost on an 8-DMG body; Regard is untouched because that Special
+    // already prints `ranged: true`, so it keeps its three targets from wherever
+    // Lidless is standing.
+    attackType: "Melee",
     cost: 4,
     // 7 + 13 + 1*2 + 8 = 30 = 5*4+10.
     // 8 + 16 + 1x2 + 8 = 34 against a cost-4's 30. Back from 38.
@@ -13792,8 +13797,14 @@ export const TOKENS: CardDef[] = [
     // from. What it does to what it looks at is take its sight: BLIND for 2.
     // The name is the ability — this is the card that is always looking, and
     // the thing it looks at stops being able to.
-    passiveNames: { onHitStatus: "Unblinking" },
+    passiveNames: { onHitStatus: "Unblinking", revealsStealth: "Nothing Hides" },
     onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
+    // NOTHING HIDES. A lidless eye that could be hidden from was the one thing
+    // this card could not be. Like Sonar Ping's Echo Return it is SIDE-WIDE
+    // rather than personal: while Lidless is alive on the board, every card on
+    // its side may target a cloaked opponent normally. The counter is the
+    // obvious one — kill the eye and the cloak comes back.
+    revealsStealth: true,
     // The basic takes one opponent's sight. The Special is the eye opening
     // properly: three of them at once, and it hurts to be looked at.
     special: {
