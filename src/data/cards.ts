@@ -1059,7 +1059,12 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    tribe: ["Ghost", "ScareKrow"],
+    // GHOST ONLY. It was also ScareKrow, and it is not one — a haunt is the
+    // thing the scarecrows are put up against, not a scarecrow. Nothing reads
+    // the tribe mechanically (no aura matches it, and the D5 node names its
+    // roster by id rather than by tribe), so the cost is that Haunt stops
+    // appearing under the ScareKrow filter, which is the point.
+    tribe: "Ghost",
     // Frightening (On Hit, first time only): FRIGHTEN the target for 2 rounds.
     //
     // Up from 1, and the extra round is not a small buff — it is the difference
@@ -1388,7 +1393,12 @@ export const CARDS: CardDef[] = [
   {
     id: "aqua_polarking",
     name: "Polar King",
-    tribe: "Ice Kingdom",
+    // ICE, joining the seven cards already in it (PolarBear, Arctik, Cryo,
+    // Blackice, Permafrost, Hoarfell and the Blackice Crystal). "Ice Kingdom"
+    // was a tribe of exactly one — this card — so it could never be a tribe in
+    // the sense anything reads: no aura matched it, and now that the grids
+    // filter by tribe it was a pill that returned a single result.
+    tribe: "Ice",
     rarity: "legendary",
     element: "AQUA",
     cardClass: "Tank",
@@ -14418,7 +14428,14 @@ export const TOKENS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: { TRAMPLE: true },
-    tribe: "Sun's Army",
+    // SUNS, and that retires "Sun's Army" entirely — this was the last card
+    // carrying it. Lassos, the card that ropes this one, crossed over for the
+    // stated reason that nothing ever read the flavour tribe while DAWN's only
+    // tribe aura matches "Suns", so it bought the card nothing and kept it out
+    // of the tribe that pays. The same was true here and is now fixed at both
+    // ends. Warrior sits on the Suns side of DAWN's class split
+    // (Tank/Warrior/Support), so no exception is needed.
+    tribe: "Suns",
     art: "dawn_golden_bull_tok",
     passiveNames: { summonCharge: "Wild Charge" },
     // Wild Charge: it arrives already running. Straight up its column for the

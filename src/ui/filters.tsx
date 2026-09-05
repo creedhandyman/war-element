@@ -261,8 +261,11 @@ export const tribesOf = (def: CardDef): string[] =>
  *
  *  Derived from the card data rather than typed out, because tribes are
  *  free-text: a hand-written list is a second source of truth that goes stale
- *  the first time a card invents a tribe, and cards do — "Sun's Army", "Bot",
- *  "Kraken" and "Ice Kingdom" are each carried by exactly one card. Built from
+ *  the first time a card invents a tribe, and cards do — "Bot" and "Kraken" are
+ *  each carried by exactly one card. (This list used to name "Sun's Army" and
+ *  "Ice Kingdom" alongside them; both have since been folded into the real
+ *  tribes they were flavour for, which is what a derived list makes painless
+ *  and a hand-written one would have made a second edit.) Built from
  *  CARDS and TOKENS together so the gallery — the one grid that shows tokens
  *  and bosses — can filter them too.
  *
