@@ -90,6 +90,44 @@ describe("card text covers every mechanic", () => {
     expect(silent, `these fields render no card text: ${silent.join(", ")}`).toEqual([]);
   });
 
+  // THE LIST ABOVE IS HAND-WRITTEN, AND THAT IS THE BUG CLASS. `ABILITY_FIELDS`
+  // only catches a field somebody remembered to add to it, so a new ability
+  // ships invisible until the list catches up — which is exactly how `antiAir`
+  // sat on fourteen Specials saying nothing, and how Cave Guard's whole zone of
+  // control was undocumented on the card carrying it.
+  //
+  // This asks the CARDS instead. Every key actually present on any def, minus
+  // the structural ones, must change the rendered text when it is removed. It
+  // needs no maintenance and it cannot fall behind the data, because it IS the
+  // data. The named list stays because it documents intent and gives a better
+  // failure message; this one is the floor under it.
+  const STRUCTURAL = new Set([
+    "id", "name", "rarity", "element", "cardClass", "attackType", "cost",
+    "dmg", "hits", "hp", "sp", "shields", "tribe", "art", "lore", "boss",
+    "keywords", "special", "talent", "passiveNames",
+    // Not structural, but deliberately silent: it is the STEALTH half of a
+    // `lurk`/`spWhileStealthed` pair whose visible half already prints the
+    // number, so a second line would say it twice.
+    "spWhileStealthed",
+  ]);
+
+  it("...and so does every OTHER field, without anyone maintaining a list", () => {
+    const silent: string[] = [];
+    for (const def of all) {
+      const withAll = describePassives(def).join(" | ");
+      for (const k of Object.keys(def)) {
+        if (STRUCTURAL.has(k)) continue;
+        if ((def as unknown as Record<string, unknown>)[k] == null) continue;
+        const stripped = describePassives({ ...def, [k]: undefined } as typeof def).join(" | ");
+        if (stripped === withAll) silent.push(`${def.id}.${k}`);
+      }
+    }
+    expect(
+      silent,
+      `these fields are on cards and say nothing on them: ${silent.join(", ")}`,
+    ).toEqual([]);
+  });
+
   it("every roundTick effect produces a passive line", () => {
     const silent: string[] = [];
     for (const def of all) {
@@ -250,6 +288,38 @@ describe("every named passive actually shows its name", () => {
       for (const n of names) if (!text.includes(n)) missing.push(`${def.id}: "${n}"`);
     }
     expect(missing, `declared but never rendered:\n${missing.join("\n")}`).toEqual([]);
+  });
+
+  // NAMING IS THE HOUSE STYLE FOR THESE, and it had drifted. Every field below
+  // was named on the overwhelming majority of its carriers and anonymous on a
+  // handful — vsStatus 21 of 22, onHitByMelee 20 of 21, onKill 48 of 54 — which
+  // is a straggler rather than a decision. An unnamed passive still describes
+  // itself, but it reads as a rule of the game instead of as something THIS
+  // card does, and the player has no handle to remember it by.
+  //
+  // Deliberately not "every field must be named": most fields are shared
+  // mechanics where a bespoke name per carrier would invent six names for one
+  // rule. These are the ones the roster itself already treats as signatures.
+  const MUST_BE_NAMED = [
+    "vsStatus", "onHitByMelee", "onKill", "alwaysHit", "statusImmune", "onRevive",
+    "firstStrikeBonus", "deathSave", "critPen", "onShieldBreak", "summonSelfBuff",
+    "summonSelfShields", "pullOnAttack", "fullBoardBasic", "summonSpawn",
+    "onHitStatus", "basicMissPct", "holdsPosition", "maxHpCap",
+  ] as const;
+
+  it("every signature passive carries the card's own name for it", () => {
+    const anon: string[] = [];
+    for (const def of [...CARDS, ...TOKENS]) {
+      for (const f of MUST_BE_NAMED) {
+        if ((def as unknown as Record<string, unknown>)[f] == null) continue;
+        // `onShieldBreak` folds into the shields line when the card raises one,
+        // so it is named there rather than twice.
+        if (f === "onShieldBreak" && def.summonSelfShields != null) continue;
+        if (!(def.passiveNames ?? {})[f as keyof NonNullable<typeof def.passiveNames>])
+          anon.push(`${def.id}.${f}`);
+      }
+    }
+    expect(anon, `unnamed signature passives: ${anon.join(", ")}`).toEqual([]);
   });
 
   it("and never prints the same ability name on two separate lines", () => {

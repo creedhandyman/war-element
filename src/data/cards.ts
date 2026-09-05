@@ -42,6 +42,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 1,
     keywords: { LIFESTEAL: true },
+    passiveNames: { onHitStatus: "Summer Thorns" },
     // Blood Bloom: basic hits apply BLEED 1 for 2 rounds.
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
     special: {
@@ -68,6 +69,7 @@ export const CARDS: CardDef[] = [
     sp: 9, // a fast snake — 5 HP survives a 1-cost spell AND one weak hit (2+5+9=16, +1 over cost-1)
     shields: 0,
     keywords: {},
+    passiveNames: { onHitStatus: "Barbed Coil" },
     onHitStatus: { kind: "BLEED", duration: 2, power: 2 },
     // Venomous: basic attacks apply BLEED 2 (non-stacking → newest overwrites).
   },
@@ -274,7 +276,7 @@ export const CARDS: CardDef[] = [
     // Bloodletting's +1 and its lifesteal are paid PER HIT, and BLEED lands per
     // hit too. At 1 base the bonus is half of every swing rather than a third,
     // so the card leans harder on its own combo and does less without it.
-    passiveNames: { vsStatus: "Bloodletting" },
+    passiveNames: { vsStatus: "Bloodletting", onHitStatus: "Sting" },
     vsStatus: { status: "BLEED", bloodfire: true, lifesteal: true, bonusDmg: 1 },
   },
   {
@@ -409,7 +411,7 @@ export const CARDS: CardDef[] = [
     keywords: { FLYING: true },
     tribe: ["Dragon", "Wolf", "Volcanic"],
     // Scorch: basic attacks apply BURN, stacking up to the BURN 4 cap on a target.
-    passiveNames: { onHitStatus: "Scorch" },
+    passiveNames: { onHitStatus: "Scorch", onKill: "Blood Frenzy" },
     onHitStatus: { kind: "BURN", duration: 2, power: 1 },
     // Fury Unleashed: on summon, 4 DMG to the 3-wide row directly ahead
     // (melee → reaches one row forward, hitting left/mid/right).
@@ -489,6 +491,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    passiveNames: { onHitStatus: "Venomous Sting" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 }, // Venomous Sting
   },
 
@@ -687,7 +690,7 @@ export const CARDS: CardDef[] = [
     roundTick: { aoeDmg: 1 },
     // Nightmare (passive): his hits never wake sleepers; deal 2× DMG to SLEEPING
     // opponents; and a flat mid-lane bonus added ONCE to the total (not per hit).
-    passiveNames: { ignoresSleepWake: "Nightmare", aura: "Sandstorm" },
+    passiveNames: { ignoresSleepWake: "Nightmare", aura: "Sandstorm", vsStatus: "Night Terror" },
     // Sandstorm: while the wraith stands, every Sand Village ally's landed basic
     // also chips 2 to an opponent beside its target — Warthog, Sling, Dune
     // Buggy, Badlands Bandits and the wraith itself.
@@ -881,7 +884,7 @@ export const CARDS: CardDef[] = [
     keywords: { TRAMPLE: true },
     tribe: "Mountain Beasts",
     trampleDmg: 3,
-    passiveNames: { statusImmune: "Hibernation", aura: "Mountain Kin" },
+    passiveNames: { statusImmune: "Hibernation", aura: "Mountain Kin", onRevive: "Second Winter" },
     statusImmune: true, // Hibernation: immune to status effects
     // Mountain Kin: the oldest thing on the range lends its bulk to the rest of
     // it — +2 max HP to every Mountain Beast while Bearocks lives, itself
@@ -1137,6 +1140,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    passiveNames: { summonSelfShields: "Grave Guard" },
     tribe: "Skeleton",
     // Bone Shield: enters play with a +3 shield barrier (an off-curve passive
     // grant, so it's not counted in the base-stat total).
@@ -1245,7 +1249,7 @@ export const CARDS: CardDef[] = [
     // except to make a legendary read as if it loses something it does not.
     summonSelfBuff: { dmg: 0, hp: 10 },
     // Dismount: below 10 HP, deal 5 DMG, lose 5 SP and the Special (basic skeleton).
-    passiveNames: { onLowHp: "Dismount" },
+    passiveNames: { onLowHp: "Dismount", summonSelfBuff: "Ride or Die" },
     onLowHp: { threshold: 10, dmg: 5, loseSp: 5, loseSpecial: true },
     special: {
       name: "Piercing Charge",
@@ -1313,6 +1317,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    passiveNames: { onHitStatus: "Cavitation" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0 }, // Thumper
   },
   {
@@ -1606,6 +1611,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
+    passiveNames: { onHitStatus: "Afterimage" },
     onHitStatus: { kind: "BLIND", duration: 1, power: 0 }, // Speed Flash
   },
   {
@@ -1814,6 +1820,7 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 3,
     keywords: {},
+    passiveNames: { summonSelfShields: "Shroud" },
     // Gate Keeper: raises a massive golden shield (+8) on summon, and hardens
     // (+1 DMG, +2 SP) the first time that shield is broken.
     summonSelfShields: 8,
@@ -1848,7 +1855,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    passiveNames: { onDeath: "Flashing Final" },
+    passiveNames: { onDeath: "Flashing Final", onKill: "Refocus" },
     onDeath: { dmg: 7 }, // Flashing Final: Flash Ray Strike on the killer
     onKill: { buffDmg: 2 }, // Flash Ray Strike On Kill → +2 DMG permanently
     special: {
@@ -1876,7 +1883,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     // Hot Shot (On Kill): +1 DMG for the rest of the round.
-    passiveNames: { onKill: "Hot Shot" },
+    passiveNames: { onKill: "Hot Shot", alwaysHit: "Totality" },
     onKill: { buffDmgRound: 1 },
     // High-noon aim: attacks never miss (ignores the caster's BLIND + target EVASION).
     alwaysHit: true,
@@ -1979,6 +1986,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 0,
     keywords: {},
+    passiveNames: { firstStrikeBonus: "Opening Gust" },
     // Shadow: only adjacent attackers reach it; on the enemy side, +1 DMG on the
     // first strike against each opponent.
     onlyAdjacentAttackers: true,
@@ -2438,6 +2446,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
+    passiveNames: { onHitStatus: "Static Cling" },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 }, // Lightning Scars
     // Arrival Pounce (On Summon): rush straight up its own column and strike
     // what it finds, for 4 CRIT.
@@ -2896,6 +2905,7 @@ export const CARDS: CardDef[] = [
     sp: 15,
     shields: 3,
     keywords: {},
+    passiveNames: { summonSpawn: "The Hatching" },
     tribe: "Reptile",
     // Reptilian Screech (On Summon): spawn 3 Reptilian tokens into open
     // king's-reach slots (fills what's open; no spawn if none are).
@@ -2956,7 +2966,7 @@ export const CARDS: CardDef[] = [
     // everywhere else, because Dragon is a cross-element tribe 13 strong. It is
     // a different aura, not a bigger or smaller one. Pyrogon is itself a Dragon,
     // so it keeps buffing itself either way.
-    passiveNames: { aura: "Dragon" },
+    passiveNames: { aura: "Dragon", onKill: "Feed the Mountain" },
     aura: { scope: "tribe", match: "Dragon", dmg: 1, maxHp: 3 },
     special: {
       name: "Flame Engulf",
@@ -3086,7 +3096,7 @@ export const CARDS: CardDef[] = [
     // Skyborn (Aura): AVIAN allies only — the flock it actually leads — gain
     // +1 DMG and +3 SP. Narrowed from "every GALE ally +1 SP": a mythic's aura
     // should reward building around it, not pay out to the whole element.
-    passiveNames: { aura: "Skyborn" },
+    passiveNames: { aura: "Skyborn", onKill: "Rising Thermal" },
     aura: { scope: "tribe", match: "Avian", dmg: 1, sp: 3 },
     special: {
       name: "Dive Bomb",
@@ -3491,6 +3501,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 2, // 1->2
     keywords: {},
+    passiveNames: { onKill: "Old Growth" },
     // On Summon: 3 DMG to opponents in the same + adjacent row (forward area).
     onSummon: { handler: "barrage", params: { dmg: 3, spread: 1, targets: 99 } },
     // On Kill: +2 DMG permanently.
@@ -3512,6 +3523,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
+    passiveNames: { onKill: "Swallow Whole", pullOnAttack: "Tentacle Reel" },
     // Liquid -> Pirate; SeaC is KEPT, so unlike BlackBeard and Driftwraith this
     // one stays in Kraken's school and gains the crew's +1 DMG on top. "Liquid"
     // is read by no aura or payoff in the game, so nothing was lost with it.
@@ -3948,6 +3960,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: { PEN: true }, // Light Sphere — basic attacks gain PEN
+    passiveNames: { summonSelfShields: "Orbit" },
     // Light Sphere (On Summon): raise a +2 shield (a passive grant, off-curve).
     summonSelfShields: 2,
   },
@@ -4446,6 +4459,7 @@ export const CARDS: CardDef[] = [
     sp: 2,
     shields: 6,
     keywords: { TRAMPLE: true },
+    passiveNames: { onShieldBreak: "Breach Response" },
     trampleDmg: 2,
     // Rebuilds its barrier +2 shields each round (on top of BORE's Exostone +2
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
@@ -4721,6 +4735,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 1,
     keywords: {},
+    passiveNames: { summonSelfShields: "Halo Shell" },
     // Shiny Shield (On Summon): +2 barrier; when it first breaks, +1 DMG / +1 SP.
     summonSelfShields: 2,
     onShieldBreak: { dmg: 1, sp: 1 },
@@ -4744,6 +4759,7 @@ export const CARDS: CardDef[] = [
     // named DOT status, so this is element-free).
     tribe: ["Avian", "Dark Wind"],
     keywords: { FLYING: true },
+    passiveNames: { onHitStatus: "Toxic Talons" },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 },
   },
   {
@@ -5033,6 +5049,7 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 2,
     keywords: {},
+    passiveNames: { summonSpawn: "Rookery" },
     // King's Guard: it never lands alone. adjacentOnly keeps the guard AT its
     // side — a scattered escort would defeat the point.
     summonSpawn: { token: "aqua_guin_tok", count: 2, adjacentOnly: true },
@@ -5095,6 +5112,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 3,
     keywords: {},
+    passiveNames: { onHitByMelee: "Live Wire" },
     // Electrifying, both halves. The ZONE is the threat: at the end of every
     // round the current arcs into everything Jolt can reach. The ON-HIT mark is
     // the backstop — it answers RANGED attackers, who shoot Jolt from outside
@@ -5558,6 +5576,7 @@ export const CARDS: CardDef[] = [
     passiveNames: {
       roundTick: "Dead Clock", selfHpCost: "Dead Clock",
       spawnTriggerAt: "Dead Clock", spawnMaxAlive: "Dead Clock",
+      summonSpawn: "Fresh Grave",
     },
     roundTick: {
       spawn: { token: "dusk_zombie_husk", count: 1, spawnRadius: 2 },
@@ -5638,7 +5657,7 @@ export const CARDS: CardDef[] = [
     tribe: "Reptile",
     // Venomous Bite: basics apply a light BLEED — a feeder for Thorn's
     // heal-off-BLEED payoff, and a third Reptile body for Trinezer's tribe aura.
-    passiveNames: { onHitStatus: "Venomous Bite" },
+    passiveNames: { onHitStatus: "Venomous Bite", deathSave: "Drop the Tail" },
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
     // Tail Drop: the first lethal hit leaves Gecko at 1 HP with STEALTH 1r, then
     // REGEN 2 for 2 rounds as the tail regrows. Once per game.
@@ -6244,6 +6263,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 0,
     keywords: {},
+    passiveNames: { pullOnAttack: "Undertow" },
     // Harpoon Hook: a landed basic drags the struck enemy 1 slot toward Harp,
     // reeling a backline threat into the front line.
     pullOnAttack: 1,
@@ -6496,7 +6516,7 @@ export const CARDS: CardDef[] = [
     // board can't flood).
     summonSpawn: { token: "dusk_spider", count: 1 },
     roundTick: { spawn: { token: "dusk_spider", count: 1 }, spawnMaxAlive: 4 },
-    passiveNames: { roundTick: "Nesting" },
+    passiveNames: { roundTick: "Nesting", summonSpawn: "First Weave" },
     // Silk Chase: every allied Spider takes a swing, each opponent hit is
     // FRIGHTENed, Sarachnid heals 2 HP per hit landed, and every KILL nests
     // another Spider.
@@ -7149,7 +7169,7 @@ export const CARDS: CardDef[] = [
     tribe: "Vamp",
     // Draining Siphon (End of Round): DRAIN 3 max HP from opponents within 1
     // space. Basics carry DRAIN (keyword).
-    passiveNames: { roundTick: "Draining Siphon" },
+    passiveNames: { roundTick: "Draining Siphon", maxHpCap: "Sated" },
     roundTick: { drainMaxAdjacent: 3 },
     // Bloody Exchange: DRAIN 2 max HP from every other card on the board and bank
     // the total onto Violet's own max HP.
@@ -8097,7 +8117,7 @@ export const CARDS: CardDef[] = [
     // and they see through STEALTH and through the Home-Slot rule ("invasion
     // blind"). It used to hand the team an extra splash target; the aura is now
     // about ACCURACY, which is what a totem watching over a war band should do.
-    passiveNames: { totemSpiritAura: "Totem Spirit" },
+    passiveNames: { totemSpiritAura: "Totem Spirit", summonSpawn: "Raise the Pole" },
     totemSpiritAura: true,
     // Raise the Totem Pole (On Summon): plant a Pole that scorches the row ahead.
     summonSpawn: { token: "gale_totem_pole", count: 1 },
@@ -8360,7 +8380,7 @@ export const CARDS: CardDef[] = [
     keywords: { BLOCK: 2 },
     tribe: "Dragon",
     // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
-    passiveNames: { onKill: "Dragon's Fury" },
+    passiveNames: { onKill: "Dragon's Fury", statusImmune: "Sealed Plate" },
     onKill: { buffDmg: 1 },
     // Hardened Stainless Steel: BLOCK 2 (each shield harder to break) and immune
     // to status/DOT.
@@ -8843,7 +8863,7 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: {},
     // Morning Glow (End of Round): heal all allies +1.
-    passiveNames: { roundTick: "Morning Glow" },
+    passiveNames: { roundTick: "Morning Glow", summonSpawn: "Call the Guard" },
     roundTick: { healAllies: 1 },
     // Radiant Guardian (On Summon): arrives with a sturdy bodyguard at her side.
     summonSpawn: { token: "dawn_radiant_guardian", count: 1 },
@@ -9910,7 +9930,7 @@ export const CARDS: CardDef[] = [
     // A split down class lines rather than a hand-picked roster: it needs no
     // upkeep as cards are added, and a player can read which tribe a card is in
     // off the card itself.
-    passiveNames: { statDropImmuneAura: "Solar Sovereign", aura: "Suns" },
+    passiveNames: { statDropImmuneAura: "Solar Sovereign", aura: "Suns", summonSelfBuff: "In the Saddle" },
     statDropImmuneAura: true,
     aura: { scope: "tribe", match: "Suns", dmg: 1, shields: 1, maxHp: 1 },
     // Solar Horse Power: charge the column ahead, 15 DMG to opponents hit and
@@ -9953,7 +9973,7 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "Voltis",
-    passiveNames: { onHitByMelee: "Spiked Conduit", summonSpawn: "Running Crew" },
+    passiveNames: { onHitByMelee: "Spiked Conduit", summonSpawn: "Running Crew", basicMissPct: "Wild Shot" },
     // Spiked Conduit: the armour is live. Melee only — walking into it is the
     // mistake, shooting it is not.
     onHitByMelee: { dmg: 3, status: { kind: "ELECTRIFIED", duration: 2, power: 0 } },
@@ -10479,7 +10499,7 @@ export const CARDS: CardDef[] = [
     // the home row each Cleanup, wrapping, so the column is telegraphed and
     // moves predictably: clear out of it while the Skeletons press forward.
     // The doc's random sidestep is gone on purpose — same threat, now solvable.
-    passiveNames: { roundTick: "Swiftshooter" },
+    passiveNames: { roundTick: "Swiftshooter", critPen: "Bone Splitter" },
     // SWIFTSHOOTER: it AIMS now, the way Helion does — toward the column holding
     // the most of your cards — but two slots a round instead of one, and it does
     // not stop for bodies. Anything in the way trades places with it.
@@ -10977,7 +10997,7 @@ export const CARDS: CardDef[] = [
     // lane while you watch. The lesson is that you are given the answer in
     // advance and still have to pay to take it — move, and give up the ground;
     // stay, and block the lane with something you can afford to lose.
-    passiveNames: { roundTick: "Traverse" },
+    passiveNames: { roundTick: "Traverse", holdsPosition: "Emplaced" },
     // EMPLACED. Traverse IS Helion's movement — the AI walking it forward on top
     // of that is what put a siege engine in the front rank with nothing left to
     // shoot down. See `holdsPosition`.
@@ -11740,6 +11760,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 28,
     keywords: { PEN: true },
+    passiveNames: { fullBoardBasic: "Far Sight" },
     // A GIANT, like the rest of Floor 5 — and the plate is the argument. The
     // eye is the middle of the card and the LEGS are the rest of it: they come
     // down through the spires on both sides and out past the frame, so the
@@ -11798,7 +11819,7 @@ export const CARDS: CardDef[] = [
     // the reach cannot answer anything that stays two squares away.
     fullBoardBasic: true,
     art: "boss_kheiringer",
-    passiveNames: { avoidLateral: "Highborn", spawn: "Call the Deep" },
+    passiveNames: { avoidLateral: "Highborn", spawn: "Call the Deep", fullBoardBasic: "Court Reach" },
     // SHE DOES NOT COME TO YOU. `avoidLateral` slides her along the row toward
     // the emptiest column — away from whatever is closing — which is what a
     // caster with a fortress in front of her and giants in front of that would

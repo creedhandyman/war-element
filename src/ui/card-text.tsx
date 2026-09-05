@@ -234,7 +234,13 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   if (kw.REFLECT) shared.push({ kind: "keyword", label: kwLabel("REFLECT", `REFLECT ${kw.REFLECT}`), desc: `returns ${kw.REFLECT} DMG to attackers.` });
   if (kw.EVASION) shared.push({ kind: "keyword", label: kwLabel("EVASION", "EVASION"), desc: "~50% chance to dodge each incoming hit." });
   if (kw.TRAMPLE)
-    shared.push({ kind: "keyword", label: kwLabel("TRAMPLE", "TRAMPLE"), desc: "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction. The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
+    shared.push({ kind: "keyword", label: kwLabel("TRAMPLE", "TRAMPLE"),
+      // `tramplesAnything` LIFTS the weight gate, which is the whole of what
+      // separates a boulder from every other trampler — and it said nothing.
+      desc: (def.tramplesAnything
+        ? "in Prep it can step onto ANY adjacent opponent and take the square, whatever it weighs — in any direction."
+        : "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction.")
+        + " The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
   // THE FOUR THAT SAID NOTHING. This list stopped at TRAMPLE, so FLYING, CRIT,
   // PEN and STEALTH rendered as dead grey chips — a word on the card and no
   // rule anywhere on the surface a player reads mid-fight. FLYING is the
@@ -739,13 +745,24 @@ export function describePassives(def: CardDef): string[] {
   if (def.evadeVsSlower)
     named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
   if (def.summonSelfBuff)
-    named("summonSelfBuff", `Ride or Die: enters play with +${def.summonSelfBuff.dmg} DMG and +${def.summonSelfBuff.hp} HP.`);
+    // THE CARD'S OWN NAME FOR IT, falling back to Luna's. This hardcoded "Ride
+    // or Die" — one card's flavour welded into a generic renderer — so every
+    // other carrier printed a name belonging to somebody else. Exactly the fault
+    // already fixed on `alwaysHit`, which used to hardcode "Hot Shot".
+    named("summonSelfBuff",
+      `${def.passiveNames?.summonSelfBuff ?? "Ride or Die"}: enters play with `
+      + `+${def.summonSelfBuff.dmg} DMG and +${def.summonSelfBuff.hp} HP.`);
   if (def.lure)
     named("lure", `Lure: on summon, attackers have −${def.lure.pct}% accuracy against it for ${def.lure.rounds} round${def.lure.rounds > 1 ? "s" : ""}.`);
   if (def.lowHpNova)
     named("lowHpNova", `Mega Push: while below ${def.lowHpNova.belowHp} HP, a landed basic also deals ${def.lowHpNova.dmg} to every opponent and pushes them back ${def.lowHpNova.push}.`);
   if (def.salvageOnDeath)
-    named("salvageOnDeath", `Salvage: whenever any card dies, gain +${def.salvageOnDeath} max HP.`);
+    // THE CAP IS PART OF THE ABILITY. Without it the line reads as an unbounded
+    // ramp off every death on the board, either side — which is what it would
+    // be if `salvageMax` were not there, and is precisely why it is.
+    named("salvageOnDeath",
+      `Salvage: whenever any card dies, gain +${def.salvageOnDeath} max HP`
+      + `${def.salvageMax ? ` — ${def.salvageMax} times in all.` : "."}`);
   if (def.deathHealAura)
     named("deathHealAura", `Blood Moon: when an opponent dies, heal it and all allies +${def.deathHealAura} HP.`);
   if (def.blockOnAllyDeath)
@@ -1107,6 +1124,20 @@ export function describePassives(def: CardDef): string[] {
   if (def.statusImmune) named("statusImmune", "Immune to negative statuses.");
   if (def.ignoresHomeRule)
     named("ignoresHomeRule", "Can target the enemy Home row from anywhere.");
+  // A MISS CHANCE THE CARD OWNS. Havoc buys its board-wide reach with a shakier
+  // hand rather than with stats, and that half was invisible — the player saw
+  // the reach and none of the price.
+  if (def.basicMissPct)
+    named("basicMissPct",
+      `Its basic attacks are wild: each hit has a ${def.basicMissPct}% chance to miss.`);
+  // EMPLACED. A card that cannot move at all is the single most important thing
+  // to know about how to play around it, and it was nowhere on the face.
+  if (def.holdsPosition)
+    named("holdsPosition", "It never moves from where it stands.");
+  // The ceiling on banked max HP (Violet). Same argument as Salvage's cap: a
+  // bounded ramp whose bound is unprinted reads as an unbounded one.
+  if (def.maxHpCap)
+    named("maxHpCap", `Its own max HP cannot be banked past ${def.maxHpCap} (auras still stack on top).`);
   if (def.fullBoardBasic)
     named("fullBoardBasic", "Its basic attack reaches the whole board — bodies in the way still block the shot.");
   if (def.special?.ranged)
