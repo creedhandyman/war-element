@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, FX_DMG_KEEP, resolveHit } from "../combat";
 import { getDef } from "../../data/cards";
 import { advance, distributeBasicHits } from "../phases";
+import { gainMaxHp } from "../state";
 import { atCleanup, place, prepState, seedForCoins, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -304,11 +305,14 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     expect(dealt).toBeGreaterThan(0);
     expect(s.cards[vamp.instanceId].maxHp).toBe(11); // +1 stolen ceiling
     expect(s.cards[prey.instanceId].maxHp).toBe(39); // ...off the victim
-    // Half-rate lifesteal from the hit. The stolen point heals HALF of 1 = 0.
-    expect(s.cards[vamp.instanceId].curHp).toBe(4 + Math.floor(dealt / 2));
+    // TWO separate returns, and only one of them is halved. The LIFESTEAL is
+    // half the damage dealt, as it always was. The stolen CEILING arrives full
+    // — `gainMaxHp` fills what it grants — where it used to arrive half-filled
+    // and leave the drainer bigger but no healthier.
+    expect(s.cards[vamp.instanceId].curHp).toBe(4 + Math.floor(dealt / 2) + 1);
   });
 
-  it("a 1-damage drain returns nothing (the half rate floors)", () => {
+  it("a 1-damage drain returns only the stolen point (the lifesteal half floors)", () => {
     // On its HOME row deliberately: a mid row would hand it King of the Hill's
     // +1 DMG and the hit would no longer be the 1 this test is about.
     const s = prepState();
@@ -318,8 +322,11 @@ describe("DRAIN — lifesteal that also grows the drainer", () => {
     s.cards[vamp.instanceId].hitsBonus = 1 - getDef("dusk_vamp").hits; // one bite (Vamp is 1×2 now)
     basicAttack(s, vamp.instanceId, prey.instanceId);
     expect(40 - s.cards[prey.instanceId].curHp).toBe(1); // basic damage only
-    expect(s.cards[vamp.instanceId].curHp).toBe(4); // floor(1/2)=0 lifesteal, and half of 1 stolen = 0 heal
-    expect(s.cards[vamp.instanceId].maxHp).toBe(11); // but the theft still lands
+    // floor(1/2) = 0 lifesteal, so every point here is the stolen one arriving
+    // filled. It used to be worth nothing at all: half of 1 rounded to zero, and
+    // a 1-point drain grew the ceiling while giving the drainer no body for it.
+    expect(s.cards[vamp.instanceId].curHp).toBe(5);
+    expect(s.cards[vamp.instanceId].maxHp).toBe(11);
   });
 
   it("the stolen ceiling is available to the SAME hit's heal", () => {
@@ -457,5 +464,47 @@ describe("a dead attacker stops swinging", () => {
         .toBeLessThanOrEqual(PER_HIT);
     }
     expect(checked, "no seed killed the attacker on hit one — the case was never exercised").toBeGreaterThan(0);
+  });
+});
+
+describe("growing is not being wounded", () => {
+  // ONE RULE, ENFORCED AT THE CHOKE-POINT. Every site that raises a card's max
+  // HP used to pair the raise with the fill by hand, and three of them had
+  // drifted: both DRAIN paths and Bloody Exchange took the ceiling and left the
+  // body behind. `gainMaxHp` now fills what it grants, so a new growth site
+  // cannot forget and a card never reads "bigger, and freshly hurt".
+  it("summon growth arrives full, not as a fresh wound", () => {
+    const s = prepState();
+    // Omega's Ride or Die: +3 DMG and +8 max HP the moment it lands.
+    const omega = place(s, "gale_omega", "P1", 3, 0);
+    const base = getDef("gale_omega").hp;
+    expect(s.cards[omega.instanceId].maxHp).toBe(base + 8);
+    expect(s.cards[omega.instanceId].curHp, "it stands at its new full").toBe(base + 8);
+  });
+
+  it("a capped card fills by what it GAINED, never by what it was offered", () => {
+    // Violet caps at 60. Sitting one point under it, a 3-point drain grants 1 —
+    // and filling by the requested 3 would float curHp above its own ceiling for
+    // Cleanup to quietly claw back. This is the bug Ride or Die had.
+    const s = prepState();
+    const violet = place(s, "dusk_violet", "P1", 2, 0, { curHp: 40, maxHp: 59, curShields: 0 });
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    basicAttack(s, violet.instanceId, prey.instanceId);
+    const v = s.cards[violet.instanceId];
+    expect(v.maxHp, "the cap holds").toBe(60);
+    expect(v.curHp, "and curHp never passes it").toBeLessThanOrEqual(v.maxHp);
+  });
+
+  it("SEAL still stops it — the ceiling grows, the body does not", () => {
+    // Bluflame's whole job is stopping HP coming back. A raw fill that ignored
+    // it would have made a sealed drainer heal MORE than an unsealed one used
+    // to. The growth is banked; the body arrives when the seal breaks.
+    const s = prepState();
+    const omega = place(s, "gale_omega", "P1", 3, 0);
+    const before = s.cards[omega.instanceId].curHp;
+    applyStatus(s, s.cards[omega.instanceId], "SEAL", 2, 0, "PYRO");
+    const grown = gainMaxHp(s.cards[omega.instanceId], 5);
+    expect(grown, "the ceiling still rises").toBe(5);
+    expect(s.cards[omega.instanceId].curHp, "but nothing fills it").toBe(before);
   });
 });

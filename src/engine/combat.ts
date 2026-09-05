@@ -628,7 +628,7 @@ export function defeatCard(
     c.tribeFeedStacks = (c.tribeFeedStacks ?? 0) + 1;
     if (ot.dmg) c.dmgBonus += ot.dmg;
     if (ot.sp) c.spBonus += ot.sp;
-    if (ot.hp) c.curHp += gainMaxHp(c, ot.hp);
+    if (ot.hp) gainMaxHp(c, ot.hp);
     draft.log.push(`${label(draft, c)} feeds on the fallen ${ot.tribe}.`);
   }
   // Last Light (Ariel): an opponent falling anywhere is a cue. Hooked at the
@@ -652,7 +652,7 @@ export function defeatCard(
     const salCapped = salDef.salvageMax != null && (c.salvageStacks ?? 0) >= salDef.salvageMax;
     if (sal && !salCapped && c.curHp > 0 && c.instanceId !== card.instanceId) {
       c.salvageStacks = (c.salvageStacks ?? 0) + 1;
-      c.curHp += gainMaxHp(c, sal);
+      gainMaxHp(c, sal);
     }
   }
   // Blood Moon (Vesper): an opponent's death heals it and its allies.
@@ -1430,7 +1430,7 @@ export function resolveHit(
         const before = attacker.critsThisRound ?? 0;
         attacker.critsThisRound = before + 1;
         if (before < aDef.jackpot.critsForBonus && attacker.critsThisRound >= aDef.jackpot.critsForBonus) {
-          attacker.curHp += gainMaxHp(attacker, aDef.jackpot.bonusHp);
+          gainMaxHp(attacker, aDef.jackpot.bonusHp);
           attacker.dmgBonus += aDef.jackpot.bonusDmg;
           draft.log.push(`${label(draft, attacker)} jackpots ${aDef.jackpot.critsForBonus} crits (+${aDef.jackpot.bonusHp} HP, +${aDef.jackpot.bonusDmg} DMG)!`);
         }
@@ -3053,11 +3053,15 @@ export function drainMaxHp(
   if (taken <= 0) return 0;
   target.maxHp -= taken;
   target.curHp = Math.min(target.curHp, target.maxHp); // the ceiling drop shrinks its usable pool
-  // The stolen point heals the drainer for HALF (round down) — usable HP, but
-  // trimmed so DUSK's board-wide DRAIN doesn't out-sustain everything. Raise the
-  // ceiling first; healCard respects SEAL.
+  // WHAT IS STOLEN ARRIVES USABLE. `gainMaxHp` fills the headroom it grants, so
+  // the drainer gains the whole `taken` as real HP and the separate half-heal
+  // that used to sit here is gone — left in place it would have paid 1.5x.
+  //
+  // This is a straight buff to every DRAIN: the stolen HP used to land as a
+  // full ceiling and half a body, which is the "grew but still looks wounded"
+  // shape the fill exists to remove. Trim the drain AMOUNTS if DUSK out-sustains
+  // — do not put the half back, or growth means two things again.
   gainMaxHp(attacker, taken);
-  healCard(draft, attacker, Math.floor(taken / 2), attacker);
   draft.log.push(`${label(draft, attacker)} drains ${taken} HP from ${label(draft, target)}.`);
   return taken;
 }
@@ -3340,7 +3344,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     draft.log.push(`${name} gains +${def.buffHits} hit on its basic attack.`);
   }
   if (def.buffMaxHp) {
-    killer.curHp += gainMaxHp(killer, def.buffMaxHp);
+    gainMaxHp(killer, def.buffMaxHp);
     draft.log.push(`${name} feeds on the kill (+${def.buffMaxHp} HP).`);
   }
   if (def.coinBonusDmg) {
@@ -3427,7 +3431,7 @@ function applySelfRiders(
 ): void {
   const maxHp = num(params, "selfMaxHp");
   if (maxHp > 0) {
-    caster.curHp += gainMaxHp(caster, maxHp);
+    gainMaxHp(caster, maxHp);
     draft.log.push(`${label(draft, caster)} gains +${maxHp} max HP.`);
   }
   const sp = num(params, "selfSp");
@@ -4605,8 +4609,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       }
     }
     if (total > 0) {
-      gainMaxHp(attacker, total);
-      healCard(draft, attacker, Math.floor(total / 2), attacker); // heal for HALF the drained total
+      gainMaxHp(attacker, total); // arrives filled — see gainMaxHp
       draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} HP to itself.`);
     }
   },
@@ -5221,8 +5224,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // the ceiling (Nightfang's Soul Slash keeps its destroy-only identity).
       target.curHp = Math.min(target.curHp, target.maxHp);
       if (!deleteOnly) {
-        gainMaxHp(attacker, stolen);
-        healCard(draft, attacker, Math.floor(stolen / 2), attacker); // theft heals HALF
+        gainMaxHp(attacker, stolen); // arrives filled — see gainMaxHp
       }
       draft.log.push(
         deleteOnly
@@ -5424,7 +5426,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       return;
     }
     if (dmg) attacker.dmgBonus += dmg;
-    if (hp > 0) attacker.curHp += gainMaxHp(attacker, hp);
+    if (hp > 0) gainMaxHp(attacker, hp);
     if (sp) attacker.spBonus += sp;
     if (hits) attacker.hitsBonus = (attacker.hitsBonus ?? 0) + hits;
     draft.log.push(`${label(draft, attacker)} is Crowned (+${dmg} DMG, +${hp} HP, +${sp} SP)!`);

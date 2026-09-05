@@ -581,7 +581,7 @@ describe("cleanse + board wipes", () => {
     expect(next.cards[other.instanceId].curShields).toBe(0);
   });
 
-  it("Grove's Blessing heals all LEAF allies and cleanses one status each", () => {
+  it("Grove's Blessing GROWS all LEAF allies, heals them, and cleanses one status each", () => {
     const s = prepState();
     armSpell(s, "leaf_groves_blessing", 5);
     const a = place(s, "leaf_alpha", "P1", 3, 0, {
@@ -589,7 +589,11 @@ describe("cleanse + board wipes", () => {
       status: { kind: "BURN", duration: 2, power: 1, source: "PYRO" },
     });
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_groves_blessing" });
-    expect(next.cards[a.instanceId].curHp).toBe(10); // +5
+    // +4 MAX HP, which arrives filled (see `gainMaxHp`), and then +5 healed on
+    // top of it: 5 -> 9 -> 14, against a ceiling that is now 18. The growth is
+    // why this is worth a cost-5 slot next to a plain team heal.
+    expect(next.cards[a.instanceId].maxHp).toBe(18);
+    expect(next.cards[a.instanceId].curHp).toBe(14);
     expect(statusOf(next.cards[a.instanceId], "BURN")).toBeFalsy(); // cleansed
   });
 

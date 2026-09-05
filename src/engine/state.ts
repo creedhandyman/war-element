@@ -448,18 +448,36 @@ export function effectiveMaxHp(state: GameState, card: CardInstance): number {
 }
 
 /** The single choke-point for RAISING a card's max HP, and the only place
- *  `maxHpCap` is enforced. Returns the amount actually gained, which is what
- *  callers must add to `curHp` — every growth site pairs the two, and adding
- *  the requested amount instead of the granted one would push curHp above a
- *  capped ceiling for Cleanup to silently claw back.
+ *  `maxHpCap` is enforced. Returns the amount actually gained.
  *
- *  A card with no cap gains exactly what it was given, so routing the growth
- *  sites through this changed nothing for any of them. */
+ *  THE NEW HEADROOM ARRIVES FULL. Growing is not being wounded: a card that
+ *  gains 4 max HP should read 4 HP better, not sit at the same number under a
+ *  taller ceiling with an empty gap it has to go and heal. Every caller used to
+ *  pair the two by hand (`c.curHp += gainMaxHp(c, n)`), which is exactly why
+ *  three of them had drifted out of step — the two drain paths and Bloody
+ *  Exchange raised the ceiling and never filled it, so their stolen HP was half
+ *  a gift. Doing it HERE is the only version of the rule that a new growth site
+ *  cannot forget.
+ *
+ *  It fills RAW rather than through `healCard`, which is what the paired sites
+ *  always did: SEAL, BURN's healing penalty and Root Growth's multiplier all
+ *  describe closing a wound, and this is not one. The card is simply bigger.
+ *
+ *  Filled by the GRANTED amount, never the requested one — a card at its
+ *  `maxHpCap` gains nothing and must not float above its own ceiling for
+ *  Cleanup to silently claw back. Luna's Ride or Die was doing that. */
 export function gainMaxHp(card: CardInstance, amount: number): number {
   if (amount <= 0) return 0;
   const cap = getDef(card.defId).maxHpCap;
   const gain = cap == null ? amount : Math.max(0, Math.min(amount, cap - card.maxHp));
   card.maxHp += gain;
+  // ...UNLESS IT IS SEALED. Bluflame's SEAL is the one status whose entire job
+  // is to stop HP coming back — it already blocks REGEN, LIFESTEAL/DRAIN and
+  // aura heals in `healCard` — and a fill that walked straight through it would
+  // have made a sealed drainer heal MORE than an unsealed one did before. A
+  // sealed card still grows: it gets the ceiling now and the body when the seal
+  // breaks, which is the shape of the status rather than an exception to it.
+  if (!hasStatus(card, "SEAL")) card.curHp += gain;
   return gain;
 }
 
@@ -882,7 +900,6 @@ export function summonCard(
   if (def.summonSelfBuff) {
     inst.dmgBonus += def.summonSelfBuff.dmg;
     gainMaxHp(inst, def.summonSelfBuff.hp);
-    inst.curHp += def.summonSelfBuff.hp;
   }
   // The Butler (Nightfang): a disguised card enters play wearing another def
   // entirely — its face, its name, its stat line. `transformedFrom` is what

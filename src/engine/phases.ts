@@ -278,7 +278,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         );
         const n = Math.floor(topHp / cfg.per);
         if (n > 0) {
-          if (cfg.maxHp) inst.curHp += gainMaxHp(inst, n * cfg.maxHp);
+          if (cfg.maxHp) gainMaxHp(inst, n * cfg.maxHp);
           if (cfg.dmg) inst.dmgBonus += n * cfg.dmg;
           draft.log.push(`${def.name} draws power from the strongest foe (+${n * (cfg.maxHp ?? 0)} HP, +${n * (cfg.dmg ?? 0)} DMG).`);
         }
@@ -294,7 +294,6 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         ).length;
         if (court > 0) {
           const hp = cfg.maxHp ? gainMaxHp(inst, court * cfg.maxHp) : 0;
-          if (hp) inst.curHp += hp;
           if (cfg.dmg) inst.dmgBonus += court * cfg.dmg;
           draft.log.push(
             `${def.name} rises before ${court} ${cfg.element ?? "ally"}${court > 1 ? "s" : ""}`
@@ -1077,11 +1076,11 @@ function resolveSpell(
       // matchup), and a spell that strips the burn shouldn't be taxed by the
       // burn it removes. Matches the `heal` Special handler's ordering.
       if (spell.cleanse) cleanseCard(ally, spell.cleanse);
-      // Max HP BEFORE the heal, so the heal fills the new headroom instead of
-      // capping against the old ceiling. `gainMaxHp` returns what was actually
-      // granted (a card at its `maxHpCap` gains nothing), and current HP rises
-      // by the same amount so the buff reads as growth, not a fresh wound.
-      if (spell.allyMaxHp) ally.curHp += gainMaxHp(ally, spell.allyMaxHp);
+      // Max HP BEFORE the heal. The growth arrives already filled (see
+      // `gainMaxHp`) so the buff reads as growth rather than a fresh wound, and
+      // going first means the heal that follows closes the wounds the card
+      // ALREADY had against the new, taller ceiling instead of the old one.
+      if (spell.allyMaxHp) gainMaxHp(ally, spell.allyMaxHp);
       if (healAmt > 0) healCard(draft, ally, healAmt, player);
       if (spell.allyShield) ally.curShields += spell.allyShield;
       // Grace's "+1 DMG for the round" — declared on the spell since it was
@@ -1154,7 +1153,7 @@ function resolveSpell(
       target.curHp = Math.min(target.curHp, target.maxHp);
       const ally = pickSpellAlly(draft, player, spell.element);
       if (ally) {
-        ally.curHp += gainMaxHp(ally, steal);
+        gainMaxHp(ally, steal);
         draft.log.push(`${label(draft, ally)} steals ${steal} max HP.`);
       }
     }
@@ -2857,7 +2856,7 @@ function doRoundTicks(draft: GameState): void {
       const bn = rt.buffDmgEveryN;
       card.dmgBonus += bn.amount;
       if (bn.sp) card.spBonus += bn.sp; // Dragon's Blade
-      if (bn.hp) card.curHp += gainMaxHp(card, bn.hp); // Supercell's +HP ramp
+      if (bn.hp) gainMaxHp(card, bn.hp); // Supercell's +HP ramp
       if (bn.maxTicks) card.rampTicks = (card.rampTicks ?? 0) + 1;
       const parts = [bn.amount ? `+${bn.amount} DMG` : "", bn.sp ? `+${bn.sp} SP` : "", bn.hp ? `+${bn.hp} HP` : ""].filter(Boolean);
       draft.log.push(`${label(draft, card)} sharpens (${parts.join(" ")}).`);
