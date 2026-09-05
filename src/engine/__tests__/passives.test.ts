@@ -2661,16 +2661,15 @@ describe("on-opponent-summon reactions", () => {
   it("react only to a newcomer IN RANGE: mid-row reactors zap, back-row ones don't", () => {
     const s = prepState(); // P1 has priority
     s.players.P1.gold = 5;
-    // In range of the P1 home row (mid row = can reach it).
-    place(s, "bore_rockgoblin", "P2", 2, 0); // Cave Guard: 4 DMG (adjacent to (3,0))
+    // In range of the P1 home row (mid row = can reach it). Rock Goblin used to
+    // stand here too: its Cave Guard was an on-SUMMON reaction and is now a zone
+    // of control that fires when an opponent MOVES into reach, so it is tested
+    // where it now belongs (below) rather than here.
     place(s, "bolt_drshock", "P2", 2, 1); // Shocker: ELECTRIFIED (ranged, from mid)
-    const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
+    const handId = giveHand(s, "P1", "dusk_gool");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
-    // Derived: Gool is the newcomer here and this read "13 - 4" with the dummy's
-    // printed HP written in by hand — a test about Cave Guard's REACH failing
-    // over an unrelated card's stat line.
-    expect(fresh.curHp).toBe(getDef("dusk_gool").hp - 4); // −4 Cave Guard
+    expect(fresh.curHp).toBe(getDef("dusk_gool").hp); // nothing reacts with damage now
     expect(fresh.statuses.some((x) => x.kind === "ELECTRIFIED")).toBe(true);
 
     // A reactor parked on its own home row can't reach the enemy home slot → no effect.
@@ -2697,14 +2696,27 @@ describe("on-opponent-summon reactions", () => {
     expect(next.cards[farRow.instanceId].curHp).toBe(20);
   });
 
-  it("Rock Goblin's Cave Guard stays silent for a summon out of its melee range", () => {
-    const s = prepState();
-    s.players.P1.gold = 5;
-    place(s, "bore_rockgoblin", "P2", 0, 3); // far corner — nowhere near (3,0)
-    const handId = giveHand(s, "P1", "dusk_gool"); // HP 13
-    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
-    const fresh = boardCards(next, "P1").find((c) => c.defId === "dusk_gool")!;
-    expect(fresh.curHp).toBe(getDef("dusk_gool").hp); // untouched — Rock Goblin couldn't reach it
+  it("Rock Goblin's Cave Guard is a ZONE now: it hits what walks into reach", () => {
+    // It used to react to a SUMMON, which happens on the far side of the board
+    // and has nothing to do with guarding ground. It holds a line instead.
+    const s = prepState(42, "P2");
+    const gob = place(s, "bore_rockgoblin", "P1", 2, 1);
+    const foe = place(s, "dusk_gool", "P2", 0, 1);
+    gob.summonedThisRound = false; foe.summonedThisRound = false;
+    const hp0 = foe.curHp;
+    // Step to (1,1) — now adjacent to the goblin, which is its Melee reach.
+    const next = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 1, col: 1 } });
+    expect(next.cards[foe.instanceId].curHp, "walked into reach and was not hit").toBe(hp0 - 4);
+  });
+
+  it("...and stays silent for a step it cannot reach", () => {
+    const s = prepState(42, "P2");
+    const gob = place(s, "bore_rockgoblin", "P1", 3, 3); // far corner
+    const foe = place(s, "dusk_gool", "P2", 0, 0);
+    gob.summonedThisRound = false; foe.summonedThisRound = false;
+    const hp0 = foe.curHp;
+    const next = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 1, col: 0 } });
+    expect(next.cards[foe.instanceId].curHp, "hit from clear across the board").toBe(hp0);
   });
 });
 

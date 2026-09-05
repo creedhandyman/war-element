@@ -487,6 +487,25 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       draft.log.push(
         `${intent.player} moves ${getDef(card.defId).name} to r${intent.to.row}c${intent.to.col}.`,
       );
+      // CAVE GUARD (Rock Goblin): a zone of control. Any OPPONENT of the mover
+      // carrying `onOppMove` that can now reach the square it stopped on strikes
+      // it immediately. Fired here, after `card.pos` is set, so it reads where
+      // the mover actually ended rather than where it set off from — a guard
+      // that punished the departure would hit things walking AWAY from it.
+      //
+      // `canTarget` rather than a raw distance, so the reach it guards is the
+      // one the card actually has, and every rule that already governs reaching
+      // — melee adjacency, FLYING, the Home rule, STEALTH — governs this too.
+      for (const guard of enemyCards(draft, intent.player)) {
+        const gd = getDef(guard.defId);
+        if (!gd.onOppMove || guard.curHp <= 0 || !guard.pos) continue;
+        if (card.curHp <= 0 || !card.pos) break;
+        if (!canTarget(draft, guard, card)) continue;
+        directDamage(draft, guard, card, gd.onOppMove.dmg, false);
+        draft.log.push(
+          `${label(draft, guard)} guards the ground — ${label(draft, card)} takes ${gd.onOppMove.dmg}.`,
+        );
+      }
       // THE WELL drinks the moment you reach it. It used to pay only at Cleanup,
       // which meant a card that walked onto the crossroads under fire could die
       // before the square it fought for did anything for it — the reward for
@@ -3666,15 +3685,18 @@ function doCleanupPhase(draft: GameState): void {
       draft.log.push(`${label(draft, card)} — the tide comes in (${card.tideTicks}/${AQUA_TIDE_MAX}).`);
     }
 
-    // Zephyr (GALE): +2 SP each round (total capped at 21). The first time its
-    // speed pushes past 15, a one-time +1 DMG (not a per-round ramp).
+    // Zephyr (GALE): +2 SP each round, total capped at 21.
+    //
+    // There used to be a second half — the first time a card's speed pushed past
+    // SP 15 it banked a one-time +1 DMG. It is gone. The tailwind ALREADY turns
+    // speed into damage (+1 DMG per 6 SP), so a second, differently-shaped
+    // conversion of the same stat was two rules doing one job: a card crossing
+    // 15 collected the milestone AND a tailwind step, and the aura's own
+    // description needed a semicolon and a parenthetical to explain when it did
+    // not repeat. One conversion, stated once.
     if (hasElementAura(def, "GALE")) {
       const curSp = def.sp + card.spBonus;
       if (curSp < GALE_SP_CAP) card.spBonus += Math.min(2, GALE_SP_CAP - curSp);
-      if (!card.zephyrBoosted && def.sp + card.spBonus > 15) {
-        card.dmgBonus += 1;
-        card.zephyrBoosted = true;
-      }
     }
     // Field per-round buffs: REGEN (Lushfield/Blazing Sun), shields (Downpour).
     const fRegen = fieldBonus(draft, card, "regen");

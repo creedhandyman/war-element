@@ -870,6 +870,11 @@ export interface CardDef {
    *  not `isStealthed` — the latter has no `state` and so cannot see a third
    *  card's flag. */
   revealsStealth?: boolean;
+  /** Cave Guard (Rock Goblin): an opponent that MOVES into this card's reach
+   *  takes `dmg` on the spot — a zone of control rather than a reaction to
+   *  summoning. Fired from the MOVE intent once the step has resolved, so it
+   *  reads the square the mover actually ended on. */
+  onOppMove?: { dmg: number };
   /** Ballista: extra king-steps of BASIC ranged reach. Ranged cards only (the
    *  melee branch never consults `rangedReachFor`), basics only — a Special
    *  carries its own reach through `validSpecialTargets`. Additive with the
@@ -1470,7 +1475,14 @@ export interface CardDef {
   aura?: AuraBonusDef;
   /** A Talent: a FREE, once-per-game Battle-Phase ability (fired instead of a
    *  basic attack). After it fires the card reverts to passive-only. */
-  talent?: { name: string; text: string; handler: string; params?: Record<string, number | string> };
+  talent?: {
+    name: string; text: string; handler: string; params?: Record<string, number | string>;
+    /** Who the Talent aims at. Specials have always declared this; Talents did
+     *  not, so `talentTargets` handed every handler the ENEMY list and an
+     *  ally-targeting Talent silently did nothing (Stone's Search and Rescue).
+     *  Omitted = enemies, which is what every existing Talent wants. */
+    targetSide?: "enemy" | "ally" | "self";
+  };
   /** Wind Warp (Rayfen): distance is no object when it MOVES — it may step out
    *  of the wind onto any open slot on the board, however far.
    *
@@ -1709,8 +1721,6 @@ export interface CardInstance {
   killCount?: number;
   /** King of the Wild (Leo): its once-per-round on-opp-summon buff has fired. */
   kingWildFiredRound?: boolean;
-  /** Zephyr (GALE): the one-time +1 DMG for crossing SP 15 has been granted. */
-  zephyrBoosted?: boolean;
   /** Life Cycle (Aurora): the queue of Light Orbs. Each incoming hit is absorbed
    *  by the front orb, which then bursts its effect and disappears. */
   orbs?: string[];

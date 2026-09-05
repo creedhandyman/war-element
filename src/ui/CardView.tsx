@@ -39,7 +39,7 @@ import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE, KEYWORD_STYLE} from "./s
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
-import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT } from "./card-text";
+import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT, TALENT_LINE_PREFIX } from "./card-text";
 
 export type CardViewProps =
   | {
@@ -142,7 +142,9 @@ export function CardView(props: CardViewProps) {
   const shared = describeSharedPassives(d);
   const auras = shared.filter((s) => s.kind === "aura");
   const kwText = new Map(shared.filter((s) => s.kind === "keyword").map((s) => [s.label, s.desc]));
-  const passives = describeOwnPassives(d);
+  // The Talent gets its own section below, so it is filtered out of the passive
+  // list rather than printed in both places.
+  const passives = describeOwnPassives(d).filter((p) => !p.startsWith(TALENT_LINE_PREFIX));
   const [openRule, setOpenRule] = useState<string | null>(null);
   const toggleRule = (k: string) => setOpenRule((cur) => (cur === k ? null : k));
 
@@ -292,6 +294,21 @@ export function CardView(props: CardViewProps) {
             </div>
             <p className="cd-text">{chipify(d.special.text)}</p>
             {vm.specialFlags.map((f) => <div key={f} className="cd-flag">{f}</div>)}
+          </div>
+        )}
+
+        {/* ── zone 3a1 · talent ────────────────────────────────── */}
+        {/* A Talent is an ABILITY, and it was the only one shown as a line of
+            prose in the passive list while every Special got a header, a pill
+            and its own block. Same treatment now, so a card's two abilities
+            read alike — which is also how you notice a Talent exists at all. */}
+        {d.talent && (
+          <div className="cd-section">
+            <div className="cd-h">
+              ★ {d.talent.name}
+              <span className="cd-cost-pill">Talent</span>
+            </div>
+            <p className="cd-text">{chipify(d.talent.text)}</p>
           </div>
         )}
 

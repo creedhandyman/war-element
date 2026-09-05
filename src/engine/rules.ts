@@ -1639,6 +1639,14 @@ export function talentTargets(state: GameState, instanceId: string): CardInstanc
   const card = state.cards[instanceId];
   const talent = card && getDef(card.defId).talent;
   if (!card || !talent) return [];
+  // WHO THE TALENT IS AIMED AT, asked before anything else. This returned the
+  // ENEMY list unconditionally, so a Talent whose handler wants an ALLY was
+  // handed a list it could find nothing in and returned silently — Stone's
+  // Search and Rescue ("trade board positions with an ally") did nothing at all,
+  // spent its once-per-game charge, and logged nothing to say why. Specials have
+  // always declared `targetSide`; Talents simply never got to.
+  if (talent.targetSide === "self") return [card];
+  if (talent.targetSide === "ally") return validAllyTargets(state, instanceId);
   const fd = Number(talent.params?.forwardDepth ?? 0);
   return fd > 0
     ? forwardAreaTargets(state, card, Number(talent.params?.spread ?? 0), fd)

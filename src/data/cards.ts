@@ -786,10 +786,20 @@ export const CARDS: CardDef[] = [
     sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
+    tribe: "Goblin",
     // Cave Guard (On Opp enter battlefield): deal 4 DMG to a newcomer summoned
     // within Rock Goblin's (melee) range — gated by canTarget in the SUMMON reducer.
-    passiveNames: { onOppSummon: "Cave Guard" },
-    onOppSummon: { dmg: 4 },
+    // CAVE GUARD, rewritten as a ZONE rather than a reaction to the enemy's
+    // hand. It used to fire when an opponent was SUMMONED, which is a thing that
+    // happens on the far side of the board and has nothing to do with guarding
+    // ground. Now it holds a line: it screens its own home row, and anything
+    // that MOVES into its reach is hit for 4 on the spot.
+    //
+    // Reach is whatever the card really has (canTarget decides), so on a Melee
+    // body that is the adjacent ring — walk next to the goblin and it swings.
+    passiveNames: { onOppMove: "Cave Guard", guardsHomeRow: "Cave Guard" },
+    onOppMove: { dmg: 4 },
+    guardsHomeRow: true,
   },
   {
     id: "bore_hillbilly",
@@ -2380,14 +2390,20 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Warrior",
-    attackType: "Melee",
+    // AIRBORNE AND AT RANGE. A storm dragon that had to walk into melee was the
+    // one thing the art never showed. 10 + 28 + 2*2 + 7 = 49 against a cost-8
+    // budget of 50, one under, and the SP pays for the reach: 10 -> 7 is still a
+    // two-step body (moveReach is 2 anywhere above SP_SLOW_MAX) but it gives up
+    // the king-move tier, which starts above SP_MID_MAX. FLYING hands that back
+    // in a better form — it cuts corners AND ignores every ground obstacle.
+    attackType: "Ranged",
     cost: 8, // LEGENDARY
-    dmg: 7,
+    dmg: 10,
     hits: 1,
-    hp: 29,
-    sp: 10,
+    hp: 28,
+    sp: 7,
     shields: 2,
-    keywords: {},
+    keywords: { FLYING: true },
     // Powertrip (On Kill, once per round): 5 DMG to all ELECTRIFIED opponents
     // (= any statused enemy, the BOLT "electrified" proxy).
     passiveNames: { onKill: "Powertrip" },
@@ -4380,6 +4396,7 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
+    tribe: "Goblin",
     // Fire Stick (On Summon): BURN 2 (2 rounds) on the nearest opponent.
     onSummon: { handler: "statusNova", params: { statusKind: "BURN", statusPower: 2, statusDuration: 2, targets: 1, reachNearest: 1 }, targetSide: "enemy" },
   },
@@ -5983,6 +6000,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
+    tribe: "Goblin",
     // Bloodfire Detonator: a glass-cannon finisher that DOUBLES its hit against
     // a target already BLEEDING and BURNING — the payoff for the blood engine
     // and the fire engine landing on the same body. Amplify, not consume: the
@@ -6277,6 +6295,11 @@ export const CARDS: CardDef[] = [
       name: "Search and Rescue",
       text: "Once per game, free: trade board positions with an ally.",
       handler: "swapAlly",
+      // ALLY, said out loud. `swapAlly` looks through its target list for a
+      // friendly body, and the Talent path handed it the ENEMY list — so it
+      // found nothing, returned silently, and burned the once-per-game charge
+      // for no effect. Specials have always declared this; Talents can now too.
+      targetSide: "ally",
       params: {},
     },
   },
@@ -6371,7 +6394,9 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
-    tribe: "Dark",
+    // Both: Dark is what it does, Goblin is what it is. Added rather than
+    // swapped, so nothing that already reads Dark loses a member.
+    tribe: ["Dark", "Goblin"],
     // Magic Potion (On Attack): a landed basic hurls a random potion — poison
     // (DOT 1), damage (3), or FRIGHTEN 2. On Death: the flasks shatter across the
     // enemy row directly ahead.
@@ -12100,8 +12125,15 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: { PEN: true },
-    passiveNames: { firstStrikeBonus: "Opening Volley" },
+    passiveNames: { firstStrikeBonus: "Opening Volley", alwaysHit: "Dead Eye" },
     firstStrikeBonus: 1,
+    // DEAD EYE. The Special was already the aimed one that cannot miss
+    // (`alwaysHit` in its params); this puts the same promise on the card
+    // itself, so a rank of riflemen taking aim does not whiff its BASIC either.
+    // `alwaysHit` on the def is threaded through every miss check in combat.ts
+    // — its own BLIND, the target's EVASION, both fogs, Blinding Star, Midnight
+    // Shade and the first-blow guard — so this flag is the whole passive.
+    alwaysHit: true,
     special: {
       name: "Volley Fire",
       cost: 3,
@@ -12809,6 +12841,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     tribe: "ARC",
     attackType: "Ranged",
+    // SPOTLIGHT. A searchlight does not care that you are hiding, and neither
+    // does the side flying it: like Sonar Ping's Echo Return this reveals for
+    // the WHOLE team while the helicopter is alive, so every ally may target a
+    // cloaked opponent normally. Kill the light and the cloak comes back, which
+    // is the counter and the reason it is worth flying.
+    revealsStealth: true,
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
@@ -12820,7 +12858,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 3,
     keywords: { FLYING: true },
-    passiveNames: { aura: "Rotor Wash", onSummon: "Deploy" },
+    passiveNames: { aura: "Rotor Wash", onSummon: "Deploy", revealsStealth: "Spotlight" },
     aura: { scope: "all", sp: 1 },
     onSummon: { handler: "grantShield", params: { amount: 2, nearby: 1 }, targetSide: "ally" },
     special: {

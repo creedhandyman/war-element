@@ -562,7 +562,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.bonusVsClass)
     named("bonusVsClass", `Explosive Power: basic attacks deal ${def.bonusVsClass.mult}× damage against ${def.bonusVsClass.classes.join(" / ")} targets.`);
   if (def.talent)
-    passives.push(`Talent (free · once per game) — ${def.talent.name}: ${def.talent.text}`);
+    passives.push(`${TALENT_LINE_PREFIX}${def.talent.name}: ${def.talent.text}`);
   if (def.onRevive)
     named("onRevive", 
       // decay turns a one-time revive into an every-death one that grinds itself
@@ -1151,6 +1151,15 @@ export function describePassives(def: CardDef): string[] {
 
 /** Only what makes THIS card different — everything `describePassives` returns
  *  minus the shared rules it opens with. */
+/** How a Talent's prose opens in `describePassives`.
+ *
+ *  Exported because the card face draws the Talent as its own SECTION now —
+ *  header, pill and text, exactly like a Special — and would otherwise print it
+ *  twice, once properly and once buried in the passive list. A shared constant
+ *  rather than the string typed out in both places, which is how the two would
+ *  drift the first time the wording changed. */
+export const TALENT_LINE_PREFIX = "Talent (free · once per game) — ";
+
 export function describeOwnPassives(def: CardDef): string[] {
   return describePassives(def).slice(describeSharedPassives(def).length);
 }
