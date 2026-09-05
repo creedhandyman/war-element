@@ -3329,6 +3329,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 1,
     keywords: {},
+    tribe: "Cavernous",
     // Stalactite Drop (On Summon): 2 DMG and SLEEP one opponent for 1 round.
     onSummon: { handler: "barrage", params: { dmg: 2, targets: 1, statusKind: "SLEEP", statusDuration: 1 } },
   },
@@ -4504,6 +4505,7 @@ export const CARDS: CardDef[] = [
     // and it moves like a chess king in Prep — pure evasiveness, which suits a
     // turret whose job is to sit in range and irradiate.
     keywords: { FLYING: true },
+    tribe: "Cavernous",
     // Radiation (End of Round): 1 DMG PEN (bypasses shields) to every opponent in
     // range. Halved from 2 — it is untargetable by melee since UFO gained FLYING,
     // ticks EVERY round with no cost or cooldown, and hits everything in range at
@@ -10224,7 +10226,7 @@ export const CARDS: CardDef[] = [
     // EVASION: it is not there when the blow lands. A striker holding 16 HP
     // does not survive by soaking, so the dodge is the armour.
     keywords: { EVASION: true },
-    tribe: "Sand Village",
+    tribe: ["Sand Village", "Cavernous"],
     passiveNames: { vsStatus: "Ambush Coil", summonSpawn: "Ambush Coil" },
     // Ambush Coil: doubles into a sleeping target, which its own Venom Strike
     // puts there — the Special sets up the next round's basic.
@@ -13986,7 +13988,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 2,
     keywords: {},
-    tribe: "Sand Village",
+    tribe: ["Sand Village", "Cavernous"],
     passiveNames: { vsStatus: "Ambush Coil", onHitStatus: "Sleeping Venom" },
     onHitStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 30 },
     vsStatus: { status: "SLEEP", dmgMult: 2 },
