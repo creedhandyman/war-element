@@ -1468,10 +1468,14 @@ describe("Wedded Wraith — Shadow Summon is on a 3-round lockout", () => {
 });
 
 describe("epic audit — Thunder's Arcing Strike", () => {
-  it("hits the target 7 and arcs 3 to each neighbour, not another full 7", () => {
+  it("hits the target 7 and arcs 4 to each neighbour, not another full 7", () => {
     // It arced the FULL hit, so a target in a cluster ate 28 for 2 magic —
     // 14.0 damage per magic, the most efficient card in the game, ahead of every
     // legendary and mythic. An arc should be a graze, not a second strike.
+    //
+    // The graze is 4 now, up from the 3 the audit cut it to. What this test is
+    // really guarding is the SHAPE — that the arc is smaller than the hit and
+    // reaches adjacency only — so the number moving does not weaken it.
     const s = prepState();
     s.players.P1.magicPool = 9;
     const thunder = place(s, "bolt_thunder", "P1", 2, 1, { autoMode: "manual" });
@@ -1482,7 +1486,9 @@ describe("epic audit — Thunder's Arcing Strike", () => {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: main.instanceId,
     });
     expect(99 - n.cards[main.instanceId].curHp).toBe(7); // the hit is untouched
-    expect(99 - n.cards[beside.instanceId].curHp).toBe(3); // arc, down from 7
+    expect(99 - n.cards[beside.instanceId].curHp).toBe(4); // arc, still well under the 7
+    expect(99 - n.cards[beside.instanceId].curHp, "the graze must stay smaller than the hit")
+      .toBeLessThan(99 - n.cards[main.instanceId].curHp);
     expect(n.cards[far.instanceId].curHp).toBe(99); // splash is adjacency-only
   });
 });

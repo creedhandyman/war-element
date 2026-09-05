@@ -3766,14 +3766,20 @@ export const CARDS: CardDef[] = [
       name: "Arcing Strike",
       cost: 2,
       handler: "strike",
-      // Splash 7 -> 3. It arced the FULL hit to every neighbour, so a target in a
-      // cluster took 28 for 2 magic — 14.0 damage per magic, the most efficient
-      // card in the game, ahead of every legendary and mythic (Skyrend is 7.8).
-      // Skyrend's own splash is 5 on a 24 hit; an arc should be a graze, not a
-      // second full strike on each body. The 7 up front is untouched.
-      params: { dmg: 7, splash: 3 },
+      // Splash 7 -> 3 -> 4. The first cut was the important one: it arced the
+      // FULL hit to every neighbour, so a target in a cluster took 28 for 2
+      // magic — 14.0 damage per magic, the most efficient card in the game,
+      // ahead of every legendary and mythic (Skyrend is 7.8). An arc should be
+      // a graze, not a second full strike on each body.
+      //
+      // 4 is a step back up, not a return. Against three neighbours the cast
+      // goes 7+9=16 to 7+12=19, i.e. 8.0 -> 9.5 damage per magic — still under
+      // half the 14.0 that got it cut, and close to Skyrend's 7.8 rather than
+      // to the old outlier. The 7 up front is untouched, and so is the shape:
+      // the graze is bigger, it is still a graze.
+      params: { dmg: 7, splash: 4 },
       targetSide: "enemy",
-      text: "Deal 7 DMG to a target and 3 DMG to each adjacent opponent.",
+      text: "Deal 7 DMG to a target and 4 DMG to each adjacent opponent.",
     },
   },
   {
