@@ -4792,8 +4792,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // only the row ahead meant the further forward it got the fewer allies were
     // left ahead of it to command — the Special did least exactly when the card
     // was doing its job.
+    // `aheadOnly` narrows the squad to the rank in FRONT and drops the caster's
+     // own line. Scarecrow is a RANGED Support that wants to stand behind its
+     // line and conduct it, so "this row and the one ahead" swept up the bodies
+     // beside it that it is not conducting at all — the opposite problem to the
+     // one the default solves. Absent, nothing changes: Sunbanner is a Melee
+     // Tank that wants to be at the front, and commanding only the row ahead
+     // meant the further forward it got the fewer allies were left to command,
+     // so its Special did least exactly when the card was doing its job.
     const ahead = rowAhead(attacker.owner, attacker.pos.row);
-    const rows = new Set([attacker.pos.row, ahead]);
+    const rows = num(_params, "aheadOnly") > 0
+      ? new Set([ahead])
+      : new Set([attacker.pos.row, ahead]);
     // Snapshot by ID, then re-look-up: a kill mid-command can remove bodies from
     // draft.cards or spawn new ones, and a held object reference would go stale.
     const squad = boardCards(draft, attacker.owner)

@@ -12366,7 +12366,12 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "DUSK",
     cardClass: "Support",
-    tribe: "Ghost",
+    // IN ITS OWN TRIBE AT LAST. Five cards carry ScareKrow and the card the
+    // tribe is named after was not one of them — it sat in Ghost alone. Both,
+    // not a swap: the Ghost half was a deliberate call when this was renamed off
+    // Tatterhand, and dropping it now would quietly take it out of every Ghost
+    // aura it has been feeding since.
+    tribe: ["Ghost", "ScareKrow"],
     attackType: "Ranged",
     cost: 6,
     // 5 + 20 + 2*2 + 11 = 40 = 5*6+10.
@@ -12382,9 +12387,14 @@ export const CARDS: CardDef[] = [
       name: "Curtain Call",
       cost: 4,
       handler: "flashSquad",
-      params: {},
+      // THE ROW AHEAD ONLY. The shared handler commands the caster's own line as
+      // well, which is right for Sunbanner (a Melee Tank at the front) and wrong
+      // here: Scarecrow is Ranged, stands BEHIND its line, and conducting the
+      // bodies stood beside it is not what it is doing. `aheadOnly` narrows it
+      // without touching Sunbanner, which prints no such param.
+      params: { aheadOnly: 1 },
       targetSide: "self",
-      text: "Command allies in this row and the row ahead to each make their basic attack.",
+      text: "Command the allies in the row ahead to each make their basic attack.",
     },
   },
 
