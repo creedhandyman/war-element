@@ -2657,6 +2657,36 @@ describe("Klipso's Harsh Winds", () => {
   });
 });
 
+describe("the two Dark Wind auras", () => {
+  it("compose, because they are on different stats", () => {
+    // Auras of the SAME stat do not stack — the best one wins (`auraPick`). These
+    // two are deliberately not the same stat, so a flock flying under both is
+    // faster AND harder rather than one-or-the-other. That is the whole reason
+    // the tribe can carry two.
+    const s = prepState();
+    const bird = place(s, "gale_duster", "P1", 3, 0);
+    const bareSp = effectiveSp(s, s.cards[bird.instanceId]);
+    const bareDmg = effectiveDmg(s, s.cards[bird.instanceId]);
+
+    place(s, "gale_galeon", "P1", 3, 1);        // Dark Wind: +3 SP
+    place(s, "gale_dreamcatcher", "P1", 3, 2);  // Ill Wind:  +1 DMG
+    expect(effectiveSp(s, s.cards[bird.instanceId]), "Galeon's wind").toBe(bareSp + 3);
+    expect(effectiveDmg(s, s.cards[bird.instanceId]), "Dreamcatcher's").toBe(bareDmg + 1);
+  });
+
+  it("reach nothing outside the flock", () => {
+    const s = prepState();
+    // GALE, and Avian — but not Dark Wind. Scope is the tribe, not the element.
+    const outsider = place(s, "gale_hawk", "P1", 3, 0);
+    const sp = effectiveSp(s, s.cards[outsider.instanceId]);
+    const dmg = effectiveDmg(s, s.cards[outsider.instanceId]);
+    place(s, "gale_galeon", "P1", 3, 1);
+    place(s, "gale_dreamcatcher", "P1", 3, 2);
+    expect(effectiveSp(s, s.cards[outsider.instanceId])).toBe(sp);
+    expect(effectiveDmg(s, s.cards[outsider.instanceId])).toBe(dmg);
+  });
+});
+
 describe("Dunewraith's Sandstorm", () => {
   /** Attacker at r2c1 hitting r1c1, with a neighbour at r1c2 to catch the chip. */
   function field(withWraith: boolean) {

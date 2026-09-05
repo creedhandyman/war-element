@@ -1907,6 +1907,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Dark Wind",
     // Dust Off (On Summon): +2 SP to self and the nearest ally.
     onSummon: { handler: "buffSp", params: { amount: 2 }, targetSide: "ally" },
   },
@@ -2043,7 +2044,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
+    tribe: ["Avian", "Dark Wind"],
     // Alluring Aura (When hit): the attacker is WEAKENed — whoever it was.
     //
     // `anyAttacker` upgrades it off the default melee-only thorns. Melee-only
@@ -2090,6 +2091,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 0,
     keywords: {},
+    tribe: "Dark Wind",
     // Totem Alert (On Summon): WEAKEN the enemy row directly ahead.
     onSummon: {
       handler: "statusNova",
@@ -2142,7 +2144,7 @@ export const CARDS: CardDef[] = [
   {
     id: "gale_galeon",
     name: "Galeon",
-    tribe: "Avian",
+    tribe: ["Avian", "Dark Wind"],
     rarity: "legendary",
     element: "GALE",
     cardClass: "Tank",
@@ -2154,6 +2156,16 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 3,
     keywords: {},
+    passiveNames: { aura: "Dark Wind" },
+    // Dark Wind: +3 SP to every card in the flock while Galeon flies.
+    //
+    // ON GALE THIS IS NOT JUST SPEED, and the card should be read that way.
+    // Zephyr converts SP twice over — +1 DMG per 6 SP, and 5% dodge per 3 SP
+    // above 6 — so +3 buys all eleven of them a dodge step, and pushes five
+    // (Angale, Fanwing, Mesala, Skyrend, Eagon) up a tailwind damage step as
+    // well. It also crosses SP_MID_MAX (10) for Duster, Fanwing and Mesala,
+    // which is the king-move tier: they start cutting corners.
+    aura: { scope: "tribe", match: "Dark Wind", sp: 3 },
     // Wind Guardian (End of Round): blow opponents in range back 1 slot.
     roundTick: { pushEnemies: 1 },
     special: {
@@ -3060,7 +3072,7 @@ export const CARDS: CardDef[] = [
     sp: 17,
     shields: 0,
     keywords: { FLYING: true },
-    tribe: "Avian",
+    tribe: ["Avian", "Dark Wind"],
     // On Kill: permanent +2 SP.
     onKill: { buffSp: 2 },
     // Skyborn (Aura): AVIAN allies only — the flock it actually leads — gain
@@ -4698,7 +4710,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Tox: a flyer whose basic attacks leave a generic DOT ticking (GALE owns no
     // named DOT status, so this is element-free).
-    tribe: "Avian",
+    tribe: ["Avian", "Dark Wind"],
     keywords: { FLYING: true },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 },
   },
@@ -6706,6 +6718,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 2,
     keywords: {},
+    tribe: "Dark Wind",
     // Blade Breaker (On Attack): 50% chance to WEAKEN the target.
     passiveNames: { onHitStatus: "Blade Breaker" },
     onHitStatus: { kind: "WEAKEN", duration: 1, power: 0, chance: 50 },
@@ -7130,7 +7143,7 @@ export const CARDS: CardDef[] = [
     sp: 12,
     shields: 1,
     keywords: {},
-    tribe: "Wolf",
+    tribe: ["Wolf", "Dark Wind"],
     // Ride or Die: Luna grants +3 DMG and +8 HP on summon.
     // Omega Restore: each kill grants +2 max HP and heals 4 — the pair feed on
     // the hunt, so a kill should put something back as well as build.
@@ -8010,7 +8023,7 @@ export const CARDS: CardDef[] = [
     // off. On a 9-DMG Melee Warrior that is the difference between a threat that
     // can be screened and one that cannot.
     keywords: { FLYING: true },
-    tribe: ["Dragon", "Avian"],
+    tribe: ["Dragon", "Avian", "Dark Wind"],
     // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
     onKill: { buffDmg: 1 },
     // Vision Guard (On Hit): 50% chance to deflect — take half, deal half back.
@@ -9427,6 +9440,7 @@ export const CARDS: CardDef[] = [
     // it, which is no loss: a coin-flip blind on a 2-cost was the kind of
     // passive you could not plan around in either direction.
     keywords: { FLYING: true, DRAIN: true },
+    tribe: "Dark Wind",
     // Nightfeed exists because of a CONTRACT, and it is worth saying so. Every
     // cost-1 and cost-2 Rare must carry a passive and not merely a keyword
     // (`passives.test.ts` "a cheap Rare is never a blank body") — a cheap Rare
@@ -9735,7 +9749,7 @@ export const CARDS: CardDef[] = [
     // Raptor standing in front of it gets more out of shrugging off the shots
     // that do arrive than out of another layer of unreachability.
     keywords: { EVASION: true },
-    tribe: "Avian",
+    tribe: ["Avian", "Dark Wind"],
     // Raptor Assault (End of Round): if no Raptor stands, raise one (capped at 1).
     passiveNames: { roundTick: "Raptor Assault" },
     roundTick: { spawn: { token: "gale_toxhawk_tok", count: 1 }, spawnMaxAlive: 1 },
@@ -10001,7 +10015,12 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: "Dark Wind",
-    passiveNames: { roundTick: "Dreamweaver" },
+    passiveNames: { roundTick: "Dreamweaver", aura: "Ill Wind" },
+    // Ill Wind: +1 DMG to the flock. A SECOND Dark Wind aura, on a different
+    // stat from Galeon's — which is why both can be up at once. Auras of the
+    // same stat do not stack (the best one wins); these two do not compete,
+    // they compose, so a flock flying under both is faster AND harder.
+    aura: { scope: "tribe", match: "Dark Wind", dmg: 1 },
     // Dreamweaver: always the biggest threat it can reach, never whatever is
     // nearly dead — a debuffer that softens a corpse is wasting its round.
     roundTick: { topDmgInRangeStatus: { kind: "WEAKEN", duration: 2, power: 1 } },
