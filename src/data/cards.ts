@@ -8236,15 +8236,32 @@ export const CARDS: CardDef[] = [
     roundTick: { pokeDmg: 2 },
     aura: { scope: "class", match: "Mage", dmg: 1 },
     auras: [{ scope: "class", match: "Ranger", dmg: 1 }],
-    // Twisted Rage: a 4 → 6 → 8 → 10 chain across adjacent opponents.
+    // Twisted Rage: a 4 → 6 → 8 → 10 chain across adjacent opponents, and the
+    // storm it raises stays on the board.
+    //
+    // HALF POWER, and on this token that is the whole of the balance. A
+    // Thundering Hurricane is printed 20 DMG / 55 HP / 15 SP — a cost-6 body,
+    // conjured free by a Special. At `spawnScale: 0.5` it lands as roughly
+    // 10 / 28 / 7, which is a real card rather than a second legendary stapled
+    // to this one. `scaleInstance` sets `statScale`, which `effectiveDmg` and
+    // `effectiveSp` both read, so the Special it carries scales down with it —
+    // this is not just a smaller stat line.
+    //
+    // ONE AT A TIME (`spawnMaxAlive: 1`). Twisted Rage is repeatable on a
+    // cooldown, and without the ceiling a long game is a sky full of them —
+    // the same limit Skybreaker's own round-6 storm carries.
     special: {
       name: "Twisted Rage",
       cost: 5,
       handler: "combo",
-      params: { hits: 4, dmg: 4, ramp: 2 },
+      params: {
+        hits: 4, dmg: 4, ramp: 2,
+        spawnToken: "gale_thundering_hurricane_tok", spawnCount: 1,
+        spawnMaxAlive: 1, spawnScale: 0.5,
+      },
       targetSide: "enemy",
       ranged: true,
-      text: "Chain 4 → 6 → 8 → 10 DMG across adjacent opponents.",
+      text: "Chain 4 → 6 → 8 → 10 DMG across adjacent opponents, and raise a Thundering Hurricane at half strength (one at a time).",
     },
   },
   {

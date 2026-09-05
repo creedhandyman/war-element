@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus} from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -2658,6 +2658,12 @@ function spawnCapped(
   count: number,
   radius: number | undefined,
   maxAlive: number,
+  /** Conjure the body at a FRACTION of its card (Kloud's half-power storm).
+   *  The same `scaleInstance` the tower's taming and enrage use, so the Special
+   *  scales with it and not just the stat line — a half-power Thundering
+   *  Hurricane hits for half too. Omit for a full-strength spawn, which is
+   *  every other spawner. */
+  scale?: number,
 ): void {
   let want = count;
   if (maxAlive !== Infinity) {
@@ -2669,7 +2675,10 @@ function spawnCapped(
       return;
     }
   }
-  if (want > 0) spawnTokens(draft, attacker, token, want, radius);
+  if (want > 0) {
+    const born = spawnTokens(draft, attacker, token, want, radius);
+    if (scale != null && scale !== 1) for (const b of born) scaleInstance(b, scale);
+  }
 }
 
 function tribeOf(card: CardInstance, tribe: string): boolean {
@@ -3690,6 +3699,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         draft.log.push(`${label(draft, attacker)}'s combo surges (+${killBoost} to the next hit).`);
       }
     }
+    // A STORM COMES WITH IT (Kloud's Twisted Rage). Same `spawnToken` rider
+    // statusNova and barrage already carry, so the param names mean one thing
+    // across the roster — with `spawnScale`, which is new: the body arrives at
+    // a fraction of its card.
+    const comboTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
+    if (comboTok && attacker.curHp > 0)
+      spawnCapped(draft, attacker, comboTok, num(params, "spawnCount", 1), spawnRadiusOf(params),
+        params.spawnMaxAlive == null ? Infinity : num(params, "spawnMaxAlive", 0),
+        params.spawnScale == null ? undefined : num(params, "spawnScale", 1));
   },
   /** Single-target damage w/ optional pen, self-damage, self-heal, status. */
   strike(draft, attacker, targets, params) {

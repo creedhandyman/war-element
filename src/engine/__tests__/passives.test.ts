@@ -8,7 +8,7 @@ import { weakenStacks } from "../auras";
 import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, notePassive, spawnTokens } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, notePassive, spawnTokens , cardAt} from "../state";
 import { CARDS, CORES, TOKENS, getDef } from "../../data/cards";
 import { DEFAULT_SPECIAL_COOLDOWN } from "../types";
 import { announces } from "../../ui/SummonAnnounce";
@@ -2654,6 +2654,58 @@ describe("Klipso's Harsh Winds", () => {
     expect(s.cards[foe.instanceId].curHp).toBe(46); // 60 − (10 + 4)
     basicAttack(s, klipso.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(36); // 46 − 10 (no bonus the 2nd time)
+  });
+});
+
+describe("Kloud's Twisted Rage raises a storm", () => {
+  function cast() {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const kloud = place(s, "gale_kloud", "P1", 3, 1);
+    const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    SPECIAL_HANDLERS.combo(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+      getDef("gale_kloud").special!.params!);
+    return { s, storms: Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0) };
+  }
+  const STORM = "gale_thundering_hurricane_tok";
+
+  it("arrives on the caster's side at HALF its card", () => {
+    const { s, storms } = cast();
+    expect(storms, "one storm").toHaveLength(1);
+    const st = storms[0];
+    const printed = getDef(STORM);
+    expect(st.owner, "it fights for Kloud").toBe("P1");
+    // The stat line is halved on the instance...
+    expect(st.maxHp).toBe(Math.round(printed.hp * 0.5));
+    expect(st.statScale).toBe(0.5);
+
+    // ...and `statScale` is what makes the DAMAGE follow, which a plain HP cut
+    // would not — a 20-DMG body conjured free is the thing being avoided.
+    //
+    // COMPARED AGAINST AN UNSCALED TWIN rather than against `printed.dmg * 0.5`,
+    // because the printed number is not what either of them hits for: this
+    // token is a MAGE, so Kloud's own Mage aura feeds it +1, GALE's tailwind
+    // adds more on top, and a mid row would add more again. The twin sits in
+    // the same ROW so every one of those applies identically and the only
+    // difference left is the scaling.
+    const twinCol = [0, 1, 2, 3].find((c) => c !== st.pos!.col && !cardAt(s, st.pos!.row, c))!;
+    const twin = place(s, STORM, "P1", st.pos!.row as never, twinCol as never);
+    const full = effectiveDmg(s, s.cards[twin.instanceId]);
+    expect(effectiveDmg(s, st), "half power means half the punch")
+      .toBe(Math.floor(full * 0.5));
+  });
+
+  it("and only one at a time, however often the Special fires", () => {
+    // Twisted Rage is repeatable on a cooldown; without the ceiling a long game
+    // is a sky full of them.
+    const s = prepState();
+    s.players.P1.magicPool = 30;
+    const kloud = place(s, "gale_kloud", "P1", 3, 1);
+    const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
+    for (let i = 0; i < 3; i++)
+      SPECIAL_HANDLERS.combo(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+        getDef("gale_kloud").special!.params!);
+    expect(Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0)).toHaveLength(1);
   });
 });
 
