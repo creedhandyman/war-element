@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards } from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -2455,10 +2455,19 @@ export function basicAttack(
     .filter((a) => a.curHp > 0 && getDef(a.defId).splashAura);
   const timedSplash = (draft.players[attacker.owner].basicSplashRounds ?? 0) > 0;
   const auraFull = timedSplash || auraHolders.some((a) => getDef(a.defId).splashAura === true);
-  const auraFlat = auraHolders.reduce((best, a) => {
-    const v = getDef(a.defId).splashAura;
-    return typeof v === "number" && v > best ? v : best;
-  }, 0);
+  // The TRIBE-scoped source (Dunewraith's Sandstorm) folds in here rather than
+  // beside it: `splashAura` is a flat team aura with no scope field, and this
+  // one comes through the generic aura system, but they buy the identical
+  // effect. One resolution, strongest source wins — so a Sand Village card
+  // standing next to Cloudburst splashes once, at the better number, instead of
+  // twice for having two friends.
+  const auraFlat = Math.max(
+    auraHolders.reduce((best, a) => {
+      const v = getDef(a.defId).splashAura;
+      return typeof v === "number" && v > best ? v : best;
+    }, 0),
+    auraSplashBonus(draft, attacker),
+  );
   if (
     !fromFollowup && agg.landedHits > 0 && attacker.curHp > 0 &&
     (auraFull || auraFlat > 0)

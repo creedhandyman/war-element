@@ -583,6 +583,15 @@ export interface AuraBonusDef {
   maxHp?: number; // matching allies gain +N max HP while the holder lives (SeaC)
   pen?: boolean; // matching allies' basic attacks gain PEN (Blood Ruby)
   shields?: number; // matching allies are topped up to base+N shields each round (Pressure)
+  /** Sandstorm (Dunewraith): a matching ally's landed basic also chips N to one
+   *  opponent adjacent to its target.
+   *
+   *  The same effect `splashAura` grants, reached through the generic aura
+   *  system instead — because `splashAura` is a flat TEAM aura (every card on
+   *  your side, no scope field at all) and this one is a TRIBE's. Both feed the
+   *  same resolution in combat.ts and the strongest source wins, so a Sand
+   *  Village card standing next to Cloudburst does not splash twice. */
+  splash?: number;
   /** Matching allies gain REFLECT N while the holder lives (Magnetite's
    *  Magnetic Field). Stacks the same way the keyword does — it is added to
    *  the target's own REFLECT rather than replacing it. */

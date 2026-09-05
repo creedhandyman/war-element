@@ -2657,6 +2657,40 @@ describe("Klipso's Harsh Winds", () => {
   });
 });
 
+describe("Dunewraith's Sandstorm", () => {
+  /** Attacker at r2c1 hitting r1c1, with a neighbour at r1c2 to catch the chip. */
+  function field(withWraith: boolean) {
+    const s = prepState();
+    const hog = place(s, "bore_warthog", "P1", 2, 1);
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 2, { curHp: 60, maxHp: 60, curShields: 0 });
+    if (withWraith) place(s, "bore_sandman", "P1", 3, 1);
+    return { s, hog, prey, beside };
+  }
+
+  it("a Sand Village basic chips the neighbour for 2 — and only with the wraith up", () => {
+    const bare = field(false);
+    basicAttack(bare.s, bare.hog.instanceId, bare.prey.instanceId);
+    expect(60 - bare.s.cards[bare.beside.instanceId].curHp, "no aura, no splash").toBe(0);
+
+    const storm = field(true);
+    basicAttack(storm.s, storm.hog.instanceId, storm.prey.instanceId);
+    expect(60 - storm.s.cards[storm.beside.instanceId].curHp, "the sand gets in").toBe(2);
+  });
+
+  it("does not reach an ally outside the tribe", () => {
+    // The whole reason this goes through the generic aura system rather than
+    // `splashAura`, which has no scope and would have handed it to the team.
+    const s = prepState();
+    const outsider = place(s, "bore_smith", "P1", 2, 1); // BORE, not Sand Village
+    const prey = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const beside = place(s, "dusk_gool", "P2", 1, 2, { curHp: 60, maxHp: 60, curShields: 0 });
+    place(s, "bore_sandman", "P1", 3, 1);
+    basicAttack(s, outsider.instanceId, prey.instanceId);
+    expect(60 - s.cards[beside.instanceId].curHp, "not in the village, not in the storm").toBe(0);
+  });
+});
+
 describe("Smith's Forge Work", () => {
   it("arms the STRONGEST ally in reach each round, and never itself", () => {
     const s = prepState();

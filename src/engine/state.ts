@@ -420,7 +420,8 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
         a.dmg && `${a.dmg > 0 ? "+" : ""}${a.dmg} DMG`,
         a.sp && `${a.sp > 0 ? "+" : ""}${a.sp} SP`,
         a.maxHp && `${a.maxHp > 0 ? "+" : ""}${a.maxHp} HP`,
-        a.shields && `+${a.shields} shield`, a.reflect && `REFLECT ${a.reflect}`, a.pen && "PEN",
+        a.shields && `+${a.shields} shield`, a.reflect && `REFLECT ${a.reflect}`,
+        a.splash && `+${a.splash} splash`, a.pen && "PEN",
       ].filter(Boolean);
       if (bits.length) out.push({ name: hDef.name, text: bits.join(", ") });
     }
@@ -512,6 +513,23 @@ export function auraHasPen(state: GameState, card: CardInstance): boolean {
     const hDef = getDef(holder.defId);
     return !!hDef.aura?.pen && auraMatches(hDef.aura, holder, card);
   });
+}
+
+/** The flat splash a card gets from friendly splash auras (Dunewraith's
+ *  Sandstorm) — the highest matching aura's `splash`, or 0 if none.
+ *
+ *  Non-stacking like every other aura here: two holders of the same tribe aura
+ *  are one aura, not two. */
+export function auraSplashBonus(state: GameState, card: CardInstance): number {
+  let bonus = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.splash || !auraMatches(a, holder, card)) continue;
+      if (a.splash > bonus) bonus = a.splash;
+    }
+  }
+  return bonus;
 }
 
 /** The extra shields a card gets from friendly shield auras (Pressure) — the

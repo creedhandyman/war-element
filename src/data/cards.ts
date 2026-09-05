@@ -687,7 +687,17 @@ export const CARDS: CardDef[] = [
     roundTick: { aoeDmg: 1 },
     // Nightmare (passive): his hits never wake sleepers; deal 2× DMG to SLEEPING
     // opponents; and a flat mid-lane bonus added ONCE to the total (not per hit).
-    passiveNames: { ignoresSleepWake: "Nightmare" },
+    passiveNames: { ignoresSleepWake: "Nightmare", aura: "Sandstorm" },
+    // Sandstorm: while the wraith stands, every Sand Village ally's landed basic
+    // also chips 2 to an opponent beside its target — Warthog, Sling, Dune
+    // Buggy, Badlands Bandits and the wraith itself.
+    //
+    // It reaches the same resolution as `splashAura` (Cloudburst's Downpour) and
+    // the strongest source wins, so standing next to Cloudburst does not splash
+    // twice. It comes through the generic aura system rather than that field
+    // because `splashAura` has no scope at all — it is the whole team, and this
+    // is a tribe.
+    aura: { scope: "tribe", match: "Sand Village", splash: 2 },
     ignoresSleepWake: true,
     vsStatus: { status: "SLEEP", dmgMult: 2 },
     basicBonus: { midLane: 2, midLaneFull: 3 },
@@ -3651,6 +3661,7 @@ export const CARDS: CardDef[] = [
     sp: 3, // juggernaut — slowed from 6 (2-space -> 1-space); the 3 SP went to HP, so the slowness is the whole cost
     shields: 2,
     keywords: {},
+    tribe: "Sand Village",
     // Tusk Rush (On Summon): it rolls up to TWO slots forward (Seed Roll's
     // mechanic), THEN gores — 5 DMG to opponents directly ahead of where it ends
     // up. The charge finally moves it, not just the tusks.
@@ -6232,6 +6243,7 @@ export const CARDS: CardDef[] = [
     // rather than being eaten. Describing it as "the crit also pierces" read as
     // a bonus on a crit that, by the rules, would never have happened.
     keywords: { CRIT: true },
+    tribe: "Sand Village",
     passiveNames: { critPen: "Crack Shot" },
     critPen: true,
   },
@@ -12817,6 +12829,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 1,
     keywords: {},
+    tribe: "Sand Village",
     passiveNames: { firstStrikeBonus: "Hit and Run" },
     firstStrikeBonus: 2,
     // Redline: speed and GROUND, not damage. The talent used to be +2 DMG and
@@ -12849,6 +12862,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 2,
     keywords: { CRIT: true },
+    tribe: "Sand Village",
     passiveNames: { onKill: "Bounty" },
     onKill: { buffDmg: 1, buffDmgMax: 3, gainShields: 2 },
     special: {
