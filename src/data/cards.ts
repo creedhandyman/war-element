@@ -2677,11 +2677,24 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       params: { dmg: 7, onlyVsTarget: 1 },
     },
+    // ANTI-AIR, because the Dragons took to the air. Drakonbane is Melee and its
+    // whole reason to exist is `vsTarget: { tribe: "Dragon" }` — so the moment
+    // Pyrogon and Hydrogon gained FLYING, the game's dedicated dragon-slayer
+    // could not touch the two biggest Dragons in it, with either the basic or
+    // the Special. A card that cannot reach the thing it is named after is not
+    // a counter, it is a dead slot.
+    //
+    // Same remedy the tower's melee bosses got for the same reason (Rotten
+    // Grasp, and the one below it): `antiAir` lifts ONLY the FLYING dodge and
+    // leaves the melee reach intact, where `ranged: true` would have quietly
+    // handed this Special the whole board. The BASIC is deliberately left
+    // grounded — a flying Dragon now costs Drakonbane its Special rather than
+    // being farmed by its basic, which is the trade the wings were bought for.
     special: {
       name: "Sunlight Strike",
       cost: 2,
       handler: "strike",
-      params: { dmg: 10, dmgVsTarget: 14, onKillSelfShields: 2, onKillSelfHeal: 7 },
+      params: { antiAir: 1, dmg: 10, dmgVsTarget: 14, onKillSelfShields: 2, onKillSelfHeal: 7 },
       targetSide: "enemy",
       text: "Deal 14 DMG to a Dragon (or anything with 25+ max HP), 10 DMG otherwise. On Kill: gain 2 shield and heal 7 HP.",
     },
@@ -2822,7 +2835,12 @@ export const CARDS: CardDef[] = [
     hp: 39,
     sp: 8,
     shields: 0,
-    keywords: {},
+    // FLYING. It is a dragon; the one thing the art always showed and the card
+    // never did. Note it stays MELEE, so unlike Voltogon — which traded its
+    // melee for reach when it took off — this is asymmetric: Pyrogon can still
+    // be answered by a flier, by anything RANGED, or by grounding it
+    // (ROOT/FREEZE/STUN/SLEEP/PARALYZE), and by nothing else on the ground.
+    keywords: { FLYING: true },
     // On Summon: a free Flame Engulf — same reach as the Special (2 rows deep).
     onSummon: {
       handler: "barrage",
@@ -9302,7 +9320,11 @@ export const CARDS: CardDef[] = [
     hp: 31,
     sp: 11,
     shields: 0,
-    keywords: {},
+    // FLYING, for the same reason as its Dragon kin — and with the same caveat:
+    // it keeps its Melee attack, so it dodges ground melee without giving any
+    // reach up for it. A serpent of steam has no business being blocked by a
+    // wall, which FLYING also fixes.
+    keywords: { FLYING: true },
     tribe: ["Dragon", "Vapor"],
     // Infinite Serpent (On Kill): grow permanently (+1 SP, +1 DMG) and snipe the
     // lowest-HP survivor for 3.

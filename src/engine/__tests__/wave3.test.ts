@@ -3,6 +3,7 @@ import { getDef } from "../../data/cards";
 import { DAWN_STRIKE_PCT } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, effectiveMaxHp } from "../state";
+import { canTarget } from "../rules";
 import { atCleanup, place, prepState, statusOf, bigPrepState } from "./helpers";
 import type { GameState } from "../types";
 
@@ -130,6 +131,31 @@ describe("Drakonbane", () => {
     const b = place(plain, "dawn_drakonbane", "P1", 3, 0);
     const foe = place(plain, "leaf_greegon", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
     expect(20 - fire(plain, b.instanceId, foe.instanceId).cards[foe.instanceId].curHp).toBe(10);
+  });
+
+  // THE DRAGONS FLY NOW, and Drakonbane is Melee. Without `antiAir` on Sunlight
+  // Strike the game's dedicated dragon-slayer cannot target the two biggest
+  // Dragons in it at all — the test above catches that, but it reports only
+  // "No valid target", which does not say why. This one says why.
+  it("still reaches a FLYING Dragon with its Special, and not with its basic", () => {
+    const flier = getDef("pyro_pyrogon");
+    expect(flier.keywords.FLYING, "Pyrogon is the flier this is about").toBe(true);
+    expect(getDef("dawn_drakonbane").attackType, "and Drakonbane is on the ground").toBe("Melee");
+
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const bane = place(s, "dawn_drakonbane", "P1", 3, 0);
+    const drg = place(s, "pyro_pyrogon", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    // The Special lands its full anti-Dragon number through the wings.
+    expect(60 - fire(s, bane.instanceId, drg.instanceId).cards[drg.instanceId].curHp).toBe(14);
+
+    // The BASIC is deliberately still grounded: a flying Dragon costs Drakonbane
+    // its Special rather than being farmed by its ordinary attack.
+    const b = prepState();
+    const ground = place(b, "dawn_drakonbane", "P1", 3, 0);
+    const air = place(b, "pyro_pyrogon", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });
+    expect(canTarget(b, b.cards[ground.instanceId], b.cards[air.instanceId]),
+      "melee must not reach a flier").toBe(false);
   });
 
   it("the on-summon ambush fires at a bane target and NOT at a small one", () => {
