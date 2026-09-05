@@ -159,6 +159,19 @@ describe("setup", () => {
       // order to keep a number tidy. Recorded instead of hidden; if the band is
       // ever enforced strictly, this is the one to revisit first.
       "bolt_surge",
+      // 39 vs a Cost-5 budget of 35, at the owner's call. Thunder keeps its
+      // printed 16 HP while carrying SP 15 and `mounted` — a keyword the
+      // formula does not price at all.
+      //
+      // +4 is not an unusual size here: Shadow Horsemen and Infernus Rex are
+      // both +4, Deepest is +7. What is unusual is the REASON. Every other id
+      // above the curve is in a tier band that pays its way in spawns, auras or
+      // an on-kill snowball, and every id below it gives something up outright.
+      // This one is neither — it is a decision, taken after the four points had
+      // been cut out of the body and then asked back. Recorded as what it is
+      // rather than dressed up as a justification, so the next person
+      // rebalancing does not go hunting for the ability that pays for it.
+      "bolt_thunder",
     ]);
     for (const def of CARDS) {
       if (exceptions.has(def.id)) continue;

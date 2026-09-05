@@ -3750,23 +3750,22 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 5, // doc prints cost 7; re-costed to fit the 5·cost+10 curve
-    // A BIKE, and now it rides like one: `mounted` (a king-move in Prep) and
-    // SP 11 -> 15. The four points come out of the body, 16 -> 12, so the total
-    // is 4*2 + 12 + 0 + 15 = 35 = 5*5+10 — exactly on, where it already was.
+    // A BIKE, and it rides like one: `mounted` (a king-move in Prep) and
+    // SP 11 -> 15, with the printed 16 HP kept.
     //
-    // Paying out of HP is the precedent this roster set twice: Klipso's re-cost
-    // took its three points off the body rather than off the SP that makes an
-    // Assassin an Assassin, and Crystal Sabor sits four UNDER the formula
-    // specifically because War Mount is priced as costing something. `mounted`
-    // is not in the formula at all, so leaving the stat line untouched would
-    // have been a king-move for free on top of four points of speed.
+    // THAT PUTS IT FOUR OVER, at the owner's call — 4*2 + 16 + 0 + 15 = 39
+    // against a cost-5 budget of 35 — so it is listed in state.test.ts's
+    // exceptions. +4 is not an unusual size there (Shadow Horsemen and Infernus
+    // Rex are both +4); what is unusual is that this one is a decision rather
+    // than a tier band or an ability paying its way, and the note beside the id
+    // says so.
     //
-    // HP is also the right stat here rather than the damage: this is a Ranged
-    // Mage with a board-wide on-summon and the most efficient Special in the
-    // game. It should not have been surviving the front line anyway.
+    // I did cut the body to 12 first, on the precedent Klipso and Crystal Sabor
+    // set (mobility paid for out of HP). The HP was asked back; this comment is
+    // here so the next reader knows the 39 is deliberate and not a slip.
     dmg: 4,
     hits: 2, // "2×4 DMG"
-    hp: 12,
+    hp: 16,
     sp: 15,
     shields: 0,
     keywords: {},
