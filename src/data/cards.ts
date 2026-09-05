@@ -12712,7 +12712,10 @@ export const CARDS: CardDef[] = [
   // -- BORE --------------------------------------------------
   {
     id: "bore_rhino",
-    name: "Rhino",
+    // Renamed to Crystal Rhino, joining Crystal Sabor in BORE. The id stays
+    // `bore_rhino` — it is what saves, deck codes, the art plate, the lore entry
+    // and the R11 roster are all keyed on.
+    name: "Crystal Rhino",
     rarity: "epic",
     element: "BORE",
     cardClass: "Warrior",
@@ -13089,7 +13092,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 6, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
       // REQUIRED once the card went Melee, and it is the same WarPhant fix
-      // Rhino carries. `validSpecialTargets` gates a Melee caster to what it is
+      // Crystal Rhino carries. `validSpecialTargets` gates a Melee caster to what it is
       // already touching, so without this the "3 NEAREST opponents" this text
       // promises would collapse to "up to 3 opponents already adjacent" — the
       // basic is what got shorter here, not the canopy coming down.
