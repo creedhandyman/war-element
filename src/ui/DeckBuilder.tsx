@@ -1016,7 +1016,6 @@ export function DeckBuilder(props: {
                       alt=""
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
-                    {story?.foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
                     <div className="dt-top">
                       {/* One badge, not two. The cost sits ON the element's
                           sigil, so the corner spends 20px instead of 42 and
@@ -1039,6 +1038,7 @@ export function DeckBuilder(props: {
                       >
                         ⓘ
                       </button>
+                      {story?.foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
                     </div>
                     {/* Rarity is absolutely positioned (see styles.css) as a vertical
                         strip in the bottom-right corner — out of the art's face and

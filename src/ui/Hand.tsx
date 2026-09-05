@@ -143,11 +143,9 @@ export function Hand(props: {
               <div className="hc-cost" style={{ backgroundImage: `url(${EL_ICON[def.element]})` }}>
                 <b>{def.cost}</b>
               </div>
+              {props.foils?.has(def.id) && <i className="foil-tag" title="Foil">✦</i>}
               <div className="hc-plate">
-                <div className="hc-name">
-                  {props.foils?.has(def.id) && <i className="foil-tag" title="Foil">✦</i>}
-                  {def.name}
-                </div>
+                <div className="hc-name">{def.name}</div>
                 <div className="hc-type">{def.cardClass} · {def.attackType}</div>
                 <div className="hc-stats">
                   <span className="s-dmg">⚔<span className="atk-dmg">{def.dmg}</span>{def.hits > 1 ? <span className="atk-x"> ×{def.hits}</span> : ""}</span>

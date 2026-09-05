@@ -579,10 +579,8 @@ export function Shop(props: {
                     <img src={`/cards/${d.art ?? d.id}.webp`} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     {rar && <span className="pack-rar" style={{ color: rar.color, borderColor: rar.color }}>{rar.label}</span>}
-                    <span className="pack-name">
-                      {foil && <i className="foil-tag" title="Foil">✦</i>}
-                      {d.name}
-                    </span>
+                    {foil && <i className="foil-tag" title="Foil">✦</i>}
+                    <span className="pack-name">{d.name}</span>
                     {/* Both facts, because a foil duplicate has two: it is a
                         foil AND it paid essence. The tag used to print one and
                         drop the other whichever way it went. */}
@@ -644,7 +642,7 @@ export function Shop(props: {
               <div>New cards <b>{opened.fresh.length}</b> of {opened.pulled.length}</div>
               {opened.shiny.length > 0 && (
                 <div className="pack-foil">
-                  Foil {opened.shiny.map((id) => getDef(id).name).join(", ")} <i className="foil-tag">✦</i>
+                  Foil {opened.shiny.map((id) => getDef(id).name).join(", ")} <i className="foil-tag inline">✦</i>
                 </div>
               )}
               {Object.keys(opened.refund).length > 0 && (

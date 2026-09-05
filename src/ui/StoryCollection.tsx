@@ -315,13 +315,14 @@ export function StoryCollection(props: {
                       ) : (
                         <span className="dt-locked" aria-label="Not recruited">🔒</span>
                       )}
+                      {foil && <i className="foil-tag" title="Foil">✦</i>}
                     </div>
                     {rar && (
                       <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
                         {rar.label}
                       </span>
                     )}
-                    <div className="dt-name">{foil && <i className="foil-tag" title="Foil">✦</i>}{d.name}</div>
+                    <div className="dt-name">{d.name}</div>
                     {have ? (
                       <div className="dt-stats">
                         <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>

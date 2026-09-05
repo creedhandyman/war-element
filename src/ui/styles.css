@@ -5607,19 +5607,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* The mark, so a shiny is identifiable when it is not moving — a sheen alone is
    invisible in a screenshot and to anyone with motion reduced.
-   A small glyph sitting just above the name rather than a word stamped across
-   the corner: the card art is the thing you are looking at, and a FOIL label
-   big enough to read from across the grid covered the part worth seeing. */
+   A small glyph rather than a word stamped across the corner: the card art is
+   the thing you are looking at, and a FOIL label big enough to read from across
+   the grid covered the part worth seeing.
+
+   THE TOP-RIGHT CORNER. It used to hang just above the card's NAME, which put
+   it down in the plate at the bottom, in the busiest strip of the card, and in
+   the deck builder it did not land at all — `.deck-thumb > *:not(.card-art)`
+   outranks a bare `.foil-tag` and forced it back to position:relative, so the
+   glyph flowed as a flex item instead of being placed. The corner is empty on
+   every surface that shows one, and it is the same corner on all of them, so a
+   shiny is identified by looking at one spot rather than by reading a name. */
 /* Inline variant, for a foil named in a LIST rather than sitting on a card —
    the recruit screen has rows, not thumbnails, and the absolute placement above
    is measured against a card's top edge. */
 .foil-tag.inline {
   position: static; transform: none; margin-right: 4px; font-size: 11px;
 }
+/* The deck thumb's corner is already spoken for — the ⓘ button in the builder,
+   the in-deck tick / NEW / lock in the collection — and both are pushed right by
+   their own `margin-left: auto`. So on those two the mark JOINS that row as its
+   last item rather than floating over it: still the top-right corner, with the
+   existing badge immediately to its left instead of underneath it. */
+.dt-top > .foil-tag { position: static; transform: none; font-size: 11px; }
 .sr-foil .sr-name { color: #eaf6ff; }
 .foil-tag {
-  position: absolute; left: 50%; transform: translateX(-50%);
-  bottom: calc(100% - 2px); z-index: 3; pointer-events: none;
+  position: absolute; top: 3px; right: 4px; left: auto; bottom: auto;
+  transform: none; z-index: 3; pointer-events: none;
   font-size: 9px; line-height: 1; letter-spacing: 0;
   color: #eaf6ff;
   text-shadow: 0 0 5px #7fd7ff, 0 0 9px rgba(255, 190, 255, 0.75), 0 1px 2px rgba(0, 0, 0, 0.8);
