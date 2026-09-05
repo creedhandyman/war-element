@@ -2388,7 +2388,7 @@ export function App() {
       // where the decision is.
       if (pending === "talent") {
         if (clicked) setDetailId(clicked.instanceId);
-        else setHint("This Talent takes no target — press <b>Confirm</b> to use it, or <b>✕</b> to cancel.");
+        else setHint("This Talent takes no target — press <b>CONFIRM</b> to use it, or <b>CANCEL</b> to back out.");
         return;
       }
       // AN ANCHORED AREA IS AIMED, NOT FIRED, BY THE PICK. Every other pick
@@ -2812,7 +2812,7 @@ export function App() {
     // (choosing allies to assist / enemies to hit). Keep the selection and say
     // how to switch on purpose.
     if (pending === "special" && picks.length > 0) {
-      setHint("⚠ Special targets are still armed — press <b>✕</b> first to switch to a basic attack.");
+      setHint("⚠ Special targets are still armed — press <b>CANCEL</b> first to switch to a basic attack.");
       return;
     }
     if (pending === "basic") {
@@ -2838,7 +2838,7 @@ export function App() {
     const spec = activeDef.special;
     // Symmetric to Attack: don't let a stray tap wipe basic-attack targets.
     if (pending === "basic" && picks.length > 0) {
-      setHint("⚠ Basic-attack targets are still armed — press <b>✕</b> first to switch to the Special.");
+      setHint("⚠ Basic-attack targets are still armed — press <b>CANCEL</b> first to switch to the Special.");
       return;
     }
     if (pending === "special") {
@@ -2915,7 +2915,7 @@ export function App() {
       return;
     }
     if (pending !== null && picks.length > 0) {
-      setHint("⚠ Targets are still armed — press <b>✕</b> first to switch to the Talent.");
+      setHint("⚠ Targets are still armed — press <b>CANCEL</b> first to switch to the Talent.");
       return;
     }
     setPending("talent");
@@ -3050,6 +3050,28 @@ export function App() {
               title: "Open this card" },
       ]
     : [];
+  /** THE WAY OUT OF AN ARMED ACTION, on the ring itself.
+   *
+   *  Cancelling existed — the bar's ✕ — but not where the phone could reach it:
+   *  `.bottom.acting .controls > *:not(.panel-crystals)` hides the whole control
+   *  strip on the portrait tier while a card is acting, which is the exact
+   *  moment something is armed. Three hints told the player to press a button
+   *  that was not on their screen. On the ring it sits where the action was
+   *  chosen, which is where changing your mind about it happens.
+   *
+   *  It clears the armed verb and every target picked for it, and says so —
+   *  silence after a tap that removes chips reads as a misfire. */
+  const cancelVerb: WheelVerb = {
+    key: "cancel",
+    short: "CANCEL",
+    tone: "#8b8fa3",
+    onClick: () => {
+      clearAction();
+      setHint("Cancelled — the card is still up. Pick an action.");
+    },
+    title: "Cancel this action and drop any targets picked for it",
+  };
+
   // Online only: the opponent is mid-decision — either they hold prep priority,
   // or their card is the one awaiting a battle action. Drives the waiting panel.
   const oppId = online ? enemyOf(online.myId) : null;
@@ -3823,7 +3845,9 @@ export function App() {
           the buttons it replaced. Mounted here, outside .board, so it is not
           clipped by the board frame and cannot be caught by the slot's own
           stacking context. */}
-      {wheelUp && <ActionWheel verbs={wheelVerbs} at={wheelAt} />}
+      {wheelUp && (
+        <ActionWheel verbs={wheelVerbs} at={wheelAt} armedKey={pending} cancel={cancelVerb} />
+      )}
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}

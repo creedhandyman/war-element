@@ -5843,6 +5843,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .wheel-verb:disabled { opacity: 0.32; cursor: not-allowed; }
 
+/* COLLAPSED — one armed verb and a way out, over a board with nothing on it.
+   The scrim is gone (it is not rendered), so the two chips are on their own
+   against whatever art is under them and need their own edge. Scoped to the
+   cancel chip on purpose: the armed one already carries the lit `.armed`
+   treatment, and a shadow rule here would out-specify and cancel its glow. */
+.wheel.collapsed .wheel-verb.is-cancel {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.6);
+}
+
 /* Seats. Top and bottom overhang the ring slightly so four 52px chips fit a
    132px circle without touching at the corners. */
 .wheel-verb.seat-top { top: var(--wheel-over-y); left: 50%; transform: translateX(-50%); }
