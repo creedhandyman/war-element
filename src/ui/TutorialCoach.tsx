@@ -166,11 +166,17 @@ export function TutorialCoach(props: {
   // not the same in Deploy, Prep and Battle — which is also what makes the card
   // move as the player works rather than only when the lesson changes.
   useLayoutEffect(() => {
+    // Everything that docks to the bottom of a fight. The highest top edge among
+    // them is where the free screen ends. Hoisted out of `measure` because the
+    // ResizeObserver below watches the same set.
+    //
+    // `.bottom` is in here now, and it is the one that mattered: it is the
+    // action panel itself, and during Battle it grows and shrinks around every
+    // card's turn. `.controls` lives INSIDE it, so measuring only the child
+    // under-reports by whatever the panel puts above it.
+    const sels = [".hand-float", ".hand-fan", ".bottom", ".controls", ".battle-log", ".log-rail"];
     const measure = () => {
       if (typeof document === "undefined") return;
-      // Everything that docks to the bottom of a fight. The highest top edge
-      // among them is where the free screen ends.
-      const sels = [".hand-float", ".hand-fan", ".controls", ".battle-log", ".log-rail"];
       let highest = Infinity;
       for (const sel of sels) {
         for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
@@ -197,8 +203,19 @@ export function TutorialCoach(props: {
     };
     measure();
     window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [due?.id, game.phase]);
+    // AND WHENEVER THE FURNITURE ITSELF CHANGES SIZE. The step and the phase
+    // are not enough: the whole Battle phase is one `game.phase`, and the
+    // action panel resizes around every single card's turn inside it — which
+    // is exactly when the last lesson (the Speed Queue one) is on screen.
+    // Measured on the elements rather than guessed from state, the same way
+    // `GuideOverlay.useHole` follows its target.
+    const ro = typeof ResizeObserver !== "undefined" ? new ResizeObserver(measure) : null;
+    if (ro) for (const sel of sels)
+      for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) ro.observe(el);
+    return () => { window.removeEventListener("resize", measure); ro?.disconnect(); };
+    // `awaitingInput` is the acting/not-acting flip, and it re-runs this so the
+    // observer is re-attached to whatever the panel swapped in.
+  }, [due?.id, game.phase, game.battle?.awaitingInput]);
 
   // A new step clears the local dismissal, so tapping "Got it" advances rather
   // than silencing the coach for the rest of the fight. It also clears the flip:

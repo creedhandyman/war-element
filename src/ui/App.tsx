@@ -3355,24 +3355,16 @@ export function App() {
           </div>
 
           <div className="controls">
-            {/* The coach sits ABOVE the hint and answers a different question:
-                the hint says what to DO, this says why. First fight only, and
-                each idea once ever — see TutorialCoach. */}
-            {!online && !twoPlayer && !(story.taught ?? []).includes("SKIP") && (
-              <TutorialCoach
-                game={game}
-                me={me}
-                taught={story.taught ?? []}
-                onTaught={(id) => {
-                  const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
-                  setStory(next); saveStory(next);
-                }}
-                onSkipAll={() => {
-                  const next = { ...story, taught: [...new Set([...(story.taught ?? []), "SKIP"])] };
-                  setStory(next); saveStory(next);
-                }}
-              />
-            )}
+            {/* THE COACH IS NOT IN HERE ANY MORE — it is mounted at the top
+                level with the other floating surfaces. It is `position: fixed`,
+                so it never drew inside this column anyway, but it was still a
+                CHILD of it, and on a phone this bar switches its own children
+                off wholesale while one of your cards is up
+                (`.bottom.acting .controls > *:not(.panel-crystals)`). Being out
+                of FLOW is not being out of the DOM: the lesson vanished on
+                every single action and came back between them, which during the
+                Battle phase — the one phase its last lesson is about — is a
+                flicker rather than a sentence. See the mount site below. */}
             <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
             {/* Portrait: surface the spellbook right in the action panel (desktop
                 keeps its own tray in the right rail; this one is CSS-hidden there).
@@ -3565,6 +3557,31 @@ export function App() {
             onDragEndCard={onDragEndCard}
           />
         </div>
+      )}
+
+      {/* The coach answers a different question from the hint row: the hint says
+          what to DO, this says why. First fight only, and each idea once ever —
+          see TutorialCoach.
+
+          MOUNTED HERE, with the overlays, and not in `.controls` where it used
+          to live. It floats (`position: fixed`) and it measures its own
+          clearance, so its DOM parent should be something that never hides,
+          never reflows and never moves it. `.controls` is none of those on a
+          phone. */}
+      {started && !online && !twoPlayer && !(story.taught ?? []).includes("SKIP") && (
+        <TutorialCoach
+          game={game}
+          me={me}
+          taught={story.taught ?? []}
+          onTaught={(id) => {
+            const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
+            setStory(next); saveStory(next);
+          }}
+          onSkipAll={() => {
+            const next = { ...story, taught: [...new Set([...(story.taught ?? []), "SKIP"])] };
+            setStory(next); saveStory(next);
+          }}
+        />
       )}
 
       {inMulligan && me && (
