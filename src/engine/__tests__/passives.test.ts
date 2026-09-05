@@ -2740,7 +2740,7 @@ describe("on-opponent-summon reactions", () => {
     const hp0 = foe.curHp;
     // Step to (2,1) — now adjacent to the goblin, which is its Melee reach.
     const next = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 1 } });
-    expect(next.cards[foe.instanceId].curHp, "walked into reach and was not hit").toBe(hp0 - 4);
+    expect(next.cards[foe.instanceId].curHp, "walked into reach and was not hit").toBe(hp0 - 2);
   });
 
   it("...and switches OFF the moment the guard leaves its home row", () => {

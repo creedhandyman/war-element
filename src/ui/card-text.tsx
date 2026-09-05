@@ -1100,6 +1100,19 @@ export function describePassives(def: CardDef): string[] {
     named("fullBoardBasic", "Its basic attack reaches the whole board — bodies in the way still block the shot.");
   if (def.special?.ranged)
     passives.push("Its Special reaches any slot on the board.");
+  // ANTI-AIR SAID NOTHING, on any of the dozen-plus Specials that carry it.
+  // `antiAir` lifts the FLYING dodge for one ability — the answer a Melee card
+  // needs to a flier it otherwise cannot touch at all — and the only way to find
+  // out a card had it was to try. Drakonbane is the case that made this obvious:
+  // it exists to kill Dragons, two of the biggest Dragons now fly, and its
+  // Special has reached them since the day they got wings while its face said
+  // nothing about it.
+  //
+  // Only when the Special is not already `ranged`: a Special that reaches the
+  // whole board was never subject to the melee FLYING limit, so saying it can
+  // hit fliers there is a second sentence for a rule the line above covers.
+  if (!def.special?.ranged && Number(def.special?.params?.antiAir ?? 0) > 0)
+    passives.push("Its Special can strike FLYING opponents, which its melee cannot reach.");
 
   // ── Previously undescribed passives ────────────────────────────────────────
   // These all had real mechanical effects but no card text, so the only way to

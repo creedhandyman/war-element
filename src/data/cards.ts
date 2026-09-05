@@ -823,7 +823,7 @@ export const CARDS: CardDef[] = [
     // Reach is whatever the card really has (canTarget decides), so on a Melee
     // body that is the adjacent ring — walk next to the goblin and it swings.
     passiveNames: { onOppMove: "Cave Guard" },
-    onOppMove: { dmg: 4, onlyOnHomeRow: true },
+    onOppMove: { dmg: 2, onlyOnHomeRow: true },
   },
   {
     id: "bore_hillbilly",
