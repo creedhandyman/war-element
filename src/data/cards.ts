@@ -12176,7 +12176,7 @@ export const CARDS: CardDef[] = [
       // for one: it rides the BASIC, so it costs no magic and needs no window.
       // Quasar's synergy is untouched.
       //
-      // Sized against its peers rather than left at 99 targets: Gorilla and
+      // Sized against its peers rather than left at 99 targets: Growrilla and
       // Mortar both pay 3 magic for ~6 damage over 2-3 targets plus a rider,
       // and both sit on cost-5 bodies. This is 6 over 2 with PEN on a cost-3
       // body for 2 magic. `ranged: true` stays -- a MELEE assassin with 8 HP
@@ -12857,7 +12857,9 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_monkey",
-    name: "Monkey",
+    // Renamed to Rookey. Same rule as its neighbour Growrilla: the id is what
+    // saves, deck codes and the art file are keyed on, so only the name moves.
+    name: "Rookey",
     rarity: "rare",
     element: "LEAF",
     cardClass: "Tank",
@@ -12875,7 +12877,11 @@ export const CARDS: CardDef[] = [
   },
   {
     id: "leaf_gorilla",
-    name: "Gorilla",
+    // Renamed to Growrilla. The ID stays `leaf_gorilla` — ids are persisted in
+    // saves and in deck codes (CODE_IDS is append-only and positional), and the
+    // art is keyed off the id too, so a rename is the `name` field and nothing
+    // else.
+    name: "Growrilla",
     rarity: "epic",
     element: "LEAF",
     // TANK, and this is the note above resolving itself. It was Ranger purely to
@@ -12920,7 +12926,7 @@ export const CARDS: CardDef[] = [
       // `barrage`, not `fragBlast`. fragBlast reads only dmg and splash, so it
       // cannot carry a status — and the falling timber SHOULD pin. ROOT also
       // feeds Photosynthesis, which is the element's whole engine, and it drops
-      // a shape Gorilla was sharing with Dyna's Demolition anyway.
+      // a shape Growrilla was sharing with Dyna's Demolition anyway.
       handler: "barrage",
       params: { dmg: 6, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
