@@ -666,10 +666,21 @@ export const TAME_USES = 3;
  *  the same `statScale` the taming uses, pointed the other way — so the Special
  *  scales with it, not just the body.
  *
- *  1.25 -> 1.5 at the owner's call. Half again on every line is a genuinely
- *  different fight rather than a nudge, which is the point: the enraged version
- *  is the price of the loaner. */
-export const ENRAGE_SCALE = 1.5;
+ *  1.25 -> 1.5 -> 1.35, each at the owner's call. Half again on every line was
+ *  a genuinely different fight, which was the point, and it turned out to be
+ *  more than half again in practice: `statScale` multiplies the TOTAL, so a
+ *  boss carrying a per-kill ramp gets the multiplier applied to the ramp as
+ *  well as the printed line. The note beside `buffDmg` in combat.ts has the
+ *  measurement — enraged Vulcanyx reaching a mean peak of +54 on a printed 41,
+ *  a top swing of 223 into a 366 HP pool — and records that the WIN RATE never
+ *  showed it, because the fight is lost to one swing rather than to an average.
+ *
+ *  135% keeps the trial harder than the fight already won, which is the whole
+ *  requirement, without the compounding cases turning it into a different
+ *  genre. Every reader derives from this constant — the two tests, the
+ *  scaling in App, and the copy in BossDetail — so this line is the only
+ *  place the number lives. */
+export const ENRAGE_SCALE = 1.35;
 
 /** A boss is ENRAGED once its floor is cleared.
  *
