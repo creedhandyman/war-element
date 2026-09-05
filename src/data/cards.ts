@@ -458,14 +458,21 @@ export const CARDS: CardDef[] = [
     // with nothing behind it — `applyStatus` keeps the better of power and of
     // duration, so casting it over the passive's own fire changed literally
     // nothing. The drip is the passive; the flare is this.
+    //
+    // TWO ROUNDS, matching the passive's own clock. The separation is now
+    // POWER alone — 3 against 1, tripling the tick on everything in reach —
+    // which is still a real button because `applyStatus` keeps the better
+    // power: casting over the drip upgrades every existing burn rather than
+    // being swallowed by it. The third round was the part that made this read
+    // as "the passive, but longer" instead of "the passive, but hotter".
     special: {
       name: "Axe Spin",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "BURN", statusPower: 3, statusDuration: 3, targets: 99 },
+      params: { statusKind: "BURN", statusPower: 3, statusDuration: 2, targets: 99 },
       targetSide: "enemy",
       ranged: true, // "all opponents" — reaches the whole board
-      text: "Apply BURN 3 for 3 rounds to every opponent in range.",
+      text: "Apply BURN 3 for 2 rounds to every opponent in range.",
     },
   },
   {
