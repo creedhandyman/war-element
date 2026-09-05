@@ -269,6 +269,12 @@ export function Token(props: {
   // pip — the field does not remove the status, it ignores it — so without this
   // the promise "cannot miss" is kept entirely off-screen.
   const trueFx = useCoinFloat(card.instanceId, card.fxNeverMiss ?? 0);
+  // A PASSIVE fired. Same counter-rise hook as the floats above, and it carries
+  // the passive's own printed name so the flash answers both halves of "what
+  // just happened" — what fired, and which card fired it. Passives are the one
+  // part of a card that happens TO the board rather than being played, so they
+  // were the one part with nothing to watch.
+  const passiveFx = useCoinFloat(card.instanceId, card.fxPassive ?? 0);
   // Attack spotlight: during Battle, the card at the front of the speed queue is
   // the one taking its turn — grow it slightly so you can see who's acting.
   const battle = game.battle;
@@ -411,6 +417,9 @@ export function Token(props: {
       )}
       {zapFx > 0 && (
         <span key={`zap${zapFx}`} className="fx-para">PARALYZED</span>
+      )}
+      {passiveFx > 0 && card.fxPassiveName && (
+        <span key={`pas${passiveFx}`} className="fx-passive">{card.fxPassiveName}</span>
       )}
       {trueFx > 0 && (
         <span key={`true${trueFx}`} className="fx-true">STRIKES TRUE</span>

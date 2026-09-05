@@ -8,7 +8,7 @@ import { weakenStacks } from "../auras";
 import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
-import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, spawnTokens } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, notePassive, spawnTokens } from "../state";
 import { CARDS, CORES, TOKENS, getDef } from "../../data/cards";
 import { DEFAULT_SPECIAL_COOLDOWN } from "../types";
 import { announces } from "../../ui/SummonAnnounce";
@@ -4767,5 +4767,48 @@ describe("the set is even across the eight elements", () => {
       const own = draftable.filter((c) => c.element === core.element).length;
       expect(core.cards.length, `${core.id} pool`).toBe(own);
     }
+  });
+});
+
+// A PASSIVE YOU CAN SEE FIRE.
+//
+// Passives are the one part of a card that happens TO the board rather than
+// being played: an ability triggers, some numbers move, and the only record was
+// a line in a log nobody reads mid-fight. The engine now bumps `fxPassive` and
+// stamps the passive's PRINTED name, and the renderer floats it off that card —
+// which answers both halves of "what just happened": what fired, and who fired.
+describe("a passive flashes on the card that fired it", () => {
+  it("names the passive, using the card's own wording", () => {
+    const s = prepState();
+    // Firefighter prints High Pressure (onHitPush) — a rider on its basic.
+    const ff = place(s, "aqua_firefighter", "P1", 2, 1);
+    const foe = place(s, "leaf_alpha", "P2", 1, 1);
+    basicAttack(s, ff.instanceId, foe.instanceId);
+    expect(s.cards[ff.instanceId].fxPassive, "nothing flashed").toBeGreaterThan(0);
+    expect(s.cards[ff.instanceId].fxPassiveName)
+      .toBe(getDef("aqua_firefighter").passiveNames!.onHitPush);
+  });
+
+  it("flashes on the GUARD when its zone fires, not on what walked in", () => {
+    const s = prepState(42, "P2");
+    const gob = place(s, "bore_rockgoblin", "P1", 2, 1);
+    const mover = place(s, "leaf_alpha", "P2", 0, 1);
+    gob.summonedThisRound = false; mover.summonedThisRound = false;
+    const n = applyIntent(s, {
+      type: "MOVE", player: "P2", instanceId: mover.instanceId, to: { row: 1, col: 1 },
+    });
+    expect(n.cards[gob.instanceId].fxPassiveName).toBe("Cave Guard");
+    expect(n.cards[mover.instanceId].fxPassive ?? 0, "the victim claimed the passive").toBe(0);
+  });
+
+  it("says nothing for a passive the card never named", () => {
+    // `passiveNames` is the set of abilities the cards themselves advertise, so
+    // it is exactly the set worth announcing — floating a raw field name at the
+    // player would be worse than silence.
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 2, 1);
+    notePassive(s, c, "somePassiveThisCardDoesNotPrint");
+    expect(c.fxPassive ?? 0).toBe(0);
+    expect(c.fxPassiveName).toBeUndefined();
   });
 });

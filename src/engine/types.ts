@@ -1915,6 +1915,21 @@ export interface CardInstance {
    *  the income rule is something you watch happen rather than infer from the
    *  gold counter ticking. */
   fxCoin?: number;
+  /** Bumped when one of this card's PASSIVES fires, with the passive's printed
+   *  name alongside it. The renderer floats the name off the token for a beat.
+   *
+   *  Passives are the one part of a card that happens TO the board rather than
+   *  being played, so they were the one part with nothing to watch: an ability
+   *  fired, some numbers moved, and the only record was a line in a log nobody
+   *  reads mid-fight. Naming the passive AND flashing it on the card answers
+   *  both halves of "what just happened" — what fired, and who fired it.
+   *
+   *  The NAME comes from `passiveNames`, which means an unnamed passive stays
+   *  silent rather than floating a field name at the player. That is deliberate:
+   *  `passiveNames` is the set of abilities the cards themselves advertise, so
+   *  it is exactly the set worth announcing. */
+  fxPassive?: number;
+  fxPassiveName?: string;
   /** Bumped when PARALYZE actually COSTS this card its attack — the renderer
    *  diffs it and floats "PARALYZED" over the token.
    *

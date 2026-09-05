@@ -6065,6 +6065,31 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* PARALYZE actually costing a card its turn. The status pip already says the
    card MIGHT be stopped; this says it WAS — otherwise the turn just produces no
    numbers, which reads as the game skipping a beat rather than as a coin. */
+/* A PASSIVE FIRING. Deliberately quieter than the damage floats: it names the
+   ability and gets out of the way, because these can fire several at once in a
+   busy Cleanup and three shouting labels over one token is worse than none.
+   Rises off the TOP of the card so it does not collide with the damage numbers,
+   which fall from the middle. */
+.fx-passive {
+  position: absolute; left: 50%; top: 2px; transform: translateX(-50%);
+  z-index: var(--z-hud); pointer-events: none; white-space: nowrap;
+  font-size: 8.5px; font-weight: 800; letter-spacing: .04em;
+  padding: 1px 5px; border-radius: 999px;
+  color: #f4ecd8; background: rgba(18, 16, 30, .92);
+  border: 1px solid color-mix(in srgb, var(--gold-lit) 60%, transparent);
+  box-shadow: 0 0 10px rgba(201, 162, 75, .35);
+  animation: fx-passive-rise 1100ms ease-out forwards;
+}
+@keyframes fx-passive-rise {
+  0%   { opacity: 0; transform: translate(-50%, 4px) scale(.9); }
+  18%  { opacity: 1; transform: translate(-50%, -2px) scale(1); }
+  70%  { opacity: 1; transform: translate(-50%, -6px) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -14px) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fx-passive { animation: none; opacity: 1; }
+}
+
 .fx-para {
   position: absolute; left: 50%; top: 42%; transform: translateX(-50%);
   pointer-events: none; z-index: 6; white-space: nowrap;

@@ -27,6 +27,7 @@ import {
   healCard,
   homeSlotsHeld,
   isEliminated,
+  notePassive,
   removeCard,
   manhattan,
   spawnTokens,
@@ -325,6 +326,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Drone Sweep (Buzzard): one answer per round, not one per body.
         if (gd.onOppSummon.oncePerRound && guard.oppSummonFiredRound) continue;
+        notePassive(draft, guard, "onOppSummon");
         // The flag is spent where the reaction RESOLVES, not here. Set up front,
         // Drone Sweep burned its one answer per round on a summon it could not
         // answer at all — every slot beside the newcomer occupied, so the drone
@@ -501,6 +503,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppMove || guard.curHp <= 0 || !guard.pos) continue;
         if (card.curHp <= 0 || !card.pos) break;
         if (!canTarget(draft, guard, card)) continue;
+        notePassive(draft, guard, "onOppMove");
         directDamage(draft, guard, card, gd.onOppMove.dmg, false);
         draft.log.push(
           `${label(draft, guard)} guards the ground — ${label(draft, card)} takes ${gd.onOppMove.dmg}.`,

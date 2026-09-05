@@ -264,6 +264,25 @@ export function applyMulligan(
 
 // ── board queries ──────────────────────────────────────────────────────────
 
+/** Announce that `key`'s passive just fired on `card` — see `fxPassive`.
+ *
+ *  Looks the display name up from the card's own `passiveNames`, so the flash
+ *  says "Cave Guard" rather than "onOppMove", and a passive the card never named
+ *  says nothing at all. Cheap and side-effect-free beyond the two UI fields;
+ *  safe to call from anywhere a passive resolves.
+ *
+ *  A card with no position is skipped: it is off the board and there is nothing
+ *  to flash the name over. That is the on-death case, which already has its own
+ *  telegraph on the card TAKING the parting shot (`fxRecoil`) for this reason. */
+export function notePassive(draft: GameState, card: CardInstance, key: string): void {
+  if (!card.pos) return;
+  const name = getDef(card.defId).passiveNames?.[key];
+  if (!name) return;
+  card.fxPassive = (card.fxPassive ?? 0) + 1;
+  card.fxPassiveName = name;
+  void draft;
+}
+
 export function cardAt(state: GameState, row: number, col: number): CardInstance | null {
   for (const c of Object.values(state.cards)) {
     if (c.pos && c.pos.row === row && c.pos.col === col) return c;

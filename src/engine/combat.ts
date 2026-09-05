@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, removeCard, spawnTokens, summonCard, enemyCards } from "./state";
+import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -1917,8 +1917,10 @@ export function resolveHit(
   // directDamage uses, so the discharge can't set off another discharge.
   // Wind Wake (Zephyra): every landed hit shoves the victim back a slot. Gated on
   // a real landed hit so a fully-dodged volley moves nobody.
-  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && aDef.onHitPush)
+  if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && aDef.onHitPush) {
+    notePassive(draft, attacker, "onHitPush");
     pushBack(draft, target, aDef.onHitPush, attacker);
+  }
   if (opts.kind !== "reflect" && result.landedHits > 0 && target.curHp > 0 && tDef.onHitZap) {
     if (applyOnHitZap(draft, target, attacker, tDef.onHitZap)) result.attackerDied = true;
   }
@@ -2565,6 +2567,9 @@ function applyOnHitRider(
   if (rider.firstHitOnly && struckBefore > 0) return; // already struck this round
   if (rider.onSecondHit && struckBefore + landedNow < 2) return; // needs the 2nd hit
   if (rider.chance != null && !pctChance(draft, rider.chance)) return;
+  // AFTER the gates, not before: a rider that failed its chance roll, or was not
+  // eligible this hit, did not fire and must not claim to have.
+  notePassive(draft, attacker, "onHitStatus");
   const el = getDef(attacker.defId).element;
   if (rider.stack)
     // A STACKING rider deepens once PER LANDED HIT, not once per attack. This
@@ -3223,6 +3228,7 @@ function registerKill(draft: GameState, killer: CardInstance): void {
 
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
   const name = getDef(killer.defId).name;
+  notePassive(draft, killer, "onKill");
   // Dark Hunting (Nightbriar): lay a trap on the slot the victim just vacated. The
   // next opponent to walk onto it springs the same payload as his Special —
   // reuses the trap-spell infrastructure (triggerTrapOnMove), so every movement
