@@ -244,7 +244,11 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Grove",
-    onHitStatus: { kind: "BLEED", duration: 2, power: 1 }, // Magic Razor Leaf
+    // Razor Leaf. Named on the card now rather than only in this comment — it
+    // was "Magic Razor Leaf" back when Frond was a Mage, and an ability name
+    // that lives nowhere but a code comment reaches nobody.
+    passiveNames: { onHitStatus: "Razor Leaf" },
+    onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
   },
   {
     id: "leaf_nettle",
