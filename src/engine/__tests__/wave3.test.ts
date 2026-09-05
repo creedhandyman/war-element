@@ -332,10 +332,14 @@ describe("Magmadon", () => {
   });
 });
 
-describe("Krakler is Kraken-kin AND still schools with SeaC", () => {
-  // The Tribe/ID brief tags Krakler "Kraken"; it carries BOTH that and SeaC, so
-  // the brief's identity tag never costs it the school benefit it already had.
-  it("picks up Kraken's SeaC aura (+4 max HP) it never got as a tribe of one", () => {
+describe("Krakler schools with SeaC", () => {
+  // It used to carry "Kraken" alongside SeaC — the brief's identity tag, a tribe
+  // of exactly one that no aura matched and no node named. That is retired, and
+  // this title said "carries BOTH" for a while after it stopped being true,
+  // because nothing here ever asserted the tag. It does now, one line down, so
+  // the claim and the test agree.
+  it("carries SeaC and nothing else, and picks up its +4 max HP", () => {
+    expect(getDef("aqua_krakler").tribe, "one tribe, the one that pays").toBe("SeaC");
     const alone = prepState();
     const solo = place(alone, "aqua_krakler", "P1", 3, 0);
     const base = effectiveMaxHp(alone, solo);

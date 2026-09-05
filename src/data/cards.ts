@@ -2269,6 +2269,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 1,
     keywords: {},
+    tribe: "Voltis",
     // Buzz Whip: basic attacks have a 50% chance to PARALYZE for the round.
     passiveNames: { onHitStatus: "Buzz Whip" },
     onHitStatus: { kind: "PARALYZE", duration: 2, power: 0, chance: 50 },
@@ -2369,6 +2370,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Voltis",
     // Complete Circuit: each round, current arcs through every PARALYZED enemy
     // in range for 2 DMG (Whip Strike sets up the stun; this punishes it).
     roundTick: { aoeParalyzedDmg: 2 },
@@ -3538,10 +3540,11 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // SeaC, not a tribe of one: "Kraken" was Krakler's alone and nothing keyed
-    // on it, so it bought nothing. Under SeaC it picks up Kraken's own aura
-    // (+4 max HP to SeaC allies) like the rest of the school.
-    tribe: ["Kraken", "SeaC"], // brief's Kraken + the school it had
+    // SeaC, and ONLY SeaC now. "Kraken" was Krakler's alone from the day it was
+    // added and nothing ever keyed on it — no aura matched it, no node named it
+    // — so it was a filter pill returning one result. The identity it was meant
+    // to carry is in the card's own name; the school is what it plays with.
+    tribe: "SeaC",
     // Abyssal Grasp (On Summon): SCALD 3 for 2 rounds AND FREEZE an opponent in
     // range for 2 rounds (primary SCALD DoT + secondary FREEZE via debuffStatus).
     // `reachNearest` for the same reason as Zap and Electricel: a Melee card
@@ -3753,6 +3756,7 @@ export const CARDS: CardDef[] = [
     sp: 11,
     shields: 0,
     keywords: {},
+    tribe: "Voltis",
     // Electrifying Thunder Clap (On Summon): 5 DMG to all opponents in range.
     // 5 -> 3. A free board-wide hit on arrival, on top of an Arcing Strike that
     // was already the most efficient Special in the game — none of the per-cast
@@ -6753,7 +6757,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 3,
     keywords: {},
-    tribe: "ARC",
+    tribe: ["ARC", "Voltis"],
     // Surge Protector + Electro Surge: starts armed on summon; while armed it's
     // status-immune, and the first hit it takes discharges — PARALYZE the
     // attacker 3r, then deactivate. Re-arming also stores ONE ranged basic.
@@ -6816,6 +6820,7 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 1,
     keywords: { CRIT: true },
+    tribe: "Voltis",
     // Jackpot: a basic CRIT auto-fires Purple Strikes free; 3 crits in a round
     // grants +7 HP / +2 DMG.
     passiveNames: { jackpot: "Jackpot" },
@@ -7759,6 +7764,7 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
+    tribe: "Voltis",
     // Amplifier (On Summon): 5 DMG CRIT to a foe. On Kill: +1 DMG for the round.
     // Power Grid (aura): PARALYZE every opponent under 4 HP each round.
     passiveNames: { onSummon: "Amplifier", onKill: "Overcharge", paralyzeLowHp: "Power Grid" },
@@ -8925,6 +8931,7 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Every basic CRITs.
     keywords: { CRIT: true },
+    tribe: "Voltis",
     // Twin Strike (On CRIT): chain a bonus 2×1 CRIT strike at the target, once
     // per round.
     passiveNames: { onCritBonus: "Twin Strike" },
@@ -9917,7 +9924,7 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 3,
     keywords: {},
-    tribe: "Bolt City Gang",
+    tribe: "Voltis",
     passiveNames: { onHitByMelee: "Spiked Conduit", summonSpawn: "Running Crew" },
     // Spiked Conduit: the armour is live. Melee only — walking into it is the
     // mistake, shooting it is not.
@@ -12971,6 +12978,7 @@ export const CARDS: CardDef[] = [
     // STEALTH was on TWO cards in the entire 319-card set, and BOLT carried
     // three keyword instances in total -- the most barren element in the game.
     keywords: { STEALTH: true },
+    tribe: "Voltis",
     passiveNames: { onHitStatus: "Signal Jam" },
     onHitStatus: { kind: "MUTED", duration: 2, power: 0, chance: 50 },
     talent: {
@@ -13026,13 +13034,24 @@ export const CARDS: CardDef[] = [
     dmg: 11,
     hits: 1,
     hp: 26,
-    sp: 5,
+    // SP 5 -> 3, and that is what pays for the aura below. 11 + 26 + 4*2 + 3 =
+    // 48 against a cost-8 budget of 50 — two under, the bottom of the ±2 the
+    // formula is checked at. The Kingpin gives up its own speed to run the
+    // Voltis, which is the right stat to spend: it is a 26 HP body behind four
+    // shields that was never going to outrun anything.
+    sp: 3,
     shields: 4,
     // BLOCK 1 with the PEN: he cuts through armour and shrugs the first point
     // off everything coming back. Free against the curve — keywords are not in
     // the stat formula — so the line stays at 50 = 5*8+10.
     keywords: { PEN: true, BLOCK: 1 },
-    passiveNames: { onKill: "Made Man", contractPayout: "Payout" },
+    tribe: "Voltis",
+    passiveNames: { onKill: "Made Man", contractPayout: "Payout", aura: "The Voltis" },
+    // The Voltis: the gang runs faster and hits harder for having a boss.
+    // +1 DMG and +2 SP to every Voltis card while the Kingpin stands — and the
+    // +2 is the exact speed it just gave up, so the aura moves the stat from
+    // one body to ten rather than conjuring it.
+    aura: { scope: "tribe", match: "Voltis", dmg: 1, sp: 2 },
     onKill: { buffDmg: 2, buffDmgMax: 6, gainShields: 1 },
     // PAYOUT — the contract pays when it is FILLED, not when it is signed.
     // Reads the brand Contract Out already leaves (`hoaxMarked`), so the two

@@ -2657,6 +2657,36 @@ describe("Klipso's Harsh Winds", () => {
   });
 });
 
+describe("The Voltis — Kingpin's gang aura", () => {
+  it("gives the gang +1 DMG and +2 SP, and nobody else", () => {
+    const s = prepState();
+    const made = place(s, "bolt_hacker", "P1", 3, 0);       // Voltis
+    const outsider = place(s, "bolt_zap", "P1", 3, 3);      // BOLT, not Voltis
+    const baseD = effectiveDmg(s, s.cards[made.instanceId]);
+    const baseS = effectiveSp(s, s.cards[made.instanceId]);
+    const outD = effectiveDmg(s, s.cards[outsider.instanceId]);
+    const outS = effectiveSp(s, s.cards[outsider.instanceId]);
+
+    place(s, "bolt_kingpin", "P1", 3, 1);
+    expect(effectiveDmg(s, s.cards[made.instanceId])).toBe(baseD + 1);
+    expect(effectiveSp(s, s.cards[made.instanceId])).toBe(baseS + 2);
+    // Scope is the TRIBE, not the element — the gang, not all of BOLT.
+    expect(effectiveDmg(s, s.cards[outsider.instanceId])).toBe(outD);
+    expect(effectiveSp(s, s.cards[outsider.instanceId])).toBe(outS);
+  });
+
+  it("and the boss paid for it out of its own speed", () => {
+    // SP 5 -> 3 is the price of the aura, and the +2 it hands out is exactly
+    // what it gave up: the stat moves from one body to ten rather than being
+    // conjured. Pinned so a later "restore Kingpin's speed" cannot quietly make
+    // the aura free.
+    expect(getDef("bolt_kingpin").sp, "the boss is slow now").toBe(3);
+    expect(getDef("bolt_kingpin").aura?.sp, "and hands out what it lost").toBe(2);
+    const d = getDef("bolt_kingpin");
+    expect(d.dmg * d.hits + d.hp + d.shields * 2 + d.sp, "48, two under a cost-8 budget of 50").toBe(48);
+  });
+});
+
 describe("Kloud's Twisted Rage raises a storm", () => {
   function cast() {
     const s = prepState();
