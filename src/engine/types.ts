@@ -1361,6 +1361,20 @@ export interface CardDef {
    *  A mount that is LOST puts its rider back on foot: Skelider's Dismount sets
    *  `transformed`, and the king-move goes with it. */
   mounted?: boolean;
+  /** SP the MOUNT provides, on top of the printed line (Thunder's bike).
+   *
+   *  Not baked into `sp`, and the difference is the whole point: this is the
+   *  animal or machine moving, so it goes when the mount goes. `transformed` is
+   *  the dismount flag — the same one that takes the king-move away — and this
+   *  reads it, so a dismounted rider is back on its own legs at its printed
+   *  speed.
+   *
+   *  It also keeps the stat formula honest. The printed line is what the card
+   *  is costed on; a mount-carried bonus is an ABILITY, and abilities are what
+   *  the ±2 band exists to leave room for. Baking the same points into `sp`
+   *  would have put the card over the curve for something it does not always
+   *  have. */
+  mountedSp?: number;
   /** Long Reach (Shadow Horsemen): a MELEE card whose BASIC attack also reaches
    *  up to N along the four straight lines — ahead, behind, and to either side.
    *  Diagonals are NOT extended; those stay at the usual adjacent step, so the

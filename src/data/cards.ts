@@ -3750,26 +3750,28 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 5, // doc prints cost 7; re-costed to fit the 5·cost+10 curve
-    // A BIKE, and it rides like one: `mounted` (a king-move in Prep) and
-    // SP 11 -> 15, with the printed 16 HP kept.
+    // A BIKE, and it rides like one — but the speed belongs to the BIKE.
     //
-    // THAT PUTS IT FOUR OVER, at the owner's call — 4*2 + 16 + 0 + 15 = 39
-    // against a cost-5 budget of 35 — so it is listed in state.test.ts's
-    // exceptions. +4 is not an unusual size there (Shadow Horsemen and Infernus
-    // Rex are both +4); what is unusual is that this one is a decision rather
-    // than a tier band or an ability paying its way, and the note beside the id
-    // says so.
+    // The printed line is 4*2 + 16 + 0 + 11 = 35 = 5*5+10, exactly on the curve,
+    // and the mount adds 4 SP on top of it. That is the honest shape: the bonus
+    // is an ABILITY, which is what the formula's ±2 band exists to leave room
+    // for, and it is conditional — `mountedSp` is gated on the dismount flag, so
+    // a Thunder knocked off its bike is back on its own legs at SP 11.
     //
-    // I did cut the body to 12 first, on the precedent Klipso and Crystal Sabor
-    // set (mobility paid for out of HP). The HP was asked back; this comment is
-    // here so the next reader knows the 39 is deliberate and not a slip.
+    // It sat at a printed 15 for one commit, which put the card four over the
+    // curve and into state.test.ts's exception list for a reason that was a
+    // decision rather than an ability. This is the same card in play and no
+    // longer needs the exception, which is the tell that it was the right way
+    // round: a number the card only sometimes has should never have been in the
+    // stat line the cost is computed from.
     dmg: 4,
     hits: 2, // "2×4 DMG"
     hp: 16,
-    sp: 15,
+    sp: 11,
     shields: 0,
     keywords: {},
-    mounted: true, // rides a king-move in Prep, like the other mounts
+    mounted: true,      // a king-move in Prep, like the other mounts...
+    mountedSp: 4,       // ...and the bike's own speed, lost with the bike
     tribe: "Voltis",
     // Electrifying Thunder Clap (On Summon): 5 DMG to all opponents in range.
     // 5 -> 3. A free board-wide hit on arrival, on top of an Arcing Strike that

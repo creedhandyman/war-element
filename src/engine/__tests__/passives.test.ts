@@ -2657,6 +2657,32 @@ describe("Klipso's Harsh Winds", () => {
   });
 });
 
+describe("Thunder rides the SP, it does not print it", () => {
+  it("is SP 11 on the card and 15 on the bike", () => {
+    const d = getDef("bolt_thunder");
+    expect(d.sp, "the printed line").toBe(11);
+    expect(d.mountedSp, "and what the mount adds").toBe(4);
+    // The printed line is what the cost is computed from, so it must be the one
+    // on the curve: 4*2 + 16 + 0 + 11 = 35 = 5*5+10.
+    expect(d.dmg * d.hits + d.hp + d.shields * 2 + d.sp, "on the curve").toBe(5 * d.cost + 10);
+
+    const s = prepState();
+    const t = place(s, "bolt_thunder", "P1", 3, 0);
+    expect(effectiveSp(s, s.cards[t.instanceId]), "mounted, in play").toBe(15);
+  });
+
+  it("...and loses it when it comes off the bike", () => {
+    // `transformed` is the dismount flag — the same one that takes the
+    // king-move away. Both halves of riding go together, which is the whole
+    // reason the 4 lives on the mount instead of in the stat line.
+    const s = prepState();
+    const t = place(s, "bolt_thunder", "P1", 3, 0);
+    expect(effectiveSp(s, s.cards[t.instanceId])).toBe(15);
+    s.cards[t.instanceId].transformed = true;
+    expect(effectiveSp(s, s.cards[t.instanceId]), "back on its own legs").toBe(11);
+  });
+});
+
 describe("The Voltis — Kingpin's gang aura", () => {
   it("gives the gang +1 DMG and +2 SP, and nobody else", () => {
     const s = prepState();

@@ -638,7 +638,12 @@ export function effectiveSp(state: GameState, card: CardInstance): number {
   const base = def.spWhileStealthed != null && hasStatus(card, "STEALTH") ? def.spWhileStealthed : def.sp;
   // Lurk (Liquark): +SP while hidden in STEALTH.
   const lurkSp = def.lurk && hasStatus(card, "STEALTH") ? def.lurk.sp : 0;
-  const sp = base + lurkSp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp
+  // The MOUNT's own speed (Thunder's bike). Gated on `transformed` — the
+  // dismount flag — exactly like the king-move two functions down, so losing
+  // the mount loses both halves of riding one and the card falls back to its
+  // printed line.
+  const mountSp = def.mounted && !card.transformed ? (def.mountedSp ?? 0) : 0;
+  const sp = base + lurkSp + mountSp + (card.spBonus ?? 0) + (card.spBonusRound ?? 0) + buffSp
     + auraBonus(state, card, "sp") + fieldBonus(state, card, "sp");
   // See `statScale`. Floored at 1 rather than 0 for a card that HAS speed: a
   // halved 1-SP body would round to 0 and stop being able to move at all, which
