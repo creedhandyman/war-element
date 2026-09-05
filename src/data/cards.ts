@@ -491,6 +491,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
+    tribe: "Volcanic",
     passiveNames: { onHitStatus: "Venomous Sting" },
     onHitStatus: { kind: "BURN", duration: 2, power: 2 }, // Venomous Sting
   },
@@ -5685,6 +5686,7 @@ export const CARDS: CardDef[] = [
     // Molten Shell: −1 DMG from every incoming hit (flat, pre-shield, even PEN)
     // — that's exactly BLOCK. PYRO's first proper wall to hold a lane.
     keywords: { BLOCK: 1 },
+    tribe: "Volcanic",
     // Slag Field: the heat comes off it whether it acts or not — 1 DMG at the
     // end of every round to each opponent it can reach.
     //
@@ -13369,7 +13371,7 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "PYRO",
     cardClass: "Assassin",
-    tribe: "Reptile",
+    tribe: ["Reptile", "Volcanic"],
     attackType: "Melee",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
