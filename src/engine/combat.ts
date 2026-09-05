@@ -1326,7 +1326,7 @@ export function resolveHit(
     // on the board shows the halved figure. Scaling again here would quarter it.
     if (opts.kind !== "basic" && attacker.statScale != null && attacker.statScale !== 1)
       remaining = Math.max(0, Math.floor(remaining * attacker.statScale));
-    // War Mount (Cragrider): the mount mauls whatever the Ranger stands beside —
+    // War Mount (Crystal Sabor): the mount mauls whatever the Ranger stands beside —
     // its BASIC hits an ADJACENT target for extra. Applied here rather than in
     // effectiveDmg because it depends on the TARGET's distance, which
     // effectiveDmg has no way to see.

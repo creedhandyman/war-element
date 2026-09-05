@@ -1326,7 +1326,7 @@ describe("lateral charge — riders track their victim across columns", () => {
     expect(gap(pos!, { row: 1, col: 2 })).toBe(1);
   });
 
-  it("Cragrider's Battle Charge still ploughs STRAIGHT ahead and stalls when blocked", () => {
+  it("Crystal Sabor's Battle Charge still ploughs STRAIGHT ahead and stalls when blocked", () => {
     // Its text promises "every opponent straight ahead" — the lateral charge is
     // opt-in precisely so this one keeps its lane and its stopping behaviour.
     const s = prepState();

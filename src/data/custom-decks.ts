@@ -218,7 +218,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // deep in a sixteen-card deck.
     // Refresh: dropped aqua_piranha (appeared constantly, measured ~0 impact) and
     // bore_armadillo (rarely reached the board) for Misty (Fog utility) and
-    // Cragrider — a ranged 7 that gives the grind deck a backline poke it lacked.
+    // Crystal Sabor — a ranged 7 that gives the grind deck a backline poke it lacked.
     cards: [
       "bore_hillbilly", "aqua_misty", "aqua_subcool", "aqua_kinguin", "aqua_octoirate",
       "aqua_owlette", "bore_shift", "aqua_blackbeard", "bore_monger", "aqua_polarbear",

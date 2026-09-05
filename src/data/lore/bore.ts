@@ -85,7 +85,7 @@ export const BORE_LORE: Record<string, string> = {
   bore_obsidi: // Obsidian
     "Underground it moves quickly, which is the only place it does. What comes back up is not the size that went down.",
 
-  bore_rohojohn: // Cragrider
+  bore_rohojohn: // Crystal Sabor
     "The mount does its own mauling. Whatever stands beside your target does not get to watch.",
 
   bore_bolder:

@@ -149,8 +149,8 @@ describe("added cards: every ability fires", () => {
   });
 });
 
-describe("wave 1: Cragrider, Dynamo, Lumberjack, Bootlegger", () => {
-  it("Cragrider's War Mount arrives armoured and mauls at melee range", () => {
+describe("wave 1: Crystal Sabor, Dynamo, Lumberjack, Bootlegger", () => {
+  it("Crystal Sabor's War Mount arrives armoured and mauls at melee range", () => {
     const s = prepState();
     s.players.P1.gold = 9;
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 60, maxHp: 60, curShields: 0 });

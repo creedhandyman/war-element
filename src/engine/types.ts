@@ -1378,7 +1378,7 @@ export interface CardDef {
    *  comes from. The card face prints "Wind Wake — every landed hit shoves…"
    *  instead of an unnamed sentence. Per-CARD, not per-field, because the same
    *  mechanic is named differently on different cards: summonSelfShields is
-   *  "War Ready" on WarPhant and "War Mount" on Cragrider. */
+   *  "War Ready" on WarPhant and "War Mount" on Crystal Sabor. */
   passiveNames?: Record<string, string>;
   /** Intimidation (Oakgre): while this card lives, every ENEMY within `rows`
    *  rows of it whose own DMG is LOWER than this card's loses `dmg` from its
@@ -1433,7 +1433,7 @@ export interface CardDef {
   /** Fog Settlement (Misty): on summon, its owner's battlefield gains N rounds
    *  of the fog (see PlayerState.foggedRounds). */
   summonFog?: number;
-  /** War Mount (Cragrider): a mounted Ranger also mauls what it stands beside —
+  /** War Mount (Crystal Sabor): a mounted Ranger also mauls what it stands beside —
    *  its BASIC gains +N damage against a target inside melee reach. Modelled as
    *  a proximity bonus rather than a literal second attack, which keeps it on
    *  one damage path instead of inventing a dual-attack system. */

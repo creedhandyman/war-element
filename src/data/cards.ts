@@ -5142,7 +5142,7 @@ export const CARDS: CardDef[] = [
   // ── Wave 1 of the eight new element cards ──────────────────────────────────
   {
     id: "bore_rohojohn",
-    name: "Cragrider",
+    name: "Crystal Sabor",
     rarity: "epic",
     element: "BORE",
     cardClass: "Ranger",
