@@ -745,6 +745,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 1,
     keywords: {},
+    passiveNames: { onSummon: "Reforged", roundTick: "Forge Work" },
     // Reforged (On Summon): plate every NEARBY ally (the 8 surrounding slots,
     // itself included) with +2 shields, and stoke them for +1 DMG this round.
     onSummon: {
@@ -752,6 +753,16 @@ export const CARDS: CardDef[] = [
       params: { amount: 2, nearby: 1, buffDmg: 1, buffRounds: 1 },
       targetSide: "ally",
     },
+    // Forge Work: and then it keeps working. End of every round, the strongest
+    // ally in reach gets +1 shield and +1 DMG, permanently.
+    //
+    // CAPPED AT FIVE, which is this roster's own convention rather than a
+    // judgement call: every per-round DMG ramp in the game carries a maxTicks,
+    // and seven of the nine are at 5. Uncapped, a surviving 2-drop hands one
+    // body +9 DMG by round ten and keeps going — the shape the balance notes
+    // name as the thing to avoid. Five is +5/+5 on one card, which is a real
+    // engine and still a number a match can answer.
+    roundTick: { topDmgAllyForge: { shields: 1, dmg: 1, maxTicks: 5 } },
   },
 
   {
@@ -796,19 +807,23 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: "Goblin",
-    // Cave Guard (On Opp enter battlefield): deal 4 DMG to a newcomer summoned
-    // within Rock Goblin's (melee) range — gated by canTarget in the SUMMON reducer.
-    // CAVE GUARD, rewritten as a ZONE rather than a reaction to the enemy's
-    // hand. It used to fire when an opponent was SUMMONED, which is a thing that
-    // happens on the far side of the board and has nothing to do with guarding
-    // ground. Now it holds a line: it screens its own home row, and anything
-    // that MOVES into its reach is hit for 4 on the spot.
+    // CAVE GUARD is one thing now, not two. It used to be a zone AND a screen:
+    // `guardsHomeRow` made the square behind it untargetable by anything,
+    // fliers and ranged included. That is a strong, invisible rule — the
+    // opponent finds out by having a shot refused — and it was doing a
+    // different job from the damage. Only the zone is left, and it is gated on
+    // the goblin actually standing where a guard stands.
+    //
+    // ON ITS OWN HOME ROW, which is the condition that makes the name true. A
+    // "guard" that follows you up the board is a chaser; this one holds a line,
+    // and stepping off that line is what switches it off. `guardsHomeRow` stays
+    // on the cards that still screen (Vigil, Hold the Line) — this is a change
+    // to Rock Goblin, not to the keyword.
     //
     // Reach is whatever the card really has (canTarget decides), so on a Melee
     // body that is the adjacent ring — walk next to the goblin and it swings.
-    passiveNames: { onOppMove: "Cave Guard", guardsHomeRow: "Cave Guard" },
-    onOppMove: { dmg: 4 },
-    guardsHomeRow: true,
+    passiveNames: { onOppMove: "Cave Guard" },
+    onOppMove: { dmg: 4, onlyOnHomeRow: true },
   },
   {
     id: "bore_hillbilly",

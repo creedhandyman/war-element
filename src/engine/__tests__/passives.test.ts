@@ -2657,6 +2657,38 @@ describe("Klipso's Harsh Winds", () => {
   });
 });
 
+describe("Smith's Forge Work", () => {
+  it("arms the STRONGEST ally in reach each round, and never itself", () => {
+    const s = prepState();
+    const smith = place(s, "bore_smith", "P1", 3, 1);
+    // Two allies in reach; only the harder hitter should be worked on.
+    // STRONGEST IS PER-HIT DMG, which is `effectiveDmg` and the same measure
+    // Dreamweaver's mirror uses. Greegon is 4x1 and Alpha is 2x4 — equal output,
+    // and Greegon wins because the buff is +1 per hit. Worth pinning: the naive
+    // reading picks the 4-hit body, and it would be a different card.
+    const weak = place(s, "leaf_alpha", "P1", 3, 0);
+    const strong = place(s, "leaf_greegon", "P1", 2, 1);
+    const n = advance(atCleanup(s));
+    expect(n.cards[strong.instanceId].dmgBonus, "the biggest asset gets the steel").toBe(1);
+    expect(n.cards[strong.instanceId].curShields - s.cards[strong.instanceId].curShields).toBe(1);
+    expect(n.cards[weak.instanceId].dmgBonus, "not the weaker one").toBe(0);
+    // A smith arms the line, not itself — and the selection would otherwise pick
+    // it whenever it happened to be the hardest hitter on the board.
+    expect(n.cards[smith.instanceId].dmgBonus, "never itself").toBe(0);
+  });
+
+  it("stops at five, because an uncapped ramp is the thing this roster avoids", () => {
+    const s = prepState();
+    place(s, "bore_smith", "P1", 3, 1);
+    const ally = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 200, maxHp: 200 });
+    let g = s;
+    for (let i = 0; i < 9; i++) g = advance(atCleanup(g));
+    // Nine rounds of anvil, five ticks of output. The cap is on the SMITH's
+    // ramp counter, so it is the forge that runs out rather than the ally.
+    expect(g.cards[ally.instanceId].dmgBonus, "capped at maxTicks, not at rounds").toBe(5);
+  });
+});
+
 describe("on-opponent-summon reactions", () => {
   it("react only to a newcomer IN RANGE: mid-row reactors zap, back-row ones don't", () => {
     const s = prepState(); // P1 has priority
@@ -2700,13 +2732,28 @@ describe("on-opponent-summon reactions", () => {
     // It used to react to a SUMMON, which happens on the far side of the board
     // and has nothing to do with guarding ground. It holds a line instead.
     const s = prepState(42, "P2");
-    const gob = place(s, "bore_rockgoblin", "P1", 2, 1);
+    // ON ITS OWN HOME ROW (3 on a 4x4) — the zone is gated on the guard
+    // standing where a guard stands. See the card.
+    const gob = place(s, "bore_rockgoblin", "P1", 3, 1);
+    const foe = place(s, "dusk_gool", "P2", 1, 1);
+    gob.summonedThisRound = false; foe.summonedThisRound = false;
+    const hp0 = foe.curHp;
+    // Step to (2,1) — now adjacent to the goblin, which is its Melee reach.
+    const next = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 2, col: 1 } });
+    expect(next.cards[foe.instanceId].curHp, "walked into reach and was not hit").toBe(hp0 - 4);
+  });
+
+  it("...and switches OFF the moment the guard leaves its home row", () => {
+    // The condition that makes the name true: a guard holds a line, and the
+    // trade for stepping forward is giving the zone up. Same geometry as above,
+    // one row further up the board.
+    const s = prepState(42, "P2");
+    const gob = place(s, "bore_rockgoblin", "P1", 2, 1); // NOT the home row
     const foe = place(s, "dusk_gool", "P2", 0, 1);
     gob.summonedThisRound = false; foe.summonedThisRound = false;
     const hp0 = foe.curHp;
-    // Step to (1,1) — now adjacent to the goblin, which is its Melee reach.
     const next = applyIntent(s, { type: "MOVE", player: "P2", instanceId: foe.instanceId, to: { row: 1, col: 1 } });
-    expect(next.cards[foe.instanceId].curHp, "walked into reach and was not hit").toBe(hp0 - 4);
+    expect(next.cards[foe.instanceId].curHp, "a chaser, not a guard").toBe(hp0);
   });
 
   it("...and stays silent for a step it cannot reach", () => {
@@ -4791,11 +4838,11 @@ describe("a passive flashes on the card that fired it", () => {
 
   it("flashes on the GUARD when its zone fires, not on what walked in", () => {
     const s = prepState(42, "P2");
-    const gob = place(s, "bore_rockgoblin", "P1", 2, 1);
-    const mover = place(s, "leaf_alpha", "P2", 0, 1);
+    const gob = place(s, "bore_rockgoblin", "P1", 3, 1); // home row — the zone's condition
+    const mover = place(s, "leaf_alpha", "P2", 1, 1);
     gob.summonedThisRound = false; mover.summonedThisRound = false;
     const n = applyIntent(s, {
-      type: "MOVE", player: "P2", instanceId: mover.instanceId, to: { row: 1, col: 1 },
+      type: "MOVE", player: "P2", instanceId: mover.instanceId, to: { row: 2, col: 1 },
     });
     expect(n.cards[gob.instanceId].fxPassiveName).toBe("Cave Guard");
     expect(n.cards[mover.instanceId].fxPassive ?? 0, "the victim claimed the passive").toBe(0);

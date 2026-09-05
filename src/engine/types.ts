@@ -323,6 +323,25 @@ export interface RoundTickDef {
    *  it. Effective DMG, so it reads buffs and auras rather than the printed
    *  number. */
   topDmgInRangeStatus?: { kind: StatusKind; duration: number; power: number };
+  /** Forge Work (Smith): at the end of each round, plate and sharpen the single
+   *  highest-DMG ALLY this card can reach.
+   *
+   *  The mirror of `topDmgInRangeStatus` above, pointed the other way: that one
+   *  spends the round softening the biggest threat, this one spends it on the
+   *  biggest asset. Same selection rule (effective DMG, so it reads buffs and
+   *  auras rather than the printed number — note that is PER HIT, so a 4x1 body
+   *  outranks a 2x4 one of equal output, which is the right way round here
+   *  because the grant is +1 per hit and the 2x4 would bank four times as much) and the same reach rule (`canTarget`,
+   *  so a Ranged smith reaches and a Melee one has to stand in the line it is
+   *  arming). Itself excluded — a smith works on other people's steel.
+   *
+   *  `maxTicks` is not optional in practice. Every per-round DMG ramp on this
+   *  roster carries one (`buffDmgEveryN`, nine cards, seven of them at 5),
+   *  because an uncapped number that only ever goes up is the pattern the
+   *  balance notes single out by name. Counted on the SMITH, in the same
+   *  `rampTicks` the other ramp uses, because it is the smith's output that is
+   *  limited rather than any one ally's capacity to be armed. */
+  topDmgAllyForge?: { shields: number; dmg: number; maxTicks?: number };
   /** Butler's Service: heal every OTHER ally within this card's own attack
    *  range N HP each round. Range, not the whole board — the same reach
    *  `allyInRangeShields` uses (RANGED_REACH for a shooter, adjacent for
@@ -874,7 +893,14 @@ export interface CardDef {
    *  takes `dmg` on the spot — a zone of control rather than a reaction to
    *  summoning. Fired from the MOVE intent once the step has resolved, so it
    *  reads the square the mover actually ended on. */
-  onOppMove?: { dmg: number };
+  /** Cave Guard (Rock Goblin): an opponent that MOVES into this card's reach is
+   *  struck for `dmg` on the spot.
+   *
+   *  `onlyOnHomeRow` gates it to a holder standing on its OWN home row, which is
+   *  what separates a guard from a chaser: it holds a line, and walking off that
+   *  line switches it off. Optional, so a future card can carry the zone without
+   *  the leash. */
+  onOppMove?: { dmg: number; onlyOnHomeRow?: boolean };
   /** Ballista: extra king-steps of BASIC ranged reach. Ranged cards only (the
    *  melee branch never consults `rangedReachFor`), basics only — a Special
    *  carries its own reach through `validSpecialTargets`. Additive with the

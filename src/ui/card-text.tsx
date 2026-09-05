@@ -369,6 +369,13 @@ export function describePassives(def: CardDef): string[] {
   if (def.contractPayout)
     named("contractPayout",
       `Whenever a MARKED opponent dies, you collect ${def.contractPayout} gold — whoever fills the contract.`);
+  // IT PRINTED NOTHING. `onOppMove` had no branch here at all, so Rock Goblin's
+  // whole Cave Guard — a 4-damage zone of control — was invisible on the card
+  // that carries it, and the only way to learn it was to walk into it.
+  if (def.onOppMove)
+    named("onOppMove",
+      `Deals ${def.onOppMove.dmg} DMG to any opponent that MOVES into its range`
+      + `${def.onOppMove.onlyOnHomeRow ? ", while it stands on its own home row." : "."}`);
   if (def.guardsHomeRow)
     named("guardsHomeRow", "While it stands, opponents cannot target the home square directly behind it — fliers and ranged attackers included. They have to break it first.");
   if (def.trampleDmg)
@@ -819,6 +826,16 @@ export function describePassives(def: CardDef): string[] {
     namedAny(["topDmgInRangeStatus", "roundTick"],
       `End of round: applies ${s.kind} for ${s.duration} round${s.duration === 1 ? "" : "s"} `
       + "to the highest-DMG opponent in range.",
+    );
+  }
+  if (def.roundTick?.topDmgAllyForge) {
+    const f = def.roundTick.topDmgAllyForge;
+    const parts = [f.shields ? `+${f.shields} shield` : "", f.dmg ? `+${f.dmg} DMG` : ""].filter(Boolean);
+    namedAny(["topDmgAllyForge", "roundTick"],
+      `End of round: gives the highest-DMG ALLY in range ${parts.join(" and ")}, permanently`
+      // The cap is printed. A permanent ramp whose ceiling is invisible reads as
+      // unbounded, which is the one thing this number is not.
+      + `${f.maxTicks ? ` — ${f.maxTicks} times in all.` : "."}`,
     );
   }
   if (def.roundTick?.healAlliesInRange)

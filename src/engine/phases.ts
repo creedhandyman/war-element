@@ -501,6 +501,11 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         const gd = getDef(guard.defId);
         if (!gd.onOppMove || guard.curHp <= 0 || !guard.pos) continue;
         if (card.curHp <= 0 || !card.pos) break;
+        // A GUARD HOLDS A LINE. Gated on the holder's own home row, so stepping
+        // forward gives the zone up — which is the trade that makes it a guard
+        // rather than a body that punishes movement anywhere on the board.
+        if (gd.onOppMove.onlyOnHomeRow
+            && guard.pos.row !== homeRow(guard.owner, draft.boardSize)) continue;
         if (!canTarget(draft, guard, card)) continue;
         notePassive(draft, guard, "onOppMove");
         directDamage(draft, guard, card, gd.onOppMove.dmg, false);
@@ -3310,6 +3315,32 @@ function doRoundTicks(draft: GameState): void {
         const s = rt.topDmgInRangeStatus;
         applyStatus(draft, top, s.kind, s.duration, s.power, el);
         draft.log.push(`${label(draft, card)} weaves ${s.kind} onto ${label(draft, top)} — the strongest thing in reach.`);
+      }
+    }
+    // Forge Work (Smith): the anvil never stops. Plate and sharpen the strongest
+    // ally in reach — the mirror of Dreamweaver directly above, aimed at its own
+    // side. Excludes the smith itself: it arms the line, it does not arm itself.
+    if (rt.topDmgAllyForge && card.pos
+        && (!rt.topDmgAllyForge.maxTicks || (card.rampTicks ?? 0) < rt.topDmgAllyForge.maxTicks)) {
+      const f = rt.topDmgAllyForge;
+      // ALLY REACH, which is not `canTarget`. That function answers "can I
+      // ATTACK this", and its rules are all about a defender — the Home Slot
+      // rule, the FLYING dodge, STEALTH — none of which mean anything pointed at
+      // your own side, and together they refused every ally on the board. The
+      // reach an ally-facing tick uses is `allyInRangeShields`'s, five lines up.
+      const reach = getDef(card.defId).attackType === "Ranged" ? RANGED_REACH : 1;
+      const reachable = allies().filter(
+        (a) => a.instanceId !== card.instanceId && a.pos && chebyshev(card.pos!, a.pos) <= reach);
+      const top = reachable.reduce<CardInstance | null>(
+        (best, a) => (!best || effectiveDmg(draft, a) > effectiveDmg(draft, best) ? a : best),
+        null,
+      );
+      if (top) {
+        if (f.shields > 0) top.curShields += f.shields;
+        if (f.dmg > 0) top.dmgBonus += f.dmg;
+        if (f.maxTicks) card.rampTicks = (card.rampTicks ?? 0) + 1;
+        const parts = [f.shields ? `+${f.shields} shield` : "", f.dmg ? `+${f.dmg} DMG` : ""].filter(Boolean);
+        draft.log.push(`${label(draft, card)} works ${label(draft, top)} on the anvil (${parts.join(", ")}).`);
       }
     }
     // Snare Garden (Snapmaw): the roots themselves are the weapon. Every ROOTed
