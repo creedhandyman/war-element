@@ -31,7 +31,8 @@ import type { CardClass, CardDef, Element, Keyword } from "../engine";
 import { CARDS, TOKENS } from "../data/cards";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
-  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow,
+  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe,
+  type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { SpIcon } from "./icons";
@@ -118,6 +119,7 @@ export function CardGallery(props: { onClose: () => void }) {
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  const [tribe, setTribe] = useState<TribeFilter>("ALL");
   const [rar, setRar] = useState<RarityFilter>("ALL");
   const [cost, setCost] = useState<CostFilter>("ALL");
   const [sort, setSort] = useState<Sort>("element");
@@ -139,12 +141,14 @@ export function CardGallery(props: { onClose: () => void }) {
     el !== "ALL" ? el : null,
     cls !== "ALL" ? cls : null,
     kw !== "ALL" ? kw : null,
+    tribe !== "ALL" ? tribe : null,
     rar !== "ALL" ? rar.toUpperCase() : null,
     cost !== "ALL" ? `${cost}◆` : null,
     q.trim() ? `"${q.trim()}"` : null,
   ].filter(Boolean) as string[];
   const clearFilters = () => {
-    setKind("ALL"); setEl("ALL"); setCls("ALL"); setKw("ALL"); setRar("ALL"); setCost("ALL"); setQ("");
+    setKind("ALL"); setEl("ALL"); setCls("ALL"); setKw("ALL"); setTribe("ALL");
+    setRar("ALL"); setCost("ALL"); setQ("");
   };
 
   const shown = useMemo(() => {
@@ -154,6 +158,7 @@ export function CardGallery(props: { onClose: () => void }) {
       if (el !== "ALL" && d.element !== el) return false;
       if (cls !== "ALL" && d.cardClass !== cls) return false;
       if (kw !== "ALL" && !cardHasKeyword(d, kw)) return false;
+      if (!cardHasTribe(d, tribe)) return false;
       if (rar !== "ALL" && d.rarity !== rar) return false;
       if (!matchesCost(d.cost, cost)) return false;
       if (needle && !HAY[d.id].includes(needle)) return false;
@@ -169,7 +174,7 @@ export function CardGallery(props: { onClose: () => void }) {
       rarity: (a, b) => rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name),
     };
     return list.sort(by[sort]);
-  }, [q, kind, el, cls, kw, rar, cost, sort]);
+  }, [q, kind, el, cls, kw, tribe, rar, cost, sort]);
 
   const detail = detailId ? ALL.find((d) => d.id === detailId) ?? null : null;
   const at = detail ? shown.findIndex((d) => d.id === detail.id) : -1;
@@ -279,6 +284,10 @@ export function CardGallery(props: { onClose: () => void }) {
             <ElementRow value={el} onChange={setEl} />
             <ClassRow all={CLASSES} value={cls} onChange={setCls} />
             <KeywordRow value={kw} onChange={setKw} />
+            {/* No `tribes` narrowing here: the gallery IS every card in the
+                game, tokens and bosses included, so the full list is the
+                right list. */}
+            <TribeRow value={tribe} onChange={setTribe} />
             <RarityRow value={rar} onChange={setRar} />
             <CostRow value={cost} onChange={setCost} />
           </>

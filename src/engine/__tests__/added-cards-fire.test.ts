@@ -171,7 +171,7 @@ describe("wave 1: Crystal Sabor, Dynamo, Lumberjack, Bootlegger", () => {
     expect(60 - s.cards[far.instanceId].curHp).toBe(7); // printed only
   });
 
-  it("Cougar Pounce lands 10 and puts the target to SLEEP", () => {
+  it("Sabor Pounce lands 10, STUNS, and leaves BLEED 3 behind", () => {
     const s = prepState();
     s.players.P1.magicPool = 6;
     const roho = place(s, "bore_rohojohn", "P1", 2, 1, { autoMode: "manual" });
@@ -180,7 +180,15 @@ describe("wave 1: Crystal Sabor, Dynamo, Lumberjack, Bootlegger", () => {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: prey.instanceId,
     });
     expect(60 - next.cards[prey.instanceId].curHp).toBe(10);
-    expect(statusOf(next.cards[prey.instanceId], "SLEEP")?.duration).toBe(2);
+    // BOTH, and the BLEED with its size on it — a DOT whose power did not
+    // survive the swap would look identical to one that did from the duration
+    // alone, which is the half the rider slot cannot carry (see the card).
+    const bleed = statusOf(next.cards[prey.instanceId], "BLEED");
+    expect(bleed?.power, "BLEED must land at 3, not at 0").toBe(3);
+    expect(bleed?.duration).toBe(2);
+    expect(statusOf(next.cards[prey.instanceId], "STUN")?.duration).toBe(2);
+    // ...and the SLEEP it replaced is gone, not merely joined.
+    expect(statusOf(next.cards[prey.instanceId], "SLEEP")).toBeUndefined();
   });
 
   it("Dynamo fires its Special on summon: marks the clean, deepens the held", () => {

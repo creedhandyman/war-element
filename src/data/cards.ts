@@ -5230,13 +5230,26 @@ export const CARDS: CardDef[] = [
     passiveNames: { summonSelfShields: "War Mount", meleeBonusDmg: "War Mount" },
     summonSelfShields: 3, // rides in armoured...
     meleeBonusDmg: 4, // ...and the mount mauls whatever it stands beside.
+    // Sabor Pounce — named for the card since the card was renamed; a Cougar
+    // pounce on something called Crystal Sabor was the old name outliving it.
+    //
+    // BLEED IS THE PRIMARY AND STUN THE RIDER, which is backwards from how it
+    // reads but right for the engine: `strike` passes the primary through
+    // `maybeStatus` (which carries `statusPower`) and the `debuffStatus` rider
+    // through `applyStatus` with the power hardcoded to 0. BLEED needs its 3;
+    // STUN is a binary pin and wants no magnitude, so it is the one that can
+    // afford the rider slot.
     special: {
-      name: "Cougar Pounce",
+      name: "Sabor Pounce",
       cost: 3,
       handler: "strike",
-      params: { dmg: 10, statusKind: "SLEEP", statusDuration: 2 },
+      params: {
+        dmg: 10,
+        statusKind: "BLEED", statusPower: 3, statusDuration: 2,
+        debuffStatus: "STUN", debuffStatusRounds: 2,
+      },
       targetSide: "enemy",
-      text: "Deal 10 DMG to an opponent in range and SLEEP them for 2 rounds.",
+      text: "Deal 10 DMG to an opponent in range, STUN them for 2 rounds and BLEED 3 for 2 rounds.",
     },
   },
   {

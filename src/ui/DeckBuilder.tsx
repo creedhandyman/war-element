@@ -12,8 +12,8 @@ import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squ
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
 import { BUILDABLE_ELEMENTS, EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
 import {
-  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow,
-  cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
+  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter, type TribeFilter,
 } from "./filters";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
@@ -137,6 +137,9 @@ export function DeckBuilder(props: {
   /** Keyword filter. The one axis the builder could not search on: "show me the
    *  FLYING cards" was a question you had to answer by reading every card. */
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  /** Tribe. Free-text on the card and often plural — Klipso is a Dragon AND
+   *  a Star — so `cardHasTribe` does the list handling for every grid. */
+  const [tribe, setTribe] = useState<TribeFilter>("ALL");
   const [rar, setRar] = useState<RarityFilter>("ALL");
   const [cost, setCost] = useState<CostFilter>("ALL");
   const [filtersOpen, toggleFilters] = useFilterFold();
@@ -173,6 +176,9 @@ export function DeckBuilder(props: {
     () => (story ? buildableCards().filter((c) => ownedSet.has(c.id)) : buildableCards()),
     [story, ownedSet],
   );
+  // Only the tribes this pool can actually contain. A story save that owns nine
+  // cards should not be offered 33 pills, 32 of which match nothing.
+  const poolTribes = useMemo(() => tribesIn(pool), [pool]);
   // Filter by element and class (they stack — GALE + Ranger narrows to both),
   // then sort. Default "cost" reads the Gold curve low→high, breaking ties by
   // rarity (mythic first) then name.
@@ -183,6 +189,7 @@ export function DeckBuilder(props: {
         (filter === "ALL" || c.element === filter) &&
         (classFilter === "ALL" || c.cardClass === classFilter) &&
         (kw === "ALL" || cardHasKeyword(c, kw)) &&
+        cardHasTribe(c, tribe) &&
         (rar === "ALL" || c.rarity === rar) &&
         matchesCost(c.cost, cost) &&
         (q === "" || c.name.toLowerCase().includes(q)),
@@ -193,7 +200,7 @@ export function DeckBuilder(props: {
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, classFilter, kw, rar, cost, sortBy, query]);
+  }, [pool, filter, classFilter, kw, tribe, rar, cost, sortBy, query]);
 
   /** What is narrowing the grid right now. Sort is NOT a filter and is left out
    *  on purpose: it changes the order, never the contents, so listing it would
@@ -202,23 +209,25 @@ export function DeckBuilder(props: {
     filter !== "ALL" ? filter : null,
     classFilter !== "ALL" ? classFilter : null,
     kw !== "ALL" ? kw : null,
+    tribe !== "ALL" ? tribe : null,
     rar !== "ALL" ? rar.toUpperCase() : null,
     cost !== "ALL" ? `${cost}◆` : null,
     query.trim() ? `"${query.trim()}"` : null,
   ].filter(Boolean) as string[];
   const anyFilter = filterSummary.length > 0;
   const clearFilters = () => {
-    setFilter("ALL"); setClassFilter("ALL"); setKw("ALL");
+    setFilter("ALL"); setClassFilter("ALL"); setKw("ALL"); setTribe("ALL");
     setRar("ALL"); setCost("ALL"); setQuery("");
   };
   /** How many cards a candidate value would leave, given the OTHER filters.
    *  Shared by every row so a dimmed pill means the same thing everywhere. */
-  const countIf = (pred: (c: (typeof pool)[number]) => boolean, skip: "el" | "cls" | "kw" | "rar" | "cost") =>
+  const countIf = (pred: (c: (typeof pool)[number]) => boolean, skip: "el" | "cls" | "kw" | "tribe" | "rar" | "cost") =>
     pool.filter((c) =>
       pred(c)
       && (skip === "el" || filter === "ALL" || c.element === filter)
       && (skip === "cls" || classFilter === "ALL" || c.cardClass === classFilter)
       && (skip === "kw" || kw === "ALL" || cardHasKeyword(c, kw))
+      && (skip === "tribe" || cardHasTribe(c, tribe))
       && (skip === "rar" || rar === "ALL" || c.rarity === rar)
       && (skip === "cost" || matchesCost(c.cost, cost))).length;
   const pickedSet = new Set(picked);
@@ -963,6 +972,12 @@ export function DeckBuilder(props: {
               countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
             />
             <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
+            <TribeRow
+              value={tribe}
+              onChange={setTribe}
+              tribes={poolTribes}
+              countFor={(t) => countIf((d) => cardHasTribe(d, t), "tribe")}
+            />
             <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
             <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
             <div className="db-sort">

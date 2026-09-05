@@ -15,6 +15,7 @@
  */
 import { useState } from "react";
 import type { CardClass, CardDef, Element, Keyword } from "../engine";
+import { CARDS, TOKENS } from "../data/cards";
 import { describePassives } from "./card-text";
 import { EL_COLOR, EL_ICON, ELEMENTS, KEYWORD_STYLE, KEYWORDS, RARITY_STYLE } from "./shared";
 
@@ -245,6 +246,67 @@ export function ElementRow(props: {
         </button>
       ))}
     </div>
+  );
+}
+
+// ── tribe ──────────────────────────────────────────────────────────────────
+/** A card's tribes, as a list. `tribe` is free-text and may be a single string
+ *  or an array — Klipso is a Dragon AND a Star — so every reader has to handle
+ *  both, and the ones that only checked `=== "Dragon"` have historically found
+ *  6 of the 16 Dragons. */
+export const tribesOf = (def: CardDef): string[] =>
+  Array.isArray(def.tribe) ? def.tribe : def.tribe ? [def.tribe] : [];
+
+/** Every tribe anyone can filter on, MOST POPULATED FIRST.
+ *
+ *  Derived from the card data rather than typed out, because tribes are
+ *  free-text: a hand-written list is a second source of truth that goes stale
+ *  the first time a card invents a tribe, and cards do — "Sun's Army", "Bot",
+ *  "Kraken" and "Ice Kingdom" are each carried by exactly one card. Built from
+ *  CARDS and TOKENS together so the gallery — the one grid that shows tokens
+ *  and bosses — can filter them too.
+ *
+ *  Ordered by how many cards carry it. Alphabetical would put the eight
+ *  one-card tribes among the ones people actually look for, and a 33-pill row
+ *  needs its useful half at the front; ties break by name so the order is
+ *  stable. */
+export const TRIBES: string[] = (() => {
+  const n = new Map<string, number>();
+  for (const d of [...CARDS, ...TOKENS]) for (const t of tribesOf(d)) n.set(t, (n.get(t) ?? 0) + 1);
+  return [...n.keys()].sort((a, b) => (n.get(b)! - n.get(a)!) || a.localeCompare(b));
+})();
+
+export type TribeFilter = string | "ALL";
+
+/** The tribes present in one grid's own pool, in the same order as `TRIBES`.
+ *  A builder pool holds no tokens and no bosses, so offering it the full list
+ *  would put pills on screen that can never match anything. */
+export const tribesIn = (defs: readonly CardDef[]): string[] => {
+  const have = new Set<string>();
+  for (const d of defs) for (const t of tribesOf(d)) have.add(t);
+  return TRIBES.filter((t) => have.has(t));
+};
+
+export const cardHasTribe = (def: CardDef, t: TribeFilter): boolean =>
+  t === "ALL" || tribesOf(def).includes(t);
+
+export function TribeRow(props: {
+  value: TribeFilter;
+  onChange: (v: TribeFilter) => void;
+  countFor?: (t: string) => number;
+  /** Which tribes to offer. Defaults to every one in the game; a grid whose
+   *  pool cannot contain tokens or bosses passes its own narrower list so it
+   *  never shows a pill with nothing behind it. */
+  tribes?: string[];
+}) {
+  return (
+    <Row
+      label="Tribe"
+      all={props.tribes ?? TRIBES}
+      value={props.value}
+      onChange={props.onChange}
+      countFor={props.countFor}
+    />
   );
 }
 

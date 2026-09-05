@@ -18,7 +18,8 @@
 import { useMemo, useState } from "react";
 import type { CardClass, Keyword } from "../engine";
 import {
-  CostRow, FilterToggle, KeywordRow, RarityRow,
+  CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { getDef } from "../data/cards";
@@ -67,21 +68,27 @@ export function StorySquad(props: {
   const [fCls, setFCls] = useState<CardClass | "ALL">("ALL");
   const [carriedOnly, setCarriedOnly] = useState(false);
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  const [tribe, setTribe] = useState<TribeFilter>("ALL");
   const [rar, setRar] = useState<RarityFilter>("ALL");
   const [cost, setCost] = useState<CostFilter>("ALL");
   const [filtersOpen, toggleFilters] = useFilterFold();
   const clearFilters = () => {
     setFEl("ALL"); setFCls("ALL"); setCarriedOnly(false);
-    setKw("ALL"); setRar("ALL"); setCost("ALL");
+    setKw("ALL"); setTribe("ALL"); setRar("ALL"); setCost("ALL");
   };
   /** Carrying is a SCOPE, not a third axis. ANDed with the others its own label
    *  stops being true — "Carrying 14" showing two cards because Support was
    *  still on — so picking it clears them and picking one of them clears it. */
   const showCarried = () => {
-    setFEl("ALL"); setFCls("ALL"); setKw("ALL"); setRar("ALL"); setCost("ALL"); setCarriedOnly(true);
+    setFEl("ALL"); setFCls("ALL"); setKw("ALL"); setTribe("ALL");
+    setRar("ALL"); setCost("ALL"); setCarriedOnly(true);
   };
 
   const packable = packableFor(save, region);
+  // Same reasoning as the element chips just below: this grid picks from
+  // what you HOLD, so a pill that can only ever filter to nothing is a dead
+  // tap. Narrowed to the tribes actually in the packable pool.
+  const packableTribes = useMemo(() => tribesIn(packable.map(getDef)), [packable]);
   /** Only the chips this pool can actually fill. The collection screen shows
    *  all eight elements because its job is to show you what you are MISSING;
    *  this one is picking from what you hold, so a chip that filters to nothing
@@ -137,6 +144,7 @@ export function StorySquad(props: {
     return (fEl === "ALL" || d.element === fEl)
       && (fCls === "ALL" || d.cardClass === fCls)
       && (kw === "ALL" || cardHasKeyword(d, kw))
+      && cardHasTribe(d, tribe)
       && (rar === "ALL" || d.rarity === rar)
       && matchesCost(d.cost, cost);
   });
@@ -147,6 +155,7 @@ export function StorySquad(props: {
     fEl !== "ALL" ? fEl : null,
     fCls !== "ALL" ? fCls : null,
     kw !== "ALL" ? kw : null,
+    tribe !== "ALL" ? tribe : null,
     rar !== "ALL" ? rar.toUpperCase() : null,
     cost !== "ALL" ? `${cost}◆` : null,
   ].filter(Boolean) as string[];
@@ -300,6 +309,11 @@ export function StorySquad(props: {
               element and class chips do: "Carrying 14" showing two cards
               because a keyword was still on makes its own label a lie. */}
           <KeywordRow value={kw} onChange={(v) => { setKw(v); setCarriedOnly(false); }} />
+          <TribeRow
+            value={tribe}
+            onChange={(v) => { setTribe(v); setCarriedOnly(false); }}
+            tribes={packableTribes}
+          />
           <RarityRow value={rar} onChange={(v) => { setRar(v); setCarriedOnly(false); }} />
           <CostRow value={cost} onChange={(v) => { setCost(v); setCarriedOnly(false); }} />
           </>)}

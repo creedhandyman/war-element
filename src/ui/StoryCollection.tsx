@@ -21,7 +21,8 @@ import {
 } from "../data/story";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
-  ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow,
+  ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
 import { SpIcon } from "./icons";
@@ -32,6 +33,10 @@ const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, 
 const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);
 
 type Scope = "all" | "owned" | "missing";
+
+/** The collection shows every non-boss card and nothing else, so its tribe
+ *  list never changes — a module constant rather than a per-render memo. */
+const COLLECTION_TRIBES = tribesIn(CARDS.filter((d) => !d.boss));
 
 export function StoryCollection(props: {
   save: StorySave;
@@ -67,6 +72,7 @@ export function StoryCollection(props: {
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
+  const [tribe, setTribe] = useState<TribeFilter>("ALL");
   const [rar, setRar] = useState<RarityFilter>("ALL");
   const [cost, setCost] = useState<CostFilter>("ALL");
   /** Same one-button collapse as the builder, and the same reasoning: the rows
@@ -92,12 +98,14 @@ export function StoryCollection(props: {
     el !== "ALL" ? el : null,
     cls !== "ALL" ? cls : null,
     kw !== "ALL" ? kw : null,
+    tribe !== "ALL" ? tribe : null,
     rar !== "ALL" ? rar.toUpperCase() : null,
     cost !== "ALL" ? `${cost}◆` : null,
   ].filter(Boolean) as string[];
   const anyFilter = filterSummary.length > 0;
   const clearFilters = () => {
-    setScope("all"); setEl("ALL"); setCls("ALL"); setKw("ALL"); setRar("ALL"); setCost("ALL");
+    setScope("all"); setEl("ALL"); setCls("ALL"); setKw("ALL"); setTribe("ALL");
+    setRar("ALL"); setCost("ALL");
   };
 
   const shown = useMemo(() => {
@@ -105,6 +113,7 @@ export function StoryCollection(props: {
       if (el !== "ALL" && d.element !== el) return false;
       if (cls !== "ALL" && d.cardClass !== cls) return false;
       if (kw !== "ALL" && !cardHasKeyword(d, kw)) return false;
+      if (!cardHasTribe(d, tribe)) return false;
       if (rar !== "ALL" && d.rarity !== rar) return false;
       if (!matchesCost(d.cost, cost)) return false;
       if (scope === "owned") return owned.has(d.id);
@@ -133,7 +142,7 @@ export function StoryCollection(props: {
       Number(owned.has(b.id)) - Number(owned.has(a.id)) ||
       rarityRank(a.rarity) - rarityRank(b.rarity) ||
       a.cost - b.cost || a.name.localeCompare(b.name));
-  }, [scope, el, cls, kw, rar, cost, owned, placed, save]);
+  }, [scope, el, cls, kw, tribe, rar, cost, owned, placed, save]);
 
   /** Per-element completion. The grid can tell you a card is missing; only this
    *  can tell you WHICH REGION to go back to, which is the version of the
@@ -261,6 +270,7 @@ export function StoryCollection(props: {
           </div>
           <ClassRow all={CLASSES} value={cls} onChange={setCls} />
           <KeywordRow value={kw} onChange={setKw} />
+          <TribeRow value={tribe} onChange={setTribe} tribes={COLLECTION_TRIBES} />
           <RarityRow value={rar} onChange={setRar} />
           <CostRow value={cost} onChange={setCost} />
           {anyFilter && (
