@@ -8940,17 +8940,21 @@ export const CARDS: CardDef[] = [
     // aura gives the Support something to do besides stand there.
     passiveNames: { aura: "Magnetic Field" },
     aura: { scope: "adjacent", reflect: 2 },
-    // Magnetic Shield: plate every ally in range with REFLECT 1.
+    // Magnetic Shield: plate every ally in range with REFLECT 2.
     special: {
       name: "Magnetic Shield",
       // 3, not 4. Seventeen of the cost-5 rung's Specials are priced at 3, and
-      // this one buys the least of any of them — no damage, no status, just
-      // REFLECT 1 for two rounds — on the only cost-5 card with no passive at all.
+      // this one still buys no damage and no status — but REFLECT 1 was a
+      // rounding error next to the card's own aura, which hands every ADJACENT
+      // ally 2 for free and forever. The sources ADD (keyword + field + aura +
+      // granted, see resolveHit), so at 1 the Special's whole contribution to a
+      // neighbour was a third of what standing still already gave them. At 2 it
+      // matches the aura and extends its reach to everyone the caster can see.
       cost: 3,
       handler: "magneticShield",
-      params: { targets: 99, reflect: 1, rounds: 2 },
+      params: { targets: 99, reflect: 2, rounds: 2 },
       targetSide: "ally",
-      text: "Give all allies in range REFLECT 1 for 2 rounds.",
+      text: "Give all allies in range REFLECT 2 for 2 rounds.",
     },
   },
   {

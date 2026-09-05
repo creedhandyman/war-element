@@ -248,7 +248,7 @@ describe("Magnetite's Magnetic Shield", () => {
     s.battle = { queue: [gem.instanceId], index: 0, awaitingInput: gem.instanceId };
     const next = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special" });
     for (const id of [beside.instanceId, ahead.instanceId]) {
-      expect(next.cards[id].reflectPower).toBe(1);
+      expect(next.cards[id].reflectPower).toBe(2);
       expect(next.cards[id].reflectRoundsLeft).toBe(2);
     }
   });
