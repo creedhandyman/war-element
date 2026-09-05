@@ -8919,7 +8919,13 @@ export const CARDS: CardDef[] = [
   {
     id: "bore_gemaga",
     name: "Magnetite",
-    tribe: "Dragon Born",
+    // DRAGON, not "Dragon Born". Tribes are free-text and nothing in the game
+    // matched that string — not Rakor's tribe aura, not Drakonbane's Dragon's
+    // Bane, not the new tribe filter — so it was a tribe of one that did nothing
+    // but sit in the data. Folded into the tribe it was always describing.
+    tribe: "Dragon",
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    onKill: { buffDmg: 1 },
     rarity: "epic",
     element: "BORE",
     cardClass: "Support",
@@ -8930,7 +8936,7 @@ export const CARDS: CardDef[] = [
     hp: 19,
     sp: 6,
     shields: 2,
-    // Dragon Born: gemstone scales REFLECT 2 damage back at attackers.
+    // Gemstone scales REFLECT 2 damage back at attackers.
     keywords: { REFLECT: 2 },
     // Magnetic Field (Aura): the plates it wears extend to whatever is touching
     // it — adjacent allies carry its own REFLECT 2 while it lives.
@@ -8938,7 +8944,7 @@ export const CARDS: CardDef[] = [
     // It was the only cost-5 card in the game with no passive at all, on a body
     // sitting exactly on budget. REFLECT is already its whole identity, so the
     // aura gives the Support something to do besides stand there.
-    passiveNames: { aura: "Magnetic Field" },
+    passiveNames: { aura: "Magnetic Field", onKill: "Dragon's Fury" },
     aura: { scope: "adjacent", reflect: 2 },
     // Magnetic Shield: plate every ally in range with REFLECT 2.
     special: {
