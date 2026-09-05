@@ -234,7 +234,7 @@ export const CARDS: CardDef[] = [
     name: "Frond",
     rarity: "rare",
     element: "LEAF",
-    cardClass: "Mage",
+    cardClass: "Ranger",
     attackType: "Ranged",
     cost: 2,
     dmg: 4, // "2×3 DMG" = 2 hits × 3 dmg
