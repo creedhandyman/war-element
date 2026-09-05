@@ -430,16 +430,33 @@ export const CARDS: CardDef[] = [
     sp: 4,
     shields: 2,
     keywords: {},
-    // Sweeping Flames (End of Round): 1 DMG to opponents in the row ahead.
-    roundTick: { rowAheadDmg: 1 },
+    passiveNames: { roundTick: "Sweeping Flames" },
+    // Sweeping Flames: BURN 1 on every opponent in reach, laid down as the
+    // Battle phase OPENS — `roundTick.inRangeStatus` is read by `startBattle`
+    // (phases.ts), not by the Cleanup tick, so the fire is already on them for
+    // the battle it was meant to affect rather than a round late.
+    //
+    // Was `rowAheadDmg: 1` — one point of direct damage to whoever happened to
+    // be standing in the single row ahead, which on a board where the enemy is
+    // arranged as a column, or simply anywhere else, was nothing at all. A
+    // torch-bearing tank should set light to what it can REACH, and a burn is
+    // a burn: it ticks, it stacks with PYRO's own Scorch, and it is worth more
+    // than the point of damage it replaces without being a bigger number.
+    roundTick: { inRangeStatus: { kind: "BURN", duration: 2, power: 1 } },
+    // Axe Spin has to be WORTH MORE than Sweeping Flames, or it is not a
+    // Special. The passive lays BURN 1 for 2 on everything in reach, free, every
+    // round; a Special that laid the identical mark for 3 magic was a button
+    // with nothing behind it — `applyStatus` keeps the better of power and of
+    // duration, so casting it over the passive's own fire changed literally
+    // nothing. The drip is the passive; the flare is this.
     special: {
       name: "Axe Spin",
       cost: 3,
       handler: "statusNova",
-      params: { statusKind: "BURN", statusPower: 1, statusDuration: 2, targets: 99 },
+      params: { statusKind: "BURN", statusPower: 3, statusDuration: 3, targets: 99 },
       targetSide: "enemy",
       ranged: true, // "all opponents" — reaches the whole board
-      text: "Apply BURN 1 for 2 rounds to every opponent in range.",
+      text: "Apply BURN 3 for 3 rounds to every opponent in range.",
     },
   },
   {
@@ -1139,12 +1156,8 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 21,
     sp: 10,
-    shields: 2,
-    // TRAMPLE on the lightest body of the five, and that is the point rather
-    // than an oversight: the shove needs strictly MORE effective max HP than
-    // the victim, so at 21 HP Skelider bulls through chaff and stops dead at
-    // anything solid. A cavalry card that can be walled is the right shape.
-    keywords: { TRAMPLE: true },
+    shields: 2,
+    keywords: {},
     // Mounted until Dismount: below 10 HP it loses the mount, and with it the
     // king-move — `transformed` gates that, so a dismounted rider walks.
     mounted: true,
@@ -1242,8 +1255,8 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 22,
     sp: 4,
-    shields: 0,
-    keywords: { TRAMPLE: true },
+    shields: 0,
+    keywords: {},
     tribe: "Ice",
     // Polar Storm (On Summon): give allies in the row directly ahead +1 shield.
     // (Simplified from the canon 3-round ally buff + AoE — owner's call: shields only.)
@@ -3682,7 +3695,14 @@ export const CARDS: CardDef[] = [
     hp: 10,
     sp: 8,
     shields: 0,
-    keywords: {},
+    // FLYING, which a Dragon should always have had. Two things come with it
+    // beyond the flavour: melee cannot touch it at all (unless the attacker
+    // flies too, or a grounding status lands — ROOT, FREEZE, STUN, SLEEP or
+    // PARALYZE), and it moves like a king, so a diagonal costs it one step.
+    // On a RANGED body that is a real jump: it was already safe at distance and
+    // is now hard to answer up close as well. The grounding statuses are the
+    // counter, and DUSK is not short of them.
+    keywords: { FLYING: true },
     tribe: ["Dragon", "Skeleton"],
     // Purple Flames (On Summon): apply DOT 2 for 3 rounds to the row directly ahead.
     onSummon: { handler: "barrage", params: { dmg: 0, spread: 1, forwardDepth: 1, targets: 99, statusKind: "DOT", statusDuration: 3, statusPower: 2 } },
@@ -5371,7 +5391,11 @@ export const CARDS: CardDef[] = [
     hp: 12,
     sp: 8,
     shields: 3,
-    keywords: {},
+    // FLYING. Same jump as SkullDrake's and for the same reason — a Ranged
+    // Support that melee cannot reach — but Scorch pays for it with the softest
+    // body of the three (12 HP behind 3 shields), so a grounding status or
+    // anything that flies still finishes it quickly.
+    keywords: { FLYING: true },
     // The ground stays lit while Scorch stands, so anything that walks or is
     // summoned onto the enemy home row catches. The BURN itself now runs out
     // after 3 rounds rather than never — leave the row (or kill Scorch) and it
@@ -6975,15 +6999,17 @@ export const CARDS: CardDef[] = [
     // until the end of next round.
     passiveNames: { firePassiveSpecial: "BlastOff" },
     firePassiveSpecial: { onKill: true, grantFlyingRounds: 2 },
-    // Flying Flame Strike: 1 DMG to up to 8 opponents, then move up to 3 spaces.
+    // Flying Flame Strike: TWELVE 1-DMG shots, each rolled independently at a
+    // random opponent in range, then a reposition. `targets` is the SHOT count,
+    // not a victim cap — see the handler.
     special: {
       name: "Flying Flame Strike",
       cost: 2,
       handler: "flameStrike",
-      params: { dmg: 1, targets: 8, move: 3 },
+      params: { dmg: 1, targets: 12, move: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 1 DMG to up to 8 RANDOM opponents and move up to 3 spaces.",
+      text: "Fire 12 shots for 1 DMG each at RANDOM opponents in range, then move up to 3 spaces.",
     },
   },
   {
@@ -7003,11 +7029,29 @@ export const CARDS: CardDef[] = [
     tribe: "ARC",
     // Power Grab (On Move, once/round): cycle the Basic Attack Weapon, changing
     // its basic's dmg × hits. Weapon 0 is the printed 6×1.
+    //
+    // THE ORDER IS THE LADDER, and it is sorted by OUTPUT so that moving is
+    // what buys damage. It used to run Standard 6 → AKVolt 10 → ARC88 8 →
+    // ThunderRPG 10, which put the joint-best gun ONE move from the start and
+    // then dipped: a General that moved once had everything the ramp had to
+    // give, and two more moves bought nothing. Now each step is worth more than
+    // the last (6 → 8 → 10 → 10), so reaching the top of it costs three moves
+    // and the walk is the price of the damage.
+    //
+    // The two tens are not a tie in play: AKVolt splits its 10 across two hits
+    // (better into shields, worse into one big body) and ThunderRPG lands all
+    // of it at once, so the last step is a change of shape rather than a
+    // change of size — the finisher, after the ramp.
+    //
+    // `spCost` stays attached to its own gun rather than to the slot it now
+    // sits in, which is why it reads 0, 2, 1, 3. Nothing has ever read it: the
+    // per-weapon ⚡ cost from the design doc was simplified out when Power Grab
+    // was built (see phases.ts), and it is kept only as a record of the intent.
     passiveNames: { weaponModes: "Power Grab" },
     weaponModes: [
       { name: "Standard", dmg: 6, hits: 1, spCost: 0 },
-      { name: "AKVolt Shot", dmg: 5, hits: 2, spCost: 1 },
       { name: "ARC88", dmg: 2, hits: 4, spCost: 2 },
+      { name: "AKVolt Shot", dmg: 5, hits: 2, spCost: 1 },
       { name: "ThunderRPG", dmg: 10, hits: 1, spCost: 3 },
     ],
     // Spraying Thunder: rake the three CLOSEST opponents with the current weapon.
@@ -7791,7 +7835,13 @@ export const CARDS: CardDef[] = [
     // fast rather than armoured, and 4 shield-points = 4 SP keeps it on budget.
     sp: 11,
     shields: 0,
-    keywords: {},
+    // FLYING, and the movement half is already paid for: SP 11 clears
+    // SP_MID_MAX, so Eagon ALREADY moved like a king and cut corners. What this
+    // actually buys is the melee immunity and a clear path — no enemy body
+    // blocks its two-step move, and it crosses walls instead of setting them
+    // off. On a 9-DMG Melee Warrior that is the difference between a threat that
+    // can be screened and one that cannot.
+    keywords: { FLYING: true },
     tribe: ["Dragon", "Avian"],
     // Vision Guard (On Hit): 50% chance to deflect — take half, deal half back.
     passiveNames: { onHitDeflect: "Vision Guard" },
@@ -9585,8 +9635,8 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 23,
     sp: 12,
-    shields: 4,
-    keywords: { TRAMPLE: true },
+    shields: 4,
+    keywords: {},
     tribe: "Suns",
     // 24K Stallion (On Summon): the mount arrives with +20 HP. Down from 24 —
     // the Suns aura below is new power on a card that was already on budget,
@@ -12538,11 +12588,17 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { firstStrikeBonus: "Hit and Run" },
     firstStrikeBonus: 2,
+    // Redline: speed and GROUND, not damage. The talent used to be +2 DMG and
+    // +4 SP, which made it a smaller copy of every other "floor it" button on
+    // the roster; a buggy's whole argument is that it gets somewhere. So the
+    // damage came off and the distance went on — it is now the one talent that
+    // converts a turn into position, on a card whose printed SP 11 already says
+    // that is what it is for.
     talent: {
       name: "Redline",
-      text: "Once per game, free: floor it -- +2 DMG and +4 SP for 2 rounds.",
+      text: "Once per game, free: floor it -- +5 SP for 2 rounds, then roll 2 spaces forward.",
       handler: "empower",
-      params: { selfDmg: 2, selfSp: 4, buffRounds: 2 },
+      params: { selfSp: 5, buffRounds: 2, moveForward: 2 },
     },
   },
   {
@@ -12874,8 +12930,8 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 22,
     sp: 3,
-    shields: 3,
-    keywords: { TRAMPLE: true },
+    shields: 3,
+    keywords: {},
     passiveNames: { pushImmune: "Planted Hooves", roundTick: "Herd Warmth" },
     pushImmune: true,
     roundTick: { healAlliesInRange: 3 },
@@ -13062,8 +13118,8 @@ export const CARDS: CardDef[] = [
     shields: 3,
     // BLOCK is flat per-hit reduction applied BEFORE shields and even to PEN, so
     // it is brutal against this set's multi-hit style. Precedented (Ice Wall,
-    // Granite Armadillo), but this is the number to cut first if the batch runs hot.
-    keywords: { BLOCK: 2, TRAMPLE: true },
+    // Granite Armadillo), but this is the number to cut first if the batch runs hot.
+    keywords: { BLOCK: 2 },
     passiveNames: { onShieldBreak: "Blowout", aura: "Forge Plating" },
     onShieldBreak: { status: { kind: "BURN", duration: 3, power: 3 } },
     // FORGE PLATING — the kiln armours its own. Tribe-scoped, so it reaches the

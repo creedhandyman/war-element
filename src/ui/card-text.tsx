@@ -790,7 +790,13 @@ export function describePassives(def: CardDef): string[] {
   // the note beside `aoeStatus` in phases.ts).
   if (def.roundTick?.inRangeStatus)
     namedAny(["inRangeStatus", "roundTick"],
-      `When battle begins: applies ${def.roundTick.inRangeStatus.kind} for ${def.roundTick.inRangeStatus.duration} round(s) to every opponent in range.`,
+      // The POWER is printed when there is one. A DoT's number is the whole
+      // point of it — "applies BURN for 2 rounds" reads as a status with no
+      // size, and the two carriers of this differ exactly there (Bike burns
+      // for 1, ELECTRIFIED carries 0 and is a mark rather than a tick).
+      `When battle begins: applies ${def.roundTick.inRangeStatus.kind}${
+        def.roundTick.inRangeStatus.power > 0 ? ` ${def.roundTick.inRangeStatus.power}` : ""
+      } for ${def.roundTick.inRangeStatus.duration} round(s) to every opponent in range.`,
     );
   if (def.roundTick?.inRangeDmg)
     namedAny(["inRangeDmg", "roundTick"],

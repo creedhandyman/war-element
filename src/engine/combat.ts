@@ -4515,27 +4515,41 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     draft.log.push(`${label(draft, attacker)} sprays thunder across ${foes.length} foe(s) (${dmg}×${hits}).`);
   },
-  /** Flying Flame Strike (FireFly): a spray of 1-DMG hits across up to N distinct
-   *  opponents, then a forward reposition. */
+  /** Flying Flame Strike (FireFly): N independent 1-DMG hits, each rolled at a
+   *  random opponent, then a forward reposition.
+   *
+   *  N SHOTS, NOT N VICTIMS, and the difference is the whole ability. This used
+   *  to shuffle the eligible opponents and hit the first N — one hit each, no
+   *  repeats — so the spray was silently capped by how many enemies happened to
+   *  be standing there. Against a board with one opponent on it, a Special
+   *  advertised as a barrage of fire did exactly 1 damage, which is what it was
+   *  reported as doing.
+   *
+   *  Rolling WITH replacement is also what a spray is: the shots go where they
+   *  go, and a lone target catches all of them. It makes the ability read the
+   *  same in every board state instead of being strongest exactly when the
+   *  enemy is already winning on bodies.
+   *
+   *  Re-rolled from the living each shot, so a shot never lands on something an
+   *  earlier one killed — and the volley stops if the attacker dies to a
+   *  REFLECT mid-spray. */
   flameStrike(draft, attacker, targets, params) {
     const dmg = num(params, "dmg", 1);
-    const n = num(params, "targets", 8);
-    // Random targeting: shuffle the eligible opponents with the game RNG
-    // (Math.random is banned in the engine) and spray the first N.
-    const pool = targets.slice();
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = randInt(draft, i + 1);
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-    let hit = 0;
-    for (const t of pool.slice(0, n)) {
-      if (draft.cards[t.instanceId] && t.curHp > 0 && attacker.curHp > 0) {
-        resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
-        hit++;
-      }
+    const shots = num(params, "targets", 8);
+    let landed = 0;
+    const touched = new Set<string>();
+    for (let i = 0; i < shots; i++) {
+      if (attacker.curHp <= 0) break;
+      const live = targets.filter((t) => draft.cards[t.instanceId] && t.curHp > 0);
+      if (live.length === 0) break;
+      const t = live[randInt(draft, live.length)];
+      resolveHit(draft, attacker, t, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      touched.add(t.instanceId);
+      landed++;
     }
     if (num(params, "move") > 0 && attacker.curHp > 0) chargeForward(draft, attacker, num(params, "move"));
-    draft.log.push(`${label(draft, attacker)}'s Flying Flame Strike scorches ${hit} target(s).`);
+    draft.log.push(
+      `${label(draft, attacker)}'s Flying Flame Strike rakes ${landed} shot(s) across ${touched.size} target(s).`);
   },
   /** Dark Warp (Ender): swap places with an opponent and blast it. */
   darkWarp(draft, attacker, targets, params) {
@@ -5357,6 +5371,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const parts = [dmg ? `+${dmg} DMG` : "", sp ? `+${sp} SP` : "",
         hits ? `+${hits} hit${hits === 1 ? "" : "s"}` : ""].filter(Boolean);
       draft.log.push(`${label(draft, attacker)} surges (${parts.join(", ")} for ${rounds} rounds).`);
+      // ...AND THEN IT GOES. `moveForward` rolls the card up its own column
+      // after the buff lands (Dune Buggy's Redline: flooring it is a burst of
+      // speed AND ground covered, not one or the other).
+      //
+      // AFTER, deliberately: `chargeForward` shoves and can be shoved back, so
+      // a card that dies on the way in should still have spent its buff — and
+      // the buff is what a reader of the log expects to see granted before the
+      // thing it powers. Same helper the charge Specials use, so it obeys
+      // captured slots, the board edge and TRAMPLE identically.
+      if (num(params, "moveForward") > 0 && attacker.curHp > 0)
+        chargeForward(draft, attacker, num(params, "moveForward"));
       return;
     }
     if (dmg) attacker.dmgBonus += dmg;

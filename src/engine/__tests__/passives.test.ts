@@ -2438,14 +2438,34 @@ describe("roundTick self effects", () => {
     expect(next.cards[enemy.instanceId].curHp).toBe(GOOL_HP - 1); // −1 Sandstorm
   });
 
-  it("Tiki's Sweeping Flames burns only the row directly ahead", () => {
+  // Sweeping Flames was a single point of direct damage to the ONE row directly
+  // ahead, which on a board where the enemy stood anywhere else was nothing at
+  // all. It is a BURN on everything the torch can reach now, laid as the Battle
+  // phase opens (`startBattle` reads `roundTick.inRangeStatus`, not the Cleanup
+  // tick), so the fire is on them for the battle it was meant to affect.
+  it("Tiki's Sweeping Flames burns everything it can reach, as battle opens", () => {
     const s = prepState();
-    const tiki = place(s, "pyro_tiki", "P1", 2, 0); // ahead = row 1
-    const inFront = gool(s, 1, 0);
-    const farBack = gool(s, 0, 3); // not row ahead
-    const next = advance(atCleanup(s));
-    expect(next.cards[inFront.instanceId].curHp).toBe(GOOL_HP - 1); // −1 Sweeping Flames
-    expect(next.cards[farBack.instanceId].curHp).toBe(GOOL_HP); // untouched
+    const tiki = place(s, "pyro_tiki", "P1", 2, 0); // melee, reach 1
+    const inFront = gool(s, 1, 0); // in reach
+    const beside = gool(s, 2, 1); // in reach, and NOT the row ahead — the whole fix
+    const farBack = gool(s, 0, 3); // out of reach: a torch is not a cannon
+    // Prep → Battle by the only route there is: both seats pass. The Cleanup
+    // tick is deliberately NOT what carries this, so a test that ticked Cleanup
+    // would be checking the wrong hook.
+    const next = applyIntent(
+      applyIntent(s, { type: "PASS", player: "P1" }),
+      { type: "PASS", player: "P2" },
+    );
+    expect(next.phase).toBe("battle");
+    for (const t of [inFront, beside]) {
+      const burn = next.cards[t.instanceId].statuses.find((st) => st.kind === "BURN");
+      expect(burn, `${t.instanceId} was not set alight`).toBeTruthy();
+      expect(burn!.power).toBe(1);
+      expect(burn!.duration).toBe(2);
+    }
+    expect(next.cards[farBack.instanceId].statuses.some((st) => st.kind === "BURN")).toBe(false);
+    // The mark is a DoT, not an instant — nothing has ticked yet.
+    expect(next.cards[inFront.instanceId].curHp).toBe(GOOL_HP);
     void tiki;
   });
 

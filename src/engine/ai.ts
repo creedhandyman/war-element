@@ -1244,8 +1244,27 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       // Spawn a body (Imperator): great value; skip only to secure a kill.
       if (!basicCanKill && rich) return { action: "special" };
     } else if (sp.handler === "statusNova") {
+      // AN UPGRADE COUNTS, not just a bare square.
+      //
+      // This asked only "does the target already carry this kind" and skipped it
+      // if so — which reads a re-application as worthless. `applyStatus` takes
+      // the BETTER of power and of duration, independently, so laying BURN 3 for
+      // 3 over an existing BURN 1 for 2 is a real upgrade on both axes and the
+      // AI was declining it.
+      //
+      // Found by Tiki: its passive now lays BURN 1 on everything in reach as the
+      // battle opens, so by the time it acts nothing is "fresh" and Axe Spin —
+      // its whole Special, and the one an Epic is required to have — was never
+      // cast again. A card whose own passive switches off its Special is a bug
+      // in whichever of the two you like less; this is the half that was wrong
+      // about the engine.
       const novaKind = String(params.statusKind ?? "");
-      const fresh = specTargets.filter((t) => !t.statuses.some((st) => st.kind === novaKind));
+      const novaPower = Number(params.statusPower ?? 0);
+      const novaRounds = Number(params.statusDuration ?? 1);
+      const fresh = specTargets.filter((t) => {
+        const has = t.statuses.find((st) => st.kind === novaKind);
+        return !has || novaPower > has.power || novaRounds > has.duration;
+      });
       if (fresh.length >= 2 || (rich && fresh.length >= 1)) {
         return { action: "special", targetId: fresh[0].instanceId };
       }
