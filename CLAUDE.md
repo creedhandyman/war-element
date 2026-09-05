@@ -465,9 +465,34 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-bolt 56.2 · dusk 54.9 · aqua 54.7 · dawn 53.9
-leaf 49.1 · gale 48.7 · pyro 42.5 · bore 39.9     spread 16.3
+bolt 56.2 · dawn 55.6 · dusk 54.0 · aqua 51.7
+bore 47.9 · gale 46.3 · leaf 44.2 · pyro 44.0     spread 12.2
 ```
+
+**THAT 12.2 IS THE BEST SPREAD RECORDED HERE, and one change bought 7.7 of
+it.** Immediately before, the same harness on the same HEAD read:
+
+```
+bolt 58.2 · dawn 58.0 · dusk 54.4 · aqua 53.6
+gale 46.7 · leaf 46.5 · pyro 44.3 · bore 38.4     spread 19.9
+```
+
+The difference is Exostone's offensive half coming back — a BORE card gains
++1 shield whenever its attack breaks one off an opponent. It had been removed
+in `58ef9d5` for exactly the right reason at the time: BORE was 60.1%, four
+clear of second in a 15.8-point field. The roster has moved a long way since
+and the condition inverted completely — BORE was last at 38.4, twenty behind
+BOLT — so the same lever was worth pulling back the other way. It lands at
+47.9, mid-pack, rather than back on top.
+
+Read that against everything else tried the same day, which is the more
+useful lesson: four new TRIBE auras across 29 cards (Mountain Kin, Sandstorm,
+and two on Dark Wind), plus a free half-power legendary body, moved the table
+by **0.0 to 0.3 points**. Every holder and its beneficiaries were confirmed
+present in the relevant cores, so the harness could see them. One element-wide
+rule moved BORE 9.5. The standing note in this file — that the levers which
+have ever moved a number here are auras and element-wide rules — should be
+read with the emphasis on ELEMENT-WIDE.
 
 **AND THE 7x7 IS NOW MEASURED TOO**, because it is a different game and it was
 never being read. n=700 per element, ±3.7. A 7x7 is only DOMINATION if the mode

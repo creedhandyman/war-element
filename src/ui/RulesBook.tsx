@@ -205,8 +205,8 @@ export function RulesBook(props: { onClose: () => void }) {
                 the exception: its crit fires through armour and pierces it.
               </li>
               <li>
-                Gain shields from Bore's Exostone (on summon), Leaf's
-                Photosynthesis, and many card abilities —
+                Gain shields from Bore's Exostone (on summon, and again off every
+                plate it breaks), Leaf's Photosynthesis, and many card abilities —
                 they don't refill on their own.
               </li>
             </ul>

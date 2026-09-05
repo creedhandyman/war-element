@@ -275,18 +275,13 @@ describe("BORE — Exostone", () => {
     expect(s.cards[bore.instanceId].curShields).toBeGreaterThanOrEqual(4);
   });
 
-  it("does NOT wear the plate it breaks off an opponent", () => {
-    // Exostone's offensive half is gone. It gave a shield for every plate a
-    // BORE hit broke, which meant attacking into BORE and being attacked by it
-    // both fed the same stat on the element that already carries the most
-    // armour in the game and already caps its own losses at one plate a hit.
-    // BORE measured 60.1% at the top of an otherwise 15.8-point field.
+  it("wears the plate it breaks off an opponent", () => {
     const s = prepState();
     const bore = place(s, cheapest("BORE").id, "P1", 3, 0, { curShields: 0 });
     const foe = place(s, cheapest("DUSK").id, "P2", 2, 0, { curShields: 3, curHp: 500, maxHp: 500 });
     basicAttack(s, bore.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curShields, "the break itself is unchanged").toBeLessThan(3);
-    expect(s.cards[bore.instanceId].curShields, "and nothing is looted from it").toBe(0);
+    expect(s.cards[foe.instanceId].curShields).toBeLessThan(3);
+    expect(s.cards[bore.instanceId].curShields, "takes what it breaks").toBeGreaterThan(0);
   });
 });
 
