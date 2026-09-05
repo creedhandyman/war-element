@@ -979,14 +979,23 @@ export function describePassives(def: CardDef): string[] {
     named("summonScaleFromKin", `On summon, ${gains} for every ${who} already on the board.`);
   }
   if (def.mounted)
-    passives.push(
-      // The mount's SP is named here rather than left to look like part of the
-      // printed line, because it is the half a player loses on a dismount and
-      // the stat panel gives no hint that it was ever conditional.
-      `Mounted: ${def.mountedSp ? `+${def.mountedSp} SP from the mount, and it ` : ""}`
-      + `moves like a chess king — a diagonal step costs 1, not 2`
-      + `${def.mountedSp ? " (both lost if it dismounts)." : " (lost if it dismounts)."}`,
-    );
+    // NAMEABLE, like every other signature passive. This was a raw push, so a
+    // card declaring a name for its mount had that name go nowhere — the same
+    // fault as `summonSelfBuff`'s hardcoded "Ride or Die", one branch along.
+    // Falls back to the plain "Mounted:" label when the card names nothing.
+    named("mounted", (() => {
+      // The mount's SP is stated because it is the half a player loses on a
+      // dismount, and the stat panel gives no hint it was ever conditional.
+      const body =
+        `${def.mountedSp ? `+${def.mountedSp} SP from the mount, and it ` : "it "}`
+        + `moves like a chess king — a diagonal step costs 1, not 2`
+        + `${def.mountedSp ? " (both lost if it dismounts)." : " (lost if it dismounts)."}`;
+      // A card that names its mount gets the name as the title; one that does
+      // not keeps the generic label it always had.
+      return def.passiveNames?.mounted
+        ? body.charAt(0).toUpperCase() + body.slice(1)
+        : `Mounted: ${body}`;
+    })());
   if (def.basicLineReach)
     named(
       "basicLineReach",

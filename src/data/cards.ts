@@ -13419,16 +13419,29 @@ export const CARDS: CardDef[] = [
     // because nothing else in the card says it.
     attackType: "Ranged",
     cost: 3,
-    // 3 + 9 + 13 = 25 = 5*3+10. Re-cut toward SPEED, which is what a bike is:
-    // SP 13 on a cost-3 body makes it one of the first things to move each
-    // round, and it is frail enough that being fast is the only defence it has.
-    dmg: 3,
+    // 4 + 12 + 0 + 9 = 25 = 5*3+10, exactly on — the same total it carried at
+    // 3/9/13, re-cut off pure speed and onto a body that can take a hit. The
+    // bike gives 3 of the SP back (`mountedSp`), so it rides at 12 rather than
+    // the 13 it printed before: a shade slower in the queue, +1 DMG and +3 HP
+    // for it, and the speed is now conditional on still having the bike.
+    //
+    // THE KING-MOVE IS A FLOOR HERE, NOT AN ADDITION, and it is worth being
+    // straight about that: `movesLikeKing` already grants corner-cutting to
+    // anything above SP_MID_MAX (10), so at 12 this cuts corners on speed alone.
+    // What `mounted` buys is that it KEEPS cutting them when something drags the
+    // SP down — Galeon's Mighty Winds is −8 for a round, and a bike slowed to 4
+    // is still a bike. (The same is true of Thunder, whose printed 11 was
+    // already over the line; I described its mount as buying the diagonal, and
+    // it does not — it insures it.)
+    dmg: 4,
     hits: 1,
-    hp: 9,
-    sp: 13,
+    hp: 12,
+    sp: 9,
     shields: 0,
     keywords: {},
-    passiveNames: { roundTick: "Drip Torch", advanceOnBasic: "Throttle" },
+    mounted: true,   // it is a motorcycle; the king-move survives a slow
+    mountedSp: 3,    // ...and 3 of its speed belongs to the bike, not the rider
+    passiveNames: { roundTick: "Drip Torch", advanceOnBasic: "Throttle", mounted: "Two Wheels" },
     // Drip Torch survives the rewrite unchanged, because a drip torch is
     // literally the tool you lay a fire LINE with — it fitted a bike better than
     // it ever fitted the helicopter.
