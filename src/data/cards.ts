@@ -332,9 +332,14 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 6,
+    // 3*3 + 16 + 2*2 + 11 = 40 = 5*6+10, exactly — the same total it carried at
+    // 3x2 and 19 HP. The third hit is paid for out of the body, three points for
+    // three points, and it is worth more to THIS card than to almost any other:
+    // Incinerate ramps +1 per consecutive hit on the same target, so a basic
+    // goes from 3+4 = 7 to 3+4+5 = 12 while the stat sheet has not moved.
     dmg: 3,
-    hits: 2,
-    hp: 19,
+    hits: 3,
+    hp: 16,
     sp: 11,
     shields: 2,
     tribe: "Suns",
@@ -2116,7 +2121,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 6, // LEGENDARY
-    // 9 + 16 + 1*2 + 13 = 40 = 5*6+10, exactly, down a rung from 7.
+    // 8 + 16 + 1*2 + 13 = 39 against a cost-6 budget of 40 — one under, which is
+    // inside the ±2 the formula is checked at. Was 9, i.e. exactly on; the point
+    // that came off is the one EVASION never paid for. The stat formula does not
+    // price keywords, and this card carries the game's best defensive one on an
+    // Assassin that already king-moves, so being a point light is the honest
+    // place for it to sit.
     //
     // THE THREE POINTS COME OFF THE BODY, and deliberately not off the other
     // two stats. SP 13 clears SP_MID_MAX, so Klipso moves like a king and cuts
@@ -2126,7 +2136,7 @@ export const CARDS: CardDef[] = [
     // stat formula does not price it anyway, which is what the note below has
     // always said. So the HP goes: 19 -> 16, a knife that is easier to reach
     // and easier to afford.
-    dmg: 9,
+    dmg: 8,
     hits: 1,
     hp: 16,
     sp: 13,
@@ -9862,7 +9872,13 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 2,
     keywords: {},
-    tribe: "Reptile",
+    // NO TRIBE. It was Reptile, and the lore beside its story node has always
+    // said why that never sat right — "Reptiles, not Keepers… a decision made
+    // early, never put to the brood, and Snapmaw has never once accepted it."
+    // The cost is real and worth naming: it drops out of Trinezer's Brood
+    // Command, so it no longer collects +1 DMG / +1 SP from a Reptile aura.
+    // The L6 warden node lists it by id rather than by tribe, so that fight is
+    // unchanged.
     passiveNames: { onSummon: "Snare Garden", roundTick: "Snare Garden", vsStatus: "Devour" },
     // Snare Garden, first half: it plants a root the moment it lands, so the
     // aura below and Devour both have something to work with immediately.
@@ -9876,7 +9892,22 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Devour",
       cost: 3,
-      handler: "strike",
+      // BARRAGE, not strike: the bite takes the whole snare at once now — 4 into
+      // every ROOTed body rather than 8 into one. `requireStatus` filters the
+      // volley (barrage has always had it) and `volleyFilters` applies the same
+      // filter to the preview and to `canFireSpecial`, so with nothing ROOTed
+      // the Special cannot be fired at all. That replaces strike's spoken
+      // refusal with a button that is simply unavailable, which is the better
+      // half of the same promise: the magic can never be spent for nothing.
+      //
+      // THE TEXT NO LONGER CLAIMS A HEAL. It used to end "and heal for the
+      // damage dealt", and the Special never did: `lifesteal` is a param strike
+      // takes and Devour never passed, and the card's `vsStatus` lifesteal is
+      // computed in the BASIC path only. Snapmaw drinks when it bites with its
+      // attack; the Special is the snap, not the meal. Left that way rather
+      // than made true, because lifesteal across every ROOTed body on the board
+      // is a different card.
+      handler: "barrage",
       // ignoreHomeRule: anything ROOTed, ANYWHERE — the enemy home row
       // included, which ordinary targeting keeps off-limits from your own back
       // line. Scoped to this Special, so Snapmaw's basic still respects it.
@@ -9889,11 +9920,11 @@ export const CARDS: CardDef[] = [
       // rather than a limit. Three devours still doubles its damage; the
       // fourth is where a legendary stops being a snowball.
       params: {
-        dmg: 8, requireStatus: "ROOT", ignoreHomeRule: 1,
+        dmg: 4, targets: 99, requireStatus: "ROOT", ignoreHomeRule: 1,
         onKillSelfDmg: 2, onKillSelfDmgMax: 6,
       },
       targetSide: "enemy",
-      text: "8 DMG to any ROOTed opponent on the board and heal for the damage dealt. If it dies, Snapmaw gains +2 DMG permanently, up to +6. Refuses a target that is not ROOTed.",
+      text: "4 DMG to EVERY ROOTed opponent on the board. Each one that dies gives Snapmaw +2 DMG permanently, up to +6. Does nothing to anything that is not ROOTed.",
     },
   },
   {

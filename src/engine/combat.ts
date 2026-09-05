@@ -4094,7 +4094,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     let struck = 0;
     for (const target of ordered.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
-      resolveHit(draft, attacker, target, {
+      const hit = resolveHit(draft, attacker, target, {
         kind: "special",
         dmg: dmg + (vsFly > 0 && isFlying(target) ? vsFly : 0),
         hits: num(params, "hits", 1),
@@ -4123,6 +4123,26 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (pctHp > 0 && draft.cards[target.instanceId] && target.curHp > 0)
         directDamage(draft, attacker, target, Math.floor((target.maxHp * pctHp) / 100), false);
       if (!firstOnly || struck === 0) maybeStatus(draft, attacker, target, params);
+      // PERMANENT GROWTH ON A KILL, capped — the same rider `strike` carries,
+      // and it lived only there. Snapmaw's Devour moved from strike to barrage
+      // to bite every ROOTed body at once, and without this it would have kept
+      // its printed "+2 DMG, up to +6" while silently never growing again: the
+      // params would still be on the card, still read by the test that checks
+      // the cap is declared there, and simply ignored by the handler.
+      //
+      // Per KILL rather than per cast, and the cap is on the accumulated bonus,
+      // so a volley that eats four bodies at once stops at the same ceiling a
+      // sequence of four single bites would.
+      const volleyKillDmg = num(params, "onKillSelfDmg");
+      if (hit.targetDied && volleyKillDmg > 0 && attacker.curHp > 0) {
+        const cap = params.onKillSelfDmgMax == null
+          ? Infinity : num(params, "onKillSelfDmgMax", 0);
+        const gain = Math.max(0, Math.min(volleyKillDmg, cap - attacker.dmgBonus));
+        if (gain > 0) {
+          attacker.dmgBonus += gain;
+          draft.log.push(`${label(draft, attacker)} swallows it whole (+${gain} DMG, permanently).`);
+        }
+      }
       struck++;
       // Bat Swarm: the volley feeds. DRAIN the keyword only rides basics, so a
       // Special that should drain has to ask for it.

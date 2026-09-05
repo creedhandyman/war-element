@@ -2484,15 +2484,15 @@ describe("roundTick self effects", () => {
 describe("Sol — Incinerate ramp", () => {
   it("consecutive hits on the same target climb +1 DMG each", () => {
     const s = prepState();
-    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 DMG × 2 hits, home row (no mid bonus)
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 DMG × 3 hits, home row (no mid bonus)
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 60, maxHp: 60, curShields: 0 });
     basicAttack(s, sol.instanceId, foe.instanceId);
-    // hit 1 = 3, hit 2 = 3+1 = 4  → 7 total this round
-    expect(s.cards[foe.instanceId].curHp).toBe(40 - 7);
-    // next attack on the SAME target keeps ramping (struckBefore = 2):
-    // hit 3 = 3+2 = 5, hit 4 = 3+3 = 6 → 11 more
+    // hit 1 = 3, hit 2 = 3+1 = 4, hit 3 = 3+2 = 5  → 12 total this round
+    expect(s.cards[foe.instanceId].curHp).toBe(60 - 12);
+    // next attack on the SAME target keeps ramping (struckBefore = 3):
+    // hit 4 = 3+3 = 6, hit 5 = 3+4 = 7, hit 6 = 3+5 = 8 → 21 more
     basicAttack(s, sol.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(40 - 7 - 11);
+    expect(s.cards[foe.instanceId].curHp).toBe(60 - 12 - 21);
   });
 });
 
@@ -2645,15 +2645,15 @@ describe("Autumnal's Fall's Emergence scales Leaf Storm", () => {
 describe("Klipso's Harsh Winds", () => {
   it("adds bonus DMG on the first strike vs an opponent, once", () => {
     const s = prepState();
-    // 9 printed + 2 Tailwind (GALE aura, +1 DMG per 6 SP — Klipso is SP 13, so
-    // floor(13/6) = 2) = 11, plus the 4 first-strike bonus on the opener.
+    // 8 printed + 2 Tailwind (GALE aura, +1 DMG per 6 SP — Klipso is SP 13, so
+    // floor(13/6) = 2) = 10, plus the 4 first-strike bonus on the opener.
     const klipso = place(s, "gale_klipso", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
-    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(11);
+    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(10);
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(45); // 60 − (11 + 4)
+    expect(s.cards[foe.instanceId].curHp).toBe(46); // 60 − (10 + 4)
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(34); // 45 − 11 (no bonus the 2nd time)
+    expect(s.cards[foe.instanceId].curHp).toBe(36); // 46 − 10 (no bonus the 2nd time)
   });
 });
 

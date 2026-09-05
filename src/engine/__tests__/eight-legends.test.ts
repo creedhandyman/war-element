@@ -7,7 +7,7 @@
 // aura reaching the brood she raises after she lands).
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { canFireSpecial, canMove, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canMove, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { SPECIAL_HANDLERS, basicAttack, defeatCard } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
@@ -114,7 +114,12 @@ describe("the two growth engines are bounded", () => {
         curHp: 1, maxHp: 1, curShields: 0,
         status: { kind: "ROOT", duration: 3, power: 0, source: "LEAF" },
       });
-      SPECIAL_HANDLERS.strike(s, s.cards[snap.instanceId], [prey], def.params!);
+      // BARRAGE, which is the handler the card actually declares. This called
+      // `strike` and kept passing after Devour moved off it — strike ignores
+      // `targets` and bites `targets[0]`, so a one-victim board looked
+      // identical either way and the growth rider it was testing was being
+      // read out of the wrong function.
+      SPECIAL_HANDLERS[def.handler](s, s.cards[snap.instanceId], [prey], def.params!);
       expect(s.cards[prey.instanceId], `victim ${i} was devoured`).toBeUndefined();
     }
     expect(s.cards[snap.instanceId].dmgBonus, "capped").toBe(6);
@@ -346,13 +351,36 @@ describe("Snapmaw — Snare Garden and Devour", () => {
     expect(b?.power ?? 0, "still 1, never 2").toBeLessThanOrEqual(1);
   });
 
-  it("Devour refuses a target that is not ROOTed", () => {
+  // Devour used to be a `strike` that took one target and REFUSED it out loud
+  // when it was not ROOTed. As a barrage it never gets that far: `requireStatus`
+  // runs in `volleyFilters`, which feeds the preview and `canFireSpecial` too,
+  // so an unrooted board leaves the Special with no legal target and it cannot
+  // be cast at all. Same promise — the magic is never spent for nothing — kept
+  // one step earlier, where the player finds out before paying rather than
+  // after.
+  it("Devour cannot even be fired when nothing is ROOTed", () => {
     const s = prepState();
     const maw = place(s, "leaf_snapmaw", "P1", 3, 0);
     const free = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
-    cast(s, maw, free);
-    expect(s.cards[free.instanceId].curHp, "untouched").toBe(40);
-    expect(s.log.some((l) => /nothing to sink into/.test(l)), "and it says why").toBe(true);
+    s.players.P1.magicPool = 9;
+    expect(specialTargets(s, maw.instanceId), "no ROOTed body, no target").toEqual([]);
+    expect(canFireSpecial(s, maw.instanceId).ok, "so the button is dead").toBe(false);
+    expect(s.cards[free.instanceId].curHp, "and nothing is touched").toBe(40);
+  });
+
+  it("...and bites EVERY ROOTed body at once, for 4 each", () => {
+    const s = prepState();
+    const maw = place(s, "leaf_snapmaw", "P1", 3, 0);
+    s.players.P1.magicPool = 9;
+    const rooted = [0, 1, 2].map((c) =>
+      place(s, "dusk_gool", "P2", 1, c as never,
+        { curHp: 40, maxHp: 40, curShields: 0, status: { kind: "ROOT", duration: 3, power: 0, source: "LEAF" } }));
+    const loose = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const def = getDef("leaf_snapmaw").special!;
+    SPECIAL_HANDLERS[def.handler](s, s.cards[maw.instanceId],
+      rooted.map((r) => s.cards[r.instanceId]), def.params!);
+    for (const r of rooted) expect(40 - s.cards[r.instanceId].curHp, "each snared body").toBe(4);
+    expect(s.cards[loose.instanceId].curHp, "the loose one is not in the snare").toBe(40);
   });
 
   it("reaches ANY rooted opponent, the enemy home row included", () => {

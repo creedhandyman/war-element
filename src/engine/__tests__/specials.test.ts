@@ -373,16 +373,16 @@ describe("firing specials", () => {
 
   it("a single pick still takes the full volley (AI / one-click path)", () => {
     const s = prepState();
-    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 dmg × 2 hits, home row (no hill bonus)
-    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 });
+    const sol = place(s, "pyro_sol", "P1", 3, 0); // 3 dmg × 3 hits, home row (no hill bonus)
+    const t = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
     const next = applyIntent(battleWith(s, sol.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",
       action: "basic",
       targetId: t.instanceId,
     });
-    // both hits landed; Incinerate ramps the 2nd (+1): 3 + 4 = 7 dealt
-    expect(next.cards[t.instanceId].curHp).toBe(6);
+    // all three hits landed; Incinerate ramps each: 3 + 4 + 5 = 12 dealt
+    expect(next.cards[t.instanceId].curHp).toBe(8);
   });
 
   it("statusNova: SLEEPs up to 2 targets; sleepers skip their turns", () => {
