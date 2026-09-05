@@ -3750,12 +3750,27 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 5, // doc prints cost 7; re-costed to fit the 5·cost+10 curve
+    // A BIKE, and now it rides like one: `mounted` (a king-move in Prep) and
+    // SP 11 -> 15. The four points come out of the body, 16 -> 12, so the total
+    // is 4*2 + 12 + 0 + 15 = 35 = 5*5+10 — exactly on, where it already was.
+    //
+    // Paying out of HP is the precedent this roster set twice: Klipso's re-cost
+    // took its three points off the body rather than off the SP that makes an
+    // Assassin an Assassin, and Crystal Sabor sits four UNDER the formula
+    // specifically because War Mount is priced as costing something. `mounted`
+    // is not in the formula at all, so leaving the stat line untouched would
+    // have been a king-move for free on top of four points of speed.
+    //
+    // HP is also the right stat here rather than the damage: this is a Ranged
+    // Mage with a board-wide on-summon and the most efficient Special in the
+    // game. It should not have been surviving the front line anyway.
     dmg: 4,
     hits: 2, // "2×4 DMG"
-    hp: 16,
-    sp: 11,
+    hp: 12,
+    sp: 15,
     shields: 0,
     keywords: {},
+    mounted: true, // rides a king-move in Prep, like the other mounts
     tribe: "Voltis",
     // Electrifying Thunder Clap (On Summon): 5 DMG to all opponents in range.
     // 5 -> 3. A free board-wide hit on arrival, on top of an Arcing Strike that
