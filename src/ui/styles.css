@@ -4921,6 +4921,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-gap { flex: 1 1 auto; min-height: 0; }
 
 .home-prep { flex: none; display: flex; gap: 9px; padding: 0 16px 12px; }
+/* The mark. Quiet by design — it is a notice, not a feature — and `flex: none`
+   so it never takes a share of the column the way `.home-gap` does.
+   Clearing the nav is `.home-screen`'s own 74px bottom reserve, not this
+   padding; measured at the true scroll bottom the line ends at 646 against a
+   nav starting at 652. The 10px here is just breathing room under the tiles. */
+.home-legal {
+  flex: none; text-align: center;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase;
+  color: var(--ink-faint); padding: 0 16px 10px;
+}
 .home-tile {
   flex: 1; min-width: 0; position: relative; height: 94px; padding: 9px 11px;
   display: flex; flex-direction: column; overflow: hidden;

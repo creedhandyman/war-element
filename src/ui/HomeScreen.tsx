@@ -372,6 +372,13 @@ export function HomeScreen(props: {
             <span className="home-tile-num">{GALLERY_COUNT} PLATES</span>
           </button>
         </div>
+
+        {/* The mark, at the foot of the screen the game opens on — after the
+            content rather than floating over it, so it is the last thing on the
+            page and never competes with a tile for a thumb. The boot splash
+            (index.html) carries the same line, so the first screen and the home
+            screen say the same thing. */}
+        <div className="home-legal">War Element™ &middot; 2026 &middot; Bernard</div>
       </div>
     </div>
   );
