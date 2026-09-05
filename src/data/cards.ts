@@ -2440,7 +2440,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Elemental Fury: it lands with the Special already paid for, so the first
     // Enchantment costs nothing.
-    passiveNames: { startsWithFreeSpecial: "Elemental Fury", onDeath: "Elemental Fury" },
+    passiveNames: {
+      startsWithFreeSpecial: "Elemental Fury",
+      onDeath: "Elemental Fury",
+      enchanter: "Rekindle",
+    },
     startsWithFreeSpecial: true,
     enchanter: true,
     // ...and the last one it was holding is handed on as it dies.
@@ -2454,7 +2458,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: {},
       targetSide: "self",
-      text: "Enchant your weapon — Freezing (−5 SP), Burning (2 DOT), Sleeping (SLEEP 1), or Sharpen (+5 DMG) — then strike at once if an opponent is in range, otherwise store the charge for your next basic.",
+      text: "Enchant your weapon — Freezing (−6 SP), Burning (3 DOT), Sleeping (SLEEP 2), or Sharpen (+6 DMG) — then strike at once if an opponent is in range, otherwise store the charge for your next basic.",
     },
   },
   {
@@ -3552,6 +3556,16 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 1,
     keywords: {},
+    // FAULT LINE. Shift was a bare body: three little hits and a Special, and
+    // nothing at all in between — the only cost-5 Epic in BORE with no passive
+    // to its name. The ground it stands on is the whole card, so its basic now
+    // moves that ground: whatever it hits is shoved a slot back.
+    //
+    // Once per ATTACK, not per hit — `onHitPush` fires on the volley, so the
+    // three-hit spray does not become a three-slot shove. Free against the
+    // curve, like every passive: the line stays at 3*3 + 15 + 1*2 + 9 = 35.
+    passiveNames: { onHitPush: "Fault Line" },
+    onHitPush: 1,
     special: {
       name: "Quaking Comet",
       cost: 2,

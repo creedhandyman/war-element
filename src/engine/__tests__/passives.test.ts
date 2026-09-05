@@ -4812,3 +4812,40 @@ describe("a passive flashes on the card that fired it", () => {
     expect(c.fxPassiveName).toBeUndefined();
   });
 });
+
+// PRISM'S WEAPON IS NEVER COLD.
+//
+// It armed 1.50 Enchantments a game and spent only 0.83 of them, while making
+// 1.90 basic attacks in total (measured, forced onto the board over 48 games) —
+// so it paid a whole battle action to arm a charge, swung about twice a match,
+// and wasted nearly half of what it armed. A bigger bonus on a swing that never
+// happens is worth nothing, so the frequency is what changed: an enchanter
+// holding no charge re-arms at the top of the round, in its last chosen mode.
+describe("an enchanter rekindles between rounds", () => {
+  it("re-arms when it is carrying nothing", () => {
+    const s = prepState();
+    const p = place(s, "bore_prism", "P1", 2, 1);
+    p.enchant = undefined;
+    const next = advance(atCleanup(s));
+    expect(next.cards[p.instanceId].enchant, "went into the round unarmed").toBeTruthy();
+  });
+
+  it("...in the mode it last CHOSE, not always Sharpen", () => {
+    const s = prepState();
+    const p = place(s, "bore_prism", "P1", 2, 1);
+    p.enchant = undefined;
+    p.lastEnchant = "burning";
+    const next = advance(atCleanup(s));
+    expect(next.cards[p.instanceId].enchant).toBe("burning");
+  });
+
+  it("does not overwrite a charge it is already holding", () => {
+    // The round hands one BACK; it does not reset the one you picked this turn.
+    const s = prepState();
+    const p = place(s, "bore_prism", "P1", 2, 1);
+    p.enchant = "sleeping";
+    p.lastEnchant = "sharpen";
+    const next = advance(atCleanup(s));
+    expect(next.cards[p.instanceId].enchant).toBe("sleeping");
+  });
+});

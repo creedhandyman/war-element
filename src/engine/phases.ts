@@ -1931,7 +1931,8 @@ function performBattleAction(
     // from the intent (the player picked it in the modal), defaulting to Sharpen
     // so a headless or scripted cast still does something coherent.
     if (def.enchanter && draft.cards[card.instanceId] && card.curHp > 0) {
-      card.enchant = mode ?? "sharpen";
+      card.enchant = mode ?? card.lastEnchant ?? "sharpen";
+      card.lastEnchant = card.enchant;
       draft.log.push(`${label(draft, card)} enchants its weapon — ${card.enchant}.`);
       // Cast AND strike: if a foe is in reach, swing right away so the enchant
       // isn't a wasted turn — the basic spends the charge. Otherwise the charge
@@ -2534,6 +2535,27 @@ function doRoundTicks(draft: GameState): void {
         defeatCard(draft, card, "detonation");
         continue;
       }
+    }
+    // PRISM'S WEAPON IS NEVER COLD. An enchanter holding no charge re-arms at
+    // the top of the round, in whatever mode it last chose.
+    //
+    // MEASURED, forced onto the board over 48 games, before this: it armed 1.50
+    // Enchantments a game and only 0.83 of them were ever SPENT, while making
+    // 1.90 basic attacks in total. So it paid a whole battle action to arm a
+    // charge, swung about twice a match, and wasted nearly half of what it
+    // armed. Raising the numbers could not fix that — a bigger bonus on a swing
+    // that does not happen is worth nothing — which is why this changes the
+    // FREQUENCY instead.
+    //
+    // The Special stops being the tax and becomes the CHOICE: pay 1 Magic to
+    // pick a mode and strike now, or let the round hand you your last one back.
+    // ABOVE the `if (!rt) continue` below, deliberately, for the same reason
+    // Deep Freeze's clock is — this has to run for every enchanter, and most of
+    // them print no `roundTick` at all.
+    if (getDef(card.defId).enchanter && !card.enchant) {
+      card.enchant = card.lastEnchant ?? "sharpen";
+      notePassive(draft, card, "enchanter");
+      draft.log.push(`${label(draft, card)}'s weapon rekindles — ${card.enchant}.`);
     }
     // DEEP FREEZE's clock. ABOVE the `if (!rt) continue` below, deliberately:
     // this has to run for EVERY card, and while it sat under that guard it only

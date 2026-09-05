@@ -1707,6 +1707,11 @@ export interface CardInstance {
   /** An armed Enchantment (Prism). Spent by the next BASIC attack this card
    *  makes, whoever is holding it — Prism can hand one on as it dies. */
   enchant?: EnchantMode;
+  /** The last mode this card CHOSE, so the round-start re-arm reaches for the
+   *  same one rather than resetting to Sharpen every round. Set when the Special
+   *  arms; never cleared, because "what was I last carrying" outlives the charge
+   *  itself. */
+  lastEnchant?: EnchantMode;
   /** A status riding the next `attacks` basic attacks (Emberclaw's Flaming
    *  Slasher). Decremented once per attack that lands, not per hit. */
   loadedOnHit?: { kind: StatusKind; duration: number; power: number; attacks: number };

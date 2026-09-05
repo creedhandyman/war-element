@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
-import { basicAttack, directDamage } from "../combat";
+import {
+  basicAttack,
+  directDamage,
+  ENCHANT_BURN_DOT,
+  ENCHANT_BURN_ROUNDS,
+  ENCHANT_FREEZE_SP,
+  ENCHANT_SHARPEN_DMG,
+} from "../combat";
 import { canFireSpecial, canSpellHitEnemy, canTarget } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp, spawnTokens } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
@@ -220,16 +227,18 @@ describe("Prism", () => {
     expect(canFireSpecial(battleWith(ctrl, oak.instanceId), oak.instanceId).ok).toBe(false);
   });
 
-  it("Sharpen: cast-and-strike lands base+5 at once, then the next swing is ordinary", () => {
+  it("Sharpen: cast-and-strike lands base+Sharpen at once, then the next swing is ordinary", () => {
     const s = prepState();
     s.players.P1.magicPool = 9;
     const p = place(s, "bore_prism", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
     const base = effectiveDmg(s, p);
     const armed = arm(s, p.instanceId, "sharpen"); // foe in range → strikes immediately
-    expect(90 - armed.cards[foe.instanceId].curHp).toBe(base + 5);
+    expect(90 - armed.cards[foe.instanceId].curHp).toBe(base + ENCHANT_SHARPEN_DMG);
     expect(armed.cards[p.instanceId].enchant).toBeUndefined(); // spent by the auto-strike
-    // A later swing is ordinary again.
+    // A later swing IN THE SAME ROUND is ordinary again. The weapon rekindles at
+    // the top of the NEXT round, not the moment it is spent — see the rekindle
+    // tests in passives.test.ts.
     armed.cards[p.instanceId].struckThisRound = {};
     const mid = armed.cards[foe.instanceId].curHp;
     basicAttack(armed, p.instanceId, foe.instanceId);
@@ -250,7 +259,7 @@ describe("Prism", () => {
     const near = place(armed, "dusk_gool", "P2", 2, 0, { curHp: 90, maxHp: 90, curShields: 0 });
     const base = effectiveDmg(armed, armed.cards[p.instanceId]);
     basicAttack(armed, p.instanceId, near.instanceId);
-    expect(90 - armed.cards[near.instanceId].curHp).toBe(base + 5);
+    expect(90 - armed.cards[near.instanceId].curHp).toBe(base + ENCHANT_SHARPEN_DMG);
     expect(armed.cards[p.instanceId].enchant).toBeUndefined();
   });
 
@@ -261,7 +270,7 @@ describe("Prism", () => {
     const f1 = place(cold, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
     const spBefore = effectiveSp(cold, f1);
     const a1 = arm(cold, p1.instanceId, "freezing"); // strikes at once
-    expect(effectiveSp(a1, a1.cards[f1.instanceId])).toBe(spBefore - 5);
+    expect(effectiveSp(a1, a1.cards[f1.instanceId])).toBe(spBefore - ENCHANT_FREEZE_SP);
 
     const sleep = prepState();
     sleep.players.P1.magicPool = 9;
@@ -270,7 +279,7 @@ describe("Prism", () => {
     const a2 = arm(sleep, p2.instanceId, "sleeping");
     expect(statusOf(a2.cards[f2.instanceId], "SLEEP")).toBeTruthy();
 
-    // Burning is a DOT: the strike deals base, and a DOT 2 (2 rounds) rides it.
+    // Burning is a DOT: the strike deals base, and the DOT rides it.
     const burn = prepState();
     burn.players.P1.magicPool = 9;
     const p3 = place(burn, "bore_prism", "P1", 2, 0);
@@ -278,8 +287,8 @@ describe("Prism", () => {
     const base = effectiveDmg(burn, p3);
     const a3 = arm(burn, p3.instanceId, "burning");
     expect(90 - a3.cards[f3.instanceId].curHp).toBe(base); // no flat bonus on the swing
-    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.power).toBe(2);
-    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.duration).toBe(2);
+    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.power).toBe(ENCHANT_BURN_DOT);
+    expect(statusOf(a3.cards[f3.instanceId], "DOT")?.duration).toBe(ENCHANT_BURN_ROUNDS);
   });
 
   it("on death it hands its armed Enchantment to the strongest ally", () => {

@@ -719,6 +719,29 @@ export function dragInto(draft: GameState, victim: CardInstance, row: number): b
  *  `hits` is trailing and optional so the existing call sites are untouched — and
  *  it counts toward "is this buff worth pushing", or a pure +1-hit buff would be
  *  thrown away as empty. */
+/** PRISM'S FOUR ENCHANTMENTS, in one place.
+ *
+ *  These were four bare numbers inlined in two different functions — the damage
+ *  one where the swing is totalled, the three status ones where the hit lands —
+ *  so the card's whole identity was untunable without hunting for it, and no
+ *  single place said what an Enchantment is worth.
+ *
+ *  MEASURED, each card forced onto the board over 48 games against every core,
+ *  before this changed. Prism was fourth of the five cost-6 legendaries:
+ *
+ *      Klipso 24.7 dmg/game · Sol 19.8 · Keeper 17.6 · PRISM 14.5 · Thorn 9.4
+ *
+ *  It is not a broken card and it is not off the curve — its body is exactly
+ *  5*6+10 — it simply pays a whole battle action to arm a rider that was worth
+ *  less than the action. So the RIDERS got bigger rather than the body: they sit
+ *  outside the stat formula entirely, which means Prism's identity is what grew
+ *  and its statline did not have to be bought up a cost rung to pay for it. */
+export const ENCHANT_SHARPEN_DMG = 6;   // was 5
+export const ENCHANT_FREEZE_SP = 6;     // was 5
+export const ENCHANT_BURN_DOT = 3;      // was 2
+export const ENCHANT_BURN_ROUNDS = 2;   // unchanged
+export const ENCHANT_SLEEP_ROUNDS = 2;  // was 1 — and a hit still wakes it
+
 export function applyTimedBuff(
   card: CardInstance, dmg: number, sp: number, rounds: number, hits = 0, pen = false,
 ): void {
@@ -2124,7 +2147,7 @@ export function basicAttack(
       attacker.enchant = undefined;
       // Burning is a DOT rider now (applied on the landed hit below), not flat
       // damage — only Sharpen touches the swing's number.
-      if (ench === "sharpen") dmg += 5;
+      if (ench === "sharpen") dmg += ENCHANT_SHARPEN_DMG;
       draft.log.push(`${label(draft, attacker)}'s weapon flares — ${ench}.`);
     }
     if (atkDebuff) { dmg = Math.max(0, dmg - atkDebuff); atkDebuff = 0; } // Boon Striker, once
@@ -2232,11 +2255,11 @@ export function basicAttack(
       // on a landed hit — an enchanted swing that whiffs still spends the
       // charge (it was consumed above) but lands nothing, which is the same
       // deal every other on-hit rider gets.
-      if (ench === "freezing" && t.curHp > 0) applyTimedBuff(t, 0, -5, 2);
+      if (ench === "freezing" && t.curHp > 0) applyTimedBuff(t, 0, -ENCHANT_FREEZE_SP, 2);
       if (ench === "burning" && t.curHp > 0)
-        applyStatus(draft, t, "DOT", 2, 2, getDef(attacker.defId).element); // 2 DOT for 2 rounds
+        applyStatus(draft, t, "DOT", ENCHANT_BURN_ROUNDS, ENCHANT_BURN_DOT, getDef(attacker.defId).element);
       if (ench === "sleeping" && t.curHp > 0)
-        applyStatus(draft, t, "SLEEP", 1, 0, getDef(attacker.defId).element);
+        applyStatus(draft, t, "SLEEP", ENCHANT_SLEEP_ROUNDS, 0, getDef(attacker.defId).element);
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);

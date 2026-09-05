@@ -863,6 +863,10 @@ export function describePassives(def: CardDef): string[] {
     named("hiveAbsorb", `Living ${def.hiveAbsorb.tribe} allies soak up to ${def.hiveAbsorb.pct}% of the damage aimed at this card, as far as their own HP stretches.`);
   if (def.contagionAura)
     named("contagionAura", "Aura: while this card lives, every one of your Zombies that dies deals 2 DMG to each opponent beside it.");
+  // The rekindle is a real ability with a real clock, and it was reaching the
+  // player only as a line in the battle log. Cards advertise what they do.
+  if (def.enchanter)
+    named("enchanter", "Its weapon is never cold: at the start of every round it rekindles the enchantment it last chose, unless it is already holding one.");
   if (def.startsWithFreeSpecial)
     named("startsWithFreeSpecial", "Arrives with its Special already charged — the first cast is free.");
   if (def.vsTarget?.bonusDmg) {
