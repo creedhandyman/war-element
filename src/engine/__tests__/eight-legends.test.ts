@@ -681,10 +681,16 @@ describe("Lassos", () => {
     expect(n.cards[foe.instanceId].pos, "already adjacent — it stays put").toEqual({ row: 2, col: 2 });
   });
 
-  it("is a Star, because DAWN's tribes split by class", () => {
-    // A Ranger is a Star. A third DAWN tribe would leave it outside BOTH auras,
-    // so its own name rides alongside rather than instead.
-    const tribes = getDef("dawn_lassos").tribe;
-    expect(Array.isArray(tribes) && tribes.includes("Stars")).toBe(true);
+  it("is a SUN, the one-off against DAWN's class split", () => {
+    // DAWN splits by class and a Ranger is a Star — Lassos is the exception, and
+    // the mount is what earns it: a rider takes Equestrian's shield and HP over
+    // Aurora's speed. Registered in `CLASS_RULE_EXCEPTIONS` (auras.test.ts) so
+    // the rule still catches an untagged newcomer, which is what it is for.
+    //
+    // ONE tribe now, not a list. "Sun's Army" rode alongside as flavour shared
+    // with the Golden Bull this card ropes, and nothing ever read it — DAWN's
+    // only tribe aura matches "Suns" — so it bought nothing while keeping the
+    // card out of the tribe that pays.
+    expect(getDef("dawn_lassos").tribe).toBe("Suns");
   });
 });

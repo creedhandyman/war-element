@@ -9865,11 +9865,19 @@ export const CARDS: CardDef[] = [
     sp: 14,
     shields: 2,
     keywords: {},
-    // DAWN'S TRIBES SPLIT BY CLASS — Suns are the Tanks/Warriors/Supports,
-    // Stars the Assassins/Mages/Rangers (see WarPhant). A Ranger is a Star, and
-    // a third DAWN tribe would leave this card outside BOTH auras. Tagged with
-    // its own name as well, since tribe is a list and nothing forces one.
-    tribe: ["Stars", "Sun's Army"],
+    // A ONE-OFF: SUNS, though the class rule says otherwise. DAWN splits by
+    // class — Suns are the Tanks/Warriors/Supports, Stars the
+    // Assassins/Mages/Rangers — and a Ranger is a Star. Lassos is the exception,
+    // and it is the mount that earns it: this is a RIDER, not a marksman
+    // standing behind the line, so it takes Equestrian's shield and HP over
+    // Aurora's speed. Named in `CLASS_RULE_EXCEPTIONS` (auras.test.ts) rather
+    // than the rule being loosened, so an untagged DAWN newcomer is still caught.
+    //
+    // "Sun's Army" goes with it. It was flavour shared with the Golden Bull this
+    // card ropes and nothing ever read it — the only tribe aura in DAWN matches
+    // "Suns" — so it bought the card nothing while keeping it out of the tribe
+    // that pays.
+    tribe: "Suns",
     passiveNames: {
       alwaysHit: "Deadeye", vsStatus: "Deadeye",
       mounted: "Ride or Die", summonSelfBuff: "Ride or Die",
