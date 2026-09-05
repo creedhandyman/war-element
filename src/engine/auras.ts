@@ -91,7 +91,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
-  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21); the first time it passes SP 15, a one-time +1 DMG." },
+  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
   VOID: { name: "One Eyes", desc: `Takes what it hits: each landed strike steals ${VOID_STEAL_PER_ATTACK} DMG from the target and keeps it (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — every ${VOID_DEFLECT_EVERY}th hit against it is deflected, taking half and returning half to the attacker.` },
 };

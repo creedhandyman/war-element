@@ -577,7 +577,7 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
 });
 
 describe("GALE — Zephyr", () => {
-  it("+2 SP a round, capped, with a one-time +1 DMG past 15", () => {
+  it("+2 SP a round, capped — and NOTHING else", () => {
     const def = cheapest("GALE");
     let s = prepState();
     const gale = place(s, def.id, "P1", 3, 0);
@@ -587,8 +587,10 @@ describe("GALE — Zephyr", () => {
     for (let i = 0; i < 20; i++) s = advance(atCleanup(s));
     const card = s.cards[gale.instanceId];
     expect(def.sp + card.spBonus, "capped").toBeLessThanOrEqual(GALE_SP_CAP);
-    expect(card.zephyrBoosted, "crossed 15 and banked the one-time DMG").toBe(true);
-    expect(card.dmgBonus, "ONE time, not a per-round ramp").toBe(1);
+    // The one-time +1 DMG for crossing SP 15 is GONE. The tailwind already
+    // converts speed into damage, so this tick must not hand out a second
+    // helping of the same conversion: twenty rounds at the cap, no DMG from it.
+    expect(card.dmgBonus, "the round tick grants SP, never DMG").toBe(0);
   });
 });
 
