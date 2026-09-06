@@ -84,11 +84,31 @@ export const VOID_DEFLECT_EVERY = 4;
 export const VOID_DEFLECT_TAKE_PCT = 50;
 export const VOID_DEFLECT_RETURN_PCT = 50;
 
+/** CREEPING DARK — Midnight Shade's missing half.
+ *
+ *  Both halves of the old aura fire on DEATH: your card is killed, it deals its
+ *  damage back, and the shadows thicken over whoever is left. That is a
+ *  comeback mechanic and nothing else — DUSK could not press an advantage, only
+ *  be paid for losing one. It measured last at 40.5% with no winning matchup on
+ *  the board, which is the same shape AQUA had when Flow Change was the only
+ *  one-shot aura in the game.
+ *
+ *  So the dark works while you are winning too. At end of round every DUSK card
+ *  standing next to an enemy drains a little life out of it. It scales with
+ *  BOARD PRESENCE, which is exactly DUSK's identity — seven of its cards cost 2
+ *  or less and two of those are spawnable tokens, so a wide cheap board is what
+ *  the element is FOR, and this is the first thing that pays it for being wide
+ *  rather than for dying wide.
+ *
+ *  Adjacency is the cost. It is not a free tick like LEAF's heal; the card has
+ *  to be in contact, which is the same place it can be hit. */
+export const DUSK_DRAIN = 1;
+
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
-  DUSK: { name: "Midnight Shade", desc: "On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%)." },
+  DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
@@ -502,26 +522,6 @@ export const DUSK_SHADE_PCT = 5;
  *  the death recoil has gone back to a half (DUSK_SHADE_DEATH_DIVISOR). Five
  *  stacks — a quarter of all incoming hits — is the ceiling. */
 export const DUSK_SHADE_MAX_STACKS = 5;
-
-/** CREEPING DARK — Midnight Shade's missing half.
- *
- *  Both halves of the old aura fire on DEATH: your card is killed, it deals its
- *  damage back, and the shadows thicken over whoever is left. That is a
- *  comeback mechanic and nothing else — DUSK could not press an advantage, only
- *  be paid for losing one. It measured last at 40.5% with no winning matchup on
- *  the board, which is the same shape AQUA had when Flow Change was the only
- *  one-shot aura in the game.
- *
- *  So the dark works while you are winning too. At end of round every DUSK card
- *  standing next to an enemy drains a little life out of it. It scales with
- *  BOARD PRESENCE, which is exactly DUSK's identity — seven of its cards cost 2
- *  or less and two of those are spawnable tokens, so a wide cheap board is what
- *  the element is FOR, and this is the first thing that pays it for being wide
- *  rather than for dying wide.
- *
- *  Adjacency is the cost. It is not a free tick like LEAF's heal; the card has
- *  to be in contact, which is the same place it can be hit. */
-export const DUSK_DRAIN = 1;
 
 // AQUA Flow Change — the three-way summon choice. The summon pick is PERMANENT.
 export type FlowMode = "water" | "ice" | "steam";

@@ -8,6 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { auraDrainBonus } from "../state";
 import { CARDS, getDef } from "../../data/cards";
+import { describeSharedPassives } from "../../ui/card-text";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
@@ -32,6 +33,19 @@ describe("every element has an aura and a card to carry it", () => {
     for (const el of Object.keys(ELEMENT_AURA) as Element[]) {
       expect(ELEMENT_AURA[el].name, el).toBeTruthy();
       expect(CARDS.some((c) => c.element === el), `${el} has cards`).toBe(true);
+    }
+  });
+
+  // This block used to check the NAME only, which is how Creeping Dark shipped
+  // with no description anywhere a player could read: the drain worked, the log
+  // said "drinks from the dark", and the aura text on all forty DUSK cards
+  // described the death half and nothing else. A name is the label on a rule,
+  // not the rule.
+  it("every aura says what it actually does", () => {
+    for (const el of Object.keys(ELEMENT_AURA) as Element[]) {
+      const d = ELEMENT_AURA[el].desc;
+      expect(d, `${el} has no description`).toBeTruthy();
+      expect(d.length, `${el}'s description is a stub`).toBeGreaterThan(40);
     }
   });
 });
@@ -70,6 +84,24 @@ describe("Creeping Dark (DUSK)", () => {
   // comeback mechanic and nothing else — DUSK could not press an advantage,
   // only be paid for losing one, and it measured last at 40.5% with no winning
   // matchup on the board. This is the half that works while it is winning.
+
+  it("is described on the aura, in step with the constant", () => {
+    // Interpolated rather than typed out, so the number on screen cannot drift
+    // from the number the engine drains — the same thing AQUA's tide does.
+    const d = ELEMENT_AURA.DUSK.desc;
+    expect(d).toContain(`drains ${DUSK_DRAIN} HP`);
+    expect(d, "the reach is the whole cost of the ability").toContain("adjacent");
+    expect(d, "and which enemy it picks is not arbitrary").toContain("lowest");
+  });
+
+  it("...and that description reaches a DUSK card's own text", () => {
+    // The end of the chain, and the half that was actually broken. A desc no
+    // surface renders is the same as no desc.
+    const line = describeSharedPassives(getDef(DUSK_POOL[0]))
+      .find((p) => p.kind === "aura" && p.label.includes("Midnight Shade"));
+    expect(line, "no DUSK aura line on a DUSK card").toBeTruthy();
+    expect(line!.desc).toContain(`drains ${DUSK_DRAIN} HP`);
+  });
 
   it("a DUSK card in contact drains an enemy and keeps it", () => {
     const s = prepState();
