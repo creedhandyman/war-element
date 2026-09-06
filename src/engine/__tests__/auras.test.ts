@@ -6,6 +6,7 @@
 // fire at every hook, because the card inspector prints that it will.
 
 import { describe, expect, it } from "vitest";
+import { auraDrainBonus } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
@@ -859,5 +860,36 @@ describe("Pyrogon leads the Dragons, not the whole PYRO line", () => {
     const tiny = place(s, "pyro_volcanon", "P1", 3, 1, { maxHp: 1, curHp: 1 });
     place(s, "pyro_magmadon", "P1", 4, 1);
     expect(effectiveMaxHp(s, s.cards[tiny.instanceId])).toBeGreaterThan(0);
+  });
+});
+
+describe("Sanguine Court — Vesper sharpens the whole Vamp line's bite", () => {
+  it("a Vamp under Vesper steals more per drain, and Vesper itself counts", () => {
+    // Highest-wins like every other aura, and matched by TRIBE — so the lord
+    // feeds itself (Vesper is a Vamp carrying DRAIN) as well as the line.
+    const s = prepState();
+    const vesper = place(s, "dusk_scar", "P1", 3, 0);
+    const vamp = place(s, "dusk_vamp", "P1", 3, 1);
+    const other = place(s, "dusk_gool", "P1", 3, 2); // DUSK, not a Vamp
+    expect(auraDrainBonus(s, s.cards[vamp.instanceId]), "the line").toBe(1);
+    expect(auraDrainBonus(s, s.cards[vesper.instanceId]), "and the lord").toBe(1);
+    expect(auraDrainBonus(s, s.cards[other.instanceId]), "but only Vamps").toBe(0);
+  });
+
+  it("the extra point lands on a real drain, and stops when the lord dies", () => {
+    const s = prepState();
+    const vesper = place(s, "dusk_scar", "P1", 3, 0);
+    const vamp = place(s, "dusk_vamp", "P1", 2, 0, { curHp: 10, maxHp: 10, curShields: 0 });
+    const prey = place(s, "gale_guan", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
+    basicAttack(s, vamp.instanceId, prey.instanceId);
+    // Vamp's DRAIN steals 1 max HP a hit; under the Court it steals 2.
+    const withLord = 90 - s.cards[prey.instanceId].maxHp;
+    expect(withLord, "boosted while Vesper stands").toBe(2);
+
+    delete s.cards[vesper.instanceId];
+    const prey2 = place(s, "gale_guan", "P2", 2, 2, { curHp: 90, maxHp: 90, curShields: 0 });
+    const vamp2 = place(s, "dusk_vamp", "P1", 2, 2, { curHp: 10, maxHp: 10, curShields: 0 });
+    basicAttack(s, vamp2.instanceId, prey2.instanceId);
+    expect(90 - s.cards[prey2.instanceId].maxHp, "back to 1 with the lord gone").toBe(1);
   });
 });

@@ -549,6 +549,24 @@ export function auraReflectBonus(state: GameState, card: CardInstance): number {
   return bonus;
 }
 
+/** The extra max HP a card's DRAIN steals from friendly drain auras (Vesper's
+ *  Sanguine Court) — the highest matching aura's `drain`, or 0 if none.
+ *
+ *  Highest-wins rather than summed, like every other aura here: two Vespers on
+ *  one board is a reason to have a second body, not a reason to drain twice as
+ *  hard. */
+export function auraDrainBonus(state: GameState, card: CardInstance): number {
+  let bonus = 0;
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.drain || !auraMatches(a, holder, card)) continue;
+      if (a.drain > bonus) bonus = a.drain;
+    }
+  }
+  return bonus;
+}
+
 /** The extra shields a card gets from friendly shield auras (Pressure) — the
  *  highest matching aura's shields, or 0 if none. Each round it's topped up to
  *  its printed shields + this bonus. */

@@ -552,6 +552,7 @@ export function describePassives(def: CardDef): string[] {
       a.maxHp && `${a.maxHp > 0 ? "+" : ""}${a.maxHp} max HP`,
       a.shields && `+${a.shields} shields`,
       a.reflect && `REFLECT ${a.reflect}`,
+      a.drain && `DRAIN steals +${a.drain} max HP`,
       a.splash && `+${a.splash} splash on basics`,
       a.pen && "PEN on basics",
     ].filter(Boolean);

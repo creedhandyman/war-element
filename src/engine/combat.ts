@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
+import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -3069,7 +3069,12 @@ export function drainMaxHp(
   // basic and the `drain` param on a Special both land here, so neither can be
   // missed and a future third caller inherits it automatically.
   if (target.curHp <= 0) return 0;
-  const boosted = amount + fieldBonus(draft, attacker, "drainBonus");
+  // The DUSK field's drain bonus and a friendly drain AURA both land here, at
+  // the one choke-point every drain funnels through — so a Vamp under Vesper
+  // steals more whether the drain came from the keyword on its basic or from a
+  // Special's `drain` param.
+  const boosted = amount + fieldBonus(draft, attacker, "drainBonus")
+    + auraDrainBonus(draft, attacker);
   const taken = Math.max(0, Math.min(boosted, target.maxHp - 1));
   if (taken <= 0) return 0;
   target.maxHp -= taken;

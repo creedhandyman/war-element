@@ -662,6 +662,11 @@ export interface AuraBonusDef {
    *  Magnetic Field). Stacks the same way the keyword does — it is added to
    *  the target's own REFLECT rather than replacing it. */
   reflect?: number;
+  /** Matching allies' DRAIN steals +N max HP per instance (Vesper's Sanguine
+   *  Court). The aura twin of the `drainBonus` a DUSK field grants, read at the
+   *  same choke-point so the keyword on a basic and the `drain` param on a
+   *  Special both pick it up. Highest matching aura wins; they do not stack. */
+  drain?: number;
 }
 
 /** A temporary flat DMG/SP modifier with a Cleanup countdown. Positive = a buff

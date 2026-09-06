@@ -8293,8 +8293,14 @@ export const CARDS: CardDef[] = [
     tribe: "Vamp",
     // Blood Mending: basic attacks DRAIN (lifesteal). Blood Moon (Aura): when an
     // opponent dies, heal Vesper and its allies +1.
-    passiveNames: { deathHealAura: "Blood Moon" },
+    // Sanguine Court (Aura): every Vamp on Vesper's side steals +1 max HP per
+    // drain. Vesper is the tribe's only lord and the tribe's whole shape IS
+    // drain — Violet banks max HP three ways, Vamp bites for it — so the lord
+    // makes the tribe better at the one thing it does. Its own basic carries
+    // DRAIN and the aura matches by tribe, so it feeds itself too.
+    passiveNames: { deathHealAura: "Blood Moon", aura: "Sanguine Court" },
     deathHealAura: 1,
+    aura: { scope: "tribe", match: "Vamp", drain: 1 },
     // Moon Frenzy: 3 DMG to all opponents, draining from each (DUSK lifesteal).
     special: {
       name: "Moon Frenzy",
