@@ -63,6 +63,7 @@ import {
 import { ChatPanel } from "./ChatPanel";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
+import { talentEffect } from "./card-text";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { ProfilePanel } from "./ProfilePanel";
@@ -2921,8 +2922,14 @@ export function App() {
     setPending("talent");
     setPicks([]);
     setHint(
-      `<b>${activeDef.talent.name}</b> (Talent · free, once per game) — ` +
-      `press <b>Confirm</b> to use it. There is no second one.`,
+      // SAY WHAT IT DOES. This read "(Talent · free, once per game) — press
+      // Confirm to use it. There is no second one." on the one screen where the
+      // player has to decide whether to spend a thing they get once, and the
+      // Talent's own text only ever reached a `title=` tooltip — invisible on
+      // touch, which is where this prompt lives (`.bp-hint`).
+      `<b>${activeDef.talent.name}</b> (Talent) — ` +
+      `${talentEffect(activeDef.talent.text)} ` +
+      `Free, but press <b>Confirm</b> to spend it: there is no second one.`,
     );
   }
 

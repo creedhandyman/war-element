@@ -39,7 +39,7 @@ import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE, KEYWORD_STYLE} from "./s
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
-import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT, TALENT_LINE_PREFIX } from "./card-text";
+import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
 
 export type CardViewProps =
   | {
@@ -308,7 +308,7 @@ export function CardView(props: CardViewProps) {
               ★ {d.talent.name}
               <span className="cd-cost-pill">Talent</span>
             </div>
-            <p className="cd-text">{chipify(d.talent.text)}</p>
+            <p className="cd-text">{chipify(talentEffect(d.talent.text))}</p>
           </div>
         )}
 

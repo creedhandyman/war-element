@@ -581,7 +581,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.bonusVsClass)
     named("bonusVsClass", `Explosive Power: basic attacks deal ${def.bonusVsClass.mult}× damage against ${def.bonusVsClass.classes.join(" / ")} targets.`);
   if (def.talent)
-    passives.push(`${TALENT_LINE_PREFIX}${def.talent.name}: ${def.talent.text}`);
+    passives.push(`${TALENT_LINE_PREFIX}${def.talent.name}: ${talentEffect(def.talent.text)}`);
   if (def.onRevive)
     named("onRevive", 
       // decay turns a one-time revive into an every-death one that grinds itself
@@ -1249,6 +1249,27 @@ export function describePassives(def: CardDef): string[] {
  *  rather than the string typed out in both places, which is how the two would
  *  drift the first time the wording changed. */
 export const TALENT_LINE_PREFIX = "Talent (free · once per game) — ";
+
+/** A Talent's EFFECT, with the boilerplate opener trimmed off.
+ *
+ *  24 of the 28 talent texts begin "Once per game, free:" or "Once per game:"
+ *  — which is the half every surface was already saying for itself, in a pill,
+ *  a prefix or a parenthetical. Both forms are trimmed; the `free` is optional
+ *  because four of them leave it out. So the card face read "Talent / Once per game, free: drag up
+ *  to 3 opponents…", and the battle prompt solved the repetition by dropping
+ *  the WRONG half: "Eye of the Gyre (Talent · free, once per game) — press
+ *  Confirm to use it. There is no second one." — a description with no
+ *  description in it, on the one screen where the player has to decide whether
+ *  to spend a thing they get once.
+ *
+ *  Leading capital restored, so the remainder still opens a sentence. The four
+ *  talents that carry no opener at all (Dartfrog, Hawk, Golden Eagle,
+ *  Jellyfish) pass through untouched, which is why this trims a KNOWN prefix
+ *  rather than assuming every text starts the same way. */
+export function talentEffect(text: string): string {
+  const out = text.replace(/^once per game(,?\s*free)?\s*:?\s*/i, "").trim();
+  return out ? out[0].toUpperCase() + out.slice(1) : text;
+}
 
 export function describeOwnPassives(def: CardDef): string[] {
   return describePassives(def).slice(describeSharedPassives(def).length);
