@@ -199,11 +199,26 @@ export interface OnKillDef {
    *  rolls silently worth double. `buffHits` is excluded for the same reason,
    *  harder: it multiplies the whole line and is worth `dmg` points.
    *
-   *  THE ROLL IS NOT EVEN ON A MULTI-HIT CARD, and an earlier version of this
+   *  THE ROLL IS NOT EVEN ON A MULTI-HIT CARD, and the first version of this
    *  comment claimed it was. A DMG roll is worth `hits` budget points, so it is
-   *  even only on the nine members that strike once. It is worth 2 on
-   *  ThunderCat, Bluejay, Thunder and Stormcaller, and 4 on FireFly (2x4) —
-   *  which makes FireFly the one to watch if this ever needs a second look.
+   *  even only on the members that strike once — worth 2 on Bluejay, Thunder
+   *  and Stormcaller, and 4 on FireFly (2x4).
+   *
+   *  That arithmetic is NOT the same as what the cards reach, and reading it as
+   *  though it were named the wrong card to watch. Measured over 1,568 matches,
+   *  peak total bonus per appearance where it grew at all (mean / worst):
+   *
+   *    Cloudburst 8.9/18 · Bluejay 8.7/16 · Storm 9.3/15 · Dynomight 2.5/8
+   *    Fallow 2.6/7 · FireFly 2.6/7 · Thunder 2.0/6 · Dynamo 1.4/5
+   *    Chopper 1.6/5 · Voltedge 1.3/4 · Stormcaller 1.5/3 · Dyna 1.2/3
+   *    Ricochet 1.0/2 · ThunderCat 1.1/2
+   *
+   *  FireFly's 4x multiplier barely matters because it rarely lives to collect;
+   *  Cloudburst (10x1, so every roll lands a clean kill) and Bluejay are the two
+   *  that actually pile up. Storm led the table on appearances by 2-6x — it was
+   *  cheap and its sweep cost 1 — and has since been pulled out of the tribe
+   *  for stacking this on Supercell. The three lowest accruers in the set are
+   *  Ricochet, ThunderCat and Dynamo.
    *
    *  Left as printed because it was MEASURED rather than argued: the canonical
    *  harness, 5,600 matches, run twice in one process with Ricochet, ThunderCat,
