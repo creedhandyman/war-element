@@ -124,10 +124,18 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: { REGEN: 2 }, // Canopy: REGEN 2 at end of round
     tribe: ["Dragon", "Reptile"],
+    // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
+    //
+    // It joined the tribe after the trait went out, so it was the one Dragon of
+    // eighteen without a ramp. It is also the cheapest — cost 3, and the only
+    // one under 5 — which makes the trait matter more here than anywhere: a
+    // 4-DMG wall that grows a point per kill is the difference between a body
+    // that stalls and one that eventually threatens.
+    passiveNames: { onHitStatus: "Bramble", onKill: "Dragon's Fury" },
+    onKill: { buffDmg: 1 },
     // Bramble: its basic leaves BLEED 1 for 2 rounds. Greegon was a pure wall —
-    // 4 DMG, REGEN, and nothing offensive — so it never closed anything and got
-    // never closed anything. The thorns give it a bite — a BLEED DoT on the foe.
-    passiveNames: { onHitStatus: "Bramble" },
+    // 4 DMG, REGEN, and nothing offensive — so it never closed anything and was
+    // never worth closing on. The thorns give it a bite — a BLEED DoT on the foe.
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
   },
   {
