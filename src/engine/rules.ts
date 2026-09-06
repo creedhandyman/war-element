@@ -1291,7 +1291,7 @@ export function matchesVsTarget(def: CardDef, target: CardInstance): boolean {
 export function volleyFilters(
   state: GameState,
   card: CardInstance,
-  p: Record<string, number | string>,
+  p: Record<string, number | string | number[]>,
   list: CardInstance[],
 ): CardInstance[] {
   let out = list;

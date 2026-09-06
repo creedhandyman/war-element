@@ -8364,8 +8364,18 @@ export const CARDS: CardDef[] = [
     roundTick: { pokeDmg: 2 },
     aura: { scope: "class", match: "Mage", dmg: 1 },
     auras: [{ scope: "class", match: "Ranger", dmg: 1 }],
-    // Twisted Rage: a 4 → 6 → 8 → 10 chain across adjacent opponents, and the
+    // Twisted Rage: a 1 → 2 → 4 → 6 chain across adjacent opponents, and the
     // storm it raises stays on the board.
+    //
+    // CUT FROM 4 → 6 → 8 → 10. That chain was 28 damage spread across a line
+    // for 5 magic, on top of conjuring a body — the Special was paying for
+    // itself twice, and the storm is the half worth keeping. 13 now, front-
+    // loaded light so the chain rewards having something left to hit rather
+    // than opening at a number that clears the row on its own.
+    //
+    // Written as `dmgSteps` because the curve doubles and then steps: no
+    // base + i*ramp produces 1, 2, 4, 6, and bending the numbers to fit the
+    // formula would have been the formula choosing the balance.
     //
     // HALF POWER, and on this token that is the whole of the balance. A
     // Thundering Hurricane is printed 20 DMG / 55 HP / 15 SP — a cost-6 body,
@@ -8383,13 +8393,13 @@ export const CARDS: CardDef[] = [
       cost: 5,
       handler: "combo",
       params: {
-        hits: 4, dmg: 4, ramp: 2,
+        hits: 4, dmgSteps: [1, 2, 4, 6],
         spawnToken: "gale_thundering_hurricane_tok", spawnCount: 1,
         spawnMaxAlive: 1, spawnScale: 0.5,
       },
       targetSide: "enemy",
       ranged: true,
-      text: "Chain 4 → 6 → 8 → 10 DMG across adjacent opponents, and raise a Thundering Hurricane at half strength (one at a time).",
+      text: "Chain 1 → 2 → 4 → 6 DMG across adjacent opponents, and raise a Thundering Hurricane at half strength (one at a time).",
     },
   },
   {

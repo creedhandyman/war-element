@@ -2232,7 +2232,7 @@ function applyAllyOnSummon(
   draft: GameState,
   caster: CardInstance,
   handler: string,
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
 ): void {
   const amount = Number(params.amount ?? 0);
   if (amount <= 0 || !caster.pos) return;

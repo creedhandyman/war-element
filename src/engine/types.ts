@@ -94,7 +94,7 @@ export interface SpecialDef {
   name: string;
   cost: number; // paid from the MAGIC pool in Battle Phase
   handler: string; // key into the handler registry in combat.ts
-  params?: Record<string, number | string>;
+  params?: Record<string, number | string | number[]>;
   /** "self" = the caster is the only target. Use it for Specials whose handler
    *  ignores `targets` entirely (empower, spawn, burrow); marking those "ally"
    *  makes the UI demand a pick from every ally on the board for an effect that
@@ -1595,7 +1595,7 @@ export interface CardDef {
   /** A Talent: a FREE, once-per-game Battle-Phase ability (fired instead of a
    *  basic attack). After it fires the card reverts to passive-only. */
   talent?: {
-    name: string; text: string; handler: string; params?: Record<string, number | string>;
+    name: string; text: string; handler: string; params?: Record<string, number | string | number[]>;
     /** Who the Talent aims at. Specials have always declared this; Talents did
      *  not, so `talentTargets` handed every handler the ENEMY list and an
      *  ally-targeting Talent silently did nothing (Stone's Search and Rescue).
@@ -1710,7 +1710,7 @@ export interface CardDef {
     castsOwnSpecial?: true;
     /** Optional — omit for a pure self-status on-summon (Frostveil's Icy Mist). */
     handler?: string;
-    params?: Record<string, number | string>;
+    params?: Record<string, number | string | number[]>;
     /** Who the on-summon effect hits. Default "enemy". "ally" fires an ally
      *  handler (grantShield/buffSp/heal) on friendly cards in the forward area
      *  (Smith Reforged, Duster Dust Off). */

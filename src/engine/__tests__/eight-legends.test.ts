@@ -23,7 +23,7 @@ function battleWith(s: GameState, activeId: string): GameState {
   return s;
 }
 
-const params = (id: string) => getDef(id).special!.params as Record<string, string | number>;
+const params = (id: string) => getDef(id).special!.params as Record<string, string | number | number[]>;
 const ROOT = { kind: "ROOT" as const, duration: 3, power: 0, source: "LEAF" as const };
 
 /** Fire `id`'s Special at `target`, with both boards non-empty. */

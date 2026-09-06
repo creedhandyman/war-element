@@ -2623,12 +2623,25 @@ export type SpecialHandler = (
   draft: GameState,
   attacker: CardInstance,
   targets: CardInstance[], // pre-validated by rules.ts; [0] = chosen target
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
 ) => void;
 
-function num(params: Record<string, number | string>, key: string, fallback = 0): number {
+function num(params: Record<string, number | string | number[]>, key: string, fallback = 0): number {
   const v = params[key];
   return typeof v === "number" ? v : fallback;
+}
+
+/** A param that is an explicit LIST of numbers, or null when absent.
+ *
+ *  For a sequence that is not an arithmetic progression. `ramp` covers
+ *  "each hit is N more than the last" and covers it well, but a curve that
+ *  changes its own step — Twisted Rage's 1, 2, 4, 6 — cannot be written as
+ *  base + i*ramp at any base or ramp, and the alternative was to bend the
+ *  numbers until the formula could express them. Spelling the steps out is
+ *  both exact and the most readable thing on the card. */
+function nums(params: Record<string, number | string | number[]>, key: string): number[] | null {
+  const v = params[key];
+  return Array.isArray(v) && v.length > 0 && v.every((n) => typeof n === "number") ? v : null;
 }
 
 /** Re-exported from rules.ts, where it moved so the placement preview could
@@ -2727,7 +2740,7 @@ function maybeStatus(
   draft: GameState,
   attacker: CardInstance,
   target: CardInstance,
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
 ): void {
   const kind = params.statusKind as StatusKind | undefined;
   if (!kind || target.curHp <= 0 || !draft.cards[target.instanceId]) return;
@@ -3010,7 +3023,7 @@ export function spellHit(
  *  a round to a standing cap of six, so its OWN tokens crowd it, and then King's
  *  SkullDrake had nowhere to land. A card should not be able to lock itself out
  *  of its own Special by working correctly. */
-function spawnRadiusOf(params: Record<string, string | number>): number | undefined {
+function spawnRadiusOf(params: Record<string, string | number | number[]>): number | undefined {
   return params.spawnRadius == null ? undefined : num(params, "spawnRadius", 1);
 }
 
@@ -3477,7 +3490,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
 function applySelfRiders(
   draft: GameState,
   caster: CardInstance,
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
 ): void {
   const maxHp = num(params, "selfMaxHp");
   if (maxHp > 0) {
@@ -3557,7 +3570,7 @@ function applySelfRiders(
 function applyDebuffRiders(
   draft: GameState,
   target: CardInstance,
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
   attacker?: CardInstance,
 ): void {
   if (!draft.cards[target.instanceId] || target.curHp <= 0) return;
@@ -3584,7 +3597,7 @@ function applyDebuffRiders(
 function adjacentCasterStatus(
   draft: GameState,
   caster: CardInstance,
-  params: Record<string, number | string>,
+  params: Record<string, number | string | number[]>,
 ): void {
   const kind = params.adjStatusKind as StatusKind | undefined;
   if (!kind || !caster.pos) return;
@@ -3714,6 +3727,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const killBoost = num(params, "killBoost");
     // `ramp` grows each successive strike (Slugger's Roll Out: 1→2→3→4).
     const ramp = num(params, "ramp", 0);
+    // ...or spell the chain out, for a curve `ramp` cannot describe. Overrides
+    // base/finisher/ramp entirely when present; `killBoost` still stacks on top,
+    // since that is a reward for what happened mid-combo rather than part of the
+    // printed shape. A chain longer than its list holds the last step.
+    const steps = nums(params, "dmgSteps");
     const pen = num(params, "pen") > 0;
     const queue = targets.slice(); // picked target first, then the rest
     let boost = 0; // escalation — local, so it lasts only for this combo
@@ -3724,7 +3742,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         return c && c.curHp > 0;
       });
       if (!target) break; // nothing left to hit
-      const dmg = (i === hits - 1 ? finisher : base) + boost + i * ramp;
+      const dmg = steps
+        ? steps[Math.min(i, steps.length - 1)] + boost
+        : (i === hits - 1 ? finisher : base) + boost + i * ramp;
       const r = resolveHit(draft, attacker, target, { kind: "special", dmg, hits: 1, pen, crit: false });
       if (r.targetDied) {
         boost += killBoost;
@@ -4022,7 +4042,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
           || chebyshev(here, a.pos!) - chebyshev(here, b.pos!)
           || a.instanceId.localeCompare(b.instanceId))[0];
       if (next) {
-        const { pounceAgain: _drop, ...once } = params as Record<string, number | string>;
+        const { pounceAgain: _drop, ...once } = params as Record<string, number | string | number[]>;
         void _drop;
         draft.log.push(`${label(draft, attacker)} lands and springs again.`);
         SPECIAL_HANDLERS.strike(draft, attacker, [next], once);
