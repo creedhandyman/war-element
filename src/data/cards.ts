@@ -8364,42 +8364,39 @@ export const CARDS: CardDef[] = [
     roundTick: { pokeDmg: 2 },
     aura: { scope: "class", match: "Mage", dmg: 1 },
     auras: [{ scope: "class", match: "Ranger", dmg: 1 }],
-    // Twisted Rage: a 1 → 2 → 4 → 6 chain across adjacent opponents, and the
-    // storm it raises stays on the board.
+    // Twisted Rage: it raises a storm. That is the whole Special now — the
+    // damage chain that used to run alongside it (4 → 6 → 8 → 10, then briefly
+    // 1 → 2 → 4 → 6) is gone, so the cast buys a BODY and nothing else.
     //
-    // CUT FROM 4 → 6 → 8 → 10. That chain was 28 damage spread across a line
-    // for 5 magic, on top of conjuring a body — the Special was paying for
-    // itself twice, and the storm is the half worth keeping. 13 now, front-
-    // loaded light so the chain rewards having something left to hit rather
-    // than opening at a number that clears the row on its own.
-    //
-    // Written as `dmgSteps` because the curve doubles and then steps: no
-    // base + i*ramp produces 1, 2, 4, 6, and bending the numbers to fit the
-    // formula would have been the formula choosing the balance.
+    // Which is why it is a `spawn` and no longer a `combo`. A combo handler
+    // firing zero hits would have worked and would have been a lie in the data;
+    // the honest version needed `spawn` to learn `scale`, which `spawnCapped`
+    // already accepted and only `combo` had ever passed.
     //
     // HALF POWER, and on this token that is the whole of the balance. A
     // Thundering Hurricane is printed 20 DMG / 55 HP / 15 SP — a cost-6 body,
-    // conjured free by a Special. At `spawnScale: 0.5` it lands as roughly
+    // conjured free by a Special. At `scale: 0.5` it lands as roughly
     // 10 / 28 / 7, which is a real card rather than a second legendary stapled
     // to this one. `scaleInstance` sets `statScale`, which `effectiveDmg` and
     // `effectiveSp` both read, so the Special it carries scales down with it —
     // this is not just a smaller stat line.
     //
-    // ONE AT A TIME (`spawnMaxAlive: 1`). Twisted Rage is repeatable on a
+    // ONE AT A TIME (`maxAlive: 1`). Twisted Rage is repeatable on a
     // cooldown, and without the ceiling a long game is a sky full of them —
     // the same limit Skybreaker's own round-6 storm carries.
     special: {
       name: "Twisted Rage",
       cost: 5,
-      handler: "combo",
+      handler: "spawn",
       params: {
-        hits: 4, dmgSteps: [1, 2, 4, 6],
-        spawnToken: "gale_thundering_hurricane_tok", spawnCount: 1,
-        spawnMaxAlive: 1, spawnScale: 0.5,
+        token: "gale_thundering_hurricane_tok", count: 1,
+        maxAlive: 1, scale: 0.5,
       },
-      targetSide: "enemy",
-      ranged: true,
-      text: "Chain 1 → 2 → 4 → 6 DMG across adjacent opponents, and raise a Thundering Hurricane at half strength (one at a time).",
+      // SELF, not enemy. With no damage left there is nothing to aim at, and an
+      // enemy-targeted Special cannot be cast into an empty board — which would
+      // have made the summons unavailable exactly when you most want a body.
+      targetSide: "self",
+      text: "Raise a Thundering Hurricane at half strength (one at a time).",
     },
   },
   {

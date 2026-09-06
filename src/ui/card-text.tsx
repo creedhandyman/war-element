@@ -55,7 +55,7 @@ export function chipify(text: string): ReactNode[] {
 function describeOnSummon(os: {
   castsOwnSpecial?: true;
   handler?: string;
-  params?: Record<string, number | string | number[]>;
+  params?: Record<string, number | string>;
   targetSide?: string;
   selfStatus?: string;
   selfStatusDuration?: number;

@@ -2719,28 +2719,25 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     s.players.P1.magicPool = 9;
     const kloud = place(s, "gale_kloud", "P1", 3, 1);
     const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 90, maxHp: 90, curShields: 0 });
-    SPECIAL_HANDLERS.combo(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+    SPECIAL_HANDLERS.spawn(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
       getDef("gale_kloud").special!.params!);
     return { s, storms: Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0) };
   }
   const STORM = "gale_thundering_hurricane_tok";
 
-  it("chains 1 → 2 → 4 → 6, exactly as printed", () => {
-    // The whole point of `dmgSteps`: this curve doubles and then steps, so no
-    // base + i*ramp produces it. Pinned against the CARD TEXT rather than
-    // against the formula, because the text is the promise.
-    //
-    // One target soaks the whole chain — `combo` walks its queue and only moves
-    // on when a body dies — so the total is the sum, and a big enough pool means
-    // nothing dies mid-chain to trigger `killBoost`.
+  it("deals NO damage — the summons is the whole Special", () => {
+    // The chain is gone, so the one thing that could regress quietly is a
+    // handler that still touches the enemy. Checked against a body standing in
+    // range of everything Kloud has.
     const s = prepState();
     s.players.P1.magicPool = 9;
     const kloud = place(s, "gale_kloud", "P1", 3, 1);
     const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
-    SPECIAL_HANDLERS.combo(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+    SPECIAL_HANDLERS.spawn(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
       getDef("gale_kloud").special!.params!);
-    expect(900 - s.cards[prey.instanceId].curHp).toBe(1 + 2 + 4 + 6);
-    expect(getDef("gale_kloud").special!.text).toContain("1 → 2 → 4 → 6");
+    expect(s.cards[prey.instanceId].curHp, "untouched").toBe(900);
+    expect(Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0), "storm still rises")
+      .toHaveLength(1);
   });
 
   it("arrives on the caster's side at HALF its card", () => {
@@ -2777,7 +2774,7 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     const kloud = place(s, "gale_kloud", "P1", 3, 1);
     const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
     for (let i = 0; i < 3; i++)
-      SPECIAL_HANDLERS.combo(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+      SPECIAL_HANDLERS.spawn(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
         getDef("gale_kloud").special!.params!);
     expect(Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0)).toHaveLength(1);
   });

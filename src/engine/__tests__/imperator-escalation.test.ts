@@ -19,7 +19,7 @@ const HEIR = "dawn_heir_tok";
  *  handler and asserting on the invention. */
 const params = () => {
   const sp = getDef(IMPERATOR).special!;
-  return sp.params as Record<string, string | number | number[]>;
+  return sp.params as Record<string, string | number>;
 };
 
 /** Plant a card for P1 at a slot and return it. */
