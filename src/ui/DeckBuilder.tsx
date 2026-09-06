@@ -77,8 +77,18 @@ export function DeckBuilder(props: {
   boardSize?: number;
   /** Present = building a campaign team, not a custom deck. */
   story?: StoryBuildMode;
+  /** Card ids the player holds in foil.
+   *
+   *  TOP LEVEL, not inside `story`, because a foil is a fact about the PLAYER
+   *  and not about which mode the builder was opened in. It lived on
+   *  `StoryBuildMode` and so reached only the campaign entrance: the squad
+   *  builder off the main menu — the same tool, the same collection, the same
+   *  cards — drew every one of them plain, while the story Collection one tap
+   *  away shone them. `story.foils` still works and wins if both are given. */
+  foils?: ReadonlySet<string>;
 }) {
   const story = props.story;
+  const foils = story?.foils ?? props.foils;
   // Which battlefield this deck is being built for — you can build an 18-card
   // (4×4) or a 30-card (5×5) deck regardless of the current game mode.
   // A 7x7 builds as the LARGE board. `deckLimits(7)` is `deckLimits(5)` exactly
@@ -1017,7 +1027,7 @@ export function DeckBuilder(props: {
                      target, and the rare one gets a corner. */
                   <div
                     key={d.id}
-                    className={`deck-thumb carded db-card ${on ? "selected" : ""} ${story?.foils?.has(d.id) ? "foil" : ""}`}
+                    className={`deck-thumb carded db-card ${on ? "selected" : ""} ${foils?.has(d.id) ? "foil" : ""}`}
                     role="button"
                     tabIndex={0}
                     aria-pressed={on}
@@ -1053,7 +1063,7 @@ export function DeckBuilder(props: {
                       >
                         ⓘ
                       </button>
-                      {story?.foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
+                      {foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
                     </div>
                     {/* Rarity is absolutely positioned (see styles.css) as a vertical
                         strip in the bottom-right corner — out of the art's face and
@@ -1085,7 +1095,7 @@ export function DeckBuilder(props: {
       {/* Expanded card details — a sub-overlay above the builder. Shared with
           the story Collection so the two can't drift apart. */}
       {detail && (
-        <CardView mode="browse" foil={!!story?.foils?.has(detail.id)}
+        <CardView mode="browse" foil={!!foils?.has(detail.id)}
           def={detail}
           onClose={() => setDetailId(null)}
           action={{

@@ -4817,6 +4817,12 @@ export function App() {
       <DeckBuilder
         boardSize={boardSize}
         open={builderOpen}
+        // The squad builder off the main menu is the same tool over the same
+        // collection as the campaign one above, so it shines the same cards.
+        // It has no `story` prop — it is not building a campaign team — and the
+        // foil set used to ride on that prop, which is the whole reason a foil
+        // went plain here.
+        foils={foilIds}
         incomingCode={linkedDeck}
         onIncomingConsumed={() => setLinkedDeck(null)}
         onClose={() => { setBuilderOpen(false); setLinkedDeck(null); }}
