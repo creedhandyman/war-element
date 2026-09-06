@@ -1408,6 +1408,17 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
     // its victim just vacated. All of these read as move-then-hit in their card
     // text ("Ride up to 4 slots ... and deal", "Dive ... onto your target"), and
     // the implementation used to do the opposite.
+    // THE TELL SPLITS BY `takeSpotOnKill`, and it is read off the def rather
+    // than listed here, so a rider that gains the rider does not quietly fall
+    // through to an assertion that no longer means anything. Tempest did
+    // exactly that: it was in this list, gained the rider, and "not on the
+    // corpse" went from proving the ordering to contradicting the card.
+    //
+    //   WITHOUT it — the rider pulls up BESIDE a body still standing and stays
+    //   there, because `chargeForward` stops at a living blocker.
+    //   WITH it — landing on the slot IS the design, so the tell becomes
+    //   whether it stopped ON that slot or walked PAST it: a charge that ran
+    //   after the strike would find the square already empty and keep going.
     for (const id of ["dusk_skelider", "dusk_shadowhorsemen", "bolt_thundercat", "gale_tempest"]) {
       const s = prepState();
       s.players.P1.magicPool = 9;
@@ -1417,8 +1428,13 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
         type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
       });
       expect(n.cards[doomed.instanceId], `${id} failed to kill`).toBeUndefined();
-      expect(n.cards[rider.instanceId].pos, `${id} walked onto the corpse`)
-        .not.toEqual({ row: 1, col: 1 });
+      const takesGround = Number(getDef(id).special!.params!.takeSpotOnKill ?? 0) > 0;
+      if (takesGround)
+        expect(n.cards[rider.instanceId].pos, `${id} charged past the slot it cleared`)
+          .toEqual({ row: 1, col: 1 });
+      else
+        expect(n.cards[rider.instanceId].pos, `${id} walked onto the corpse`)
+          .not.toEqual({ row: 1, col: 1 });
     }
   });
 

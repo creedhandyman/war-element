@@ -250,6 +250,36 @@ describe("a charge that kills takes the ground", () => {
     expect(s.cards[me.instanceId].pos, "but it stayed out").not.toEqual({ row: 1, col: 1 });
   });
 
+  it("Tempest ends the cyclone standing where its target was", () => {
+    // Same column: Cyclone Strike has `chargeFirst` without `chargeLateral`, so
+    // the approach is `chargeForward` — straight up its own file.
+    const r = kill("gale_tempest", [3, 1], [1, 1]);
+    expect(r.gone, "the target died").toBe(true);
+    expect(r.me.pos).toEqual({ row: 1, col: 1 });
+  });
+
+  it("...and does not move when Cyclone Strike leaves the target alive", () => {
+    // The control for the case above. `takeSpotOnKill` is gated on the KILL, not
+    // on the cast, and a Special that repositions either way is a different card.
+    const s = prepState();
+    const me = place(s, "gale_tempest", "P1", 3, 1);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 999, maxHp: 999 });
+    SPECIAL_HANDLERS.strike(s, s.cards[me.instanceId], [prey],
+      getDef("gale_tempest").special!.params!);
+    expect(s.cards[prey.instanceId].pos, "still standing there").toEqual({ row: 1, col: 1 });
+    expect(s.cards[me.instanceId].pos, "and Tempest is not on top of it").not.toEqual({ row: 1, col: 1 });
+  });
+
+  it("...and Cyclone Strike says so on the card", () => {
+    // The rider has no renderer — `describePassives` never sees a Special's
+    // params — so the only place a player can read it is the hand-written text.
+    // Every other carrier states it (Dive Bomb, Solar Pounce, Maul); this is
+    // what stops the param and the promise drifting apart.
+    const sp = getDef("gale_tempest").special!;
+    expect(sp.params!.takeSpotOnKill).toBe(1);
+    expect(sp.text.toLowerCase()).toContain("in its place");
+  });
+
   it("Burnout charges three slots now, not two", () => {
     expect(getDef("pyro_burnout").special!.params!.charge).toBe(3);
   });

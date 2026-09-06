@@ -4398,10 +4398,17 @@ export const CARDS: CardDef[] = [
       // without reach its "charge up to 3 slots" had nothing to cross — the
       // target was already adjacent and the charge moved zero. The reach is what
       // makes the promised charge exist.
-      params: { dmg: 8, charge: 3, pen: 1, chargeFirst: 1 },
+      //
+      // takeSpotOnKill: the cyclone ENDS where the body was. It is the same
+      // rider Dive Bomb, Solar Pounce and Maul carry, and Tempest already had
+      // the half that makes it mean something — `chargeFirst` closes the
+      // distance before the strike, so without this the charge crossed three
+      // slots, killed what it crossed to, and then stopped politely at the door
+      // with an empty square in front of it.
+      params: { dmg: 8, charge: 3, pen: 1, chargeFirst: 1, takeSpotOnKill: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Charge up to 3 slots and strike one opponent for 8 DMG (PEN).",
+      text: "Charge up to 3 slots and strike one opponent for 8 DMG (PEN). A kill leaves Tempest standing in its place.",
     },
   },
   {
