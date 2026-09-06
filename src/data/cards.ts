@@ -6468,16 +6468,24 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    tribe: "Super Squad",
-    // Supercell: +1 DMG, +2 HP, +1 SP every round for its first 3 rounds.
-    passiveNames: { onKill: "Level Up", buffDmgEveryN: "Supercell" },
-    // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    // OUT OF THE SUPER SQUAD, and the reason is that it already had the tribe's
+    // ability. Supercell is a ramp — +1 DMG, +2 HP, +1 SP a round for three
+    // rounds, twelve points of stat line for nothing — and Level Up is a second
+    // one stacked on top of it. No other member carries a growth passive of its
+    // own; on this card the two compounded, and the one that is Storm's is
+    // Supercell.
+    passiveNames: { buffDmgEveryN: "Supercell" },
     roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, hp: 2, maxTicks: 3 } },
     // Thunder Strike: 5 DMG to every ELECTRIFIED opponent (BOLT lights them up).
+    //
+    // COST 1 -> 3. Board-wide damage with no target cap for one magic was the
+    // cheapest sweep in the set, and BOLT's element aura ELECTRIFIES on every
+    // basic attack, so the condition it reads is one the whole element spends
+    // its turns setting up. At 3 it is a round's worth of magic and a decision,
+    // which is what a sweep should cost.
     special: {
       name: "Thunder Strike",
-      cost: 1,
+      cost: 3,
       handler: "smite",
       params: { dmg: 5, requireStatus: "ELECTRIFIED" },
       targetSide: "enemy",

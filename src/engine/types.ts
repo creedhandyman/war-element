@@ -193,17 +193,26 @@ export interface OnKillDef {
   /** Level Up (Super Squad): a kill raises ONE stat by this much, chosen at
    *  random from DMG, max HP and SP. Permanent, and it stacks with every kill.
    *
-   *  THREE stats, not four: each of these is worth exactly one point of the
-   *  stat budget (`dmg*hits + hp + shields*2 + sp`), so the roll decides WHICH
-   *  stat grows and never how much the card gained. Shields are the one stat
-   *  worth two, and folding them in would have made a quarter of the rolls
-   *  silently worth double — invisible on the card and invisible in the budget.
-   *  `coinShieldOrDmg` can weigh armour against teeth because it is one card
-   *  pricing one flip; this rides thirteen bodies across four elements and has
-   *  to stay even.
+   *  THREE stats, not four. Shields are excluded because they are worth two
+   *  points of the stat budget (`dmg*hits + hp + shields*2 + sp`) where HP and
+   *  SP are worth one, and folding them in would have made a quarter of the
+   *  rolls silently worth double. `buffHits` is excluded for the same reason,
+   *  harder: it multiplies the whole line and is worth `dmg` points.
    *
-   *  DMG (not hits) is the DMG half deliberately: `buffHits` multiplies the
-   *  whole line and is worth `dmg` points, not one. */
+   *  THE ROLL IS NOT EVEN ON A MULTI-HIT CARD, and an earlier version of this
+   *  comment claimed it was. A DMG roll is worth `hits` budget points, so it is
+   *  even only on the nine members that strike once. It is worth 2 on
+   *  ThunderCat, Bluejay, Thunder and Stormcaller, and 4 on FireFly (2x4) —
+   *  which makes FireFly the one to watch if this ever needs a second look.
+   *
+   *  Left as printed because it was MEASURED rather than argued: the canonical
+   *  harness, 5,600 matches, run twice in one process with Ricochet, ThunderCat,
+   *  Storm and Dynamo carrying Level Up and then not, put BOLT at +0.4 — inside
+   *  the +/-2.6 confidence interval, i.e. nothing. That matches what four tribe
+   *  auras across 29 cards measured earlier (0.0-0.3). A tribe-wide passive on a
+   *  free stat is a texture change, not a power one, until a single card can
+   *  farm it; Dynamo's roundTick is the only multi-kill engine among them, and
+   *  it did not show either. */
   randomStat?: number;
   /** Perpetual Fog (Driftwraith): a kill leaves it EVASIVE for this many rounds.
    *

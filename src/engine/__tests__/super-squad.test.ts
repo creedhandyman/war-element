@@ -42,12 +42,15 @@ function killOnce(id: string, seed: number) {
   };
 }
 
+// Storm was a founding member and was pulled straight back out: Supercell is
+// already a ramp (+1 DMG / +2 HP / +1 SP a round for three rounds), and Level Up
+// is a second one stacked on it. It is the only card in the set that carried a
+// growth passive of its own, which is what made it the wrong home for this one.
 describe("the Super Squad roster", () => {
-  it("is the fourteen cards the tribe was created for", () => {
+  it("is the thirteen cards the tribe was created for", () => {
     expect(members().map((d) => d.id).sort()).toEqual([
       "aqua_rain",        // Cloudburst
       "bolt_shoksa",      // Dynamo
-      "bolt_storm",       // Storm
       "bolt_stormcaller", // Stormcaller
       "bolt_thunder",     // Thunder
       "bolt_thundercat",  // ThunderCat
@@ -60,6 +63,13 @@ describe("the Super Squad roster", () => {
       "pyro_dynomight",   // Dynomight
       "pyro_firefly",     // FireFly
     ]);
+  });
+
+  it("does not include Storm, whose own Supercell is already a ramp", () => {
+    const d = getDef("bolt_storm");
+    expect(tribesOf(d), "no tribe").toEqual([]);
+    expect(d.onKill, "and no Level Up").toBeUndefined();
+    expect(d.roundTick?.buffDmgEveryN, "Supercell stays").toBeTruthy();
   });
 
   it("keeps the tribes those cards already had", () => {
