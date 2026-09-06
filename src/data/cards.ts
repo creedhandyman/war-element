@@ -8386,7 +8386,13 @@ export const CARDS: CardDef[] = [
     // the same limit Skybreaker's own round-6 storm carries.
     special: {
       name: "Twisted Rage",
-      cost: 5,
+      // 3, down from 5. It was priced for a damage chain AND a body; with the
+      // chain gone it buys one half-strength Hurricane, and 5 magic made the
+      // best thing Kloud does the thing you could least afford to do. The
+      // `maxAlive: 1` ceiling is what keeps the cheaper cast honest — casting
+      // it more often does not put more storms on the board, it just gets the
+      // one back sooner after it dies.
+      cost: 3,
       handler: "spawn",
       params: {
         token: "gale_thundering_hurricane_tok", count: 1,
