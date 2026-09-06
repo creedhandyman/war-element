@@ -419,6 +419,10 @@ export function describePassives(def: CardDef): string[] {
       // as "both" on a card that grants exactly one of them.
       k.coinShieldOrDmg &&
         `a coin flip: +${k.coinShieldOrDmg.shields} shield or +${k.coinShieldOrDmg.dmg} DMG, permanently`,
+      // Name the three so the player knows the whole spread — "a random stat"
+      // reads as though shields or an extra hit might be in the hat.
+      k.randomStat &&
+        `+${k.randomStat} to ONE stat at random — DMG, max HP or SP — permanently`,
       k.healSelf && `heal ${k.healSelf} HP`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,

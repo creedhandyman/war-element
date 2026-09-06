@@ -1026,6 +1026,9 @@ export function chanceProblems(d: CardDef): string[] {
   if (d.blocksRangedChance) out.push("blocksRangedChance");
   if (d.onRevive?.secondChance) out.push("onRevive.secondChance");
   if (d.critIfFaster) out.push("critIfFaster");
+  // Level Up rolls a d3 for which stat. No Super Squad member is a boss today;
+  // this is here so the day one is promoted, the build says so.
+  if (d.onKill?.randomStat) out.push("onKill.randomStat (a roll)");
   const params = d.special?.params ?? {};
   for (const k of ["statusChance", "doubleChance"]) {
     if (params[k] != null) out.push(`special.params.${k}`);

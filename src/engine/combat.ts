@@ -3385,6 +3385,31 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
       draft.log.push(`${name} takes the harbour's steel (+${c.dmg} DMG).`);
     }
   }
+  // Level Up (Super Squad): the squad grows on a kill, and does not get to pick
+  // where. Rolled ONCE and branched, rather than three separate rolls — three
+  // would sometimes grant nothing and sometimes grant everything, and the card
+  // says one stat.
+  if (def.randomStat) {
+    const n = def.randomStat;
+    switch (randInt(draft, 3)) {
+      case 0:
+        killer.dmgBonus += n;
+        draft.log.push(`${name} levels up (+${n} DMG).`);
+        break;
+      case 1: {
+        // Through gainMaxHp so a `maxHpCap` card cannot float above its ceiling
+        // and the new body is FILLED — the card is bigger, not wounded.
+        const got = gainMaxHp(killer, n);
+        draft.log.push(got > 0
+          ? `${name} levels up (+${got} max HP).`
+          : `${name} levels up, but it is already as big as it gets.`);
+        break;
+      }
+      default:
+        killer.spBonus += n;
+        draft.log.push(`${name} levels up (+${n} SP).`);
+    }
+  }
   if (def.healSelf) {
     const h = healCard(draft, killer, def.healSelf, killer);
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);

@@ -190,6 +190,21 @@ export interface OnKillDef {
    *  "which stat", and folding them together would make either card's number
    *  ambiguous to read off the data. */
   coinShieldOrDmg?: { shields: number; dmg: number };
+  /** Level Up (Super Squad): a kill raises ONE stat by this much, chosen at
+   *  random from DMG, max HP and SP. Permanent, and it stacks with every kill.
+   *
+   *  THREE stats, not four: each of these is worth exactly one point of the
+   *  stat budget (`dmg*hits + hp + shields*2 + sp`), so the roll decides WHICH
+   *  stat grows and never how much the card gained. Shields are the one stat
+   *  worth two, and folding them in would have made a quarter of the rolls
+   *  silently worth double — invisible on the card and invisible in the budget.
+   *  `coinShieldOrDmg` can weigh armour against teeth because it is one card
+   *  pricing one flip; this rides thirteen bodies across four elements and has
+   *  to stay even.
+   *
+   *  DMG (not hits) is the DMG half deliberately: `buffHits` multiplies the
+   *  whole line and is worth `dmg` points, not one. */
+  randomStat?: number;
   /** Perpetual Fog (Driftwraith): a kill leaves it EVASIVE for this many rounds.
    *
    *  Distinct from `grantStealth`, which cloaks the killer AND its same-row,
