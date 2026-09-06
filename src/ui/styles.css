@@ -545,11 +545,56 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.row-opp { --tile: var(--tile-opp); }
 .slot.row-mid { --tile: var(--tile-mid); }
 .slot.row-your { --tile: var(--tile-your); }
+/* ONE GLOW LAYER PER TILE, AND THE REASON IS BATTERY.
+ *
+ * Every board-state cue below used to animate `box-shadow` on `.slot` itself.
+ * A blurred shadow cannot be GPU-composited: each frame the browser repaints
+ * the element AND recomputes the blur on the main thread, and several of these
+ * animated TWO shadows at once (outer + inset) while `slotAct` animated three
+ * plus a `color-mix()` resolved per frame.
+ *
+ * That is at its worst exactly when nothing is happening. Every movable card of
+ * yours wears `.movable` and every legal destination wears `.legal`, so on a
+ * 5x5 board a dozen-plus tiles were repainting at 60fps while the player sat
+ * still deciding what to do. Reported from the device as heat and lag.
+ *
+ * The shadow is now painted ONCE onto this layer and only its OPACITY is
+ * animated, which the compositor does on the GPU without repainting anything.
+ * Same cue, same colours, no per-frame paint.
+ *
+ * Each state sets its own `--glow-min` — the dim end of its old pulse relative
+ * to the bright end, so the rhythm survives the change — and its own duration.
+ * The layer is absolutely positioned so `.slot`'s `display: grid` does not lay
+ * it out as a centred grid item, and `z-index: 0` keeps it under the token the
+ * way a shadow on the tile itself was.
+ *
+ * NOT converted: `.slot.contested`, which animates `border-color`. There is no
+ * blur to recompute and no shadow to hoist, so it is the cheap one — and moving
+ * a border onto a child means re-deriving the radius and the box inset for no
+ * measurable gain. */
+.slot-glow {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+  opacity: 0; /* nothing lights it until a state below does */
+}
+@keyframes glowpulse { 0%, 100% { opacity: var(--glow-min, 0.5); } 50% { opacity: 1; } }
+/* The slot cues never honoured this before — they pulsed regardless. Held at
+   full brightness rather than switched off: the glow IS the cue, so it has to
+   stay legible; only the motion goes. */
+@media (prefers-reduced-motion: reduce) {
+  .slot-glow { animation: none !important; opacity: 1; }
+}
 /* the tile whose card is taking its turn pulses in its row colour */
-.slot.acting { animation: slotAct 1.15s ease-in-out infinite; z-index: 3; }
-@keyframes slotAct {
-  0%, 100% { box-shadow: 0 0 12px color-mix(in srgb, var(--tile) 35%, transparent), inset 0 0 18px rgba(0,0,0,0.5); }
-  50% { box-shadow: 0 0 26px color-mix(in srgb, var(--tile) 75%, transparent), 0 0 46px color-mix(in srgb, var(--tile) 38%, transparent), inset 0 0 16px rgba(0,0,0,0.4); }
+.slot.acting { z-index: 3; }
+/* The inset dark is gone on purpose: it was re-declared here only because an
+   animated box-shadow REPLACES the base one, and `.slot`'s own rule already
+   carries `inset 0 0 18px rgba(0,0,0,0.5)`. It now stays put instead of
+   flickering between 0.5 and 0.4 alpha every cycle. */
+.slot.acting > .slot-glow {
+  --glow-min: 0.45;
+  box-shadow: 0 0 26px color-mix(in srgb, var(--tile) 75%, transparent),
+              0 0 46px color-mix(in srgb, var(--tile) 38%, transparent);
+  animation: glowpulse 1.15s ease-in-out infinite;
 }
 /* The arcane compass sigil, tinted to the row colour. Dimmed to ~a third of its
    old 0.15: empty slots were competing with the cards for attention, and an
@@ -560,20 +605,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   -webkit-mask: url("/tile-sigil.svg") center / contain no-repeat;
   mask: url("/tile-sigil.svg") center / contain no-repeat;
 }
-.slot.legal { border-color: var(--legal); animation: legalpulse 1.4s infinite; }
-@keyframes legalpulse {
-  0%, 100% { box-shadow: 0 0 14px var(--legal-soft), inset 0 0 16px var(--legal-soft); }
-  50% { box-shadow: 0 0 24px rgba(78, 203, 143, 0.4), inset 0 0 22px var(--legal-soft); }
+.slot.legal { border-color: var(--legal); }
+.slot.legal > .slot-glow {
+  --glow-min: 0.6;
+  box-shadow: 0 0 24px rgba(78, 203, 143, 0.4), inset 0 0 22px var(--legal-soft);
+  animation: glowpulse 1.4s ease-in-out infinite;
 }
 /* Movable nudge: on your prep turn, before you've spent your one move, each of
    your pieces that CAN move wears a soft cyan ring + a floating ⤢ badge. Cyan,
    deliberately NOT the green of a destination slot — the card says "pick me",
    the green slot says "go here", so the two cues never blur together. Yields the
    instant you arm anything (movableIds empties), so it never clutters targeting. */
-.slot.movable { border-color: rgba(56, 189, 248, 0.65); animation: movablepulse 1.6s ease-in-out infinite; z-index: 2; }
-@keyframes movablepulse {
-  0%, 100% { box-shadow: 0 0 8px rgba(56, 189, 248, 0.28), inset 0 0 12px rgba(56, 189, 248, 0.12); }
-  50% { box-shadow: 0 0 18px rgba(56, 189, 248, 0.6), inset 0 0 16px rgba(56, 189, 248, 0.24); }
+.slot.movable { border-color: rgba(56, 189, 248, 0.65); z-index: 2; }
+.slot.movable > .slot-glow {
+  --glow-min: 0.45;
+  box-shadow: 0 0 18px rgba(56, 189, 248, 0.6), inset 0 0 16px rgba(56, 189, 248, 0.24);
+  animation: glowpulse 1.6s ease-in-out infinite;
 }
 .move-badge {
   position: absolute; top: -7px; left: -6px; z-index: 4;
@@ -611,16 +658,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Mute the row sigil underneath — it's the loudest remaining row cue. */
 .slot.captured::before { opacity: 0.05; }
 /* Enemy attack / special targets — RED (green stays for summon/move + ally). */
-.slot.target { border-color: var(--threat); animation: targetpulse 1.2s infinite; z-index: 2; }
-@keyframes targetpulse {
-  0%, 100% { box-shadow: 0 0 14px var(--threat-soft), inset 0 0 16px var(--threat-soft); }
-  50% { box-shadow: 0 0 26px rgba(229, 83, 61, 0.5), inset 0 0 22px var(--threat-soft); }
+.slot.target { border-color: var(--threat); z-index: 2; }
+.slot.target > .slot-glow {
+  --glow-min: 0.55;
+  box-shadow: 0 0 26px rgba(229, 83, 61, 0.5), inset 0 0 22px var(--threat-soft);
+  animation: glowpulse 1.2s ease-in-out infinite;
 }
 /* On-summon damage AREA preview — a red wash over every tile it will strike. */
-.slot.preview { border-color: var(--threat); animation: previewpulse 1.5s infinite; z-index: 2; }
-@keyframes previewpulse {
-  0%, 100% { box-shadow: inset 0 0 14px var(--threat-soft), 0 0 8px var(--threat-soft); }
-  50% { box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25); }
+.slot.preview { border-color: var(--threat); z-index: 2; }
+.slot.preview > .slot-glow {
+  --glow-min: 0.55;
+  box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25);
+  animation: glowpulse 1.5s ease-in-out infinite;
 }
 /* THE AIM — the footprint of an armed area Special (Airburst's 4x4, Mega
    Icicle's 2x2, a splash ring) drawn under the player's pick BEFORE they fire.

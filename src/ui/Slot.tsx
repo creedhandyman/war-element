@@ -117,6 +117,12 @@ export function Slot(props: {
         props.onDrop(props.row, props.col);
       }}
     >
+      {/* The board-state glow (acting / legal / movable / target / preview).
+          Its own layer so the shadow is painted once and only its opacity is
+          animated — see .slot-glow in styles.css. Always rendered and always
+          first: it costs nothing while transparent, and one stable element is
+          cheaper than mounting and unmounting one on every state change. */}
+      <i className="slot-glow" aria-hidden="true" />
       {props.poiLetter && <span className="poi-letter" aria-hidden="true">{props.poiLetter}</span>}
       {props.captured && (
         <span

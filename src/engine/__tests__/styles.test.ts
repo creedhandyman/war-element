@@ -253,3 +253,73 @@ describe("a foil is one finish, everywhere", () => {
     }
   });
 });
+
+// An always-on animation is a battery decision, not a style one.
+//
+// Reported from the device as heat and lag. 22 of the sheet's 34 infinite
+// animations animated `box-shadow`, which cannot be GPU-composited: every frame
+// the browser repaints the element AND recomputes the blur on the main thread.
+// The worst were the BOARD STATES — every movable card wears `.movable` and
+// every legal destination wears `.legal`, so a dozen-plus tiles on a 5x5 board
+// repainted at 60fps while the player sat still deciding.
+//
+// The five board cues now paint their shadow ONCE onto `.slot-glow` and animate
+// only its opacity. These two tests are what stop that drifting back.
+describe("board-state cues are composited, not repainted", () => {
+  const NL = String.fromCharCode(10);
+  /** Keyframe name -> the properties it animates. */
+  const keyframes = (): Record<string, string[]> => {
+    const out: Record<string, string[]> = {};
+    const re = /@keyframes\s+([\w-]+)\s*\{/g;
+    for (let m = re.exec(CSS); m; m = re.exec(CSS)) {
+      const open = m.index + m[0].length - 1;
+      let depth = 0, end = open;
+      for (let i = open; i < CSS.length; i++) {
+        if (CSS[i] === "{") depth++;
+        else if (CSS[i] === "}" && --depth === 0) { end = i; break; }
+      }
+      out[m[1]] = [...new Set(
+        [...CSS.slice(open, end).matchAll(/([a-zA-Z-]+)\s*:/g)].map((p) => p[1]),
+      )].sort();
+    }
+    return out;
+  };
+  const GPU = new Set(["transform", "opacity", "translate", "scale", "rotate"]);
+
+  it("no slot STATE animates the slot itself", () => {
+    // The cue moved to a child layer; an `animation` back on `.slot.<state>`
+    // means a shadow is being repainted again.
+    for (const state of ["acting", "legal", "movable", "target", "preview"]) {
+      const line = CSS.split(NL).find((l) => l.startsWith(`.slot.${state} {`));
+      expect(line, `no rule for .slot.${state}`).toBeTruthy();
+      expect(line, `.slot.${state} animates itself again`).not.toContain("animation:");
+    }
+  });
+
+  it("the glow layer animates opacity and nothing else", () => {
+    expect(keyframes().glowpulse, "glowpulse must stay compositable").toEqual(["opacity"]);
+    // Every `.slot-glow` rule drives that one keyframe.
+    for (const l of CSS.split(NL).filter((l) => l.includes("> .slot-glow")))
+      expect(CSS.slice(CSS.indexOf(l)).slice(0, 400), l).toContain("glowpulse");
+  });
+
+  it("the set of always-on animations that force a repaint does not grow", () => {
+    // A ratchet, not a ban: these are the ones that were already here, several
+    // of them on rare or short-lived elements where the cost is fine. What is
+    // NOT fine is adding a new one without noticing, which is how the board got
+    // into this state. A new name here means: animate opacity on a layer, or
+    // add it to this list deliberately.
+    const kf = keyframes();
+    const used = [...new Set(
+      [...CSS.matchAll(/animation:\s*([\w-]+)[^;]*infinite/g)].map((m) => m[1]),
+    )];
+    const repaints = used
+      .filter((n) => (kf[n] ?? ["?"]).some((p) => !GPU.has(p)))
+      .sort();
+    expect(repaints).toEqual([
+      "bdrage", "blastpulse", "cardglow", "chipready", "clocknow", "foilSweep",
+      "gd-pulse", "movepulse", "mvpulse", "objpulse", "passnudge", "qnext",
+      "rarBreathe", "readyglow", "readyglowGold", "threatpulse", "wellpulse",
+    ]);
+  });
+});
