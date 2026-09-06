@@ -13826,12 +13826,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 4,
-    // 5 + 15 + 1*2 + 8 = 30 = 5*4+10.
-    dmg: 5,
+    // 7 + 15 + 0*2 + 8 = 30 = 5*4+10.
+    //
+    // The shield became damage, one for one: a shield is 2 budget points and a
+    // single-hit +2 costs the same 2, so the line did not move. It reads better
+    // as a surfer, too — `advanceOnBasic` walks it INTO the fight every time it
+    // shoots, and armour on a card whose passive is "get closer" was buying a
+    // round of survival at the exact moment it wanted to be hitting harder.
+    dmg: 7,
     hits: 1,
     hp: 15,
     sp: 8,
-    shields: 1,
+    shields: 0,
     keywords: {},
     passiveNames: { advanceOnBasic: "Riding It In" },
     // The wave breaks on the row DIRECTLY AHEAD, so a Ranger parked at the back
