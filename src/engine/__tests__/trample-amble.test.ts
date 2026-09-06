@@ -15,7 +15,7 @@ import { applyIntent } from "../phases";
 import { effectiveMaxHp } from "../state";
 import { canMove, shoveTarget, validTargets } from "../rules";
 import { basicAttack } from "../combat";
-import { getDef } from "../../data/cards";
+import { CARDS, TOKENS, getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import type { GameState, Pos } from "../types";
 
@@ -41,6 +41,62 @@ const moveTo = (s: GameState, id: string, to: Pos) =>
   applyIntent(s, { type: "MOVE", player: "P1", instanceId: id, to } as never);
 
 describe("Trample Through", () => {
+  /** THE WHOLE CLUB, pinned. The list above names seven; a card that quietly
+   *  LOSES the keyword outside those seven changes nothing any test looks at,
+   *  and that has already happened here — a revert taken across cards.ts while
+   *  measuring something else dropped TRAMPLE from twenty-one carriers to
+   *  sixteen, and it took a per-card diff of the whole file to find. This is
+   *  the cheap version of that diff. Adding or removing a trampler is a
+   *  deliberate one-line edit here; losing five by accident is not. */
+  it("is carried by exactly these cards", () => {
+    const carrying = [...CARDS, ...TOKENS]
+      .filter((d) => d.keywords.TRAMPLE).map((d) => d.id).sort();
+    expect(carrying).toEqual([
+      "aqua_polarbear", "bore_bastion", "bore_bearocks", "bore_bolder",
+      "bore_rhino", "bore_rolling_boulder_tok", "bore_spinosaur",
+      "boss_continental", "boss_hoarfell", "boss_kato",
+      "dawn_equestrian", "dawn_golden_bull_tok", "dawn_musk_ox", "dawn_warphant",
+      "dusk_skelider", "gale_buf", "gale_stormhide_bison",
+      "leaf_oakgre", "leaf_wintermoose", "pyro_burnout", "pyro_fire_giant_tok",
+      "pyro_warkiln",
+    ]);
+  });
+
+  it("Spinosaur tramples, and its SP is what keeps that fair", () => {
+    // The keyword is a PREP move onto an adjacent lighter body, so it is worth
+    // one step a turn — and at SP 4 this is a one-step body (SP_SLOW_MAX is 5).
+    // It buys the slowest card in the tribe the right not to be walled off by
+    // whatever cheap thing parks in front of it.
+    const d = getDef("bore_spinosaur");
+    expect(d.keywords.TRAMPLE).toBe(true);
+    expect(d.sp, "still slow — the brake on the grant").toBe(4);
+    // The fourth of the eight Mountain Beasts to carry it, and the second
+    // heaviest of those four — Bearocks is 30.
+    const beasts = CARDS.filter((c) => c.tribe === "Mountain Beasts" && c.keywords.TRAMPLE);
+    expect(beasts.map((c) => c.id).sort())
+      .toEqual(["bore_bearocks", "bore_bolder", "bore_rhino", "bore_spinosaur"]);
+    expect([...beasts].sort((a, b) => b.hp - a.hp).map((c) => c.hp))
+      .toEqual([30, 28, 20, 18]);
+  });
+
+  it("...and it actually shoves something lighter in Prep", () => {
+    const f = facing("bore_spinosaur", "dusk_gool");
+    expect(effectiveMaxHp(f.s, f.s.cards[f.victim.instanceId]))
+      .toBeLessThan(effectiveMaxHp(f.s, f.s.cards[f.mover.instanceId]));
+    expect(canMove(f.s, "P1", f.mover.instanceId, f.to).ok, "the shove is legal").toBe(true);
+    const n = moveTo(f.s, f.mover.instanceId, f.to);
+    expect(n.cards[f.mover.instanceId].pos, "took the slot").toEqual(f.to);
+    expect(n.cards[f.victim.instanceId].pos, "driven back").toEqual({ row: 0, col: 1 });
+  });
+
+  it("...but not something heavier", () => {
+    // The weight gate, on the card most likely to make it look absent: 28 HP
+    // out-weighs 367 of the 396 non-boss cards, so the ONE case worth pinning
+    // is the handful it does not.
+    const f = facing("bore_spinosaur", "leaf_oakgre"); // 55 HP
+    expect(canMove(f.s, "P1", f.mover.instanceId, f.to).ok, "cannot walk through a bigger body").toBe(false);
+  });
+
   it("is a KEYWORD on every carrier, and they are the heavy ones", () => {
     // A keyword rather than a def field, so it reads as a chip on the card the
     // way FLYING and BLOCK do — the ability was always printed to the player as

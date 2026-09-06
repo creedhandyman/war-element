@@ -13092,7 +13092,19 @@ export const CARDS: CardDef[] = [
     hp: 28,
     sp: 4,
     shields: 0,
-    keywords: {},
+    // TRAMPLE, and SP 4 is what makes it fair. The keyword is a PREP move onto
+    // an adjacent lighter body, so it is worth exactly one step a turn — and at
+    // SP 4 this is a one-step body (SP_SLOW_MAX is 5). It buys the slowest card
+    // in the tribe the right to not be walled off by whatever cheap thing is
+    // parked in front of it, which is the problem a 28-HP 4-SP dinosaur has.
+    //
+    // 28 HP out-weighs 367 of the 396 non-boss cards, so the weight check will
+    // almost always pass. That is the point rather than an oversight: it is the
+    // fourth of the eight Mountain Beasts to carry this, beside Bearocks (30),
+    // Bolder (20) and Crystal Rhino (18) — second heaviest of the four, and the
+    // slowest by a wide margin, which is the trade.
+    // Keywords sit outside the stat budget, so the printed line is unchanged.
+    keywords: { TRAMPLE: true },
     tribe: "Mountain Beasts",
     passiveNames: { onKill: "Gorge" },
     // CAPPED, using the ceiling added for Vulcanyx. An uncapped +DMG per kill on
