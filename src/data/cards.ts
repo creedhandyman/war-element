@@ -2303,7 +2303,7 @@ export const CARDS: CardDef[] = [
     // basic attacks CRIT and heal +4.
     passiveNames: { onKill: "Level Up", vsStatus: "Precision Strike" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     vsStatus: { status: "PARALYZE", anyStatus: true, crit: true, healOnHit: 4 },
     special: {
       name: "Static Toss",
@@ -2462,7 +2462,7 @@ export const CARDS: CardDef[] = [
     tribe: "Super Squad",
     passiveNames: { onKill: "Level Up", onHitStatus: "Static Cling" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     onHitStatus: { kind: "DOT", duration: 2, power: 1 }, // Lightning Scars
     // Arrival Pounce (On Summon): rush straight up its own column and strike
     // what it finds, for 4 CRIT.
@@ -2843,7 +2843,7 @@ export const CARDS: CardDef[] = [
     // range. Can CRIT, so an unshielded newcomer sometimes eats 4.
     passiveNames: { onKill: "Level Up", onOppSummon: "Gustarrows" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     onOppSummon: { dmg: 2, crit: true },
     special: {
       name: "Twin Wind Strikes",
@@ -3814,7 +3814,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { onKill: "Level Up" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     mounted: true,      // a king-move in Prep, like the other mounts...
     mountedSp: 4,       // ...and the bike's own speed, lost with the bike
     tribe: ["Voltis", "Super Squad"],
@@ -4413,7 +4413,7 @@ export const CARDS: CardDef[] = [
     tribe: "Super Squad",
     passiveNames: { onKill: "Level Up" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     // Complete Circuit: each Cleanup, zap every PARALYZED enemy in range for 2
     // (pairs with the Special; BOLT's Electrify also +1 DMG vs the statused).
     roundTick: { aoeParalyzedDmg: 2 },
@@ -4864,7 +4864,7 @@ export const CARDS: CardDef[] = [
     tribe: "Super Squad",
     passiveNames: { onKill: "Level Up" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     // Trapper (End of Round): the snares bite everything they're holding.
     // 1, down from 2. The aura pins the whole side's targets, so this ticks on
     // most of the enemy board at once — the reach is the power, not the number.
@@ -5437,7 +5437,7 @@ export const CARDS: CardDef[] = [
     // combos with its OWN Special rather than with any stray DOT on the board.
     passiveNames: { onKill: "Level Up", aoeElectrifiedDmg: "Static Discharge" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     roundTick: { aoeElectrifiedDmg: 2 },
     // "On Summon: use Special" needs no new mechanic — the same handler and
     // params, wired to the summon trigger.
@@ -7288,7 +7288,7 @@ export const CARDS: CardDef[] = [
     // until the end of next round.
     passiveNames: { onKill: "Level Up", firePassiveSpecial: "BlastOff" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     firePassiveSpecial: { onKill: true, grantFlyingRounds: 2 },
     // Flying Flame Strike: TWELVE 1-DMG shots, each rolled independently at a
     // random opponent in range, then a reposition. `targets` is the SHOT count,
@@ -7740,7 +7740,7 @@ export const CARDS: CardDef[] = [
     // a chip.
     passiveNames: { onKill: "Level Up", basicSplash: "Rainstorm", splashAura: "Downpour" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     basicSplash: 1,
     splashAura: 1,
     splashAll: true,
@@ -8039,7 +8039,7 @@ export const CARDS: CardDef[] = [
     // Striking Defense: immune to Ranged attacks; a melee attacker takes 3 back.
     passiveNames: { onKill: "Level Up", onHitByMelee: "Striking Defense", blocksRangedChance: "Striking Defense" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     // 50, not 100. At 100 this was TOTAL permanent immunity to every attack from
     // every Ranged card in the game, on a card sitting exactly on budget. The
     // only other holder of this passive, Rhyolite, runs it at 50 AND pays 2 stat
@@ -8106,7 +8106,7 @@ export const CARDS: CardDef[] = [
     // Warrior/Tank.
     passiveNames: { onKill: "Level Up", bonusVsShield: "Explosive Power" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     bonusVsShield: 2,
     bonusVsClass: { classes: ["Warrior", "Tank"], mult: 2 },
     // Grand Finally: 6 DMG to the adjacent row and 4 DMG to the rest; Dynomight
@@ -8782,7 +8782,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { onKill: "Level Up" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     tribe: ["Forged Tech", "Super Squad"],
     // Demolition Charge (Talent, free, once per game): a bomb sized to the mark
     // — 4 DMG plus a fifth of its MAX HP.
@@ -13512,7 +13512,7 @@ export const CARDS: CardDef[] = [
     mountedSp: 3,    // ...and 3 of its speed belongs to the bike, not the rider
     passiveNames: { onKill: "Level Up", roundTick: "Drip Torch", advanceOnBasic: "Throttle", mounted: "Two Wheels" },
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1 },
+    onKill: { randomStat: 1, randomStatMax: 8 },
     // Drip Torch survives the rewrite unchanged, because a drip torch is
     // literally the tool you lay a fire LINE with — it fitted a bike better than
     // it ever fitted the helicopter.

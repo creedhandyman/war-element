@@ -92,6 +92,7 @@ describe("the Super Squad roster", () => {
     expect(members().map((d) => d.id).sort()).toEqual(withPassive.map((d) => d.id).sort());
     for (const d of members()) {
       expect(d.onKill?.randomStat, `${d.id} levels up by 1`).toBe(1);
+      expect(d.onKill?.randomStatMax, `${d.id} is bounded`).toBe(8);
       expect(d.passiveNames?.onKill, `${d.id} names it`).toBe("Level Up");
     }
   });
@@ -148,11 +149,49 @@ describe("Level Up", () => {
       expect(n, `${k} came up ${n}/300`).toBeGreaterThan(60);
   });
 
+  it("stops at the ceiling", () => {
+    // A guard rail rather than a nerf: the highest grant count measured over
+    // 1,568 matches is 6, so nothing reaches 8 in play today. It exists because
+    // every other ramp in the file is bounded, and because the day a member is
+    // printed with an action that DOES farm this, the bound should already be
+    // there. Pinned here so "it never binds" cannot quietly become "it does not
+    // work".
+    const cap = getDef("aqua_rain").onKill!.randomStatMax!;
+    const s = bigPrepState(3);
+    const hero = place(s, "aqua_rain", "P1", 3, 2);
+    const base = getDef("aqua_rain");
+    for (let i = 0; i < cap + 15; i++) {
+      const prey = place(s, "leaf_stickviper", "P2", 2, 2, { curHp: 1, maxHp: 1, curShields: 0 });
+      basicAttack(s, hero.instanceId, prey.instanceId);
+    }
+    const h = s.cards[hero.instanceId];
+    expect(h.levelUps, "grants taken").toBe(cap);
+    expect(h.dmgBonus + (h.maxHp - base.hp) + h.spBonus, "exactly the ceiling").toBe(cap);
+  });
+
+  it("does not keep rolling the RNG once it has stopped levelling", () => {
+    // A capped card that still pulled from the shared cursor would reshuffle
+    // every later coin flip in the match for BOTH sides — the cap would change
+    // games it was not even in.
+    const cap = getDef("aqua_rain").onKill!.randomStatMax!;
+    const spent = (extraKills: number) => {
+      const s = bigPrepState(3);
+      const hero = place(s, "aqua_rain", "P1", 3, 2);
+      for (let i = 0; i < cap + extraKills; i++) {
+        const prey = place(s, "leaf_stickviper", "P2", 2, 2, { curHp: 1, maxHp: 1, curShields: 0 });
+        basicAttack(s, hero.instanceId, prey.instanceId);
+      }
+      return s.rngState;
+    };
+    expect(spent(20), "cursor untouched by kills past the cap").toBe(spent(0));
+  });
+
   it("stacks across kills, and replays identically from a seed", () => {
+    const KILLS = 6;
     const run = () => {
       const s = bigPrepState(9);
       const hero = place(s, "bolt_stormcaller", "P1", 3, 2);
-      for (let i = 0; i < 9; i++) {
+      for (let i = 0; i < KILLS; i++) {
         const prey = place(s, "leaf_stickviper", "P2", 2, 2, { curHp: 1, maxHp: 1, curShields: 0 });
         basicAttack(s, hero.instanceId, prey.instanceId);
       }
@@ -161,7 +200,9 @@ describe("Level Up", () => {
       return { dmg: h.dmgBonus, hp: h.maxHp - base.hp, sp: h.spBonus };
     };
     const a = run();
-    expect(a.dmg + a.hp + a.sp, "nine kills, nine points").toBe(9);
+    // Under the ceiling on purpose — the cap has its own test above, and what
+    // this one pins is that nothing is dropped on the way there.
+    expect(a.dmg + a.hp + a.sp, "six kills, six points").toBe(KILLS);
     expect(run(), "same seed, same growth").toEqual(a);
   });
 });

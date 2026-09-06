@@ -890,6 +890,7 @@ export function summonCard(
     dmgBonusRound: 0,
     spBonus: 0,
     spBonusRound: 0,
+    levelUps: 0,
     hitsBonus: 0,
     hitsBonusRound: 0,
     tempShields: 0,

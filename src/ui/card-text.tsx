@@ -422,7 +422,7 @@ export function describePassives(def: CardDef): string[] {
       // Name the three so the player knows the whole spread — "a random stat"
       // reads as though shields or an extra hit might be in the hat.
       k.randomStat &&
-        `+${k.randomStat} to ONE stat at random — DMG, max HP or SP — permanently`,
+        `+${k.randomStat} to ONE stat at random — DMG, max HP or SP — permanently${k.randomStatMax ? `, up to +${k.randomStatMax} in all` : ""}`,
       k.healSelf && `heal ${k.healSelf} HP`,
       k.gainShields && `+${k.gainShields} shields`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,

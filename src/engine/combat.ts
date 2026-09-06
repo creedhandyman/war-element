@@ -3389,8 +3389,13 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   // where. Rolled ONCE and branched, rather than three separate rolls — three
   // would sometimes grant nothing and sometimes grant everything, and the card
   // says one stat.
-  if (def.randomStat) {
+  if (def.randomStat && killer.levelUps < (def.randomStatMax ?? Infinity)) {
     const n = def.randomStat;
+    // Counted BEFORE the roll, and the roll still happens at the ceiling's last
+    // grant — not after it. A card that has stopped levelling must not keep
+    // pulling from the RNG, or reaching the cap would silently reshuffle every
+    // later coin flip in the match for everyone.
+    killer.levelUps++;
     switch (randInt(draft, 3)) {
       case 0:
         killer.dmgBonus += n;

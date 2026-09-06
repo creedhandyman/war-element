@@ -201,34 +201,56 @@ export interface OnKillDef {
    *
    *  THE ROLL IS NOT EVEN ON A MULTI-HIT CARD, and the first version of this
    *  comment claimed it was. A DMG roll is worth `hits` budget points, so it is
-   *  even only on the members that strike once — worth 2 on Bluejay, Thunder
+   *  even only on the members that strike once - worth 2 on Bluejay, Thunder
    *  and Stormcaller, and 4 on FireFly (2x4).
    *
-   *  That arithmetic is NOT the same as what the cards reach, and reading it as
-   *  though it were named the wrong card to watch. Measured over 1,568 matches,
-   *  peak total bonus per appearance where it grew at all (mean / worst):
+   *  WHAT LEVEL UP ACTUALLY REACHES, over 1,568 matches - grants taken per
+   *  appearance where it fired at all (mean / worst):
    *
-   *    Cloudburst 8.9/18 · Bluejay 8.7/16 · Storm 9.3/15 · Dynomight 2.5/8
-   *    Fallow 2.6/7 · FireFly 2.6/7 · Thunder 2.0/6 · Dynamo 1.4/5
-   *    Chopper 1.6/5 · Voltedge 1.3/4 · Stormcaller 1.5/3 · Dyna 1.2/3
-   *    Ricochet 1.0/2 · ThunderCat 1.1/2
+   *    Bluejay 2.5/6 · Thunder 2.0/6 · Cloudburst 2.4/6 · Dynomight 2.0/6
+   *    Fallow 1.8/5 · Dynamo 1.4/5 · FireFly 2.0/5 · Voltedge 1.4/4
+   *    Chopper 1.5/4 · Stormcaller 1.4/3 · Ricochet 1.0/2 · ThunderCat 1.1/2
+   *    Dyna 1.1/2
    *
-   *  FireFly's 4x multiplier barely matters because it rarely lives to collect;
-   *  Cloudburst (10x1, so every roll lands a clean kill) and Bluejay are the two
-   *  that actually pile up. Storm led the table on appearances by 2-6x — it was
-   *  cheap and its sweep cost 1 — and has since been pulled out of the tribe
-   *  for stacking this on Supercell. The three lowest accruers in the set are
-   *  Ricochet, ThunderCat and Dynamo.
+   *  The whole tribe lives in a 2-6 band and NOTHING runs away with it -
+   *  including FireFly, whose 4x multiplier barely matters because it rarely
+   *  lives to collect on it.
+   *
+   *  A PREVIOUS VERSION OF THIS TABLE WAS MEASURED WRONG and named Cloudburst
+   *  (18) and Bluejay (16) as runaways. It summed `dmgBonus + maxHp gain +
+   *  spBonus`, which is EVERY permanent-stack source on the card rather than
+   *  this one - GALE's Zephyr feeds spBonus by itself, and Storm's Supercell
+   *  writes all three every round. The cards that looked like outliers were the
+   *  cards with OTHER growth. That is the whole reason `levelUps` is its own
+   *  counter on CardInstance: the honest instrument had to exist before the
+   *  question could be answered.
    *
    *  Left as printed because it was MEASURED rather than argued: the canonical
    *  harness, 5,600 matches, run twice in one process with Ricochet, ThunderCat,
-   *  Storm and Dynamo carrying Level Up and then not, put BOLT at +0.4 — inside
+   *  Storm and Dynamo carrying Level Up and then not, put BOLT at +0.4 - inside
    *  the +/-2.6 confidence interval, i.e. nothing. That matches what four tribe
    *  auras across 29 cards measured earlier (0.0-0.3). A tribe-wide passive on a
    *  free stat is a texture change, not a power one, until a single card can
    *  farm it; Dynamo's roundTick is the only multi-kill engine among them, and
    *  it did not show either. */
   randomStat?: number;
+  /** ...UP TO ITS CEILING, counted in GRANTS rather than points (the same thing
+   *  while `randomStat` is 1). Absent = uncapped.
+   *
+   *  Level Up shipped without one, which is the exact mistake `buffDmgMax`
+   *  exists to answer: every other ramp in this file is bounded - `packDmg`,
+   *  `momentum`, `vsFrozenRamp`, `onHitSpawn`, `spawnToken.maxAlive` - and an
+   *  uncapped one is the odd one out rather than a decision.
+   *
+   *  IT DOES NOT BIND TODAY, and that is stated rather than hidden: the highest
+   *  grant count measured across 1,568 matches is 6 (see the table above), so 8
+   *  is a guard rail two clear of the observed ceiling, not a nerf. It was added
+   *  to clip Cloudburst and Bluejay and then measured to be unnecessary for
+   *  them - the runaway those two looked like was a broken instrument. It stays
+   *  because the convention is that a ramp has a bound, and because the day a
+   *  member is printed with a multi-kill action that DOES farm this, the
+   *  ceiling should already be there rather than be a reaction. */
+  randomStatMax?: number;
   /** Perpetual Fog (Driftwraith): a kill leaves it EVASIVE for this many rounds.
    *
    *  Distinct from `grantStealth`, which cloaks the killer AND its same-row,
@@ -1725,6 +1747,11 @@ export interface CardInstance {
   dmgBonus: number; // permanent DMG modifiers (DRAIN, on-kill buffs)
   dmgBonusRound: number; // DMG buff that resets each Cleanup (on-kill "for the round")
   spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
+  /** Level Up grants taken, for `randomStatMax`. Its own counter rather than
+   *  reading the three stats back: `dmgBonus` and `spBonus` are shared with
+   *  every other permanent-stack source, so a member with a second one would
+   *  have filled its own ceiling with points Level Up never granted. */
+  levelUps: number;
   spBonusRound: number; // SP buff that resets each Cleanup (AQUA Flow Change Steam)
   hitsBonus: number; // permanent extra basic hits (Fenrir On Kill)
   /** The Flow this AQUA card picked at summon, kept so the tide can deepen it
