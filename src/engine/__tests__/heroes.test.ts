@@ -1,5 +1,7 @@
 // HEROES — one per suit, bound to the suit the seat is playing.
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
 import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, goldRoundFor, magicRoundFor } from "../heroes";
@@ -186,5 +188,70 @@ describe("the hero powers", () => {
     const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
     expect(next.cards[ally.instanceId].curShields).toBe(0);
     expect(next.players.P1.heroPowerUsed).toBeFalsy();
+  });
+});
+
+// WHERE THE POWER LIVES. It spent a while as a full-width `lockin` button in
+// the action bar beside Pass, which is the busiest strip on the screen and
+// shared with the two controls you press every single turn — for an ability
+// used ONCE in a whole match. It is free and once per game, which is the shape
+// of a spell, so it moved into the spell tray.
+//
+// Source-level because `vite.config.ts` sets `environment: "node"` and there is
+// no DOM to render App.tsx in. Same pattern as builder-foils / draft-wiring /
+// levelup-wiring, and for the same reason: the bugs those catch were invisible
+// to every unit test of the thing they guard.
+describe("the hero power sits with the spells", () => {
+  const ui = (f: string) =>
+    readFileSync(join(__dirname, "..", "..", "ui", f), "utf8");
+
+  it("is gone from the action bar", () => {
+    // A second copy beside Pass is worse than either placement alone: two
+    // controls that fire the same once-per-game ability, one of which goes
+    // dead the moment the other is used.
+    const APP = ui("App.tsx");
+    expect(APP.includes("hero-btn"), "the old action-bar button").toBe(false);
+    expect(ui("styles.css").includes(".hero-btn"), "and its now-dead rules").toBe(false);
+  });
+
+  it("reaches every tray, not just the one that happened to be on screen", () => {
+    // App mounts the tray more than once — a vertical rail, a collapsed book,
+    // a phone row. A `hero` prop passed to one of them is a power that exists
+    // on desktop and not on a phone, which is the worst kind of missing.
+    const APP = ui("App.tsx");
+    const mounts = [...APP.matchAll(/<SpellTray\b/g)].length;
+    expect(mounts, "SpellTray is mounted more than once").toBeGreaterThan(1);
+    expect([...APP.matchAll(/hero=\{heroChip\}/g)].length,
+      "every mount gets the hero").toBe(mounts);
+  });
+
+  it("hands the tray a chip only while there is one to spend", () => {
+    // The three ways it must be absent: a mode with no heroes, an unseated
+    // viewer, and a power already used. A permanently dead chip in the book is
+    // worse than no chip.
+    const APP = ui("App.tsx");
+    const chip = APP.slice(APP.indexOf("const heroChip = ("), APP.indexOf("const heroChip = (") + 900);
+    expect(chip, "modes without heroes").toContain("!game.heroes");
+    expect(chip, "and a spectator").toContain("me === null");
+    expect(chip, "and once it is spent").toContain("heroPowerUsed");
+    expect(chip, "fires the real intent").toContain('type: "HERO_POWER"');
+  });
+
+  it("shows the tray for a deck that drafted no spells", () => {
+    // The tray used to return null on an empty spellbook. With the power in it
+    // that guard would hide the power too — and a draft can legitimately end
+    // with a book the player never filled.
+    const TRAY = ui("SpellTray.tsx");
+    expect(TRAY).toMatch(/if \(\(!book \|\| book\.length === 0\) && !props\.hero\) return null/);
+    // …which means every read AFTER that guard has to survive it being absent.
+    // Bound once as `spells`, so a `book.map` below the guard is a real throw
+    // on exactly the deck this change exists to serve.
+    // Comments stripped first: this file explains itself at length, and a
+    // scanner that reads prose finds `book.map` in the paragraph warning
+    // against it. A test that passes on the comment is not a test.
+    const code = TRAY.replace(/\/\*[\s\S]*?\*\//g, "").replace(/\/\/[^\n]*/g, "");
+    const body = code.slice(code.indexOf("return null;"));
+    expect(/\bbook\s*[.[]/.test(body),
+      "an unguarded book read below the guard").toBe(false);
   });
 });

@@ -1702,24 +1702,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bp-hint { display: none; }
 .bp-hint b { color: var(--ink); }
 /* Pass Priority: primary, full-width; the pass-dots ride inside it. */
-/* THE HERO POWER, beside the pass. Free and once per game, so it belongs with
-   the end-of-turn decisions rather than competing with the board. Tinted by the
-   seat's own suit — the same colour its tokens and its glyph already wear — so
-   it reads as YOURS without a label saying so. It vanishes when spent: a
-   permanently dead control is worse than no control. */
-.hero-btn {
-  border-color: currentColor;
-  background: rgba(6, 8, 14, 0.55);
-}
-.hero-btn:disabled { opacity: 0.55; cursor: default; }
-.hero-btn.suit-spade,   .hero-btn.suit-spade-alt   { color: var(--suit-spade); }
-.hero-btn.suit-club,    .hero-btn.suit-club-alt    { color: var(--suit-club); }
-.hero-btn.suit-diamond, .hero-btn.suit-diamond-alt { color: var(--suit-diamond); }
-.hero-btn.suit-heart,   .hero-btn.suit-heart-alt   { color: var(--suit-heart); }
-.hero-btn.suit-spade-alt   { color: var(--suit-spade-alt); }
-.hero-btn.suit-club-alt    { color: var(--suit-club-alt); }
-.hero-btn.suit-diamond-alt { color: var(--suit-diamond-alt); }
-.hero-btn.suit-heart-alt   { color: var(--suit-heart-alt); }
 
 .pass-btn { display: flex; align-items: center; justify-content: center; gap: 8px; padding: 7px 12px; }
 .pass-btn .pass-dots { margin: 0; }
@@ -7615,3 +7597,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .dr-banner { transition: border-color .14s ease; }
   .dr-banner:hover, .dr-banner:focus-visible { transform: none; }
 }
+
+/* The hero power, wearing the spellbook's chip. Gold rather than an element
+   colour, because it belongs to the player and not to a school of magic — and
+   because it is the one thing in the book that can only ever be used once. */
+.spellchip.hero-chip { border-color: var(--gold-line); }
+.spellchip.hero-chip .spellchip-cost { color: var(--gold-hi); border-color: var(--gold-line); }
+.spellchip.hero-chip .spellchip-name { color: var(--gold-hi); }
