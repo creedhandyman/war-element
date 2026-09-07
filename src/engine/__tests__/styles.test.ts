@@ -353,6 +353,18 @@ describe("a seat's two channels agree", () => {
       expect(RULES, `stale seat rule for ${seat}`).not.toContain(`.token.seat-${seat} > .tk-name`);
   });
 
+  it("has an alternate shade for a suit two seats share", () => {
+    // A hero is chosen per squad, so two decks can choose the same one and two
+    // seats can show the same glyph. The shape has stopped identifying anyone
+    // at that point, so the colour has to — every suit needs a second shade,
+    // defined once and used by both channels.
+    for (const suit of SUITS) {
+      expect(RULES, `--suit-${suit}-alt defined`).toContain(`--suit-${suit}-alt:`);
+      expect(RULES, `${suit} alt name tint`).toContain(`.tk-name.suit-${suit}-alt`);
+      expect(RULES, `${suit} alt glyph tint`).toContain(`.tk-suit.suit-${suit}-alt`);
+    }
+  });
+
   it("draws both channels from one variable per suit", () => {
     for (const suit of SUITS) {
       expect(RULES, `--suit-${suit} defined once`).toContain(`--suit-${suit}:`);

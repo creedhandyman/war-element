@@ -7018,15 +7018,30 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    channels this block exists to keep together. The name takes the suit the seat
    is actually playing, and the two agree again. */
 :root {
-  --suit-spade:   #ffab6b;   /* P1 — orange */
-  --suit-club:    #7ef0b0;   /* P2 — green  */
-  --suit-diamond: #7ec4ff;   /* P3 — blue   */
-  --suit-heart:   #d7a6ff;   /* P4 — violet */
+  --suit-spade:   #ffab6b;   /* orange */
+  --suit-club:    #7ef0b0;   /* green  */
+  --suit-diamond: #7ec4ff;   /* blue   */
+  --suit-heart:   #d7a6ff;   /* violet */
+  /* THE SECOND SEAT ON THE SAME SUIT. A hero is chosen per squad now, so two
+     decks can choose the same one and two seats can show the same glyph — at
+     which point the shape has stopped identifying anyone and the colour is the
+     only channel left. Each alt is the same hue rotated well clear of its base
+     and of every other base, so "two hearts" reads as two players rather than
+     as one player with a rendering bug. The FIRST seat always keeps the
+     familiar colour, so the ordinary game never changes. */
+  --suit-spade-alt:   #ffe066;   /* orange -> gold   */
+  --suit-club-alt:    #4fd0d8;   /* green  -> teal   */
+  --suit-diamond-alt: #6f7dff;   /* blue   -> indigo */
+  --suit-heart-alt:   #ff8fc4;   /* violet -> pink   */
 }
 .token > .tk-name.suit-spade   { color: var(--suit-spade); }
 .token > .tk-name.suit-club    { color: var(--suit-club); }
 .token > .tk-name.suit-diamond { color: var(--suit-diamond); }
 .token > .tk-name.suit-heart   { color: var(--suit-heart); }
+.token > .tk-name.suit-spade-alt { color: var(--suit-spade-alt); }
+.token > .tk-name.suit-club-alt { color: var(--suit-club-alt); }
+.token > .tk-name.suit-diamond-alt { color: var(--suit-diamond-alt); }
+.token > .tk-name.suit-heart-alt { color: var(--suit-heart-alt); }
 /* A faint plate behind it, so the tint survives whatever art is underneath —
    a pale portrait was washing the lighter two out. */
 .token > .tk-name {
@@ -7186,6 +7201,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-suit.suit-club    { color: var(--suit-club); }
 .tk-suit.suit-diamond { color: var(--suit-diamond); }
 .tk-suit.suit-heart   { color: var(--suit-heart); }
+.tk-suit.suit-spade-alt { color: var(--suit-spade-alt); }
+.tk-suit.suit-club-alt { color: var(--suit-club-alt); }
+.tk-suit.suit-diamond-alt { color: var(--suit-diamond-alt); }
+.tk-suit.suit-heart-alt { color: var(--suit-heart-alt); }
 
 /* THE OPPONENT'S PLAYSTYLE, on the versus screen. The suit is dealt per match
    and decides how that seat's AI plays, so this is the line that makes the
@@ -7205,6 +7224,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pvi-style.suit-club b    { color: var(--suit-club); }
 .pvi-style.suit-diamond b { color: var(--suit-diamond); }
 .pvi-style.suit-heart b   { color: var(--suit-heart); }
+.pvi-style.suit-spade-alt b { color: var(--suit-spade-alt); }
+.pvi-style.suit-club-alt b { color: var(--suit-club-alt); }
+.pvi-style.suit-diamond-alt b { color: var(--suit-diamond-alt); }
+.pvi-style.suit-heart-alt b { color: var(--suit-heart-alt); }
 /* THE NAME TAKES THE WHOLE TOP EDGE BACK.
    This reserved 16px for the suit, so every name was measured against a tile
    13px narrower than it looks — and at ~55px per slot on a phone that is a
@@ -7337,6 +7360,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .chat-who.suit-club    { color: var(--suit-club); }
 .chat-who.suit-diamond { color: var(--suit-diamond); }
 .chat-who.suit-heart   { color: var(--suit-heart); }
+.chat-who.suit-spade-alt { color: var(--suit-spade-alt); }
+.chat-who.suit-club-alt { color: var(--suit-club-alt); }
+.chat-who.suit-diamond-alt { color: var(--suit-diamond-alt); }
+.chat-who.suit-heart-alt { color: var(--suit-heart-alt); }
 .chat-text { color: #dfe4ee; overflow-wrap: anywhere; }
 .chat-line.mine .chat-text { color: #aeb6c6; }
 

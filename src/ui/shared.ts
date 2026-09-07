@@ -2,7 +2,7 @@
 
 import { buildableCards } from "../data/custom-decks";
 import type { Element, Keyword, PlayerId, StatusKind, Suit } from "../engine";
-import { styleOf } from "../engine/suits";
+import { styleOf, suitVariantOf } from "../engine/suits";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
 /** THE element order, wherever a UI lists all eight.
@@ -228,7 +228,21 @@ export type PendingBattle = "basic" | "special" | "talent" | "plummet" | null;
  *  the deal existed still has. */
 export function suitFor(seatSuits: Partial<Record<PlayerId, Suit>> | undefined, seat: PlayerId) {
   const style = styleOf(seatSuits, seat);
-  return { glyph: style.glyph, key: style.key, name: style.name, blurb: style.blurb };
+  // TWO SEATS CAN NOW SHARE A SUIT — a hero is chosen per squad, and two decks
+  // may choose the same one (see `pinSuit`). The glyph stops being unique when
+  // they do, so the COLOUR separates them: the first seat holding a suit keeps
+  // its familiar shade, anyone after wears the alternate. `key` carries the
+  // variant so every consumer tints from one string and none of them has to
+  // know the rule.
+  const alt = suitVariantOf(seatSuits, seat) === 1;
+  return {
+    glyph: style.glyph,
+    key: alt ? `${style.key}-alt` : style.key,
+    suit: style.key,
+    alt,
+    name: style.name,
+    blurb: style.blurb,
+  };
 }
 
 export const SEAT_SUIT: Record<PlayerId, { glyph: string; key: string }> = {

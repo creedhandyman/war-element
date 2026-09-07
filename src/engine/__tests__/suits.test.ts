@@ -1,7 +1,7 @@
 // SUITS — dealt per match, and each one a different AI personality.
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
-import { dealSuits, pinSuit, styleOf, SUITS, SUIT_STYLES } from "../suits";
+import { dealSuits, pinSuit, styleOf, suitVariantOf, SUITS, SUIT_STYLES } from "../suits";
 import { aiPrepIntent } from "../ai";
 import { getDef } from "../../data/cards";
 import { prepState } from "./helpers";
@@ -60,15 +60,37 @@ describe("pinning a chosen suit", () => {
     expect(out.P1).toBe("heart");
   });
 
-  it("SWAPS rather than assigns, so the deal stays a permutation", () => {
-    // The load-bearing part. Assigning would let two seats read the same tell,
-    // and four AI personalities would quietly collapse to three.
-    for (let seed = 0; seed < 100; seed++)
-      for (const want of SUITS) {
-        const out = pinSuit(dealSuits(seed), "P2", want);
-        expect(out.P2).toBe(want);
-        expect(new Set(Object.values(out)).size, `seed ${seed} -> ${want}`).toBe(4);
-      }
+  it("never overrides a choice, even when both seats want the same hero", () => {
+    // THE BUG THIS REPLACED. The first cut SWAPPED, to keep the deal a
+    // permutation — right for a deal, wrong for a choice. With both seats
+    // pinned from their own decks, two players picking the same hero had the
+    // second pin steal it back off the first, and one of them played a hero
+    // they never chose. Duplicates are allowed; `suitVariantOf` keeps the board
+    // readable when they happen.
+    let out = dealSuits(5);
+    out = pinSuit(out, "P1", "heart");
+    out = pinSuit(out, "P2", "heart");
+    expect(out.P1, "P1 keeps what it chose").toBe("heart");
+    expect(out.P2, "and so does P2").toBe("heart");
+  });
+
+  it("gives the second seat on a suit the alternate shade", () => {
+    // The glyph stops identifying anyone once two seats share it, so the colour
+    // has to. First seat in seating order keeps the familiar shade.
+    const both = { P1: "heart", P2: "heart", P3: "spade", P4: "club" } as const;
+    expect(suitVariantOf(both, "P1"), "first keeps its colour").toBe(0);
+    expect(suitVariantOf(both, "P2"), "second takes the alt").toBe(1);
+    expect(suitVariantOf(both, "P3"), "unshared is unaffected").toBe(0);
+  });
+
+  it("leaves every ordinary deal on the base colour", () => {
+    // A dealt game has four distinct suits, so nothing should ever wear an alt
+    // unless a duplicate was actually chosen.
+    for (let seed = 0; seed < 100; seed++) {
+      const dealt = dealSuits(seed);
+      for (const seat of ["P1", "P2", "P3", "P4"] as const)
+        expect(suitVariantOf(dealt, seat), `seed ${seed} ${seat}`).toBe(0);
+    }
   });
 
   it("is a no-op when the seat already holds it", () => {

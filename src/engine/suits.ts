@@ -177,25 +177,47 @@ export function dealSuits(seed: number): Record<PlayerId, Suit> {
   return { P1: order[0], P2: order[1], P3: order[2], P4: order[3] };
 }
 
-/** Pin one seat to a chosen suit, keeping the deal a PERMUTATION.
+/** Pin one seat to a chosen suit.
  *
  *  A player who picks a hero is choosing their suit (see `heroes.ts`), and the
- *  other seats are still dealt theirs. Swapping rather than assigning is what
- *  keeps every suit unique: hand P1 the suit it wants and give whoever was
- *  holding it P1's old one. Assigning would let two seats read the same tell,
- *  and the AI personalities would silently collapse to three.
+ *  other seats keep whatever they were dealt.
+ *
+ *  IT ASSIGNS, IT DOES NOT SWAP, and that was a bug worth its own paragraph.
+ *  The first cut swapped — hand the seat what it wants, give its old suit to
+ *  whoever was holding it — to keep the deal a permutation. That is right for a
+ *  DEAL and wrong for a CHOICE: with both seats pinned from their own decks,
+ *  two players who picked the same hero had the second pin quietly steal it
+ *  back off the first, and one of them played a hero they never chose. A choice
+ *  the game silently overrides is worse than a duplicate.
+ *
+ *  So two seats CAN share a suit now. `suitVariantOf` is what keeps the board
+ *  readable when they do.
  *
  *  Returns a new record; the caller owns when to apply it. */
 export function pinSuit(
   dealt: Record<PlayerId, Suit>, seat: PlayerId, want: Suit,
 ): Record<PlayerId, Suit> {
-  const out = { ...dealt };
-  if (out[seat] === want) return out;
-  const holder = (Object.keys(out) as PlayerId[]).find((k) => out[k] === want);
-  const had = out[seat];
-  out[seat] = want;
-  if (holder) out[holder] = had;
-  return out;
+  return { ...dealt, [seat]: want };
+}
+
+/** Which SHADE of its suit a seat wears: 0 for the first seat holding it in
+ *  seating order, 1 for anyone after.
+ *
+ *  Suits used to be unique by construction, so the glyph alone identified a
+ *  seat. Now that a chosen suit can be duplicated, two seats can show the same
+ *  shape — and the colour is the channel that has to separate them, exactly as
+ *  it did before the suits meant anything. The FIRST seat keeps the familiar
+ *  colour so the common case never changes. */
+export function suitVariantOf(
+  seatSuits: Partial<Record<PlayerId, Suit>> | undefined, seat: PlayerId,
+): 0 | 1 {
+  const mine = seatSuits?.[seat];
+  if (!mine) return 0;
+  for (const other of ["P1", "P2", "P3", "P4"] as PlayerId[]) {
+    if (other === seat) break;              // nobody before us shares it
+    if (seatSuits?.[other] === mine) return 1;
+  }
+  return 0;
 }
 
 /** The style a seat is playing. Falls back to the seat's traditional suit when
