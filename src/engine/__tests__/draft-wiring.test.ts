@@ -69,6 +69,21 @@ describe("the draft wiring", () => {
     expect(block, "a pick that is not persisted").toContain("saveStory(next)");
   });
 
+  it("re-deals a seat for a run that has none", () => {
+    // A run saved before the seat existed (phase 3 wrote none), or one holding
+    // an id that no longer names a premade, would sit in the lobby with no
+    // opponent and no way to get one — a dead save rather than a bad match.
+    expect(APP).toContain("PREMADE_DECKS.some((d) => d.id === draftRun!.seat)");
+    expect(APP).toContain("dealDraftSeat(prev.draft!)");
+  });
+
+  it("reads the opponent off the run instead of rolling it in render", () => {
+    // A roll evaluated during render re-rolls on every render: the opponent
+    // would change while you looked at it.
+    expect(APP).toContain("PREMADE_DECKS.find((d) => d.id === draftRun!.seat)");
+    expect(APP.includes("decksForTier(draftTier"), "seat rolled at render time").toBe(false);
+  });
+
   it("styles the entry control it adds", () => {
     for (const c of ["ar-gauntlet", "gt-start", "gt-start-main", "gt-sub", "gt-pay"])
       expect(CSS.includes(`.${c}`), `no rule for .${c}`).toBe(true);

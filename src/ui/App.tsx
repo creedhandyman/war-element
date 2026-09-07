@@ -66,7 +66,7 @@ import { CardView } from "./CardView";
 import { talentEffect } from "./card-text";
 import { DraftScreen } from "./DraftScreen";
 import {
-  DRAFT_DECK_ID, DRAFT_ENTRY, draftComplete, draftPlaying, draftTier, pickCard,
+  DRAFT_DECK_ID, DRAFT_ENTRY, dealDraftSeat, draftComplete, draftPlaying, pickCard,
   settleDraft, startDraft,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
@@ -92,7 +92,7 @@ import {
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import {
-  decksForTier, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
+  loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -687,13 +687,33 @@ export function App() {
    *  there: vs-AI only, never over an event, and only while the mode is the one
    *  the run belongs to — so a draft parked mid-run neither seizes the opponent
    *  chair nor is scored by whatever you play instead. */
+  // Read off the run rather than rolled here: a roll evaluated during render
+  // re-rolls on every render, and the opponent would change while you looked at
+  // it. `recordDraftResult` deals the next one as it scores the last.
   const draftSeat = arenaGame === "draft" && arenaMode === "ai" && !eventRun && draftPlaying(draftRun)
-    ? decksForTier(draftTier(draftRun!), boardSize)[0] ?? null
+    ? PREMADE_DECKS.find((d) => d.id === draftRun!.seat) ?? null
     : null;
   const draftSeatId = draftSeat?.id ?? null;
   useEffect(() => {
     if (draftSeatId && draftSeatId !== p2DeckId) setP2DeckId(draftSeatId);
   }, [draftSeatId, p2DeckId]);
+  // A PLAYING RUN ALWAYS HAS A SEAT, and this is what guarantees it. Two ways
+  // it can be without one: a run saved before the seat was dealt at all (phase
+  // 3 wrote no `seat`), or a stored id that no longer names a premade. Either
+  // way the run would sit in the lobby with no opponent and no way to get one,
+  // which is a dead save rather than a bad match. Re-dealing costs nothing and
+  // fixes both.
+  useEffect(() => {
+    if (arenaGame !== "draft" || !draftPlaying(draftRun)) return;
+    if (PREMADE_DECKS.some((d) => d.id === draftRun!.seat)) return;
+    setStory((prev) => {
+      if (!draftPlaying(prev.draft)) return prev;
+      const next = { ...prev, draft: dealDraftSeat(prev.draft!) };
+      if (next.draft === prev.draft) return prev;
+      saveStory(next);
+      return next;
+    });
+  }, [arenaGame, draftRun]);
   // ...and the drafted deck takes YOUR chair while its run is live, for the
   // same reason: a run deals both seats or it is not a run.
   useEffect(() => {

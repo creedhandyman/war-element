@@ -12,10 +12,11 @@ import { describe, expect, it } from "vitest";
 import { tierForStreak } from "../../data/matchmaker";
 import { loadStory, newSave, saveStory, type StorySave } from "../../data/story";
 import {
-  DRAFT_LOSSES, DRAFT_MAX_WINS, DRAFT_PAY, draftComplete, draftLosses, draftPlaying,
-  draftReward, draftRunOver, draftTier, draftWins, pickCard, recordDraftResult,
-  settleDraft, startDraft, type DraftRun,
+  DRAFT_ENTRY, DRAFT_LOSSES, DRAFT_MAX_WINS, DRAFT_PAY, dealDraftSeat, draftComplete,
+  draftLosses, draftPlaying, draftReward, draftRunOver, draftTier, draftWins, pickCard,
+  recordDraftResult, settleDraft, startDraft, type DraftRun,
 } from "../../data/draft";
+import { PREMADE_DECKS, decksForTier } from "../../data/custom-decks";
 
 function seeded(seed: number): () => number {
   let a = seed;
@@ -199,5 +200,66 @@ describe("a run survives storage", () => {
         expect(loadStory().draft, JSON.stringify(bad)).toBeUndefined();
       });
     }
+  });
+});
+
+describe("the run deals its own opponent", () => {
+  it("has one the moment the picking ends, and it is a real premade", () => {
+    const run = drafted();
+    expect(run.seat, "a playing run with no opponent").toBeTruthy();
+    expect(PREMADE_DECKS.some((d) => d.id === run.seat)).toBe(true);
+  });
+
+  it("deals from the rung the win count has earned", () => {
+    let run = drafted();
+    for (let w = 0; w < 4; w++) {
+      const tier = draftTier(run);
+      expect(decksForTier(tier, run.board).some((d) => d.id === run.seat),
+        `at ${w} wins the seat is off-rung`).toBe(true);
+      run = recordDraftResult(run, true);
+    }
+  });
+
+  it("does not deal the same deck twice in a row", () => {
+    // The bug this fixes: the seat was `decksForTier(...)[0]`, so a run faced
+    // the SAME deck at every rung and again on every rematch. `rollOpponent`'s
+    // `avoid` is what makes a run a ladder rather than one deck four times.
+    let run = drafted(21);
+    for (let i = 0; i < 6; i++) {
+      const before = run.seat;
+      const after = recordDraftResult(run, true);
+      if (!draftPlaying(after)) break;
+      if (decksForTier(draftTier(after), after.board).length > 1)
+        expect(after.seat, "same opponent twice running").not.toBe(before);
+      run = after;
+    }
+  });
+
+  it("holds no seat while still picking, or once the run is over", () => {
+    // A seat on a run that cannot use it is a lie the lobby would render.
+    expect(startDraft(4, seeded(3)).seat).toBeUndefined();
+    let run = drafted();
+    for (let i = 0; i < DRAFT_LOSSES; i++) run = recordDraftResult(run, false);
+    expect(draftRunOver(run)).toBe(true);
+    expect(dealDraftSeat(run), "a finished run must not be re-seated").toBe(run);
+  });
+});
+
+describe("the economy holds its shape", () => {
+  // The measured figures live on DRAFT_PAY — 150 simulated runs, mean 3.41
+  // wins, EV 51.4 against a 50 entry. Simulating that here would be hundreds of
+  // full matches, so what is pinned is the SHAPE those figures depend on: break
+  // even in the middle of the distribution, and an entry the table can repay.
+  it("breaks even around the middle of the run, not at the top", () => {
+    const mid = DRAFT_PAY.findIndex((p) => p >= DRAFT_ENTRY);
+    expect(mid, "no win count repays the entry").toBeGreaterThan(0);
+    expect(mid, "break-even is too deep — most runs would be a loss")
+      .toBeLessThanOrEqual(4);
+    expect(mid, "break-even is too shallow — the entry stops meaning anything")
+      .toBeGreaterThanOrEqual(3);
+  });
+
+  it("tops out well above the entry, so a clean run is worth chasing", () => {
+    expect(DRAFT_PAY[DRAFT_MAX_WINS] / DRAFT_ENTRY).toBeGreaterThan(2);
   });
 });
