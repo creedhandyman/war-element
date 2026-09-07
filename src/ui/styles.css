@@ -7577,3 +7577,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .lvl-why { color: var(--ink-faint); font-size: 11px; text-align: right; }
 .lvl-next { color: var(--ink-faint); font-size: 11px; margin-bottom: 14px; }
 @media (prefers-reduced-motion: reduce) { .lvl-badge { animation: none; } }
+
+/* The foil's own section on the card face — same shape as a Special or a
+   Talent block, tinted gold so it reads as the finish rather than an ability. */
+.cd-foil .cd-h { color: var(--gold-hi); }
+.cd-foil .cd-cost-pill { border-color: var(--gold-line); color: var(--gold-hi); }

@@ -40,6 +40,7 @@ import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
 import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
+import { foilBonusFor, FOIL_STAT_LABEL } from "../data/foils";
 
 export type CardViewProps =
   | {
@@ -296,6 +297,27 @@ export function CardView(props: CardViewProps) {
             {vm.specialFlags.map((f) => <div key={f} className="cd-flag">{f}</div>)}
           </div>
         )}
+
+        {/* ── zone 3a0 · what the foil is worth ───────────────────────────
+            A bonus nobody can see is a bonus nobody has. The shine already
+            says "this copy is special"; this says what special MEANS, and it
+            is derived from the card id so the card face can state it without
+            asking the save anything. */}
+        {props.mode === "browse" && props.foil && (() => {
+          const b = foilBonusFor(d.id);
+          return (
+            <div className="cd-section cd-foil">
+              <div className="cd-h">
+                ✦ Foil
+                <span className="cd-cost-pill">+{b.amount} {FOIL_STAT_LABEL[b.stat]}</span>
+              </div>
+              <p className="cd-text">
+                Every foil copy is printed a little better. This one carries
+                +{b.amount} {FOIL_STAT_LABEL[b.stat]}.
+              </p>
+            </div>
+          );
+        })()}
 
         {/* ── zone 3a1 · talent ────────────────────────────────── */}
         {/* A Talent is an ABILITY, and it was the only one shown as a line of

@@ -2593,6 +2593,11 @@ export interface PlayerState {
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup
    *  (shield/heal), on summon (sp), and by the DRAIN keyword check. */
+  /** Card ids this seat owns in FOIL. Read at summon to add the foil's one
+   *  extra stat — see data/foils.ts for why the bonus is derived from the id
+   *  rather than stored. Absent = no foils, which is every AI seat and every
+   *  headless harness. */
+  foils?: readonly string[];
   elementPerm?: {
     element: Element;
     sp?: number;

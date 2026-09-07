@@ -544,6 +544,16 @@ export function App() {
    *  from the campaign save even in the Arena: a shiny is yours wherever you
    *  play it, and the Arena deck is drawn from the same cards. */
   const foilIds = useMemo(() => new Set(story.hero?.shiny ?? []), [story.hero?.shiny]);
+  /** The foils to hand a new match, by seat.
+   *
+   *  Hot-seat is why this is a function rather than `{ P1: foils }`: both
+   *  chairs are the same person's collection, so both get them. Online is
+   *  handled where the host builds the room's seat map — it knows the guest's
+   *  too, and the guest plays the state the host broadcasts. */
+  const seatFoilsFor = (): Partial<Record<PlayerId, readonly string[]>> => {
+    const mine = [...foilIds];
+    return twoPlayer ? { P1: mine, P2: mine } : { P1: mine };
+  };
   const storyPool = poolForRegion(story, region);
   const storyBuilderOwned = storyPool.length ? storyPool : story.collection;
   // Clamped by the POOL, not by the squad limit. The squad counts only what
@@ -1379,6 +1389,10 @@ export function App() {
       // buys its difficulty the same way: an opening it cannot stumble on.
       scriptedP2 ? { P2: scriptedP2 } : undefined,
       extraSeats,
+      // THE FOILS YOU BROUGHT. Keyed by seat rather than assumed to be P1: in
+      // hot-seat both chairs are this same collection, and a foil is a property
+      // of the owner, not of the deck. An AI seat has none.
+      seatFoilsFor(),
     );
     // HEROES ARE LIVE IN THE ARENA. The curve shift and the once-per-game power
     // both hang off this flag, and it stays OFF for anything that predates them
@@ -1788,6 +1802,13 @@ export function App() {
     setSeatNames(names);
     seatFoilsRef.current = foils;
     setSeatFoils(foils);
+    // ...and the same map goes into the STATE, not just the display layer.
+    // The host builds the board and broadcasts it, so writing both seats'
+    // foils here is what makes the guest's foils real for both clients — the
+    // bonus is stamped at summon inside the shared state, and derived from the
+    // card id, so neither side has to trust a number the other sent.
+    for (const seat of Object.keys(foils) as PlayerId[])
+      if (foils[seat]?.length) g.players[seat].foils = [...foils[seat]!];
     setupRef.current = {
       p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
       board: hostBoardSize, humans: seats,
@@ -4202,7 +4223,8 @@ export function App() {
             // Only the ENEMY seat; the player's own draw is never touched.
             const fresh = createInitialState(newSeed(), deck, squad, ["P1"], heroBook, foeBook, board,
               deploy, terrain,
-              node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined);
+              node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined,
+              undefined, { P1: [...foilIds] });
             // A 7x7 is only DOMINATION if the mode is stamped on. Without this
             // line a border gate is an oversized duel on a map whose middle is
             // impassable and whose home rows are not the win condition -- the

@@ -3,6 +3,7 @@
 
 import { dealSuits } from "./suits";
 import { getDef, deckById } from "../data/cards";
+import { FOIL_BONUS, foilStatFor } from "../data/foils";
 import { dominationMap, isImpassable } from "../data/domination";
 import { hasElementAura, tailwindDmg, weakenMult, weakenStacks } from "./auras";
 import { coin, shuffle } from "./rng";
@@ -83,6 +84,10 @@ export function createInitialState(
   /** Extra seats beyond P1 and P2, each with its own deck. Omit for a 1v1,
    *  which is every mode but Domination. */
   extraSeats?: { id: PlayerId; deck: string | string[]; spells?: string[] }[],
+  /** Card ids each seat owns in FOIL. A foil is worth one extra point of one
+   *  stat, stamped on as the body is summoned — see data/foils.ts. Omit for an
+   *  AI seat or a headless harness, which own nothing. */
+  foils?: Partial<Record<PlayerId, readonly string[]>>,
 ): GameState {
   const seats: PlayerId[] = ["P1", "P2", ...(extraSeats ?? []).map((e) => e.id)];
   /** An extra seat's own deck and book, or an empty seat when it is not playing. */
@@ -160,6 +165,13 @@ export function createInitialState(
   state.log.push(
     `Coin flip: ${state.firstPlayer} preps first. Opening hands dealt.`,
   );
+  // The foils each seat brought. Written after the player records exist rather
+  // than threaded through their construction, because it is a property of the
+  // OWNER and not of the deck — an AI seat and a headless harness simply have
+  // none, and `summonCard` reads an absent list as "no foils".
+  if (foils)
+    for (const seat of seats)
+      if (foils[seat]?.length) state.players[seat].foils = [...foils[seat]!];
   return state;
 }
 
@@ -980,6 +992,25 @@ export function summonCard(
     pos,
   };
   // Gate Keeper (Veil): raise the massive golden shield the moment it enters.
+  // THE FOIL'S EXTRA POINT, applied as the body arrives.
+  //
+  // At summon rather than in `effectiveDmg` and friends, because a foil is a
+  // better PRINT of the card, not a buff riding on it: it should scale with
+  // enrage, survive a cleanse, show in the inspector's stat line, and cost
+  // nothing to read on every damage calculation in the game. Stamping it once
+  // gets all of that for free.
+  //
+  // Max HP goes through `gainMaxHp` so a `maxHpCap` card cannot float past its
+  // own ceiling, and so the extra room arrives FILLED — a foil is bigger, not
+  // wounded.
+  if (draft.players[player].foils?.includes(defId)) {
+    const stat = foilStatFor(defId);
+    const n = FOIL_BONUS[stat];
+    if (stat === "dmg") inst.dmgBonus += n;
+    else if (stat === "sp") inst.spBonus += n;
+    else if (stat === "shield") inst.curShields += n;
+    else gainMaxHp(inst, n);
+  }
   if (def.summonSelfShields) inst.curShields += def.summonSelfShields;
   // Electro Surge (Surge): starts armed the moment it lands.
   if (def.electroSurge) inst.electroSurgeActive = true;
