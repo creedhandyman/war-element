@@ -1,6 +1,7 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
+import { goldRoundFor, magicRoundFor } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -1559,8 +1560,16 @@ function doResourcePhase(draft: GameState): void {
   // puts pieces back, and it was the one income that never grew.
   //
   // Both pools cap carryover at 10.
+  // PER SEAT NOW, because a hero shifts its owner's curve and nobody else's.
+  // The shift is an offset in ROUNDS into the same curve — a boundary move, so
+  // the hero is ahead early and the two curves re-converge — rather than a rate
+  // change, which would compound without limit. See heroes.ts.
+  const magicGainFor = (seat: PlayerId) =>
+    poolGainForRound(magicRoundFor(draft.round, draft.seatSuits?.[seat], draft.heroes));
+  const goldBaseFor = (seat: PlayerId) =>
+    poolGainForRound(goldRoundFor(draft.round, draft.seatSuits?.[seat], draft.heroes));
+  // The unshifted magic value, for the log line's baseline.
   const magicGain = poolGainForRound(draft.round);
-  const goldBase = poolGainForRound(draft.round);
   const gains = {} as Record<PlayerId, number>;
   // THE VOID TOWER HEAD START. The boss is placed outside the economy — a
   // 12-cost body standing there on round one, for nothing — while the player is
@@ -1600,7 +1609,7 @@ function doResourcePhase(draft: GameState): void {
     // means nothing to them, since homeRow only has an answer for two seats.
     const points = draft.domination ? heldCount(draft.domination.held, player) : 0;
     const gain =
-      goldBase + (draft.domination ? 0 : homeSlotsHeld(draft, player))
+      goldBaseFor(player) + (draft.domination ? 0 : homeSlotsHeld(draft, player))
       + (player === "P1" ? headStart : 0) + bossPurse
       + points * POI_GOLD;
     gains[player] = gain;
@@ -1623,7 +1632,7 @@ function doResourcePhase(draft: GameState): void {
       }
     }
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
-    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
+    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGainFor(player);
   }
   // The two sides can now earn different amounts, so the log has to say whose.
   // Every SEAT, not the first two — a four-player round that only reported P1

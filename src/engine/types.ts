@@ -2681,6 +2681,18 @@ export interface GameState {
    *  hand-built fixture) has none; `styleOf` falls back to the seat's
    *  traditional suit so no reader has to check. */
   seatSuits?: Record<PlayerId, Suit>;
+  /** Are HERO curves live in this match?
+   *
+   *  Separate from `seatSuits` on purpose, and the separation is the whole
+   *  point. A suit is dealt to every match — it is the seat's identity and, for
+   *  an AI, its playstyle — but a hero MOVES THE ECONOMY, and an ordinary
+   *  skirmish must not quietly acquire one because a glyph was dealt. Tying the
+   *  shift straight to the suit broke three resource tests on the first run,
+   *  which is the same fact arriving as a failure.
+   *
+   *  Absent/false = the printed curve for everyone, which is every mode that
+   *  shipped before heroes. Story Mode and the Void Tower turn it on. */
+  heroes?: boolean;
   firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */
