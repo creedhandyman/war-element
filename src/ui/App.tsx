@@ -66,8 +66,9 @@ import { CardView } from "./CardView";
 import { talentEffect } from "./card-text";
 import { DraftScreen } from "./DraftScreen";
 import {
-  DRAFT_DECK_ID, DRAFT_ENTRY, dealDraftSeat, draftComplete, draftPlaying, pickCard,
-  settleDraft, startDraft,
+  DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
+  draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickCard, settleDraft,
+  startDraft,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
@@ -790,13 +791,19 @@ export function App() {
 
   /** The battlefield is the RUN's while one is live — it was dealt for a board
    *  and pays that board's rate. */
-  const boardLocked = arenaGame === "gauntlet" && !!gauntletRun && !runOver(gauntletRun);
+  // A run OWNS the battlefield it was dealt for, and a draft owns it hardest: a
+  // run drafted on 4x4 holds eighteen cards and the big board wants thirty, so
+  // a size change mid-run does not make the match harder, it makes the deck
+  // illegal.
+  const draftLocked = arenaGame === "draft" && !!draftRun && !draftRunOver(draftRun);
+  const boardLocked = (arenaGame === "gauntlet" && !!gauntletRun && !runOver(gauntletRun)) || draftLocked;
   const runBoard = gauntletRun && !runOver(gauntletRun) ? boardOfRun(gauntletRun) : null;
   useEffect(() => {
     // Coming back to a run started on the other board, the lobby would show the
     // run's seats against the wrong field until you noticed. It snaps.
     if (arenaGame === "gauntlet" && runBoard && runBoard !== boardSize) setBoardSize(runBoard);
-  }, [arenaGame, runBoard, boardSize]);
+    if (draftLocked && draftRun!.board !== boardSize) setBoardSize(draftRun!.board);
+  }, [arenaGame, runBoard, boardSize, draftLocked, draftRun]);
 
   /** MAY THIS MATCH START, and if not, what is wrong.
    *
@@ -819,7 +826,7 @@ export function App() {
   const myDeckCheck = validateDeck(resolveDeckCards(mySeatDeckId), boardSize);
   const startGate: { ok: boolean; why?: string; warn?: string } = (() => {
     if (onlineMode || twoPlayer || storyNode) return { ok: true };
-    const challenge = arenaGame === "gauntlet" || arenaGame === "streak";
+    const challenge = arenaGame === "gauntlet" || arenaGame === "streak" || arenaGame === "draft";
     if (challenge && !myDeckCheck.ok) {
       return {
         ok: false,
@@ -828,6 +835,15 @@ export function App() {
     }
     if (arenaGame === "gauntlet" && (!gauntletRun || runOver(gauntletRun)))
       return { ok: false, why: "Line up a gauntlet above to begin a run." };
+    // Draft has one more state than the others: a run that exists but is still
+    // CHOOSING has no deck to seat yet, so it needs its own sentence rather
+    // than falling through to "your squad is not a 4x4 squad".
+    if (arenaGame === "draft" && !draftRun)
+      return { ok: false, why: "Draft a squad above to begin a run." };
+    if (arenaGame === "draft" && !draftComplete(draftRun!))
+      return { ok: false, why: `Finish your draft — ${draftSize(draftRun!) - draftRun!.picks.length} picks left.` };
+    if (arenaGame === "draft" && draftRunOver(draftRun))
+      return { ok: false, why: "That run is over. Draft again above." };
     return { ok: true, warn: myDeckCheck.ok ? undefined : myDeckCheck.reason };
   })();
 
@@ -4410,6 +4426,53 @@ export function App() {
                       ? `Needs ${DRAFT_ENTRY} shards`
                       : "Eighteen picks from cards you do not own · three lives"}
                   </span>
+                </button>
+              </div>
+            )}
+
+            {/* THE RUN PANEL — and the way out of a finished run.
+                Without it the mode was a DEAD END: the start button hides
+                whenever `draftRun` exists, and a run that is over is still a
+                run, so once three losses landed there was no draft to play, no
+                deck in your chair, and no button to start another. "Draft
+                again" is the clear, and clearing is what brings the start
+                button back. */}
+            {!onlineMode && !twoPlayer && arenaGame === "draft"
+              && draftRun && draftComplete(draftRun) && (
+              <div className="ar-gauntlet">
+                <div className="gt-head">
+                  <span className="ar-flabel">
+                    DRAFT · {draftWins(draftRun)} WIN{draftWins(draftRun) === 1 ? "" : "S"}
+                  </span>
+                  <span className="gt-sub">
+                    {draftRunOver(draftRun)
+                      ? `Run over — +${draftReward(draftRun)} shards banked.`
+                      : `${DRAFT_LOSSES - draftLosses(draftRun)} ${
+                          DRAFT_LOSSES - draftLosses(draftRun) === 1 ? "life" : "lives"
+                        } left${
+                          // Only name the deck when the RUN put it there — the
+                          // same rule the gauntlet panel follows, so a draft
+                          // parked behind an event cannot announce an opponent
+                          // it never dealt.
+                          draftSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
+                  </span>
+                </div>
+                {/* One pip per life, spent left to right. Lives rather than
+                    wins: the wins are in the label above, and what makes the
+                    next match tense is what is left. */}
+                <div className="gt-pips">
+                  {Array.from({ length: DRAFT_LOSSES }, (_, i) => (
+                    <i key={i} className={i < draftLosses(draftRun) ? "lost" : "won"} />
+                  ))}
+                </div>
+                <button
+                  className="ghost sm gt-quit"
+                  onClick={() => {
+                    const next = { ...story, draft: undefined };
+                    setStory(next); saveStory(next);
+                  }}
+                >
+                  {draftRunOver(draftRun) ? "Draft again" : "Give up the run"}
                 </button>
               </div>
             )}

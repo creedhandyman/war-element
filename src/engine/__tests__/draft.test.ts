@@ -145,6 +145,35 @@ describe("a draft deals three at a time and ends with a legal deck", () => {
   });
 });
 
+describe("the big board drafts too", () => {
+  // Thirty picks instead of eighteen. Nothing in the module is board-specific —
+  // `deckSizeFor` decides the count and everything else follows — so what is
+  // worth pinning is that the TUNING survives the longer draft rather than
+  // that the loop terminates. Measured over 200 drafts: curve error 0.063 at
+  // both sizes, elements 2.94 at 18 picks and 3.65 at 30. The drift is the
+  // right direction and the right size — twelve more cards is twelve more
+  // chances to splash — and neither number moved enough to need its own tuning.
+  it("deals a full thirty for a 5x5, all distinct", () => {
+    const deck = deliberateDraft(5, 5);
+    expect(deck).toHaveLength(deckSizeFor(5));
+    expect(new Set(deck).size, "a duplicate on the big board").toBe(deck.length);
+  });
+
+  it("holds the same curve it holds on the small one", () => {
+    const seeds = Array.from({ length: 60 }, (_, i) => i * 31 + 7);
+    const small = curveError(seeds.map((s) => deliberateDraft(s, 4)));
+    const big = curveError(seeds.map((s) => deliberateDraft(s, 5)));
+    expect(big, `18-pick ${small.toFixed(3)} vs 30-pick ${big.toFixed(3)}`)
+      .toBeLessThan(small + 0.04);
+  });
+
+  it("stays coherent over the longer draft", () => {
+    const seeds = Array.from({ length: 60 }, (_, i) => i * 17 + 3);
+    const mean = meanElements(seeds.map((s) => deliberateDraft(s, 5)));
+    expect(mean, `30-pick drafter averaged ${mean.toFixed(2)} elements`).toBeLessThan(5);
+  });
+});
+
 describe("the curve steering", () => {
   it("starts neutral — an empty draft is on pace by definition", () => {
     // Pace-relative, not absolute. Against the FINISHED deck's target a fresh

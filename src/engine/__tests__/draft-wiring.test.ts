@@ -84,8 +84,43 @@ describe("the draft wiring", () => {
     expect(APP.includes("decksForTier(draftTier"), "seat rolled at render time").toBe(false);
   });
 
+  it("is not a dead end once a run is over", () => {
+    // THE BUG THIS FIXES, and it was mine. The start button hides whenever
+    // `draftRun` exists — and a run that is over is still a run — so after the
+    // third loss there was no draft to play, no deck in your chair, and no
+    // button to start another. The mode was unusable until the save was wiped.
+    expect(APP).toContain("draftRunOver(draftRun) ? \"Draft again\"");
+    // ...and "Draft again" is the CLEAR, which is what brings the start button
+    // back. A panel that only reports the run would still be a dead end.
+    // Anchored on the BUTTON's expression, not the words: "Draft again" also
+    // appears in the start-gate message, and matching that one proved nothing.
+    const at = APP.indexOf("draftRunOver(draftRun) ? \"Draft again\"");
+    expect(at, "no Draft again button").toBeGreaterThan(-1);
+    expect(APP.slice(Math.max(0, at - 400), at), "the button must clear the run")
+      .toContain("draft: undefined");
+  });
+
+  it("locks the battlefield to the one the run was drafted for", () => {
+    // A run drafted on 4x4 holds eighteen cards and the big board wants thirty:
+    // a size change mid-run does not make the match harder, it makes the deck
+    // illegal.
+    expect(APP).toContain("const draftLocked = arenaGame === \"draft\"");
+    expect(APP).toContain("draftLocked && draftRun!.board !== boardSize");
+    expect(APP).toMatch(/const boardLocked = [^;]*draftLocked/);
+  });
+
+  it("will not start a match the run cannot supply a deck for", () => {
+    // Draft has one state more than the other modes: a run that exists but is
+    // still CHOOSING has no deck to seat. Without its own sentence it fell
+    // through to "your squad is not a 4x4 squad", which is true and useless.
+    expect(APP).toContain("Draft a squad above to begin a run.");
+    expect(APP).toContain("Finish your draft");
+    expect(APP).toContain("That run is over. Draft again above.");
+  });
+
   it("styles the entry control it adds", () => {
-    for (const c of ["ar-gauntlet", "gt-start", "gt-start-main", "gt-sub", "gt-pay"])
+    for (const c of ["ar-gauntlet", "gt-start", "gt-start-main", "gt-sub", "gt-pay",
+                     "gt-head", "gt-pips", "gt-quit", "ar-flabel"])
       expect(CSS.includes(`.${c}`), `no rule for .${c}`).toBe(true);
   });
 });
