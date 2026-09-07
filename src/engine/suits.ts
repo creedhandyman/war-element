@@ -11,7 +11,7 @@
 //
 //   ♠ Spades    ATTACK    — the hardest hitter it can afford, forward always.
 //   ♣ Clubs     DEFENSE   — holds the line, and makes you come to it.
-//   ♥ Hearts    CONTROL   — spells and Specials first; wins the board, not the race.
+//   ♥ Hearts    CONTROL   — Specials first, and it genuinely does not race.
 //   ♦ Diamonds  HOARD     — banks gold for the heavy end. Slow, then very large.
 //
 // DEALT FROM THE MATCH SEED, not from Math.random: the engine is a
@@ -32,20 +32,31 @@
 // pairing, heroes ON:
 //
 //              vs   Attack Defense Control   Hoard      overall
-//     ♠ Attack        —      44%     34%     68%         48.3%
-//     ♣ Defense      54%      —      48%     55%         52.1%
-//     ♥ Control      65%     57%      —      57%         60.0%
-//     ♦ Hoard        34%     54%     41%      —          42.9%
+//     ♠ Attack        —      46%     53%     66%         55.0%
+//     ♣ Defense      54%      —      44%     55%         50.8%
+//     ♥ Control      48%     56%      —      56%         53.3%
+//     ♦ Hoard        34%     45%     44%      —          40.8%
 //
-// THE CYCLE IS THE POINT: Attack beats Hoard, Hoard beats Defense, Defense
+// THE CYCLE IS THE POINT: Attack beats Control, Control beats Defense, Defense
 // beats Attack. Three of the four counter each other, which is what keeps a
-// dealt suit interesting rather than just a difficulty roll.
+// dealt suit a matchup rather than a difficulty roll.
 //
-// CONTROL SITS OUTSIDE IT and is the known outlier — 57-65% with no losing
-// matchup. Left as it is deliberately: these are AI OPPONENTS, not player
-// choices, so the spread is difficulty variety rather than a fairness problem,
-// and Control being the hardest draw is a reasonable thing for a game to have.
-// It is a fair target if that variance is ever unwanted.
+// CONTROL WAS THE OUTLIER — 60.0% with no losing matchup at all — and what
+// fixed it was not a nerf to its strengths but giving it the COST its identity
+// already implied. Every other style pays for itself: Attack walks into walls,
+// Hoard starves early, Defense gives up tempo. Control had three upsides and no
+// bill, so it got the two it should always have had — it does not race
+// (`reluctant`), and it curves out slowly because its casters are expensive (a
+// light two-round bank). 60.0% -> 53.3%, and it now LOSES to Attack, which is
+// the part that matters: a style with no bad matchup is not a personality, it
+// is just the best one.
+//
+// Two things that did NOT work, recorded so they are not retried: moving the
+// Special-eagerness between suits (0.4 points) and re-ordering the caster
+// preference (1.3 points, the wrong way). Neither `specialSurplus` nor the
+// summon RANK is a real lever — the costs are.
+//
+// HOARD IS NOW THE FLOOR at 40.8% and is the open question, not Control.
 //
 // Attack's first cut took `cheapest` and measured 40.4% overall, losing to
 // Defense 31-63: a board of 1-drops run eagerly into a wall. `hardest` is the
@@ -109,8 +120,8 @@ export const SUIT_STYLES: Record<Suit, SuitStyle> = {
   },
   heart: {
     key: "heart", glyph: "♥", name: "Control",
-    blurb: "Spells and Specials first. It would rather own the board than win the race.",
-    summon: "caster", bankFor: 0, bankMaxRounds: 0, advance: "normal", specialSurplus: 0,
+    blurb: "Specials first, and slow to start. It would rather own the board than win the race.",
+    summon: "caster", bankFor: 0.5, bankMaxRounds: 2, advance: "reluctant", specialSurplus: 0,
   },
   diamond: {
     key: "diamond", glyph: "♦", name: "Hoard",

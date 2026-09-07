@@ -126,9 +126,12 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
         ? (a, b) => wall(getDef(b.defId)) - wall(getDef(a.defId)) || byCost(a, b)
         : style.summon === "caster"
           ? (a, b) => {
-              const rank = (x: HandCard) =>
-                getDef(x.defId).cardClass === "Support" ? 0
-                  : getDef(x.defId).cardClass === "Mage" ? 1 : 2;
+              // MAGES FIRST, then everything else — Supports no longer jump the
+              // queue. Control means Specials and status, which is the Mage;
+              // Support is HEALING, which is sustain, which is the wall's job.
+              // Reaching for the healers first was Control quietly playing
+              // Defense as well, and it measured like it.
+              const rank = (x: HandCard) => (getDef(x.defId).cardClass === "Mage" ? 0 : 1);
               return rank(a) - rank(b) || byCost(a, b);
             }
           : byCost,

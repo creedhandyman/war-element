@@ -64,9 +64,9 @@ describe("the four personalities actually differ", () => {
     // coincidence — which is how it broke when Spades moved from `cheapest` to
     // `hardest` and both it and the hoarder reached for the same Mythic.
     s.players.P2.hand = [
-      { handId: "h1", defId: "leaf_nettle" },      // c1,  3 dmg   — the cheapest
+      { handId: "h1", defId: "leaf_nettle" },      // c1,  3 dmg, Mage — the caster
       { handId: "h2", defId: "pyro_spitfire" },    // c3,  6 dmg   — the hardest hitter
-      { handId: "h3", defId: "leaf_elderroot" },   // c6,  Support — the caster
+      { handId: "h3", defId: "leaf_elderroot" },   // c6,  Support — sustain, NOT control
       { handId: "h4", defId: "bore_bastion" },     // c8, 31+12 hp — dearest AND toughest
     ];
     const intent = aiPrepIntent(s, "P2");
@@ -90,7 +90,10 @@ describe("the four personalities actually differ", () => {
     const club = firstSummon("club")!;
     expect(getDef(club).hp + getDef(club).shields * 2, "defense wants a wall")
       .toBeGreaterThanOrEqual(getDef("bore_bastion").hp);
-    expect(getDef(firstSummon("heart")!).cardClass, "control wants its Support").toBe("Support");
+    // MAGE, not Support. Control means Specials and status; Support is healing,
+    // which is sustain, which is the wall's job — reaching for the healers first
+    // was Control quietly playing Defense too, and it measured like it.
+    expect(getDef(firstSummon("heart")!).cardClass, "control wants its caster").toBe("Mage");
   });
 
   it("every suit has a distinct style, and each names itself", () => {
