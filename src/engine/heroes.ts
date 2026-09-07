@@ -129,7 +129,15 @@ export interface Hero {
 export const HERO_SHIELDS = 5;   // Hold the Line, per ally
 export const HERO_HEAL = 6;      // Hold the Line, HP per ally
 export const HERO_DISCARD = 2;   // Requisition, cards spent
-export const HERO_GOLD = 2;      // Requisition, gold gained
+/** Requisition's payout.
+ *
+ *  FOUR, and it was briefly 2 for the wrong reason. The cut happened during the
+ *  panic pass when the powers had just blown the spread to 59.6 points, before
+ *  `HERO_MIN_ROUND` was found — so it was calibrated against a problem that the
+ *  round gate then solved. Measured again with the gate in place, 4 gold gives
+ *  a spread of 4.6 points against 2 gold's 4.2: the same table within noise.
+ *  The early spike was never the SIZE of the purse, it was WHEN it arrived. */
+export const HERO_GOLD = 4;      // Requisition, gold gained
 /** Muster only pays for a card up to this cost.
  *
  *  UNCAPPED IT WAS THE WHOLE PROBLEM. A free summon of anything is a free
