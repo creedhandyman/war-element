@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -2668,6 +2668,11 @@ function spawnCapped(
    *  Hurricane hits for half too. Omit for a full-strength spawn, which is
    *  every other spawner. */
   scale?: number,
+  /** Replaces the token's own arrival damage for THIS spawn. Kloud's storm is
+   *  half a hurricane and hits for 8 on arrival rather than the full 15; the
+   *  number is written on the card rather than derived, because deriving it
+   *  from `scale` floors 15 x 0.5 to 7 and the card says 8. */
+  onSummonDmg?: number,
 ): void {
   let want = count;
   if (maxAlive !== Infinity) {
@@ -2681,8 +2686,43 @@ function spawnCapped(
   }
   if (want > 0) {
     const born = spawnTokens(draft, attacker, token, want, radius);
+    // ITS ARRIVAL EFFECT, which a spawned body never got to have.
+    //
+    // `onSummon` fires in phases.ts on the SUMMON intent — a card played from
+    // hand. `spawnTokens` places a body directly and skips all of that, so a
+    // token carrying an arrival effect simply never ran it. The Thundering
+    // Hurricane is the only token that does, and its own comment describes the
+    // effect in the present tense ("ON ARRIVAL it reels everything within 2
+    // into contact, hits for 15") while the card was priced for it. Written,
+    // documented, paid for, dead.
+    //
+    // BEFORE `scaleInstance`, and that ordering is the rule rather than an
+    // accident: the arrival burst is the storm FORMING, not the body swinging,
+    // so it is not the half-power body's attack and is not scaled with it. A
+    // spawner that wants a different number says so with `onSummonDmg` — which
+    // is then the final figure, not something to halve again.
+    for (const b of born) fireSpawnArrival(draft, b, onSummonDmg);
     if (scale != null && scale !== 1) for (const b of born) scaleInstance(b, scale);
   }
+}
+
+/** Run a freshly-spawned token's own `onSummon`, if it has one.
+ *
+ *  Deliberately narrower than the summon-from-hand path in phases.ts: no
+ *  `castsOwnSpecial`, no ally branch, no self-status. Those exist for cards a
+ *  player summons and none of them is carried by a token today; adding them
+ *  here would be four behaviours nothing asked for. When one does, it moves. */
+function fireSpawnArrival(draft: GameState, born: CardInstance, dmgOverride?: number): void {
+  const def = getDef(born.defId);
+  const os = def.onSummon;
+  if (!os?.handler || os.targetSide === "ally" || !born.pos) return;
+  const handler = SPECIAL_HANDLERS[os.handler];
+  if (!handler) return;
+  const params = dmgOverride != null ? { ...(os.params ?? {}), dmg: dmgOverride } : (os.params ?? {});
+  const targets = onSummonTargets(draft, born, def);
+  if (targets.length === 0 && !TARGETLESS_HANDLERS.has(os.handler)) return;
+  draft.log.push(`${def.name} arrives — ${def.passiveNames?.onSummon ?? "its arrival"} breaks over the board!`);
+  handler(draft, born, targets, params);
 }
 
 function tribeOf(card: CardInstance, tribe: string): boolean {
@@ -3706,7 +3746,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // only `combo` passed it, so a Special whose whole effect IS the summons
       // had to route through a combo handler to get a scaled body. Omit for a
       // full-strength spawn, which is every other card.
-      params.scale == null ? undefined : num(params, "scale", 1));
+      params.scale == null ? undefined : num(params, "scale", 1),
+      // The arrival damage this spawn uses, when the token's own is not the
+      // right number for a body raised at a fraction of the card.
+      params.onSummonDmg == null ? undefined : num(params, "onSummonDmg", 0));
     // Grove's Blessing: the same burst that raises the tree tops up every ally
     // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.
     const healAmt = num(params, "healAllies");

@@ -8439,12 +8439,23 @@ export const CARDS: CardDef[] = [
       params: {
         token: "gale_thundering_hurricane_tok", count: 1,
         maxAlive: 1, scale: 0.5,
+        // AND IT ARRIVES SWINGING. The token has always carried an arrival
+        // burst — reel everything within 2 into contact, hit it, hold it for
+        // two rounds — and a SPAWNED body never ran it: `onSummon` fires on the
+        // summon INTENT, and a token is placed directly. So the half of this
+        // Special that made it worth 3 magic was dead on the board, while the
+        // token's own comment described it in the present tense throughout.
+        //
+        // 8 rather than the token's 15, because this storm is half a hurricane.
+        // Written rather than derived: scaling 15 by 0.5 floors to 7, and the
+        // card says 8.
+        onSummonDmg: 8,
       },
       // SELF, not enemy. With no damage left there is nothing to aim at, and an
       // enemy-targeted Special cannot be cast into an empty board — which would
       // have made the summons unavailable exactly when you most want a body.
       targetSide: "self",
-      text: "Raise a Thundering Hurricane at half strength (one at a time).",
+      text: "Raise a Thundering Hurricane at half strength (one at a time). It lands reeling every opponent within 2 spaces into contact for 8 DMG and PARALYZING them for 2 rounds.",
     },
   },
   {

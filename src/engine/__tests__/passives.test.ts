@@ -2725,19 +2725,42 @@ describe("Kloud's Twisted Rage raises a storm", () => {
   }
   const STORM = "gale_thundering_hurricane_tok";
 
-  it("deals NO damage — the summons is the whole Special", () => {
-    // The chain is gone, so the one thing that could regress quietly is a
-    // handler that still touches the enemy. Checked against a body standing in
-    // range of everything Kloud has.
+  it("the damage comes from the STORM's arrival, not from Kloud", () => {
+    // This used to assert the opposite — "deals NO damage, the summons is the
+    // whole Special" — and it was right about KLOUD and wrong about the cast.
+    // The token has always carried an arrival burst, and a spawned body never
+    // ran it: `onSummon` fires on the summon INTENT and a token is placed
+    // directly, so the half of this Special that made it worth 3 magic was
+    // dead. Kloud still touches nobody; the hurricane does.
     const s = prepState();
     s.players.P1.magicPool = 9;
     const kloud = place(s, "gale_kloud", "P1", 3, 1);
     const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
     SPECIAL_HANDLERS.spawn(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
       getDef("gale_kloud").special!.params!);
-    expect(s.cards[prey.instanceId].curHp, "untouched").toBe(900);
+    const dealt = 900 - s.cards[prey.instanceId].curHp;
+    expect(dealt, "the storm's arrival, at the card's stated 8").toBe(8);
     expect(Object.values(s.cards).filter((c) => c.defId === STORM && c.curHp > 0), "storm still rises")
       .toHaveLength(1);
+  });
+
+  it("holds what it reeled in — PARALYZE rides the arrival", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const kloud = place(s, "gale_kloud", "P1", 3, 1);
+    const prey = place(s, "dusk_gool", "P2", 2, 1, { curHp: 900, maxHp: 900, curShields: 0 });
+    SPECIAL_HANDLERS.spawn(s, s.cards[kloud.instanceId], [s.cards[prey.instanceId]],
+      getDef("gale_kloud").special!.params!);
+    expect((s.cards[prey.instanceId].statuses ?? []).map((x) => x.kind)).toContain("PARALYZE");
+  });
+
+  it("hits 8, not the token's 15 and not half of it", () => {
+    // 8 is WRITTEN on Kloud's spawn rather than derived from `scale`, because
+    // deriving it floors 15 x 0.5 to 7 and the card says 8. The full-power
+    // hurricane keeps its own 15 — Skybreaker's two spawn paths do not run
+    // through `spawnCapped` and are untouched by any of this.
+    expect(getDef("gale_kloud").special!.params!.onSummonDmg).toBe(8);
+    expect(getDef(STORM).onSummon!.params!.dmg, "the token's own is unchanged").toBe(15);
   });
 
   it("arrives on the caster's side at HALF its card", () => {
