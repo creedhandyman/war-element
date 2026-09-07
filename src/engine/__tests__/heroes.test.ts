@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
-import { HEROES, HERO_GOLD, HERO_SHIELDS, goldRoundFor, magicRoundFor } from "../heroes";
+import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, goldRoundFor, magicRoundFor } from "../heroes";
 import { canSummon, effectiveSpecialCost } from "../rules";
 import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
@@ -86,6 +86,9 @@ describe("the hero powers", () => {
   function armed(suit: Suit) {
     const s = prepState(7, "P1");
     s.heroes = true;
+    // Powers are gated behind HERO_MIN_ROUND: an economy power on round one is
+    // five rounds of income arriving at once, which is what broke the table.
+    s.round = HERO_MIN_ROUND;
     s.seatSuits = { ...(s.seatSuits ?? {}), P1: suit } as never;
     return s;
   }
@@ -122,7 +125,7 @@ describe("the hero powers", () => {
     const s = armed("spade");
     s.players.P1.gold = 0; // cannot afford anything at all
     s.players.P1.hand = [
-      { handId: "h1", defId: "bore_bastion" },   // c8
+      { handId: "h1", defId: "leaf_greegon" },   // c3 — inside Muster's reach
       { handId: "h2", defId: "leaf_nettle" },    // c1
     ];
     expect(canSummon(s, "P1", "h1", 0).ok, "broke, and no power yet").toBe(false);
@@ -141,8 +144,8 @@ describe("the hero powers", () => {
     const s = armed("spade");
     s.opening = { P1: 2, P2: 2 } as never;
     s.players.P1.hand = [
-      { handId: "h1", defId: "dusk_shadowhorsemen" }, // c10, far over the cap
-      { handId: "h2", defId: "leaf_nettle" },         // c1, placeable anyway
+      { handId: "h1", defId: "leaf_alpha" },  // c4 — over the opening cap of 3
+      { handId: "h2", defId: "leaf_nettle" }, // c1 — placeable anyway
     ];
     expect(canSummon(s, "P1", "h1", 0).ok, "over the cap, unarmed").toBe(false);
     const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
@@ -156,8 +159,8 @@ describe("the hero powers", () => {
     const s = armed("spade");
     s.opening = { P1: 2, P2: 2 } as never;
     s.players.P1.hand = [
-      { handId: "h1", defId: "leaf_nettle" },         // c1 — under the cap
-      { handId: "h2", defId: "dusk_shadowhorsemen" }, // c10 — what it was saved for
+      { handId: "h1", defId: "leaf_nettle" }, // c1 — under the cap
+      { handId: "h2", defId: "leaf_alpha" },  // c4 — what it was saved for
     ];
     const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
     const after = applyIntent(ready, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });

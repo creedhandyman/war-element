@@ -1,7 +1,7 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
-import { goldRoundFor, magicRoundFor, HEROES, HERO_SHIELDS, HERO_DISCARD, HERO_GOLD } from "./heroes";
+import { goldRoundFor, magicRoundFor, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, FOCUS_CASTS, HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -126,8 +126,12 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // already free, so the only thing Muster buys there is a card OVER the
       // cost cap — and burning a once-per-game power on a 1-drop the player
       // could have placed anyway would be the game quietly robbing them.
+      // CAPPED. Muster pays for a card up to `MUSTER_MAX_COST` — uncapped it was
+      // a free Mythic, and measured as one. Over the cap it simply does not
+      // apply, so the arming survives for a card it can actually pay for.
       const musterNeeded = draft.opening ? def.cost > OPENING_COST_CAP : true;
-      if (p.freeSummon && musterNeeded) {
+      const musterCovers = def.cost <= (draft.opening ? MUSTER_OPENING_MAX : MUSTER_MAX_COST);
+      if (p.freeSummon && musterNeeded && musterCovers) {
         p.freeSummon = false;
         draft.log.push(`${intent.player} musters ${def.name} — cost ignored.`);
       } else if (!draft.opening) {
@@ -634,23 +638,25 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // Gated on heroes being live for the mode, so a plain skirmish cannot
       // fire one just because a suit was dealt — the same rule the curve obeys.
       if (!draft.heroes || !suit || p.heroPowerUsed) return draft;
+      if (draft.round < HERO_MIN_ROUND) return draft;
       const hero = HEROES[suit];
       p.heroPowerUsed = true;
       switch (suit) {
         case "spade":   // Muster: the next summon is free.
           p.freeSummon = true;
           break;
-        case "heart":   // Arcane Focus: the next Special is free.
-          p.freeSpecial = true;
+        case "heart":   // Arcane Focus: the next few Specials are free.
+          p.freeSpecial = FOCUS_CASTS;
           break;
-        case "club": {  // Hold the Line: the whole line digs in.
+        case "club": {  // Hold the Line: the whole line digs in, and patches up.
           let n = 0;
           for (const c of boardCards(draft, intent.player)) {
             if (c.curHp <= 0) continue;
             c.curShields += HERO_SHIELDS;
+            healCard(draft, c, HERO_HEAL, intent.player);
             n++;
           }
-          draft.log.push(`${intent.player} — ${hero.power.name}: ${n} ally(ies) gain ${HERO_SHIELDS} shields.`);
+          draft.log.push(`${intent.player} — ${hero.power.name}: ${n} ally(ies) gain ${HERO_SHIELDS} shields and heal ${HERO_HEAL}.`);
           break;
         }
         case "diamond": {
@@ -1932,10 +1938,11 @@ function performBattleAction(
       card.talentUsed = true; // once per game — no cost, no cooldown
     } else if (!wasFree) {
       draft.players[card.owner].magicPool -= effectiveSpecialCost(draft, card, special.cost);
-      // Arcane Focus is spent by the cast it paid for, not by the round.
-      if (draft.players[card.owner].freeSpecial) {
-        draft.players[card.owner].freeSpecial = false;
-        draft.log.push(`${label(draft, card)}'s Special is refunded — Arcane Focus.`);
+      // Arcane Focus is spent one CAST at a time, not by the round.
+      const focus = draft.players[card.owner].freeSpecial ?? 0;
+      if (focus > 0) {
+        draft.players[card.owner].freeSpecial = focus - 1;
+        draft.log.push(`${label(draft, card)}'s Special is refunded — Arcane Focus (${focus - 1} left).`);
       }
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).

@@ -2,6 +2,7 @@
 // computing rule outcomes themselves.
 
 import { getDef } from "../data/cards";
+import { MUSTER_MAX_COST, MUSTER_OPENING_MAX } from "./heroes";
 import {
   boardCards,
   cardAt,
@@ -70,9 +71,11 @@ export function canSummon(
     // that answered one of them and not the other would be a free summon that
     // could not summon the thing you saved it for. The SLOT is still spent:
     // Muster pays a card's cost, not a seat's deployment.
-    if (!state.players[player].freeSummon && def.cost > OPENING_COST_CAP)
+    if (!(state.players[player].freeSummon && def.cost <= MUSTER_OPENING_MAX)
+        && def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
-  } else if (!state.players[player].freeSummon && def.cost > state.players[player].gold) {
+  } else if (!(state.players[player].freeSummon && def.cost <= MUSTER_MAX_COST)
+      && def.cost > state.players[player].gold) {
     // Muster (Warlord): an armed free summon ignores the price entirely, so a
     // card you could never afford is exactly what it is for.
     return { ok: false, reason: "Not enough Gold" };

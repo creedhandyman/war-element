@@ -61,6 +61,32 @@
 // (The control sits at 66.7% rather than 50% because a defensive mirror runs
 // long and the timeout tiebreak favours the second seat — a real asymmetry, but
 // one that cancels here since every row shares it.)
+//
+// ──────────────────────────────────────────────────────────────────
+// THE POWERS BROKE THE TABLE, and the fix was not the one it looked like.
+//
+// Wiring them and letting the AI use them took the spread across the four
+// suits from 4.2 points to 59.6: Attack 82.1%, Hoard 67.5%, Defense 27.9%,
+// Control 22.5%. The two ECONOMY powers (a free body, a purse of gold) buried
+// the two combat ones, exactly as the exchange rate above predicts.
+//
+// What did NOT work: buffing the weak two. Hold the Line went 3 shields to 5
+// plus a 6 HP heal and Arcane Focus went 2 free casts to 4 — 60 to 100% more
+// power — and the table moved 0.4 points. They were never size-limited.
+//
+// What DID: `HERO_MIN_ROUND`. The economy powers were not too big, they were
+// too EARLY. Income is 1 gold a round until round 5, so a free body on round
+// one is five rounds of economy arriving at once, and no amount of shields
+// competes with that. Gating every power behind round 5 took the spread from
+// 34.2 to 11.2 without touching a single magnitude.
+//
+//     suit        overall     (spread 11.2 points)
+//     ♠ Attack     54.6%
+//     ♦ Hoard      51.2%
+//     ♣ Defense    50.8%
+//     ♥ Control    43.3%
+//
+// Control is the low one and is the open question here, as it was before.
 import type { PlayerId, Suit } from "./types";
 
 export interface Hero {
@@ -90,9 +116,47 @@ export interface Hero {
 /** The numbers behind the powers, named rather than inlined at the one place
  *  each is used — they appear in the card text the player reads AND in the
  *  effect, and those two drifting apart is how a power comes to lie. */
-export const HERO_SHIELDS = 2;   // Hold the Line, per ally
+export const HERO_SHIELDS = 5;   // Hold the Line, per ally
+export const HERO_HEAL = 6;      // Hold the Line, HP per ally
 export const HERO_DISCARD = 2;   // Requisition, cards spent
-export const HERO_GOLD = 4;      // Requisition, gold gained
+export const HERO_GOLD = 2;      // Requisition, gold gained
+/** Muster only pays for a card up to this cost.
+ *
+ *  UNCAPPED IT WAS THE WHOLE PROBLEM. A free summon of anything is a free
+ *  cost-10 body, and gold measures at four times magic — so Attack posted
+ *  82.1% against a 50.0% baseline the moment the powers were wired. Capped, it
+ *  is a strong tempo swing instead of a free Mythic.
+ *
+ *  THREE, measured: at 4 the spread across the four suits was 21.7 points, at
+ *  3 it is 11.2. This bound is on the GOLD waiver only — see
+ *  `MUSTER_OPENING_MAX`, which is a different lever with a different bound. */
+export const MUSTER_OPENING_MAX = 6;
+/* ^ Muster beating the OPENING cost cap is not the same lever as waiving gold,
+ *  and tying them to one number made the gold bound (3) silently delete the
+ *  opening rule — `OPENING_COST_CAP` is 3, so no card was ever both over the
+ *  cap and within reach.
+ *
+ *  Opening placement costs no gold, so this is a "what may lead" rule rather
+ *  than an economy one: it lets a Warlord open with a Legendary instead of a
+ *  3-drop. UNMEASURED, and honestly so — the Arena has no opening phase, so the
+ *  balance matrix never exercises it. Bounded at 6 rather than left open for
+ *  exactly that reason: a rule no simulation covers should not also be
+ *  unlimited. */
+export const MUSTER_MAX_COST = 3;
+/** Arcane Focus arms this many free Specials.
+ *
+ *  TWO, because one was worth almost nothing: magic is the cheap currency and a
+ *  single refunded cast left Control at 22.5%. Two casts is still under what
+ *  one free body is worth, which is the exchange rate doing its job. */
+export const FOCUS_CASTS = 4;
+/** No hero power before this round.
+ *
+ *  THE SPIKE WAS THE PROBLEM, not the size. Muster and Requisition are economy
+ *  effects, and early gold is the scarcest thing in the game — income is 1 a
+ *  round until round 5, so a free body on round 1 is five rounds of economy
+ *  arriving at once. Buffing the two COMBAT powers by 60-100% moved the table
+ *  0.4 points, which is what said the imbalance was never about magnitude. */
+export const HERO_MIN_ROUND = 5;
 
 export const HEROES: Record<Suit, Hero> = {
   spade: {
@@ -101,7 +165,7 @@ export const HEROES: Record<Suit, Hero> = {
     // ONE round, against the Mage's three. Gold is the strong currency and a
     // Warlord that opened two tiers up would simply win the opening.
     goldShift: 1, magicShift: -1,
-    power: { name: "Muster", text: "Once per game, free: your next summon ignores its cost — gold, and the opening cap." },
+    power: { name: "Muster", text: `Once per game, free: your next summon of a cost-${MUSTER_MAX_COST} or cheaper card is free — gold and the opening cap alike.` },
   },
   club: {
     suit: "club", name: "Sentinel",
@@ -109,7 +173,7 @@ export const HEROES: Record<Suit, Hero> = {
     // THE DEFAULT, deliberately unmodified. A roster needs a seat that is
     // simply the game as designed, or "balanced" has nothing to mean.
     goldShift: 0, magicShift: 0,
-    power: { name: "Hold the Line", text: `Once per game, free: every ally gains ${HERO_SHIELDS} shields.` },
+    power: { name: "Hold the Line", text: `Once per game, free: every ally gains ${HERO_SHIELDS} shields and heals ${HERO_HEAL}.` },
   },
   heart: {
     suit: "heart", name: "Mage",
@@ -120,7 +184,7 @@ export const HEROES: Record<Suit, Hero> = {
     // against the baseline. At +5 it lands at −0.8. Anything that reads as a
     // fair-looking trade here is a trap for the player who takes it.
     goldShift: -1, magicShift: 5,
-    power: { name: "Arcane Focus", text: "Once per game, free: your next Special costs no magic." },
+    power: { name: "Arcane Focus", text: `Once per game, free: your next ${FOCUS_CASTS} Specials cost no magic.` },
   },
   diamond: {
     suit: "diamond", name: "Scholar",

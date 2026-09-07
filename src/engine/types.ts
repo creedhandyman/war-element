@@ -2474,7 +2474,9 @@ export interface PlayerState {
    *  which is the whole value of a free cast. */
   heroPowerUsed?: boolean;
   freeSummon?: boolean;
-  freeSpecial?: boolean;
+  /** A COUNT, not a flag: Arcane Focus arms more than one cast. Each free
+   *  Special decrements it, and 0/undefined means pay as normal. */
+  freeSpecial?: number;
   /** Spells available to this player this game (each castable once). */
   spellbook: SpellSlot[];
   /** GOLD — the summoning resource. Gains = round # each round (cap 10

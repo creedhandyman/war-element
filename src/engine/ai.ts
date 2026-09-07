@@ -3,6 +3,7 @@
 // would see (its own hand + the board — it never reads P1's hand or deck).
 
 import { styleOf } from "./suits";
+import { HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { getSpell, spellPickKind } from "./spells";
 import {
@@ -105,11 +106,67 @@ function deploySlots(state: GameState, player: PlayerId): Pos[] {
 }
 
 /** One intent per call: summon > move > pass. */
+/** Should this seat spend its hero power now?
+ *
+ *  The AI never fired one, which mattered more than it sounds: heroes are live
+ *  in the Arena, so every match handed the player a free once-per-game effect
+ *  and gave the opponent nothing. A power nobody on the other side uses is a
+ *  handicap wearing a feature's name.
+ *
+ *  One condition each, and each is "the moment this is worth more than holding
+ *  it". None of them fire on round one: a free summon is worth most when there
+ *  is something expensive to summon, and a shield wall is worth nothing before
+ *  there is a wall.
+ *
+ *  Returns the intent, or null to keep holding it. */
+function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
+  const p = state.players[player];
+  const suit = state.seatSuits?.[player];
+  if (!state.heroes || !suit || p.heroPowerUsed) return null;
+  if (state.round < HERO_MIN_ROUND) return null;
+  const board = boardCards(state, player).filter((c) => c.curHp > 0);
+  switch (suit) {
+    case "spade": {
+      // Muster: the moment the hand holds something the purse does not.
+      // Deliberately the DEAREST unaffordable card — spending a free summon on
+      // a card you could have bought next round is spending it on nothing.
+      const dearest = p.hand.reduce((best, h) =>
+        getDef(h.defId).cost > (best ? getDef(best.defId).cost : 0) ? h : best,
+        undefined as HandCard | undefined);
+      return dearest && getDef(dearest.defId).cost > p.gold
+        ? { type: "HERO_POWER", player } : null;
+    }
+    case "heart": {
+      // Arcane Focus: a Special it wants and cannot pay for.
+      const stuck = board.some((c) => {
+        const sp = getDef(c.defId).special;
+        return sp && canFireSpecial(state, c.instanceId).reason === "Not enough Magic";
+      });
+      return stuck ? { type: "HERO_POWER", player } : null;
+    }
+    case "club":
+      // Hold the Line: once there is a line to hold and someone to hold it
+      // against. Two bodies is the smallest thing worth shielding.
+      return board.length >= 2 && enemyCards(state, player).some((e) => e.curHp > 0)
+        ? { type: "HERO_POWER", player } : null;
+    case "diamond":
+      // Requisition: a hand it cannot spend. That IS the Scholar's premise, so
+      // the trigger is simply the flood arriving — cards stranded, purse short.
+      return p.hand.length >= 4 && p.gold < Math.min(...p.hand.map((h) => getDef(h.defId).cost))
+        ? { type: "HERO_POWER", player } : null;
+  }
+}
+
 export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent {
   // THE SEAT'S SUIT DECIDES ITS TASTE. Every branch below is the same ladder
   // the AI always walked; the style only changes what it reaches for first and
   // how willing it is to leave the wall. See suits.ts.
   const style = styleOf(state.seatSuits, player);
+  // The hero power, before anything else it might pay for. It does not end the
+  // turn — the two arming powers exist to be spent by the very next action —
+  // and `heroPowerUsed` is what stops this returning forever.
+  const power = aiHeroPower(state, player);
+  if (power) return power;
   // 1. Summon into an open Home slot. WHICH card is the personality:
   //    biggest (the original), cheapest, toughest, or the casters first.
   const byCost = (a: HandCard, b: HandCard) => getDef(b.defId).cost - getDef(a.defId).cost;
