@@ -7085,6 +7085,25 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-suit.suit-club    { color: var(--suit-club); }
 .tk-suit.suit-diamond { color: var(--suit-diamond); }
 .tk-suit.suit-heart   { color: var(--suit-heart); }
+
+/* THE OPPONENT'S PLAYSTYLE, on the versus screen. The suit is dealt per match
+   and decides how that seat's AI plays, so this is the line that makes the
+   glyph worth reading. Tinted by the same suit colours the token carries, so
+   the card here and the mark on the board agree. */
+.pvi-style {
+  margin-top: 6px; padding: 6px 8px; border-radius: 7px;
+  background: rgba(6, 8, 14, 0.55); border: 1px solid var(--panel-line);
+  display: flex; flex-direction: column; gap: 2px; text-align: center;
+}
+.pvi-style b {
+  font-family: var(--head); font-size: 11px; letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.pvi-style span { font-size: 10.5px; line-height: 1.3; color: var(--ink-dim); }
+.pvi-style.suit-spade b   { color: var(--suit-spade); }
+.pvi-style.suit-club b    { color: var(--suit-club); }
+.pvi-style.suit-diamond b { color: var(--suit-diamond); }
+.pvi-style.suit-heart b   { color: var(--suit-heart); }
 /* THE NAME TAKES THE WHOLE TOP EDGE BACK.
    This reserved 16px for the suit, so every name was measured against a tile
    13px narrower than it looks — and at ~55px per slot on a phone that is a

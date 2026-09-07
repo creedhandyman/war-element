@@ -1,5 +1,11 @@
 // War Element — engine types. Pure data, no React.
 
+/** The four suits. Dealt per match and carrying the AI personality that seat
+ *  plays — the styles themselves live in `suits.ts`, which imports this.
+ *  Declared HERE because this file imports nothing on purpose, and the state
+ *  has to name the type. */
+export type Suit = "spade" | "club" | "heart" | "diamond";
+
 /** Four seats exist; a match uses as many as it seats. `GameState.seats` is
  *  the list actually playing, in turn order — two for every mode that shipped
  *  before Domination, up to four for that one.
@@ -2667,6 +2673,14 @@ export interface GameState {
   /** The seats playing this match, in turn order. Absent on a state built
    *  before seats existed, which `seatsOf` reads as the two-seat default. */
   seats?: PlayerId[];
+  /** The suit dealt to each seat this match, and with it the AI personality
+   *  that seat plays — see `suits.ts`. Dealt from the match seed, so a replay
+   *  and an online client land on the same personalities.
+   *
+   *  Optional because a state built before the deal existed (a saved game, a
+   *  hand-built fixture) has none; `styleOf` falls back to the seat's
+   *  traditional suit so no reader has to check. */
+  seatSuits?: Record<PlayerId, Suit>;
   firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
-import { KEYWORD_STYLE, STATUS_STYLE, SEAT_SUIT } from "./shared";
+import { KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -447,8 +447,11 @@ export function Token(props: {
           fails anyone glancing across a 49-slot board. A suit is the oldest
           answer there is to "which of these four is mine": readable at this
           size, and instantly countable when four seats share one board. */}
-      <span className={`tk-suit suit-${SEAT_SUIT[card.owner].key}`} title={`Player ${card.owner}`}>
-        {SEAT_SUIT[card.owner].glyph}
+      <span
+        className={`tk-suit suit-${suitFor(game.seatSuits, card.owner).key}`}
+        title={`Player ${card.owner} — ${suitFor(game.seatSuits, card.owner).name}`}
+      >
+        {suitFor(game.seatSuits, card.owner).glyph}
       </span>
       <div className="tk-name">{def.name}</div>
       {/* Statuses as a left column, two deep, then a count. A wrapping strip

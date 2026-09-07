@@ -2,6 +2,7 @@
 // returns is validated through rules.ts, and it sees only what a player
 // would see (its own hand + the board — it never reads P1's hand or deck).
 
+import { styleOf } from "./suits";
 import { getDef } from "../data/cards";
 import { getSpell, spellPickKind } from "./spells";
 import {
@@ -40,6 +41,7 @@ import type {
   PlayerId,
   Pos,
   StatusKind,
+  HandCard,
 } from "./types";
 import { enemyOf, homeRow, NEGATIVE_STATUSES, seatsOf } from "./types";
 import { isImpassable, poiAt, poiRing, type PoiDef } from "../data/domination";
@@ -104,10 +106,47 @@ function deploySlots(state: GameState, player: PlayerId): Pos[] {
 
 /** One intent per call: summon > move > pass. */
 export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent {
-  // 1. Summon the highest-cost affordable card into an open Home slot.
-  const hand = state.players[player].hand
-    .slice()
-    .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost);
+  // THE SEAT'S SUIT DECIDES ITS TASTE. Every branch below is the same ladder
+  // the AI always walked; the style only changes what it reaches for first and
+  // how willing it is to leave the wall. See suits.ts.
+  const style = styleOf(state.seatSuits, player);
+  // 1. Summon into an open Home slot. WHICH card is the personality:
+  //    biggest (the original), cheapest, toughest, or the casters first.
+  const byCost = (a: HandCard, b: HandCard) => getDef(b.defId).cost - getDef(a.defId).cost;
+  const wall = (d: ReturnType<typeof getDef>) => d.hp + d.shields * 2;
+  const hand = state.players[player].hand.slice().sort(
+    style.summon === "cheapest"
+      ? (a, b) => getDef(a.defId).cost - getDef(b.defId).cost
+      : style.summon === "toughest"
+        ? (a, b) => wall(getDef(b.defId)) - wall(getDef(a.defId)) || byCost(a, b)
+        : style.summon === "caster"
+          ? (a, b) => {
+              const rank = (x: HandCard) =>
+                getDef(x.defId).cardClass === "Support" ? 0
+                  : getDef(x.defId).cardClass === "Mage" ? 1 : 2;
+              return rank(a) - rank(b) || byCost(a, b);
+            }
+          : byCost,
+  );
+  // ...and DIAMONDS may decline to spend at all. A hoarder that can only afford
+  // the cheap end of its hand waits for the heavy end instead — but only for
+  // `bankMaxRounds`, because an empty board is not a long game, it is a loss.
+  if (style.bankFor > 0 && state.round <= style.bankMaxRounds && hand.length > 1) {
+    const dearest = Math.max(...hand.map((h) => getDef(h.defId).cost));
+    const affordable = hand
+      .filter((h) => canSummon(state, player, h.handId, 0).ok
+        || deploySlots(state, player).some((sl) => canSummon(state, player, h.handId, sl.col,
+          state.domination ? sl.row : undefined).ok))
+      .map((h) => getDef(h.defId).cost);
+    const best = affordable.length ? Math.max(...affordable) : 0;
+    // Nothing worth its while yet, and something on the board already holding
+    // the line: bank the gold. With an EMPTY board it always deploys — a
+    // hoarder with no bodies is just conceding the opening.
+    if (best > 0 && best < dearest * style.bankFor && boardCards(state, player).length > 0) {
+      const spellNow = findSpellCast(state, player);
+      return spellNow ?? { type: "PASS", player };
+    }
+  }
   for (const h of hand) {
     // WHERE a card comes in. On a standard board these are the home-row columns
     // this loop always walked and they are interchangeable back-line ground, so
@@ -160,9 +199,21 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   }
 
   // 3. Advance one card toward the enemy Home if it looks survivable.
+  //
+  // CLUBS SKIPS THIS. It is the one step that is a genuine choice — the
+  // capture above is the win condition and the standoff-breaker below is the
+  // alternative to a guaranteed draw, so neither is optional and a defensive
+  // seat still takes both. What Clubs declines is walking into the open
+  // because the estimate says it would probably survive. SPADES goes the other
+  // way and reaches for the closing move when the ordinary advance finds
+  // nothing, rather than waiting for a total standoff to justify it.
   if (!state.domination && !state.prep?.movedThisTurn) {
-    const move = findAdvance(state, player, false);
+    const move = style.advance === "reluctant" ? null : findAdvance(state, player, false);
     if (move) return move;
+    if (style.advance === "eager") {
+      const press = findClosingMove(state, player) ?? findFlankingMove(state, player);
+      if (press) return press;
+    }
     // Stall-breaker: total standoff (none of our cards can reach anything) —
     // camping forever is a guaranteed non-win, so make progress toward the
     // capture win regardless of the threat estimate. Without this, two ranged
@@ -1215,7 +1266,13 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     const pen = Number(params.pen ?? 0) > 0;
     // Magic is its own pool now — unspent surplus is wasted value, so be
     // liberal when flush: fire anything decent, not only guaranteed kills.
-    const rich = state.players[card.owner].magicPool >= sp.cost + 2;
+    //
+    // HOW flush is the suit's business. Hearts fires on the nose (surplus 0)
+    // because Specials are what it wins with; Clubs sits on 3 and keeps the
+    // pool for an emergency. A guaranteed KILL is unaffected — that branch
+    // does not consult `rich`, and no personality should decline a kill.
+    const rich = state.players[card.owner].magicPool
+      >= sp.cost + styleOf(state.seatSuits, card.owner).specialSurplus;
     // Don't fire a self-damaging Special (Kraken's Black Wave Crash, or Skyrend's
     // 10% Dive Bomb recoil) if it would kill the caster.
     const recoilCost = Math.round((Number(params.dmg ?? 0) * Number(params.recoilPct ?? 0)) / 100);

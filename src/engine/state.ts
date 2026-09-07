@@ -1,6 +1,7 @@
 // Game state construction + shared query helpers. Pure — reducers clone the
 // incoming state once (structuredClone) and mutate only the clone.
 
+import { dealSuits } from "./suits";
 import { getDef, deckById } from "../data/cards";
 import { dominationMap, isImpassable } from "../data/domination";
 import { hasElementAura, tailwindDmg, weakenMult, weakenStacks } from "./auras";
@@ -92,6 +93,9 @@ export function createInitialState(
   };
   const state: GameState = {
     rngState: seed | 0,
+    // The AI personalities for this match, dealt from the seed. See suits.ts
+    // for why this does not draw from the shared RNG cursor.
+    seatSuits: dealSuits(seed | 0),
     round: 0,
     phase: "mulligan",
     humans,

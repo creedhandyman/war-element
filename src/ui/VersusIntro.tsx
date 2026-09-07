@@ -27,7 +27,7 @@ import { getDef } from "../data/cards";
 import type { GameState, PlayerId } from "../engine";
 import { seatsOf } from "../engine";
 import { DeckSeat } from "./DeckPickerSheet";
-import { SEAT_SUIT } from "./shared";
+import { suitFor } from "./shared";
 
 /** How long the screen holds before the match begins. Short on purpose — this
  *  is a flourish in front of a fight someone is waiting to play, and every
@@ -109,10 +109,11 @@ export function VersusIntro(props: {
       <div className={`pvi${many ? " pvi-many" : ""}`} onClick={(e) => e.stopPropagation()}>
         <div className="pvi-col">
           {/* Named by SUIT as well as seat, so the identity you learn here is the
-              one you read off the board a minute later. */}
+              one you read off the board a minute later — and the suit is dealt
+              per match now, so it is worth reading. */}
           <DeckSeat
             side="mine"
-            flag={`YOU · ${SEAT_SUIT[me].glyph} ${me}`}
+            flag={`YOU · ${suitFor(game.seatSuits, me).glyph} ${me}`}
             label={names?.[me] ?? "Your squad"}
             cards={mine}
           />
@@ -130,10 +131,22 @@ export function VersusIntro(props: {
             <div className="pvi-col" key={f.seat}>
               <DeckSeat
                 side="foe"
-                flag={`${many ? "" : "OPPONENT · "}${SEAT_SUIT[f.seat].glyph} ${f.seat}`}
+                flag={`${many ? "" : "OPPONENT · "}${suitFor(game.seatSuits, f.seat).glyph} ${f.seat}`}
                 label={names?.[f.seat] ?? "Their deck"}
                 cards={f.cards}
               />
+              {/* THE TELL. The opponent's suit is dealt fresh each match and
+                  decides how its AI plays, so saying which style you are about
+                  to meet is the whole point of dealing it — a glyph nobody can
+                  read is the decoration this replaced. Shown only for an AI
+                  seat: a human opponent has a suit for identity, not a
+                  personality, and labelling them "Attack" would be a lie. */}
+              {!(game.humans ?? ["P1"]).includes(f.seat) && (
+                <div className={`pvi-style suit-${suitFor(game.seatSuits, f.seat).key}`}>
+                  <b>{suitFor(game.seatSuits, f.seat).name}</b>
+                  <span>{suitFor(game.seatSuits, f.seat).blurb}</span>
+                </div>
+              )}
               {/* The curve detail is what does not fit four across. In a
                   free-for-all the seat and the deck name are what you need to
                   tell three strangers apart; the lists are on the board in a

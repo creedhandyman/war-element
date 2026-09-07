@@ -1,7 +1,8 @@
 // Tiny UI-shared bits (no game rules here).
 
 import { buildableCards } from "../data/custom-decks";
-import type { Element, Keyword, PlayerId, StatusKind } from "../engine";
+import type { Element, Keyword, PlayerId, StatusKind, Suit } from "../engine";
+import { styleOf } from "../engine/suits";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
 /** THE element order, wherever a UI lists all eight.
@@ -218,6 +219,18 @@ export type PendingBattle = "basic" | "special" | "talent" | "plummet" | null;
  *  black): here the colour carries the SEAT and the shape carries the suit, so
  *  giving the suit its traditional colour would put two meanings on one
  *  channel and break the pairing above. */
+/** The suit a seat is showing THIS MATCH, with its playstyle.
+ *
+ *  Suits are dealt per game now (`GameState.seatSuits`) and carry the AI's
+ *  personality, so the glyph is a tell rather than a label: the same seat is
+ *  not the same suit twice running. Reads the deal when there is one and falls
+ *  back to the traditional seating below, which is what a state built before
+ *  the deal existed still has. */
+export function suitFor(seatSuits: Partial<Record<PlayerId, Suit>> | undefined, seat: PlayerId) {
+  const style = styleOf(seatSuits, seat);
+  return { glyph: style.glyph, key: style.key, name: style.name, blurb: style.blurb };
+}
+
 export const SEAT_SUIT: Record<PlayerId, { glyph: string; key: string }> = {
   P1: { glyph: "♠", key: "spade" },
   P2: { glyph: "♣", key: "club" },
