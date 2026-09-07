@@ -16,6 +16,8 @@
  *  libraries.
  */
 import { CARD_INDEX, getDef } from "./cards";
+import { SUITS } from "../engine/suits";
+import type { Suit } from "../engine/types";
 import { isBuildable, sanitizeSpells } from "./custom-decks";
 
 export interface Squad {
@@ -30,6 +32,13 @@ export interface Squad {
   /** Battlefield it was built for (4 or 5), so the builder opens at the right
    *  size and the deck code can carry it. */
   boardSize?: number;
+  /** The suit — and so the HERO — this squad plays under.
+   *
+   *  PER SQUAD, not per player, because a hero is part of a build the way the
+   *  spellbook is: the Mage curve suits a deck full of Specials and does
+   *  nothing for a wall, so one choice across every squad you own would make
+   *  most of them wrong. Absent = let the game deal one, as it does for the AI. */
+  suit?: Suit;
 }
 
 const STORAGE_KEY = "we_squads_v1";
@@ -51,6 +60,9 @@ function clean(s: Squad): Squad {
     ...s,
     cards: s.cards.filter((id) => CARD_INDEX[id] && isBuildable(id)),
     spells: sanitizeSpells(s.spells, s.boardSize ?? 5),
+    // VALIDATED, not trusted: localStorage is hand-editable and predates the
+    // field, and an unknown string would reach `HEROES[suit]` as undefined.
+    suit: SUITS.includes(s.suit as Suit) ? s.suit : undefined,
   };
 }
 
@@ -92,6 +104,7 @@ export function saveSquad(input: Omit<Squad, "id"> & { id?: string }): Squad[] {
     spells: input.spells,
     element: input.element,
     boardSize: input.boardSize,
+    suit: input.suit,
   });
   const next = existing ? list.map((s) => (s.id === entry.id ? entry : s)) : [...list, entry];
   persistSquads(next);

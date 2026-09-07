@@ -6,7 +6,8 @@
 
 import { CARDS, CARD_INDEX } from "./cards";
 import { legalSpellIds, MAX_SPELLBOOK, MAX_SPELLBOOK_LARGE } from "../engine/spells";
-import type { CardDef } from "../engine/types";
+import type { CardDef, Suit } from "../engine/types";
+import { SUITS } from "../engine/suits";
 
 /** Deck-size rules for one battlefield. The bigger board holds more cards, so
  *  it wants a deeper deck — 25 slots and a longer game against 16 and a short
@@ -61,6 +62,14 @@ export interface CustomDeck {
   name: string;
   cards: string[]; // card ids (deck-eligible, no tokens, deduped)
   spells?: string[]; // hand-picked spellbook (0–5 spell ids); absent = auto-from-elements
+  /** The suit — and so the HERO — this deck plays under.
+   *
+   *  Per DECK rather than per player, because the hero is part of a build the
+   *  way the spellbook is: a Mage curve suits a deck full of Specials and does
+   *  nothing for a wall, so pinning one choice across every deck you own would
+   *  make three of your four builds wrong. Absent = the game deals you one, as
+   *  it does for the AI. */
+  suit?: Suit;
 }
 
 /** Sanitize a spellbook: keep only real, deduped spell ids, capped for the board.
@@ -1676,6 +1685,10 @@ export function loadCustomDecks(): CustomDeck[] {
         ...d,
         cards: d.cards.filter((id) => CARD_INDEX[id] && isBuildable(id)),
         spells: sanitizeSpells(d.spells),
+        // VALIDATED, not trusted. This is localStorage — hand-editable, and
+        // carried forward from before the field existed. An unknown string
+        // would reach `HEROES[suit]` and hand back undefined.
+        suit: SUITS.includes(d.suit as Suit) ? d.suit : undefined,
       }));
   } catch {
     return [];
@@ -1697,7 +1710,7 @@ function newDeckId(): string {
 }
 
 /** Insert or update a deck (matched by id). Returns the updated list. */
-export function saveCustomDeck(deck: { id?: string; name: string; cards: string[]; spells?: string[] }): CustomDeck[] {
+export function saveCustomDeck(deck: { id?: string; name: string; cards: string[]; spells?: string[]; suit?: Suit }): CustomDeck[] {
   const decks = loadCustomDecks();
   const id = deck.id ?? newDeckId();
   const entry: CustomDeck = {
@@ -1705,6 +1718,7 @@ export function saveCustomDeck(deck: { id?: string; name: string; cards: string[
     name: deck.name.trim() || "Untitled deck",
     cards: deck.cards.slice(),
     spells: sanitizeSpells(deck.spells),
+    suit: SUITS.includes(deck.suit as Suit) ? deck.suit : undefined,
   };
   const idx = decks.findIndex((d) => d.id === id);
   if (idx >= 0) decks[idx] = entry;

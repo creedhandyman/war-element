@@ -15,6 +15,9 @@ import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter, type TribeFilter,
 } from "./filters";
+import { HEROES } from "../engine/heroes";
+import { SUITS, SUIT_STYLES } from "../engine/suits";
+import type { Suit } from "../engine/types";
 import { CardView } from "./CardView";
 import { DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
@@ -130,6 +133,10 @@ export function DeckBuilder(props: {
   // that is `squadUsableIn`, applied per row below.
   const [squads, setSquads] = useState<Squad[]>(() => loadSquads());
   const [editingId, setEditingId] = useState<string | null>(null);
+  /** The HERO this squad plays under. Per squad, like the spellbook — see
+   *  `Squad.suit`. `null` = let the game deal one, which is what every squad
+   *  saved before this existed still does. */
+  const [suit, setSuit] = useState<Suit | null>(null);
   const [name, setName] = useState("");
   const [picked, setPicked] = useState<string[]>([]);
   /** The squad just written, as a name plus a signature of what was in it.
@@ -170,8 +177,8 @@ export function DeckBuilder(props: {
   // could not see the deck. You were picking cards blind and finding out what
   // you had by reading a number. The list is always on screen now, and the
   // pills switch only the extras.
-  const [panel, setPanel] = useState<"comp" | "spells" | "saved" | null>(phone ? null : "comp");
-  const togglePanel = (p: "comp" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
+  const [panel, setPanel] = useState<"comp" | "spells" | "saved" | "hero" | null>(phone ? null : "comp");
+  const togglePanel = (p: "comp" | "spells" | "saved" | "hero") => setPanel((cur) => (cur === p ? null : p));
   const compShown = panel === "comp";
   // THE SPELLBOOK NEEDS A SQUAD. It is the pool column's other view, so with an
   // empty squad it rendered as a full-height empty box where the card grid
@@ -179,6 +186,7 @@ export function DeckBuilder(props: {
   // panel was left open over the squad it had just cleared. Derived rather than
   // corrected in an effect: there is no state in which it can be wrong.
   const savedShown = panel === "saved";
+  const heroShown = panel === "hero";
   const spellsShown = panel === "spells" && picked.length > 0;
 
   const ownedSet = useMemo(() => new Set(story?.owned ?? []), [story?.owned]);
@@ -376,6 +384,7 @@ export function DeckBuilder(props: {
       setPickedSpells(sanitizeSpells(deck.spells, board));
       if (deck.name) setName(deck.name);
       setEditingId(null); // an imported deck is a NEW deck, not an edit of yours
+      setSuit(null);        // ...and it carries no hero of yours either
       setImporting(false);
       setCodeInput("");
       const via = from === "link" ? "Shared deck loaded" : "Loaded";
@@ -448,6 +457,7 @@ export function DeckBuilder(props: {
   }
   function reset() {
     setEditingId(null);
+    setSuit(null);
     setName("");
     setPicked([]);
     setPickedSpells([]);
@@ -473,6 +483,7 @@ export function DeckBuilder(props: {
       // can float the right one. Cosmetic — nothing enforces it.
       element: story?.element,
       boardSize: story ? undefined : buildSize,
+      suit: suit ?? undefined,
     });
     setSquads(next);
     // Squad is structurally a CustomDeck, so the Arena's deck pickers keep
@@ -871,10 +882,49 @@ export function DeckBuilder(props: {
                   Spells {pickedSpells.length}/{limits.spells}
                 </button>
               )}
+              <button className={`db-tool ${heroShown ? "on" : ""}`} onClick={() => togglePanel("hero")}>
+                {suit ? `${SUIT_STYLES[suit].glyph} ${HEROES[suit].name}` : "Hero · any"}
+              </button>
               <button className={`db-tool ${savedShown ? "on" : ""}`} onClick={() => togglePanel("saved")}>
                 {`Squads${squads.length ? ` ${squads.length}` : ""}`}
               </button>
             </div>
+
+            {/* THE HERO, and what it actually does. A curve shift is invisible
+                by nature — the player never sees their hero act — so the panel
+                has to say the numbers out loud or the choice is a coin toss
+                with a nice name. */}
+            {heroShown && (
+              <div className="db-heroes">
+                <button
+                  className={`db-hero ${suit === null ? "on" : ""}`}
+                  onClick={() => setSuit(null)}
+                >
+                  <b>Any · dealt</b>
+                  <span>Take whatever suit the match deals you, as the AI does.</span>
+                </button>
+                {SUITS.map((k) => {
+                  const h = HEROES[k];
+                  const st = SUIT_STYLES[k];
+                  const curve = [
+                    h.goldShift ? `gold ${h.goldShift > 0 ? "+" : ""}${h.goldShift} rounds` : "",
+                    h.magicShift ? `magic ${h.magicShift > 0 ? "+" : ""}${h.magicShift} rounds` : "",
+                  ].filter(Boolean).join(" · ") || "no curve change";
+                  return (
+                    <button
+                      key={k}
+                      className={`db-hero suit-${k} ${suit === k ? "on" : ""}`}
+                      onClick={() => setSuit(k)}
+                    >
+                      <b>{st.glyph} {h.name}</b>
+                      <span>{h.identity}</span>
+                      <em>{curve}</em>
+                      <i>{h.power.name}: {h.power.text}</i>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
 
             {/* Deck composition — cards per element / class / cost. */}
             {compShown && picked.length > 0 && <DeckStats stats={stats} />}
@@ -892,7 +942,7 @@ export function DeckBuilder(props: {
                 // holding cards you have not earned is greyed and says which ones,
                 // rather than disappearing and leaving you wondering where it went.
                 const usable = squadUsableIn(sq, story ? { owned: story.owned, cap: story.cap } : {});
-                return { id: sq.id, name: sq.name, cards: sq.cards, spells: sq.spells, tag: sq.element, usable };
+                return { id: sq.id, name: sq.name, cards: sq.cards, spells: sq.spells, suit: sq.suit, tag: sq.element, usable };
               }).map((d) => (
                 <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""} ${d.usable.ok ? "" : "locked"}`}>
                   <button
@@ -901,12 +951,22 @@ export function DeckBuilder(props: {
                     // story mode because a team had no book to load; now it has
                     // one, and loading a team to re-tune it must not silently
                     // drop the spells it was saved with.
-                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); }}
+                    onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); setSuit(d.suit ?? null); }}
                     title={d.usable.ok ? "Load this squad" : `Load to edit — ${d.usable.reason}`}
                   >
-                    <b>{d.name}</b>
+                    <b>
+                      {d.name}
+                      {/* The squad's hero, on its row — the suit is per SQUAD,
+                          so the list is where you see which is which. */}
+                      {d.suit && (
+                        <i className={`sq-suit suit-${d.suit}`} title={HEROES[d.suit].name}>
+                          {SUIT_STYLES[d.suit].glyph}
+                        </i>
+                      )}
+                    </b>
                     <span>
                       {d.cards.length} cards
+                      {d.suit ? ` · ${HEROES[d.suit].name}` : ""}
                       {d.spells && d.spells.length ? ` · ${d.spells.length} spells` : ""}
                       {d.tag ? ` · for ${d.tag}` : ""}
                       {!d.usable.ok && <em className="db-locked-why"> · {d.usable.reason}</em>}

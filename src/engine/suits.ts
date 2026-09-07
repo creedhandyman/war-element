@@ -177,6 +177,27 @@ export function dealSuits(seed: number): Record<PlayerId, Suit> {
   return { P1: order[0], P2: order[1], P3: order[2], P4: order[3] };
 }
 
+/** Pin one seat to a chosen suit, keeping the deal a PERMUTATION.
+ *
+ *  A player who picks a hero is choosing their suit (see `heroes.ts`), and the
+ *  other seats are still dealt theirs. Swapping rather than assigning is what
+ *  keeps every suit unique: hand P1 the suit it wants and give whoever was
+ *  holding it P1's old one. Assigning would let two seats read the same tell,
+ *  and the AI personalities would silently collapse to three.
+ *
+ *  Returns a new record; the caller owns when to apply it. */
+export function pinSuit(
+  dealt: Record<PlayerId, Suit>, seat: PlayerId, want: Suit,
+): Record<PlayerId, Suit> {
+  const out = { ...dealt };
+  if (out[seat] === want) return out;
+  const holder = (Object.keys(out) as PlayerId[]).find((k) => out[k] === want);
+  const had = out[seat];
+  out[seat] = want;
+  if (holder) out[holder] = had;
+  return out;
+}
+
 /** The style a seat is playing. Falls back to the seat's traditional suit when
  *  a state predates the deal (a saved game, or a hand-built test fixture), so
  *  nothing has to check for absence. */

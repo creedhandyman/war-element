@@ -2485,6 +2485,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-warn { font-size: 11px; color: var(--threat); font-weight: 700; }
 /* Tool pills — Composition / Spellbook / Saved condensed into one row; the
    active one opens its panel below. Replaces three stacked full-width bars. */
+/* THE HERO PICKER, in the squad builder. A curve shift is invisible by nature —
+   the player never watches their hero act — so each card has to say what it
+   actually does or the choice is a coin toss with a nice name on it. Four
+   lines: who it is, what it wants, the CURVE in rounds, and the power. */
+.db-heroes { display: grid; gap: 6px; margin: 6px 0; }
+.db-hero {
+  display: flex; flex-direction: column; gap: 2px; text-align: left;
+  padding: 7px 9px; border-radius: 8px; cursor: pointer;
+  background: rgba(6, 8, 14, 0.5); border: 1px solid var(--panel-line);
+  color: var(--ink-dim); transition: 0.12s;
+}
+.db-hero:hover { border-color: var(--gold-lit); }
+.db-hero.on { border-color: var(--gold-hi); background: rgba(232, 200, 119, 0.10); }
+.db-hero b { font-family: var(--head); font-size: 12px; letter-spacing: 0.06em; color: #efe9d8; }
+.db-hero span { font-size: 11px; line-height: 1.35; }
+/* The numbers, and the once-per-game power. Distinct from the prose above so
+   the thing you actually compare between heroes is the thing that stands out. */
+.db-hero em { font-size: 10.5px; font-style: normal; color: var(--gold-hi); letter-spacing: 0.03em; }
+.db-hero i { font-size: 10.5px; font-style: normal; color: var(--ink-faint); line-height: 1.3; }
+.db-hero.suit-spade b   { color: var(--suit-spade); }
+.db-hero.suit-club b    { color: var(--suit-club); }
+.db-hero.suit-diamond b { color: var(--suit-diamond); }
+.db-hero.suit-heart b   { color: var(--suit-heart); }
+/* The suit a saved squad carries, on its row in the list. */
+.sq-suit { margin-left: 4px; font-size: 11px; }
+.sq-suit.suit-spade   { color: var(--suit-spade); }
+.sq-suit.suit-club    { color: var(--suit-club); }
+.sq-suit.suit-diamond { color: var(--suit-diamond); }
+.sq-suit.suit-heart   { color: var(--suit-heart); }
+
 .db-tools { display: flex; gap: 6px; flex-wrap: wrap; }
 .db-tool { flex: 1 1 auto; min-width: 0; padding: 8px 10px; border-radius: 9px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink-dim); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; transition: 0.12s; white-space: nowrap; }
 .db-tool:hover { border-color: var(--accent); color: var(--ink); }

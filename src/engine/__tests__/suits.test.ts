@@ -1,7 +1,7 @@
 // SUITS — dealt per match, and each one a different AI personality.
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
-import { dealSuits, styleOf, SUITS, SUIT_STYLES } from "../suits";
+import { dealSuits, pinSuit, styleOf, SUITS, SUIT_STYLES } from "../suits";
 import { aiPrepIntent } from "../ai";
 import { getDef } from "../../data/cards";
 import { prepState } from "./helpers";
@@ -48,6 +48,39 @@ describe("the deal", () => {
     // have to check for absence.
     expect(styleOf(undefined, "P1").key).toBe("spade");
     expect(styleOf(undefined, "P2").key).toBe("club");
+  });
+});
+
+describe("pinning a chosen suit", () => {
+  // A player picks a hero in the squad builder; that choice IS their suit, and
+  // the other seats are still dealt theirs.
+  it("gives the seat what it asked for", () => {
+    const dealt = dealSuits(7);
+    const out = pinSuit(dealt, "P1", "heart");
+    expect(out.P1).toBe("heart");
+  });
+
+  it("SWAPS rather than assigns, so the deal stays a permutation", () => {
+    // The load-bearing part. Assigning would let two seats read the same tell,
+    // and four AI personalities would quietly collapse to three.
+    for (let seed = 0; seed < 100; seed++)
+      for (const want of SUITS) {
+        const out = pinSuit(dealSuits(seed), "P2", want);
+        expect(out.P2).toBe(want);
+        expect(new Set(Object.values(out)).size, `seed ${seed} -> ${want}`).toBe(4);
+      }
+  });
+
+  it("is a no-op when the seat already holds it", () => {
+    const dealt = dealSuits(3);
+    expect(pinSuit(dealt, "P1", dealt.P1)).toEqual(dealt);
+  });
+
+  it("does not mutate the deal it was given", () => {
+    const dealt = dealSuits(11);
+    const before = { ...dealt };
+    pinSuit(dealt, "P1", "spade");
+    expect(dealt).toEqual(before);
   });
 });
 

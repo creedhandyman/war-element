@@ -109,6 +109,8 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
+import { pinSuit } from "../engine/suits";
+import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
@@ -774,6 +776,11 @@ export function App() {
   // gave a spell-less deck the whole elemental set in battle.
   const resolveDeckSpells = (deckId: string): string[] | undefined =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
+  /** The HERO a deck was built under, if its builder pinned one. Absent = take
+   *  whatever the match deals, which is what every deck saved before the picker
+   *  existed still does. */
+  const resolveDeckSuit = (deckId: string): Suit | undefined =>
+    deckPool.find((d) => d.id === deckId)?.suit;
 
   // MOVED DOWN from the top of the component, because the Arena's battle
   // playlist is built from the decks in the seats and those are declared here.
@@ -1372,6 +1379,16 @@ export function App() {
       scriptedP2 ? { P2: scriptedP2 } : undefined,
       extraSeats,
     );
+    // EACH SEAT WEARS ITS OWN DECK'S HERO. A suit is pinned per DECK in the
+    // builder, so both sides of a hot-seat match can have chosen one and the
+    // deal fills in for anyone who did not. `pinSuit` SWAPS rather than
+    // assigns, which is what keeps the four suits a permutation — two seats
+    // reading the same tell would quietly collapse the AI personalities to
+    // three.
+    for (const [seat, deckId] of [["P1", p1DeckId], ["P2", p2DeckId]] as const) {
+      const want = resolveDeckSuit(deckId);
+      if (want && fresh.seatSuits) fresh.seatSuits = pinSuit(fresh.seatSuits, seat, want);
+    }
     // DOMINATION: the 7x7 is the map, so picking that battlefield IS picking
     // the mode. Stamped here rather than plumbed through createInitialState
     // because it is a scoring rule, not a board dimension — everything else
