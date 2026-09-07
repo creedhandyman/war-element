@@ -46,6 +46,14 @@
   --rar-mythic: #ff2e46;
   --legal: #4ecb8f;
   --legal-soft: rgba(78, 203, 143, 0.18);
+  /* THE MOVE CUE'S green, and deliberately not `--legal` itself. That token
+     paints some forty things — buttons, auto tags, the win banner, the hand's
+     summonable ring — and brightening it there would be a repaint of the whole
+     app to fix a board. This one is the "go here" green only: a lit mint that
+     has to stay legible on top of Domination's roads, shrine washes and Point
+     rings, where the ordinary green was reading as just another decoration. */
+  --legal-cue: #7dffbc;
+  --legal-cue-soft: rgba(125, 255, 188, 0.30);
   --threat: #e5533d;
   --threat-soft: rgba(229, 83, 61, 0.16);
   /* INCOMING BOSS DAMAGE — deliberately NOT --threat. The blast zone was drawn
@@ -6923,7 +6931,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    cue back the way these did. Unscoped deliberately: on a 4x4 nothing else
    sets these borders, so every line here is a no-op there — it fixes the class
    of bug rather than the one board it was noticed on. */
-.slot.legal.legal    { border-color: var(--legal); }
+.slot.legal.legal    { border-color: var(--legal-cue); }
 .slot.staged.staged  { border-color: var(--legal); }
 .slot.target.target  { border-color: var(--threat); }
 .slot.preview.preview{ border-color: var(--threat); }
@@ -6942,10 +6950,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Green stays green: it means "go here" on every board and Domination is not
    the place to teach a second vocabulary. */
 .slot.legal > .slot-glow {
+  /* Brighter than the rest of the app's green on purpose — see `--legal-cue`.
+     Three layers doing three jobs: a hard inner ring that holds the square's
+     edge against a Point's own ring, an outer bloom that separates it from the
+     tiles around it, and an inset fill so the middle of the square reads as lit
+     rather than as an outline drawn on terrain. */
   box-shadow:
-    inset 0 0 0 2px rgba(120, 235, 175, 0.95),
-    0 0 24px rgba(78, 203, 143, 0.45),
-    inset 0 0 22px var(--legal-soft);
+    inset 0 0 0 2.5px var(--legal-cue),
+    0 0 30px rgba(125, 255, 188, 0.60),
+    inset 0 0 26px var(--legal-cue-soft);
+  /* The pulse's LOW point is what a moving eye actually catches, and at 0.6 the
+     dim half of the cycle was where the cue got lost. It still breathes; it
+     just never drops out of sight. */
+  --glow-min: 0.8;
 }
 .slot.legal { z-index: 2; }
 
