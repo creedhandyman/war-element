@@ -6513,13 +6513,19 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // OUT OF THE SUPER SQUAD, and the reason is that it already had the tribe's
-    // ability. Supercell is a ramp — +1 DMG, +2 HP, +1 SP a round for three
-    // rounds, twelve points of stat line for nothing — and Level Up is a second
-    // one stacked on top of it. No other member carries a growth passive of its
-    // own; on this card the two compounded, and the one that is Storm's is
-    // Supercell.
+    // ability. Supercell is a ramp — +1 DMG, +2 HP, +1 SP a round — and Level Up
+    // is a second one stacked on top of it. No other member carries a growth
+    // passive of its own; on this card the two compounded, and the one that is
+    // Storm's is Supercell.
+    //
+    // THREE TICKS -> TWO. The ramp was twelve points of stat line for nothing
+    // on a cost-3 body: +3 DMG, +6 HP, +3 SP by round four, which is most of a
+    // second card. Two ticks is eight, and it still does the thing the card is
+    // for — a Storm that survives its first two rounds is a real threat — while
+    // arriving at its ceiling a round sooner, so what it grows into is a number
+    // an opponent can plan against rather than one that keeps moving.
     passiveNames: { buffDmgEveryN: "Supercell" },
-    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, hp: 2, maxTicks: 3 } },
+    roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, hp: 2, maxTicks: 2 } },
     // Thunder Strike: 5 DMG to every ELECTRIFIED opponent (BOLT lights them up).
     //
     // COST 1 -> 3. Board-wide damage with no target cap for one magic was the

@@ -70,6 +70,19 @@ describe("the Super Squad roster", () => {
     expect(tribesOf(d), "no tribe").toEqual([]);
     expect(d.onKill, "and no Level Up").toBeUndefined();
     expect(d.roundTick?.buffDmgEveryN, "Supercell stays").toBeTruthy();
+    // ...and it is TWO ticks, not three. Nothing pinned this number before, so
+    // the ramp could be re-tuned in either direction without a test noticing.
+    // Three was twelve points of stat line for nothing on a cost-3 body (+3
+    // DMG, +6 HP, +3 SP); two is eight, and it reaches its ceiling a round
+    // sooner, so what Storm grows into is a number an opponent can plan
+    // against rather than one that keeps moving.
+    const ramp = d.roundTick!.buffDmgEveryN!;
+    expect(ramp.maxTicks, "Supercell runs for two rounds").toBe(2);
+    expect(
+      (ramp.amount ?? 0) * ramp.maxTicks! + (ramp.hp ?? 0) * ramp.maxTicks!
+        + (ramp.sp ?? 0) * ramp.maxTicks!,
+      "eight points of stat line, down from twelve",
+    ).toBe(8);
   });
 
   it("keeps the tribes those cards already had", () => {

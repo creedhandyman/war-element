@@ -46,6 +46,14 @@ describe("the level-up popup", () => {
     expect(MODAL).toContain("r.to");
   });
 
+  it("chimes once, on mount", () => {
+    // Mounting IS the moment: the parent holds the modal back until a pack has
+    // finished revealing, so appearing and being congratulated are the same
+    // event. Empty deps, or a re-render for any other reason chimes again.
+    expect(MODAL).toContain("playLevelUp()");
+    expect(MODAL).toMatch(/useEffect\(\(\) => \{ playLevelUp\(\); \}, \[\]\)/);
+  });
+
   it("adds no always-on animation", () => {
     // The badge lands with one keyframe and stops. A modal read for a few
     // seconds does not need a shadow repainting behind it at 60fps — the same

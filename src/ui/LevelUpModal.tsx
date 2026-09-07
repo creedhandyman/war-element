@@ -15,8 +15,10 @@
  *  parent calls either way.
  */
 
+import { useEffect } from "react";
 import type { LevelReward } from "../data/levels";
 import { MILESTONE_EVERY, PACK_EVERY } from "../data/levels";
+import { playLevelUp } from "./sfx";
 
 export function LevelUpModal(props: {
   reward: LevelReward;
@@ -25,6 +27,11 @@ export function LevelUpModal(props: {
 }) {
   const r = props.reward;
   const many = r.levels > 1;
+  // ON MOUNT, which is the whole timing: the parent holds this modal back until
+  // a pack has finished revealing, so mounting IS the moment the player is
+  // being congratulated. Empty deps — a re-render for any other reason must not
+  // chime again.
+  useEffect(() => { playLevelUp(); }, []);
   return (
     <div className="overlay on-top" onClick={props.onClose}>
       {/* The backdrop dismisses too. This is a reward, not a decision, and a
