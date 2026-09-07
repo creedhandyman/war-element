@@ -6910,22 +6910,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Tinting the NAME rather than the frame on purpose: the token's border is
    already carrying the element colour, which is what you read a card's
    matchups by, and overloading it would cost more than it gave. */
-/* ONE DEFINITION PER SEAT, and it is named by SUIT because that is what the
-   player sees. These four values were literals repeated twelve times across
-   three rules — the token name, the lobby chip and the suit glyph — so a colour
-   change meant three edits and any missed one split a seat's two channels
-   apart: an orange spade over a red name is two different players as far as a
-   glance is concerned. */
+/* ONE DEFINITION PER SUIT. These four values were literals repeated twelve
+   times across three rules — the token name, the lobby chip and the suit glyph
+   — so a colour change meant three edits and any missed one split a seat's two
+   channels apart: an orange spade over a red name is two different players as
+   far as a glance is concerned.
+
+   KEYED TO THE SUIT, NOT THE SEAT, since the suits are dealt per match. These
+   rules used to read `.token.seat-p1 > .tk-name`, which was the same thing back
+   when P1 was always spades — but the glyph follows the DEAL now, so a P1 seat
+   dealt hearts wore a violet spade over an orange name and split the very
+   channels this block exists to keep together. The name takes the suit the seat
+   is actually playing, and the two agree again. */
 :root {
   --suit-spade:   #ffab6b;   /* P1 — orange */
   --suit-club:    #7ef0b0;   /* P2 — green  */
   --suit-diamond: #7ec4ff;   /* P3 — blue   */
   --suit-heart:   #d7a6ff;   /* P4 — violet */
 }
-.token.seat-p1 > .tk-name { color: var(--suit-spade); }
-.token.seat-p2 > .tk-name { color: var(--suit-club); }
-.token.seat-p3 > .tk-name { color: var(--suit-diamond); }
-.token.seat-p4 > .tk-name { color: var(--suit-heart); }
+.token > .tk-name.suit-spade   { color: var(--suit-spade); }
+.token > .tk-name.suit-club    { color: var(--suit-club); }
+.token > .tk-name.suit-diamond { color: var(--suit-diamond); }
+.token > .tk-name.suit-heart   { color: var(--suit-heart); }
 /* A faint plate behind it, so the tint survives whatever art is underneath —
    a pale portrait was washing the lighter two out. */
 .token > .tk-name {

@@ -323,3 +323,43 @@ describe("board-state cues are composited, not repainted", () => {
     ]);
   });
 });
+
+describe("a seat's two channels agree", () => {
+  // The token shows its owner twice — the suit GLYPH and the tint on the card
+  // NAME — and the stylesheet's own comment is about keeping those together:
+  // "an orange spade over a red name is two different players as far as a
+  // glance is concerned."
+  //
+  // Suits are dealt per match now, so the glyph follows the DEAL. These rules
+  // used to key off the SEAT (`.token.seat-p1 > .tk-name`), which was the same
+  // thing only while P1 was always spades — after the deal it put a violet
+  // spade over an orange name on the very first hand that moved. Keyed to the
+  // suit, both channels read the same fact.
+  const SUITS = ["spade", "club", "diamond", "heart"] as const;
+  // RULES ONLY. This file is mostly prose, and the comment above quotes the old
+  // selector by name — a plain substring search matched its own explanation and
+  // reported a stale rule that does not exist. Caught by this test on its first
+  // run, which is the argument for stripping rather than for softening it.
+  const RULES = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+
+  it("tints the card name by the SUIT the seat is playing, not by its seat", () => {
+    for (const suit of SUITS) {
+      expect(RULES, `${suit} name tint`).toContain(`.tk-name.suit-${suit}`);
+      expect(RULES, `${suit} glyph tint`).toContain(`.tk-suit.suit-${suit}`);
+    }
+    // The seat-keyed version must be gone, or a stale rule of equal specificity
+    // decides the colour by source order instead.
+    for (const seat of ["p1", "p2", "p3", "p4"])
+      expect(RULES, `stale seat rule for ${seat}`).not.toContain(`.token.seat-${seat} > .tk-name`);
+  });
+
+  it("draws both channels from one variable per suit", () => {
+    for (const suit of SUITS) {
+      expect(RULES, `--suit-${suit} defined once`).toContain(`--suit-${suit}:`);
+      // Both rules read the variable rather than repeating a literal — the
+      // whole reason the variables were introduced.
+      const uses = RULES.split(`var(--suit-${suit})`).length - 1;
+      expect(uses, `--suit-${suit} is used by both channels`).toBeGreaterThanOrEqual(2);
+    }
+  });
+});

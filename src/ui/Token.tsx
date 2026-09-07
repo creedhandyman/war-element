@@ -254,6 +254,9 @@ export function Token(props: {
   // "Mine" is from the local viewer's seat (fixes the P2 guest, who used to see
   // their own cards flagged as enemy and the opponent's as theirs).
   const mine = card.owner === props.viewer;
+  // ONE lookup for both channels. The glyph and the name tint are the same
+  // fact shown twice, and reading the suit twice is how they drift apart.
+  const suit = suitFor(game.seatSuits, card.owner);
   const human = (game.humans ?? ["P1"]).includes(card.owner);
   const hpFlash = useHpFlash(card.instanceId, card.curHp);
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
@@ -448,12 +451,12 @@ export function Token(props: {
           answer there is to "which of these four is mine": readable at this
           size, and instantly countable when four seats share one board. */}
       <span
-        className={`tk-suit suit-${suitFor(game.seatSuits, card.owner).key}`}
-        title={`Player ${card.owner} — ${suitFor(game.seatSuits, card.owner).name}`}
+        className={`tk-suit suit-${suit.key}`}
+        title={`Player ${card.owner} — ${suit.name}`}
       >
-        {suitFor(game.seatSuits, card.owner).glyph}
+        {suit.glyph}
       </span>
-      <div className="tk-name">{def.name}</div>
+      <div className={`tk-name suit-${suit.key}`}>{def.name}</div>
       {/* Statuses as a left column, two deep, then a count. A wrapping strip
           across the middle of the art could grow to five chips and hide the
           thing you are looking at. */}
