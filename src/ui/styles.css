@@ -7353,3 +7353,31 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 .gd-mini i { font-style: normal; font-size: 9px; color: var(--gold-lit); flex: none; }
+
+/* ── DRAFT · the pick screen ──────────────────────────────────────────────
+   Three cards at a time. It borrows `.deck-thumb` wholesale — art, the
+   cost-on-sigil badge, the rarity strip, the stat row, the corner ⓘ — and only
+   changes the SIZE, because a pick you make eighteen times deserves a bigger
+   target than a tile in a scrolling grid.
+
+   NOTHING HERE ANIMATES A SHADOW. The board's slot cues were just converted off
+   animated `box-shadow` for exactly that reason (see `.slot-glow`); adding a new
+   one on a screen that sits still while the player reads three cards would put
+   the cost straight back. The hover/active feedback is `transform`, which the
+   compositor does for free. */
+.draft-screen { max-width: 660px; text-align: left; }
+.dr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.dr-head h1 { text-align: left; margin: 2px 0 0; font-size: 22px; }
+.dr-kind { font-family: var(--head); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 800; }
+.dr-offer { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+/* Wider than the builder's tile and with room for the name to breathe: three
+   across a phone is about 105px each, which is the smallest a card can be and
+   still be read rather than recognised. */
+.dr-card { cursor: pointer; transition: transform 0.14s ease, border-color 0.14s ease; }
+.dr-card:hover, .dr-card:focus-visible { transform: translateY(-3px); border-color: var(--gold-line); outline: none; }
+.dr-card:active { transform: translateY(-1px); }
+.dr-done p { text-align: left; }
+@media (prefers-reduced-motion: reduce) {
+  .dr-card { transition: border-color 0.14s ease; }
+  .dr-card:hover, .dr-card:focus-visible, .dr-card:active { transform: none; }
+}
