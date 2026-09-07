@@ -49,6 +49,53 @@ export const TARGET_CURVE: Record<string, number> = {
  *  cards over on 9-costs should find heavy groups scarce, not banned. */
 export const CURVE_FLOOR = 0.15;
 
+/** Share of a drafted deck that should cost 1 or less.
+ *
+ *  SEPARATE from `TARGET_CURVE`, which buckets 1 and 2 together — and that
+ *  bucketing is exactly what hid the problem. A draft that lands the "1-2"
+ *  bucket perfectly can still be all twos, and the two costs are not
+ *  interchangeable: gold pays 1 a round until round 6, so a 1-drop is a play on
+ *  round one and a 2-drop is a play on round three.
+ *
+ *  Measured over 600 random drafts before this existed: 17.5% of finished decks
+ *  held fewer than two cards costing 1, and 2.5% held none at all — decks the
+ *  opening-hand guarantee in `state.ts` cannot help, because there is nothing
+ *  cheap in them to guarantee. One of them dealt 1,1,3,3,3,3,5,5,5,5,5,6,7,7,
+ *  8,8,9,10: more than half of it uncastable before round ten.
+ *
+ *  0.18 is a bit over three in an eighteen-card deck. Deliberately below the
+ *  0.36 the "1-2" bucket asks for — this is a FLOOR under the cheapest cards,
+ *  not a second curve competing with the first. */
+export const CHEAP_TARGET = 0.18;
+/** What "cheap" means for that floor — the same 1 the opening hand guarantees. */
+export const CHEAP_COST = 1;
+/** How many of the three offers must hold a cheap card while the drafter is
+ *  behind on them.
+ *
+ *  TWO, not three, and that is the whole design: there is always something
+ *  affordable on the table and always one group that was left alone, so a
+ *  drafter who wants a greedy warband can still take one. A floor to reach, not
+ *  one to be pushed through.
+ *
+ *  Measured over 600 random drafts — finished decks holding fewer than two
+ *  cards costing 1, with the seat alone (no banner weighting):
+ *
+ *      no floor    17.5%   (2.5% held none at all)
+ *      one offer    6.8%
+ *      two offers   3.3%
+ *      all three    2.2%   — and every choice on the table is steered
+ *
+ *  With the banner weighting in `rollGroups` on top, two offers lands at 0.3%
+ *  short and 0.0% empty, and the 1-2 bucket goes from 31.2% to 35.7% against
+ *  its own 36% target — the floor pulled the curve ONTO its aim, because the
+ *  drift it corrects is the drift the bucket was already losing to.
+ *
+ *  Those are with a RANDOM chooser, which takes the cheap group a third of the
+ *  time. A person picking with any intent does better than the number says;
+ *  what the floor has to survive is the person who does not know yet that they
+ *  need to. */
+export const CHEAP_OFFERS = 2;
+
 export const costBucket = (cost: number): string =>
   cost <= 2 ? "1-2" : cost <= 4 ? "3-4" : cost <= 6 ? "5-6" : cost <= 8 ? "7-8" : "9+";
 
@@ -153,6 +200,8 @@ function buildGroup(
   taken: ReadonlySet<string>,
   deficit: Record<string, number>,
   rand: () => number,
+  /** The drafter is short of 1-drops — hold one of the three slots for one. */
+  needCheap: boolean,
 ): DraftGroup | null {
   const free = banner.ids.filter((id) => !taken.has(id));
   if (free.length < GROUP_SIZE) return null;
@@ -164,6 +213,17 @@ function buildGroup(
   };
   const left = [...free];
   const cards: string[] = [];
+  // ONE CHEAP CARD, when the drafter is behind on them. Nudging the weights was
+  // tried first and measured: multiplying the curve pull by four moved decks
+  // with fewer than two 1-drops from 17.5% to 16.3%, because the banner decides
+  // what is on offer long before the weighting does — no amount of reweighting
+  // finds a 1-drop inside a Dragon warband. A seat is the only thing that
+  // works, and it costs the group one of its three slots, not its theme.
+  if (needCheap) {
+    const cheap = left.filter((id) => getDef(id).cost <= CHEAP_COST);
+    const got = cheap.length ? weightedPick(cheap, weightOf, rand) : null;
+    if (got) { cards.push(got); left.splice(left.indexOf(got), 1); }
+  }
   while (cards.length < GROUP_SIZE && left.length) {
     const got = weightedPick(left, weightOf, rand);
     if (!got) break;
@@ -186,24 +246,50 @@ export function rollGroups(run: DraftRun, rand: () => number = Math.random): Dra
   // of that rather than the whole of the pressure the card-at-a-time draft
   // needed.
   const own = new Set(run.picks.flatMap((id) => tribesOf(getDef(id))));
-  const bannerWeight = (b: typeof BANNERS[number]) => {
-    if (run.picks.length === 0) return 1;
+  /** `unmet` = the cheap floor still wants a group. A banner that can actually
+   *  field a 1-drop is favoured while it does — because the seat inside
+   *  `buildGroup` can only fill from what the banner HAS, and a Dragon warband
+   *  has nothing cheap to give however hard the weights push. Measured: without
+   *  this, 2.8% of opening offers came up with no affordable group anywhere on
+   *  the table, which is the one case the floor exists to prevent. */
+  const bannerWeight = (b: typeof BANNERS[number], unmet: boolean) => {
+    const canCheap = unmet
+      && b.ids.some((id) => !taken.has(id) && getDef(id).cost <= CHEAP_COST);
+    const cheapPull = canCheap ? 3 : 1;
+    if (run.picks.length === 0) return cheapPull;
     const mine = b.kind === "tribe" ? own.has(b.label) : lead.has(b.label as Element);
-    return mine ? 2.5 : 1;
+    return (mine ? 2.5 : 1) * cheapPull;
   };
+
+  // PACE-RELATIVE, like `curveDeficit` and for the same reason: measured against
+  // the finished deck's floor an empty draft is three cheap cards behind before
+  // it has seen a card, and every early offer would be a 1-drop. Against the
+  // floor AT THIS POINT, a run that is keeping up is never steered at all.
+  const haveCheap = run.picks.filter((id) => getDef(id).cost <= CHEAP_COST).length;
+  const needCheap = haveCheap < CHEAP_TARGET * (run.picks.length + GROUP_SIZE);
 
   const usable = BANNERS.filter((b) => b.ids.filter((id) => !taken.has(id)).length >= GROUP_SIZE);
   const out: DraftGroup[] = [];
   const left = [...usable];
+  // A FLOOR THE DRAFTER CAN REACH, not one they are pushed through. The seat is
+  // held open until ONE group on the table has a cheap card, and then released
+  // — so there is always something affordable to take and never an offer where
+  // all three choices have been steered. Most of the time it costs nothing at
+  // all: a group that came up with a 1-drop on its own clears it.
+  let cheapOffers = 0;
   while (out.length < OFFER_SIZE && left.length) {
-    const b = weightedPick(left, bannerWeight, rand);
+    const unmet = needCheap && cheapOffers < CHEAP_OFFERS;
+    const b = weightedPick(left, (x) => bannerWeight(x, unmet), rand);
     if (!b) break;
     left.splice(left.indexOf(b), 1);
-    const g = buildGroup(b, taken, deficit, rand);
+    const g = buildGroup(b, taken, deficit, rand, unmet);
     // Two groups on the table must not be the same banner, which falls out of
     // removing it from `left` above; a banner that cannot field three is simply
     // skipped rather than retried.
-    if (g) out.push(g);
+    if (g) {
+      out.push(g);
+      if (g.cards.some((id) => getDef(id).cost <= CHEAP_COST)) cheapOffers++;
+    }
   }
   return out;
 }

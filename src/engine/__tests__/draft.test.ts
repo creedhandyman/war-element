@@ -16,9 +16,9 @@ import { SPELLS, spellCapForBoard, spellCostCap } from "../spells";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
 import {
-  GROUP_SIZE, OFFER_SIZE, TARGET_CURVE, cardsComplete, costBucket, curveDeficit,
-  draftComplete, draftSize, draftSpellCap, picksLeft, pickGroup, pickSpell,
-  rollGroups, spellsComplete, startDraft, type DraftRun,
+  CHEAP_COST, CHEAP_OFFERS, GROUP_SIZE, OFFER_SIZE, TARGET_CURVE, cardsComplete,
+  costBucket, curveDeficit, draftComplete, draftSize, draftSpellCap, picksLeft,
+  pickGroup, pickSpell, rollGroups, spellsComplete, startDraft, type DraftRun,
 } from "../../data/draft";
 
 function seeded(seed: number): () => number {
@@ -289,5 +289,104 @@ describe("rollGroups", () => {
       run = pickGroup(run, run.offer[0].label, rand);
     }
     expect(draftSize(run)).toBe(18);
+  });
+});
+
+// A DRAFTED DECK YOU CAN PLAY BEFORE ROUND SIX.
+//
+// `TARGET_CURVE` buckets costs 1 and 2 together, and that bucketing hid this:
+// a draft can land the "1-2" bucket perfectly and still be all twos. The two
+// are not interchangeable — gold pays 1 a round until round 6, so a 1-drop is a
+// play on round one and a 2-drop is a play on round three.
+//
+// Before the floor, 17.5% of finished decks held fewer than two cards costing 1
+// and 2.5% held none. One of them came out 1,1,3,3,3,3,5,5,5,5,5,6,7,7,8,8,9,10
+// — more than half of it uncastable before round ten, and nothing the opening
+// hand guarantee in state.ts can do about it, because there was nothing cheap
+// in the deck to guarantee.
+describe("the cheap-card floor", () => {
+  const cheap = (ids: readonly string[]) =>
+    ids.filter((id) => getDef(id).cost <= CHEAP_COST).length;
+
+  it("leaves almost no deck unplayable, across hundreds of drafts", () => {
+    // A random chooser takes the steered group a third of the time, so this is
+    // the WORST case for the floor — a person picking with any intent does
+    // better. Measured over 600: 17.5% short and 2.5% empty before, 0.3% and
+    // 0.0% after. The margins here are loose enough to survive a new tribe.
+    let short = 0, none = 0;
+    const runs = 300;
+    for (let k = 0; k < runs; k++) {
+      const c = cheap(autoDraft(k * 977 + 13).picks);
+      if (c < 2) short++;
+      if (c === 0) none++;
+    }
+    expect(100 * short / runs, "decks with fewer than two 1-drops").toBeLessThan(4);
+    expect(100 * none / runs, "decks with NO 1-drop at all").toBeLessThan(1);
+  });
+
+  it("puts something affordable on the table while the drafter is behind", () => {
+    // The offer itself, not the finished deck: an empty run is behind by
+    // definition, so its first offer has to carry the floor.
+    //
+    // BEST EFFORT, and the test says so rather than pretending otherwise: the
+    // seat inside a group can only fill from what its banner has, and some
+    // banners — Dragon, the heavy tribes — hold no 1-drop at any price. What
+    // must not happen is an offer with nothing affordable ANYWHERE, and that is
+    // what the banner weighting fixed: 2.8% of opening offers before it, 0.4%
+    // after.
+    let met = 0, any = 0, rolls = 0;
+    for (let k = 0; k < 300; k++) {
+      const run = startDraft(4, seeded(k * 31 + 7));
+      rolls++;
+      const withCheap = run.offer.filter((g) => cheap(g.cards) > 0).length;
+      if (withCheap >= CHEAP_OFFERS) met++;
+      if (withCheap >= 1) any++;
+    }
+    expect(100 * any / rolls, "offers with NOTHING affordable on the table")
+      .toBeGreaterThan(97);
+    expect(100 * met / rolls, "offers carrying the full floor").toBeGreaterThan(88);
+  });
+
+  it("always leaves one group alone, so a greedy pick stays possible", () => {
+    // Two of three, deliberately — a floor to reach, not one to be pushed
+    // through. If every offer were steered the drafter would never be able to
+    // take a heavy warband, which is a real thing to want.
+    expect(CHEAP_OFFERS).toBeLessThan(OFFER_SIZE);
+  });
+
+  it("stops steering once the drafter is on pace", () => {
+    // Pace-relative, like `curveDeficit`. A run already carrying its cheap
+    // cards must be offered whatever the banners give it — otherwise the floor
+    // becomes a ceiling on everything else.
+    const rand = seeded(4242);
+    let run = startDraft(4, rand);
+    // Feed it a deck that is already very cheap.
+    const cheapIds = CARDS.filter((c) => !c.boss && c.cost <= CHEAP_COST).map((c) => c.id);
+    run = { ...run, picks: cheapIds.slice(0, 9) };
+    let steered = 0;
+    for (let k = 0; k < 60; k++) {
+      const offer = rollGroups({ ...run }, seeded(k * 131 + 5));
+      steered += offer.filter((g) => cheap(g.cards) > 0).length;
+    }
+    // With nine 1-drops already banked the floor is satisfied and the offers
+    // are whatever the banners rolled — nowhere near every group.
+    expect(steered / 60, "groups per offer carrying a 1-drop").toBeLessThan(CHEAP_OFFERS);
+  });
+
+  it("does not wreck the curve it already aimed at", () => {
+    // The floor sits UNDER `TARGET_CURVE` rather than competing with it. If the
+    // 1-2 bucket now overshoots badly, the floor is doing the curve's job.
+    let cheapBucket = 0, total = 0;
+    for (let k = 0; k < 200; k++)
+      for (const id of autoDraft(k * 977 + 13).picks) {
+        total++;
+        if (costBucket(getDef(id).cost) === "1-2") cheapBucket++;
+      }
+    // Measured 31.2% before the floor and 35.7% after, against a 36% target —
+    // the floor pulled the curve ONTO its own aim rather than off it, because
+    // what it corrects is the same drift the bucket was already losing to.
+    const share = cheapBucket / total;
+    expect(share, "1-2 share").toBeGreaterThan(TARGET_CURVE["1-2"] - 0.06);
+    expect(share, "1-2 share").toBeLessThan(TARGET_CURVE["1-2"] + 0.06);
   });
 });

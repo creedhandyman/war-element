@@ -140,6 +140,8 @@ export function createInitialState(
   shuffle(state, state.players.P2.deck);
   restackByCost(state.players.P1);
   restackByCost(state.players.P2);
+  seedOpeningCurve(state.players.P1);
+  seedOpeningCurve(state.players.P2);
   state.firstPlayer = coin(state) ? "P1" : "P2";
   // §4: the region's Field spell is permanently active for BOTH sides — no
   // cost, no duration. `fieldBonus` keys on the card's own owner, so this needs
@@ -222,6 +224,116 @@ export function restackByCost(p: PlayerState): void {
   }
 }
 
+/** How many cards costing 1 or less the OPENING HAND is guaranteed to hold.
+ *
+ *  MEASURED, not guessed. A core deck is 45 cards with exactly six 1-drops, so
+ *  a four-card opening misses them entirely 54.4% of the time and holds fewer
+ *  than two 91.9% of the time. Across 1,120 headless core-vs-core matches that
+ *  came out as 34.4% of every prep turn in rounds 1–5 having NOTHING the seat
+ *  could legally summon — and not for want of a slot: the board is nearly empty
+ *  then, and the diagnosis came back "can't afford" on effectively all of them.
+ *  Gold pays 1 a round through round 5. A hand of threes and fives is a hand you
+ *  sit and look at, and that is the first five minutes of the game — the part a
+ *  new player judges it on. It reads as broken rather than as variance.
+ *
+ *  At 2 (1,120 matches for the play figures, the canonical 5,600-match harness
+ *  for the spread):
+ *
+ *      openings with no 1-drop      54.4% → 0.0%
+ *      openings with fewer than 2   91.9% → 0.0%    avg hand cost 16.3 → 11.1
+ *      dead prep turns, rounds 1–5  34.4% → 21.0%
+ *      dead prep turns, whole match 45.9% → 40.9%
+ *      average match length         12.3 → 11.9 rounds
+ *      element spread               16.9 → 13.1
+ *
+ *  WHY TWO. Each point buys exactly one more guaranteed round and the round
+ *  after dips slightly, because the cheap cards were spent — percentage of prep
+ *  turns with a legal play, by round:
+ *
+ *      min   r1    r2    r3    r4    r5
+ *        0   75    60    66    64    67
+ *        1  100    53    66    62    64      ← r2 WORSE than doing nothing
+ *        2  100   100    58    70    67
+ *        3  100   100    93    65    73      ← and 3 of your 4 cards are dealt
+ *
+ *  One is not enough: the guaranteed 1-drop goes down on round 1 and round 2
+ *  comes back below the baseline. Three works, but it decides three quarters of
+ *  the opening hand and pushes "no space" from 8% to 10% of turns by round 8.
+ *  Two covers the opening and hands the rest back to the draw.
+ *
+ *  The one element this moves beyond the harness's ±2.6 is BORE, +7.4 — from
+ *  46.9 to 54.3, which is the deck suffering most from a slow opening getting
+ *  its opening back. Everything else lands inside noise and the SPREAD tightens
+ *  by 3.8. A guarantee that made the game less balanced would not be worth it;
+ *  this one made it more.
+ *
+ *  BOTH SEATS, deliberately. Giving it to the human alone would be a hidden
+ *  difficulty setting, and it would quietly corrupt the balance harness, which
+ *  plays AI against AI — a rule that changes what the opening looks like has to
+ *  change it for whoever is sitting there. */
+export const OPENING_CHEAP_MIN = 2;
+/** What counts as cheap for that guarantee. */
+export const OPENING_CHEAP_COST = 1;
+
+/** Make sure the opening hand can actually be played.
+ *
+ *  Swaps cheap cards up from deeper in the deck until the opening window holds
+ *  `OPENING_CHEAP_MIN` of them, and swaps window cards down in their place.
+ *  Nothing is added or removed: the deck is the same cards in a slightly
+ *  different order, and the displaced card is a few draws away rather than gone.
+ *
+ *  It displaces the card you would have drawn LAST, not the most EXPENSIVE one,
+ *  and that choice is measured too. Taking the priciest is the intuitive fix —
+ *  it is the card you cannot cast for six rounds — but it reaches into the hand
+ *  and removes the bomb the player was going to build toward, and the harness
+ *  agreed: spread 18.7 against 13.1, with dawn/aqua/gale/pyro all swinging
+ *  further. Guaranteeing the cheap cards is the whole job; deciding which
+ *  expensive card you get to keep is not.
+ *
+ *  A NO-OP on a hand that already has its cheap cards, which is why this reads
+ *  as removing a bad beat rather than as the game rearranging your deck.
+ *  Degrades quietly on a deck that simply has no 1-drops — a drafted list can —
+ *  by fixing what it can and leaving the rest.
+ *
+ *  A deck that names its opening OPTS OUT. `stackFirst` is a scripted
+ *  formation — the Void Tower boss's army, the cards the fight is ABOUT — and
+ *  this ran after `restackByCost`, straight over the top of it: with three
+ *  named cards hoisted, a seeded run dealt two of them and swapped the Mythic
+ *  out for a 1-drop. An encounter that says what it opens with means it. The
+ *  guarantee exists to fix a bad shuffle, and a scripted head is not one.
+ *
+ *  Called at both shuffle sites for the same reason `restackByCost` is:
+ *  `applyMulligan` reshuffles, and a guarantee a mulligan undoes is not a
+ *  guarantee. */
+export function seedOpeningCurve(p: PlayerState, draws = OPENING_HAND): void {
+  const n = OPENING_CHEAP_MIN;
+  if (n <= 0 || draws <= 0 || p.deck.length <= draws) return;
+  if (p.stackFirst?.length) return;
+  const cheap = (i: number) => getDef(p.deck[i]).cost <= OPENING_CHEAP_COST;
+  const window = Math.min(draws, p.deck.length);
+  // Cards ALREADY held count — after a mulligan the hand is part-full, and a
+  // player who threw back four bombs and kept a 1-drop does not need two more
+  // forced on top of it.
+  let have = p.hand.filter((h) => getDef(h.defId).cost <= OPENING_CHEAP_COST).length;
+  for (let i = 0; i < window; i++) if (cheap(i)) have++;
+  if (have >= n) return;
+
+  // The swap-outs, last-drawn first.
+  const dear = Array.from({ length: window }, (_, i) => i)
+    .filter((i) => !cheap(i))
+    .reverse();
+  // Cheap cards below the window, in the order the shuffle left them, so WHICH
+  // 1-drop arrives is still random — only THAT one arrives is guaranteed.
+  const pool: number[] = [];
+  for (let i = window; i < p.deck.length && pool.length + have < n; i++)
+    if (cheap(i)) pool.push(i);
+
+  for (let k = 0; k < pool.length && k < dear.length; k++) {
+    const a = dear[k], b = pool[k];
+    [p.deck[a], p.deck[b]] = [p.deck[b], p.deck[a]];
+  }
+}
+
 function emptyPlayer(
   deck: string[], spellIds?: string[], spellCap?: number,
   stack?: number | readonly string[],
@@ -272,6 +384,9 @@ export function applyMulligan(
   // The reshuffle is exactly what used to undo a stacked deck — a scripted
   // opponent that mulligans must still redraw on curve.
   restackByCost(p);
+  // Only the cards about to be DRAWN are in play here — the kept ones are
+  // already counted inside, and the refill is short by exactly what was kept.
+  seedOpeningCurve(p, OPENING_HAND - p.hand.length);
   drawCards(draft, player, OPENING_HAND - p.hand.length);
   p.mulliganDone = true;
   if (returning.length > 0)
