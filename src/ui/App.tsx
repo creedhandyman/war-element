@@ -735,6 +735,11 @@ export function App() {
    *  (a pack, a boss, a story clear, a restore). `claimLevelUp` writes the mark
    *  it just paid, so this goes null on its own the moment it is collected. */
   const levelUp = useMemo(() => pendingLevelUp(story), [story]);
+  /** True while the Shop is tearing or revealing a pack. Reported by the Shop
+   *  rather than inferred here, because "the shop screen is open" is not the
+   *  same question — you can stand in the shop for a minute after the cards are
+   *  turned, and the level-up should not wait for you to leave. */
+  const [packBusy, setPackBusy] = useState(false);
 
   /** The account panel (email sign-in + cloud save). */
   const [accountOpen, setAccountOpen] = useState(false);
@@ -4974,22 +4979,26 @@ export function App() {
                 MOUNT. Tapping the already-active Shop icon changes the prop
                 without unmounting Shop, so the reset below never happened. */}
             <Shop key={shopTab} save={story} openTab={shopTab}
+              onBusy={setPackBusy}
               onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>
       )}
 
-      {/* THE PICK SCREEN. Mounted only while a run is still choosing cards, so
-          the moment the eighteenth lands it falls away and the run is a deck in
-          your chair like any other. It owns nothing: every pick comes back here
-          and is written to the save immediately, because a draft interrupted by
-          a closed tab should resume on the pick it was on. */}
       {/* LEVEL UP. Derived from the save rather than fired by an event, because
           `playerLevel` has no event to fire — whatever moved the collection
           (a pack, a boss, a story clear) moved the level as a side effect, and
           this notices on the next render. One card for the whole span; both
-          buttons pay, because `claimLevelUp` is what closes it either way. */}
-      {levelUp && (
+          buttons pay, because `claimLevelUp` is what closes it either way.
+
+          HELD WHILE A PACK IS STILL OPENING. A five-card pack is the commonest
+          way to cross a level, and the save is written the moment it is applied
+          — so without this the level-up landed ON TOP of the tear, over cards
+          the player had not turned over yet, and stole the reveal it was
+          celebrating. It waits for the pack to finish and then says its piece.
+          Nothing is lost by waiting: the levels are owed on the save, not held
+          in this component. */}
+      {levelUp && !packBusy && (
         <LevelUpModal
           reward={levelUp}
           onClose={() => {
@@ -5003,6 +5012,11 @@ export function App() {
         />
       )}
 
+      {/* THE PICK SCREEN. Mounted only while a run is still choosing cards, so
+          the moment the eighteenth lands it falls away and the run is a deck in
+          your chair like any other. It owns nothing: every pick comes back here
+          and is written to the save immediately, because a draft interrupted by
+          a closed tab should resume on the pick it was on. */}
       {draftRun && !draftComplete(draftRun) && (
         <DraftScreen
           run={draftRun}

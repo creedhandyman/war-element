@@ -13,6 +13,7 @@ const APP = ui("App.tsx");
 const MODAL = ui("LevelUpModal.tsx");
 const CSS = ui("styles.css");
 const STORY = readFileSync(join(__dirname, "..", "..", "data", "story.ts"), "utf8");
+const SHOP = ui("Shop.tsx");
 
 describe("the level-up popup", () => {
   it("styles every class it puts on the page", () => {
@@ -70,6 +71,25 @@ describe("the wiring", () => {
     const block = APP.slice(at, at + 700);
     expect(block).toContain("claimLevelUp(prev)");
     expect(block, "a claim that is not persisted").toContain("saveStory(next)");
+  });
+
+  it("waits for a pack to finish opening", () => {
+    // A five-card pack is the commonest way to cross a level, and the save is
+    // written the moment the pack is APPLIED — so without this the celebration
+    // landed on top of the tear, over cards not yet turned over, and stole the
+    // reveal it was celebrating.
+    expect(APP).toContain("{levelUp && !packBusy && (");
+    expect(APP).toContain("onBusy={setPackBusy}");
+    // Reported by the Shop, not inferred from "the shop is open" — you can
+    // stand in there for a minute after the cards are turned.
+    expect(SHOP).toContain("const packBusy = tearing || opened !== null;");
+  });
+
+  it("cannot strand the gate closed by leaving mid-reveal", () => {
+    // The cleanup is not tidiness. Walking out of the shop with a pack half
+    // turned would otherwise leave the flag true and suppress the level-up for
+    // the rest of the session.
+    expect(SHOP).toMatch(/return \(\) => reportBusy\?\.\(false\);/);
   });
 
   it("stamps the mark on load, or the feature never fires at all", () => {

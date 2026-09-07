@@ -87,6 +87,15 @@ export function Shop(props: {
    *  conjurable" is the Crafter. A row that names an action has to open the
    *  thing that performs it. */
   openTab?: "packs" | "crafter";
+  /** Fired whenever a pack is mid-tear or mid-reveal.
+   *
+   *  The level-up popup waits on this. A five-card pack is the commonest way to
+   *  cross a level and the save is written the moment the pack is applied, so
+   *  without it the celebration landed on top of the tear — over cards the
+   *  player had not turned yet. Reported rather than inferred from "the shop is
+   *  open", which is a different question: you can stand here for a minute
+   *  after the cards are turned. */
+  onBusy?: (busy: boolean) => void;
 }) {
   const { save } = props;
   const [tab, setTab] = useState<"packs" | "crafter">(props.openTab ?? "packs");
@@ -153,6 +162,18 @@ export function Shop(props: {
    *  this is a shop you use in a loop, and a flourish you cannot get past is a
    *  toll. Tapping skips it, and reduced-motion never plays it at all. */
   const TEAR_MS = 1100;
+
+  /** A pack is on screen — being torn, or turned over one card at a time.
+   *
+   *  The cleanup reports FALSE on unmount, which is not tidiness: leaving the
+   *  shop mid-reveal would otherwise strand the flag true and suppress the
+   *  level-up for the rest of the session. */
+  const packBusy = tearing || opened !== null;
+  const reportBusy = props.onBusy;
+  useEffect(() => {
+    reportBusy?.(packBusy);
+    return () => reportBusy?.(false);
+  }, [packBusy, reportBusy]);
 
   /** Worst to best — see `revealOrder`. */
   const reveal = useMemo(
