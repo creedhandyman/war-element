@@ -1380,12 +1380,27 @@ export function App() {
       scriptedP2 ? { P2: scriptedP2 } : undefined,
       extraSeats,
     );
+    // HEROES ARE LIVE IN THE ARENA. The curve shift and the once-per-game power
+    // both hang off this flag, and it stays OFF for anything that predates them
+    // — a dealt suit alone must never move an economy. The Arena is where a
+    // player brings a squad they built, so it is where the hero they built it
+    // under should count.
+    //
+    // The four styles were balanced with this on (see suits.ts): every suit
+    // against every other, spread 4.2 points.
+    //
+    // NOT IN AN EVENT RUN, though it starts from this same function. An event
+    // and a Void Trial are TUNED encounters — a scripted opening measured at
+    // its own depth, a boss seated outside the economy — and handing their P2
+    // seat a dealt hero's curve would retune the fight without anyone deciding
+    // to. Ordinary Arena matches are where a player brings a squad they built,
+    // so that is where the hero they built it under counts.
+    fresh.heroes = !eventRun;
     // EACH SEAT WEARS ITS OWN DECK'S HERO. A suit is pinned per DECK in the
-    // builder, so both sides of a hot-seat match can have chosen one and the
-    // deal fills in for anyone who did not. `pinSuit` SWAPS rather than
-    // assigns, which is what keeps the four suits a permutation — two seats
-    // reading the same tell would quietly collapse the AI personalities to
-    // three.
+    // builder, so both sides of a hot-seat match can have chosen one, and the
+    // deal fills in for anyone who did not. `pinSuit` ASSIGNS — two seats may
+    // land on the same suit if both decks chose it, and `suitVariantOf` gives
+    // the second one its own shade so the board still reads.
     for (const [seat, deckId] of [["P1", p1DeckId], ["P2", p2DeckId]] as const) {
       const want = resolveDeckSuit(deckId);
       if (want && fresh.seatSuits) fresh.seatSuits = pinSuit(fresh.seatSuits, seat, want);
