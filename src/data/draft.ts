@@ -1,119 +1,104 @@
-/** DRAFT — build a deck out of cards you do not own, three at a time.
+/** DRAFT, THE PICKING HALF — three warbands, then a spellbook.
  *
- *  Arena-style, not booster draft, and the deck rules are what decide that.
- *  `DECK_LIMITS` is `{min: 18, max: 18, target: 18}` — a deck is one EXACT size,
- *  there is no range. A booster draft hands you ~45 cards and makes you cut to
- *  18, which is the hardest screen in the feature and the one most likely to
- *  stop a player halfway. Picking N times where N is the deck size makes the
- *  size fall out for free, needs no pass-around and no seven bot drafters, and
- *  is one decision per screen — which is the shape a phone wants.
+ *  A pick is a GROUP OF THREE, not a card, and the three share a tribe: Avian,
+ *  Zombie, Pirate, Dragon. Eighteen cards is therefore six decisions rather
+ *  than eighteen, and each one is about what KIND of squad you are building
+ *  instead of which of three strangers is marginally better. The set is already
+ *  shaped for it — 29 tribes, every one of them at least three cards deep.
  *
- *  PURE. Every function here takes its randomness as an argument, the way
- *  `startRun` in gauntlet.ts does, so a test can pin a draft and the tuning
- *  below can be measured over thousands of runs instead of argued about.
+ *  UNTRIBED CARDS STILL GET DRAFTED. Ninety-nine of the 360 draftable cards
+ *  carry no tribe at all, and a purely tribal draft would delete a quarter of
+ *  the set from the mode. Those form ELEMENT groups instead — three GALE cards
+ *  under the banner "GALE" — so the whole pool stays reachable and the format
+ *  stays honest about which kind of group you are being offered.
  *
- *  THE RUN CARRIES ITS OWN OFFER. It is stored rather than derived on render
- *  for the same reason `GauntletRun` stores its dealt `seats`: an offer that
- *  regenerated on mount could be re-rolled by leaving the screen and coming
- *  back, and "close the app until you like the three" is not a draft.
+ *  THEN THE SPELLS. They used to be derived from the finished deck's elements,
+ *  which is the right default for a deck somebody built on purpose and the
+ *  wrong one for a draft: the book is half of what a deck does, and having it
+ *  handed to you is a decision taken away. Same shape as the cards — one of
+ *  three, until the board's book is full — and every offer is filtered through
+ *  the cost-tier law, so a draft can only ever assemble a book the deck builder
+ *  would also have allowed.
  *
- *  This is phase 1 — the logic and its tuning. No UI, no rewards, no opponents;
- *  those are later phases and they do not get to change the numbers here.
+ *  PURE, with `rand` injected, exactly like the half it replaces.
  */
 
 import { CARDS, getDef } from "./cards";
 import { deckSizeFor, rollOpponent, type DeckTier } from "./custom-decks";
 import { tierForStreak } from "./matchmaker";
-import { PACK_WEIGHT } from "./story";
-import type { CardDef, Element } from "../engine";
 import type { StorySave } from "./story";
+import { PACK_WEIGHT } from "./story";
+import { SPELLS, spellCapForBoard, spellCostCap } from "../engine/spells";
+import type { CardDef, Element, SpellDef } from "../engine";
 
-/** How many cards a pick chooses between. */
+/** Cards in one group, and groups on the table. Both three, and unrelated:
+ *  the first is how big a warband is, the second is how many choices a pick
+ *  offers. */
+export const GROUP_SIZE = 3;
 export const OFFER_SIZE = 3;
 
-/** Picks taken before element pressure starts. The first few are where a
- *  drafter finds a lane; biasing them would be choosing the lane for them. */
-export const OPEN_PICKS = 3;
-
-/** How many of the drafter's own elements the pressure favours. Two, not one:
- *  a deck's spellbook is derived from its elements (`spellbookFor`), and one
- *  element derives a thin book while eight derive an incoherent one. */
-export const PRESSURE_ELEMENTS = 2;
-
-/** How much likelier a card in one of those elements is to be shown. SOFT — a
- *  multiplier rather than a filter, so a splash is always still possible and an
- *  off-element bomb can still turn up and tempt you.
- *
- *  SIX, measured rather than guessed. Distinct elements in a finished 18-card
- *  deck, over 250 drafts, by a drafter that picks at random and by one that
- *  prefers its own two leading elements (the realistic case — a player does
- *  this without being asked):
- *
- *      weight    random    deliberate     curve error
- *         3       6.68        4.17           0.058
- *         6       5.82        3.00           0.059
- *        10       5.26        2.61           0.055
- *        16       4.56        2.36           0.058
- *
- *  The first number tried was 3, and it barely worked: 6.68 of 8 elements is
- *  still a mush, and a mush is what derives an incoherent spellbook — the exact
- *  thing the pressure exists to prevent. At 6 a deliberate drafter lands on
- *  THREE elements, which is coherent with room for a splash, while a random one
- *  still spreads across 5.8, so nothing is being forced on anybody. Past 10 the
- *  deliberate figure stops moving and the pressure is only taking choices away.
- *
- *  The curve error does not move across any of them, which is worth stating:
- *  the two weights multiply and they do not fight. Tuning one will not silently
- *  undo the other. */
-export const ELEMENT_WEIGHT = 6;
-
-/** THE CURVE A DRAFT AIMS AT, measured off the 30 hand-tuned 18-card premades
- *  rather than chosen — those are the decks the game ships as "good".
- *
- *  It matters because the raw pool is meaningfully more top-heavy than any
- *  tuned deck (pool vs premades: 27/36 cheap, 34/34, 23/18, 11/7, 5/4), so
- *  UNIFORM offers hand a drafter a deck more expensive than anything the game
- *  itself would build. With `OPENING_COST_CAP` gating what can be played early,
- *  a top-heavy draft deck simply loses. */
+/** THE CURVE A DRAFT AIMS AT — measured off the 30 hand-tuned 18-card premades,
+ *  which are the decks the game ships as good. Unchanged by the move to groups:
+ *  the target is a property of what a deck should look like, not of how it was
+ *  assembled. */
 export const TARGET_CURVE: Record<string, number> = {
   "1-2": 0.36, "3-4": 0.34, "5-6": 0.18, "7-8": 0.07, "9+": 0.04,
 };
 
-/** The least a bucket's weight can fall to. Never 0: a drafter who is four
- *  cards over on 9-costs should find them scarce, not banned — the card pool
- *  going visibly silent reads as a bug. */
+/** The least a group's curve weight can fall to. Never 0 — a drafter four
+ *  cards over on 9-costs should find heavy groups scarce, not banned. */
 export const CURVE_FLOOR = 0.15;
 
 export const costBucket = (cost: number): string =>
   cost <= 2 ? "1-2" : cost <= 4 ? "3-4" : cost <= 6 ? "5-6" : cost <= 8 ? "7-8" : "9+";
 
+/** Three cards that belong together, and why. */
+export interface DraftGroup {
+  /** "Avian", "Dragon" — or an element, when the three had no tribe to share. */
+  label: string;
+  kind: "tribe" | "element";
+  cards: string[];
+}
+
 export interface DraftRun {
-  /** The battlefield this draft is for — it decides how many picks there are. */
   board: number;
-  /** Cards taken, in pick order. This IS the deck when the run completes. */
+  /** Cards taken, in pick order. Three land at a time. */
   picks: string[];
-  /** The ids currently on the table. Empty once the draft is done. */
-  offer: string[];
-  /** Matches won with the finished deck. Absent on a run still picking, and on
-   *  every run written before phase 3 — which reads as zero, the state those
-   *  runs were actually in. */
+  /** The three groups on the table. Empty once the cards are done. */
+  offer: DraftGroup[];
+  /** Spells taken. Absent until the card half finishes. */
+  spells?: string[];
+  /** The three spells on the table. Empty once the book is full. */
+  spellOffer?: string[];
+  /** Matches won with the finished deck. */
   won?: number;
   /** Matches lost. `DRAFT_LOSSES` of them ends the run. */
   lost?: number;
-  /** The premade this run faces next, DEALT and stored.
-   *
-   *  Stored for the same reason `GauntletRun` stores its `seats`: the seat is
-   *  chosen with a roll, and a roll evaluated during render re-rolls on every
-   *  render — the opponent would change while you looked at it. Dealing it once
-   *  and writing it down is also what lets the next one EXCLUDE the last, so a
-   *  run is a ladder rather than the same deck four times. */
+  /** The premade this run faces next, dealt and stored. */
   seat?: string;
 }
 
-/** Bosses are not draftable, for the same reason they are not pullable. */
 const POOL: CardDef[] = CARDS.filter((c) => !c.boss);
 
-/** One weighted choice. Weights need not sum to anything. */
+const tribesOf = (d: CardDef): string[] =>
+  d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
+
+/** Every tribe with a card in it, and the untribed pool keyed by element.
+ *  Built once — the card set does not change at runtime. */
+const BANNERS: { label: string; kind: "tribe" | "element"; ids: string[] }[] = (() => {
+  const tribe = new Map<string, string[]>();
+  const element = new Map<string, string[]>();
+  for (const d of POOL) {
+    const ts = tribesOf(d);
+    if (ts.length) for (const t of ts) tribe.set(t, [...(tribe.get(t) ?? []), d.id]);
+    else element.set(d.element, [...(element.get(d.element) ?? []), d.id]);
+  }
+  return [
+    ...[...tribe.entries()].map(([label, ids]) => ({ label, kind: "tribe" as const, ids })),
+    ...[...element.entries()].map(([label, ids]) => ({ label, kind: "element" as const, ids })),
+  ];
+})();
+
 function weightedPick<T>(items: readonly T[], weightOf: (t: T) => number, rand: () => number): T | null {
   let total = 0;
   for (const it of items) total += Math.max(0, weightOf(it));
@@ -126,30 +111,13 @@ function weightedPick<T>(items: readonly T[], weightOf: (t: T) => number, rand: 
   return items[items.length - 1] ?? null;
 }
 
-/** The elements this drafter is actually in, commonest first. */
-export function leadingElements(picks: readonly string[]): Element[] {
-  const n = new Map<Element, number>();
-  for (const id of picks) {
-    const el = getDef(id).element;
-    n.set(el, (n.get(el) ?? 0) + 1);
-  }
-  return [...n.entries()]
-    // Ties break by name so a run replays identically — the same reason
-    // Creeping Dark picks its victim by lowest HP and then by instance id.
-    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-    .map(([el]) => el);
-}
-
-/** How badly the deck-so-far is off its curve, per bucket.
+/** How far off its curve the deck-so-far is, per bucket.
  *
- *  PACE-RELATIVE, not absolute, and that is the whole design of it. Measured
- *  against the finished deck's target, a fresh draft is 6.5 cheap cards
- *  "behind" before it has seen a single card, so the first offers would be
- *  almost entirely 1-2 drops and the drafter would never be shown an expensive
- *  card at all. Measured against what the target would be AT THIS POINT in the
- *  draft, an empty run is exactly on pace and every weight is 1 — the steering
- *  only appears once somebody actually drifts, and it fades as they come back.
- */
+ *  PACE-RELATIVE. Against the FINISHED deck's target an empty draft is 6.5
+ *  cheap cards behind before it has seen a card, so the first offers would be
+ *  nothing but 1-drops. Against the target AT THIS POINT, an empty run is
+ *  exactly on pace and every weight is 1 — steering appears only once somebody
+ *  drifts, and fades as they come back. */
 export function curveDeficit(picks: readonly string[]): Record<string, number> {
   const have: Record<string, number> = {};
   for (const id of picks) {
@@ -162,76 +130,199 @@ export function curveDeficit(picks: readonly string[]): Record<string, number> {
   return out;
 }
 
-/** Roll the three cards a pick chooses between.
- *
- *  RARITY IS ROLLED ONCE FOR THE WHOLE OFFER, not per card, and the three are
- *  drawn from that one tier. Mixed rarities would make most picks answer
- *  themselves — nobody weighs a rare against a mythic — and a draft where the
- *  choice is obvious is a draft with no choosing in it. Same weights the shop's
- *  packs use, so the rarity a drafter sees matches the rarity they know.
- */
-export function rollOffer(run: DraftRun, rand: () => number = Math.random): string[] {
-  const taken = new Set(run.picks);
-  const deficit = curveDeficit(run.picks);
-  const lead = new Set(
-    run.picks.length >= OPEN_PICKS ? leadingElements(run.picks).slice(0, PRESSURE_ELEMENTS) : [],
-  );
-
-  const rarity = weightedPick(
-    Object.keys(PACK_WEIGHT),
-    (r) => PACK_WEIGHT[r] ?? 0,
-    rand,
-  );
-
-  let candidates = POOL.filter((c) => !taken.has(c.id) && c.rarity === rarity);
-  // WIDEN RATHER THAN SHOW TWO. A tier can run thin late in a long draft
-  // (mythic is the smallest at 40 cards), and an offer of two is a different
-  // game from an offer of three. Falling back to the whole pool keeps the size
-  // constant; the rarity was a texture choice, the count is a rule.
-  if (candidates.length < OFFER_SIZE) candidates = POOL.filter((c) => !taken.has(c.id));
-
-  const weightOf = (c: CardDef): number => {
-    const curve = Math.max(CURVE_FLOOR, 1 + (deficit[costBucket(c.cost)] ?? 0));
-    return curve * (lead.has(c.element) ? ELEMENT_WEIGHT : 1);
-  };
-
-  const offer: string[] = [];
-  const left = [...candidates];
-  while (offer.length < OFFER_SIZE && left.length) {
-    const got = weightedPick(left, weightOf, rand);
-    if (!got) break;
-    offer.push(got.id);
-    left.splice(left.indexOf(got), 1);
+export function leadingElements(picks: readonly string[]): Element[] {
+  const n = new Map<Element, number>();
+  for (const id of picks) {
+    const el = getDef(id).element;
+    n.set(el, (n.get(el) ?? 0) + 1);
   }
-  return offer;
+  return [...n.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([el]) => el);
 }
 
-/** Open a draft for a battlefield, with its first offer on the table. */
-export function startDraft(boardSize = 4, rand: () => number = Math.random): DraftRun {
-  const run: DraftRun = { board: boardSize, picks: [], offer: [] };
-  return { ...run, offer: rollOffer(run, rand) };
+/** Build one group from a banner, or null when it cannot field three.
+ *
+ *  Rarity is rolled ONCE per group and used as a PREFERENCE rather than a
+ *  filter — a tribe of eight cards cannot always field three of one rarity,
+ *  and refusing to offer Zombies because they are not all epic would quietly
+ *  delete the small tribes. Preferred first, then whatever else the banner has.
+ */
+function buildGroup(
+  banner: { label: string; kind: "tribe" | "element"; ids: string[] },
+  taken: ReadonlySet<string>,
+  deficit: Record<string, number>,
+  rand: () => number,
+): DraftGroup | null {
+  const free = banner.ids.filter((id) => !taken.has(id));
+  if (free.length < GROUP_SIZE) return null;
+  const rarity = weightedPick(Object.keys(PACK_WEIGHT), (r) => PACK_WEIGHT[r] ?? 0, rand);
+  const weightOf = (id: string) => {
+    const d = getDef(id);
+    const curve = Math.max(CURVE_FLOOR, 1 + (deficit[costBucket(d.cost)] ?? 0));
+    return curve * (d.rarity === rarity ? 3 : 1);
+  };
+  const left = [...free];
+  const cards: string[] = [];
+  while (cards.length < GROUP_SIZE && left.length) {
+    const got = weightedPick(left, weightOf, rand);
+    if (!got) break;
+    cards.push(got);
+    left.splice(left.indexOf(got), 1);
+  }
+  return cards.length === GROUP_SIZE
+    ? { label: banner.label, kind: banner.kind, cards }
+    : null;
+}
+
+/** Roll the three groups a pick chooses between. */
+export function rollGroups(run: DraftRun, rand: () => number = Math.random): DraftGroup[] {
+  const taken = new Set(run.picks);
+  const deficit = curveDeficit(run.picks);
+  const lead = new Set(leadingElements(run.picks).slice(0, 2));
+  // A banner the drafter is already in is likelier to come back, so a squad
+  // can actually be built — but SOFT, and only once there is something to
+  // follow. Tribes concentrate elements on their own, so this is a nudge on top
+  // of that rather than the whole of the pressure the card-at-a-time draft
+  // needed.
+  const own = new Set(run.picks.flatMap((id) => tribesOf(getDef(id))));
+  const bannerWeight = (b: typeof BANNERS[number]) => {
+    if (run.picks.length === 0) return 1;
+    const mine = b.kind === "tribe" ? own.has(b.label) : lead.has(b.label as Element);
+    return mine ? 2.5 : 1;
+  };
+
+  const usable = BANNERS.filter((b) => b.ids.filter((id) => !taken.has(id)).length >= GROUP_SIZE);
+  const out: DraftGroup[] = [];
+  const left = [...usable];
+  while (out.length < OFFER_SIZE && left.length) {
+    const b = weightedPick(left, bannerWeight, rand);
+    if (!b) break;
+    left.splice(left.indexOf(b), 1);
+    const g = buildGroup(b, taken, deficit, rand);
+    // Two groups on the table must not be the same banner, which falls out of
+    // removing it from `left` above; a banner that cannot field three is simply
+    // skipped rather than retried.
+    if (g) out.push(g);
+  }
+  return out;
+}
+
+/** Spells legal to offer next: real, unpicked, and inside the cost-tier law.
+ *
+ *  The tier caps are what stop a drafted book being one the deck builder would
+ *  refuse — one spell at cost 5+, two at 3-4, unlimited below. Checked against
+ *  what is ALREADY taken, so the offer never shows a spell that could not be
+ *  added if picked. */
+export function legalSpellOffer(taken: readonly string[]): SpellDef[] {
+  const perCost = new Map<number, number>();
+  for (const id of taken) {
+    const sp = SPELLS.find((s) => s.id === id);
+    if (sp) perCost.set(sp.cost, (perCost.get(sp.cost) ?? 0) + 1);
+  }
+  const has = new Set(taken);
+  return SPELLS.filter((s) => !has.has(s.id)
+    && (perCost.get(s.cost) ?? 0) < spellCostCap(s.cost));
+}
+
+/** HOW OFTEN EACH COST RUNG IS OFFERED, by cost 1..10.
+ *
+ *  Uniform offers hand a drafter a book they cannot cast. Magic income is
+ *  `poolGainForRound` = min(5, ceil(round/5)), so a player has earned about 15
+ *  by round 10 and 21 by round 12 — and the median match is ELEVEN rounds, with
+ *  Specials spending out of the same pool. A cost-10 spell is more than half
+ *  the magic a whole game produces. Counted across 896 real matches, five of
+ *  the eight cost-10 spells are never cast by anyone.
+ *
+ *  So the top of the curve is thinned rather than banned: a finisher still
+ *  turns up and is still a real gamble, but a drafted book comes out mostly
+ *  castable instead of mostly ornamental. A deck builder can bank for a 10 over
+ *  a long game; a six-pick draft cannot plan around one.
+ *
+ *  Thinned rather than removed because the economy is the real problem and it
+ *  is not this module's to fix — see the note on the spell curve. If the magic
+ *  income is ever raised, flatten this back toward uniform. */
+export const SPELL_COST_PULL: readonly number[] = [
+  //  1    2    3    4    5    6    7    8    9   10
+  3.0, 3.0, 2.5, 2.0, 1.4, 1.0, 0.6, 0.4, 0.3, 0.3,
+];
+
+/** Roll the three spells a pick chooses between.
+ *
+ *  Weighted toward the ELEMENTS the drafted deck actually plays, because a
+ *  book of spells for elements you did not draft is the incoherent book the
+ *  derived one at least avoided. Off-element spells still appear — a splash is
+ *  a real choice — they are simply rarer. */
+export function rollSpellOffer(run: DraftRun, rand: () => number = Math.random): string[] {
+  const mine = new Set(run.picks.map((id) => getDef(id).element));
+  const pool = legalSpellOffer(run.spells ?? []);
+  const weightOf = (s: SpellDef) => (mine.has(s.element) ? 4 : 1) * SPELL_COST_PULL[s.cost - 1]!;
+  const out: string[] = [];
+  const left = [...pool];
+  while (out.length < OFFER_SIZE && left.length) {
+    const got = weightedPick(left, weightOf, rand);
+    if (!got) break;
+    out.push(got.id);
+    left.splice(left.indexOf(got), 1);
+  }
+  return out;
 }
 
 export const draftSize = (run: DraftRun): number => deckSizeFor(run.board);
+export const draftSpellCap = (run: DraftRun): number => spellCapForBoard(run.board);
 
-export const draftComplete = (run: DraftRun): boolean => run.picks.length >= draftSize(run);
+/** The card half is done. */
+export const cardsComplete = (run: DraftRun): boolean => run.picks.length >= draftSize(run);
+/** The book is full. */
+export const spellsComplete = (run: DraftRun): boolean =>
+  (run.spells?.length ?? 0) >= draftSpellCap(run);
+/** Everything is chosen and the run can be played. */
+export const draftComplete = (run: DraftRun): boolean =>
+  cardsComplete(run) && spellsComplete(run);
 
-/** Take one of the three. Returns a NEW run — the offer is rolled here, at the
- *  moment of the pick, so it is a fact about the run rather than about when the
- *  screen last rendered.
- *
- *  Throws on an id that is not on the table, the way `getDef` throws on an
- *  unknown card: a pick that silently does nothing is a lost turn the player
- *  cannot see, and every caller of this has the offer in front of it. */
-export function pickCard(run: DraftRun, id: string, rand: () => number = Math.random): DraftRun {
-  if (!run.offer.includes(id))
-    throw new Error(`Draft pick ${id} is not on offer (${run.offer.join(", ")})`);
-  const picks = [...run.picks, id];
+/** How many picks are left, of either kind — for a screen that counts down. */
+export const picksLeft = (run: DraftRun): number =>
+  Math.ceil(Math.max(0, draftSize(run) - run.picks.length) / GROUP_SIZE)
+  + Math.max(0, draftSpellCap(run) - (run.spells?.length ?? 0));
+
+export function startDraft(boardSize = 4, rand: () => number = Math.random): DraftRun {
+  const run: DraftRun = { board: boardSize, picks: [], offer: [] };
+  return { ...run, offer: rollGroups(run, rand) };
+}
+
+/** Take a group. Throws on a label that is not on the table, the way `getDef`
+ *  throws on an unknown id — a pick that silently does nothing is a lost turn
+ *  the player cannot see. */
+export function pickGroup(run: DraftRun, label: string, rand: () => number = Math.random): DraftRun {
+  const group = run.offer.find((g) => g.label === label);
+  if (!group)
+    throw new Error(`Draft group ${label} is not on offer (${run.offer.map((g) => g.label).join(", ")})`);
+  // Never past the deck size: the last pick of an 18-card draft is still three
+  // cards, but a board whose size is not a multiple of three would otherwise
+  // overfill. 18 and 30 both divide, so this is a guard rather than a rule.
+  const room = draftSize(run) - run.picks.length;
+  const picks = [...run.picks, ...group.cards.slice(0, room)];
   const next: DraftRun = { ...run, picks, offer: [] };
-  // The eighteenth pick both ends the draft and opens the run, so the first
-  // opponent is dealt in the same breath — a run that is playing always has a
-  // seat.
-  return draftComplete(next) ? dealDraftSeat(next, rand) : { ...next, offer: rollOffer(next, rand) };
+  if (!cardsComplete(next)) return { ...next, offer: rollGroups(next, rand) };
+  // The cards are done, so the book opens in the same breath. No seat is dealt
+  // here any more — the draft is not finished until the book is full, and
+  // `pickSpell` deals it at the real finish line.
+  return { ...next, spells: [], spellOffer: rollSpellOffer({ ...next, spells: [] }, rand) };
+}
+
+/** Take a spell. Same contract as `pickGroup`. */
+export function pickSpell(run: DraftRun, id: string, rand: () => number = Math.random): DraftRun {
+  if (!run.spellOffer?.includes(id))
+    throw new Error(`Draft spell ${id} is not on offer (${(run.spellOffer ?? []).join(", ")})`);
+  const spells = [...(run.spells ?? []), id];
+  const next: DraftRun = { ...run, spells, spellOffer: [] };
+  if (!spellsComplete(next)) return { ...next, spellOffer: rollSpellOffer(next, rand) };
+  // THE LAST SPELL IS WHAT OPENS THE RUN, not the last card. It used to be the
+  // card half that finished a draft, so the first opponent was dealt there;
+  // adding the book moved the finish line and left a playing run with no seat.
+  // Dealt here for the same reason it was dealt there — a run that is playing
+  // always has an opponent.
+  return dealDraftSeat(next, rand);
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

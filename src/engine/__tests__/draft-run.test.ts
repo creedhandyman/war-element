@@ -12,9 +12,10 @@ import { describe, expect, it } from "vitest";
 import { tierForStreak } from "../../data/matchmaker";
 import { loadStory, newSave, saveStory, type StorySave } from "../../data/story";
 import {
-  DRAFT_ENTRY, DRAFT_LOSSES, DRAFT_MAX_WINS, DRAFT_PAY, dealDraftSeat, draftComplete,
-  draftLosses, draftPlaying, draftReward, draftRunOver, draftTier, draftWins, pickCard,
-  recordDraftResult, settleDraft, startDraft, type DraftRun,
+  DRAFT_ENTRY, DRAFT_LOSSES, DRAFT_MAX_WINS, DRAFT_PAY, cardsComplete, dealDraftSeat,
+  draftComplete, draftLosses, draftPlaying, draftReward, draftRunOver, draftTier, draftWins,
+  pickGroup, pickSpell, spellsComplete, recordDraftResult, settleDraft, startDraft,
+  type DraftRun,
 } from "../../data/draft";
 import { PREMADE_DECKS, decksForTier } from "../../data/custom-decks";
 
@@ -28,11 +29,12 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** A run with its picking finished, ready to play. */
+/** A run with its picking finished — groups then spells — ready to play. */
 function drafted(seed = 4): DraftRun {
   const rand = seeded(seed);
   let run = startDraft(4, rand);
-  while (!draftComplete(run)) run = pickCard(run, run.offer[0], rand);
+  while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+  while (!spellsComplete(run)) run = pickSpell(run, run.spellOffer![0], rand);
   return run;
 }
 

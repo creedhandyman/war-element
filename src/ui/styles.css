@@ -7582,3 +7582,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Talent block, tinted gold so it reads as the finish rather than an ability. */
 .cd-foil .cd-h { color: var(--gold-hi); }
 .cd-foil .cd-cost-pill { border-color: var(--gold-line); color: var(--gold-hi); }
+
+/* ── DRAFT · groups of three, then the book ───────────────────────────────
+   Three banners side by side, each over its own trio. Nothing animates: the
+   same rule the board cues were converted to obey — a screen somebody reads
+   for a few seconds must not repaint a shadow behind them at 60fps. */
+.dr-left { color: var(--ink-faint); font-size: 11px; margin-top: 3px; }
+.dr-groups { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px; }
+.dr-group { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.dr-banner {
+  display: flex; flex-direction: column; align-items: center; gap: 1px;
+  padding: 7px 4px; border-radius: 9px; cursor: pointer;
+  background: rgba(0, 0, 0, .32); border: 1px solid var(--panel-line);
+  transition: transform .14s ease, border-color .14s ease;
+}
+.dr-banner:hover, .dr-banner:focus-visible { transform: translateY(-2px); border-color: var(--gold-line); outline: none; }
+.dr-banner-name { font-family: var(--head); font-size: 13px; color: var(--gold-hi); line-height: 1.1; }
+.dr-banner-kind { font-size: 9px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); }
+/* The trio is READ, not tapped — the banner above takes all three, so a card
+   here only opens its own ⓘ. Stacked rather than side by side: three columns of
+   three cards on a phone is nine tiles across, which is nothing legible. */
+.dr-trio { display: flex; flex-direction: column; gap: 4px; }
+.dr-trio .dr-card { cursor: default; }
+.dr-spells { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.dr-spell { width: 100%; text-align: left; }
+.dr-book { display: flex; flex-wrap: wrap; gap: 5px; }
+.dr-book-spell {
+  font-size: 10px; padding: 3px 7px; border-radius: 999px;
+  color: var(--ink-dim); background: rgba(0, 0, 0, .3); border: 1px solid var(--panel-line);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dr-banner { transition: border-color .14s ease; }
+  .dr-banner:hover, .dr-banner:focus-visible { transform: none; }
+}

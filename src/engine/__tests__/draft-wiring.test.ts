@@ -39,10 +39,12 @@ describe("the draft wiring", () => {
     // what a draft is.
     expect(APP).toMatch(/const deckPool: CustomDeck\[\] = \[[^\]]*draftDeck \? \[draftDeck\] : \[\]/);
     // Only while it is PLAYING, so it cannot be chosen out of a picker between
-    // runs, and never with a spellbook of its own — absent means derived from
-    // its own elements, which is the right answer for a mixed draft.
+    // runs — and WITH the book the drafter chose. That is the reverse of what
+    // this asserted before: spells used to be derived from the deck's elements,
+    // which is the right default for a deck somebody built and a decision taken
+    // away from a drafter.
     expect(APP).toContain("draftPlaying(draftRun)");
-    expect(APP).not.toMatch(/id: DRAFT_DECK_ID[^}]*spells:/);
+    expect(APP).toMatch(/id: DRAFT_DECK_ID[^}]*spells: draftRun!\.spells/);
   });
 
   it("gates the opponent seat exactly the way the gauntlet's is", () => {
@@ -65,7 +67,8 @@ describe("the draft wiring", () => {
     // run is the save's, not the component's.
     const at = APP.indexOf("<DraftScreen");
     const block = APP.slice(at, at + 1400);
-    expect(block).toContain("pickCard(prev.draft, id)");
+    expect(block).toContain("pickGroup(prev.draft, label)");
+    expect(block, "and the spells too").toContain("pickSpell(prev.draft, id)");
     expect(block, "a pick that is not persisted").toContain("saveStory(next)");
   });
 

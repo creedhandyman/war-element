@@ -1,22 +1,26 @@
-// DRAFT, phase 1 — the logic and, more importantly, its tuning.
+// DRAFT — three warbands a pick, then a spellbook.
 //
-// Half of this file is measurement rather than assertion. The two numbers that
-// decide whether a draft is any good — does it produce a playable CURVE, and
-// does it produce a coherent set of ELEMENTS — cannot be checked on one run,
-// only over hundreds. So each is measured against a CONTROL built in the test:
-// the same drafter taking from uniform offers. If the steering ever stops
-// working, the control catches up and the test fails.
+// A pick is a GROUP OF THREE sharing a tribe, so eighteen cards is six
+// decisions about what KIND of squad you are building rather than eighteen
+// about which of three strangers is marginally better. Then the book, which
+// used to be derived from the finished deck's elements — the right default for
+// a deck somebody built and a decision taken away from a drafter.
+//
+// Half of this file is measurement rather than assertion, for the same reason
+// as before: whether a draft produces a playable CURVE cannot be checked on one
+// run, only over hundreds, and it is measured against a CONTROL built here.
 import { describe, expect, it } from "vitest";
 import { CARDS, getDef } from "../../data/cards";
 import { deckSizeFor } from "../../data/custom-decks";
+import { SPELLS, spellCapForBoard, spellCostCap } from "../spells";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
 import {
-  OFFER_SIZE, TARGET_CURVE, costBucket, curveDeficit, draftComplete, draftSize,
-  leadingElements, pickCard, rollOffer, startDraft, type DraftRun,
+  GROUP_SIZE, OFFER_SIZE, TARGET_CURVE, cardsComplete, costBucket, curveDeficit,
+  draftComplete, draftSize, draftSpellCap, picksLeft, pickGroup, pickSpell,
+  rollGroups, spellsComplete, startDraft, type DraftRun,
 } from "../../data/draft";
 
-/** Seeded, so a failure is reproducible. mulberry32, as in engine/rng.ts. */
 function seeded(seed: number): () => number {
   let a = seed;
   return () => {
@@ -27,117 +31,239 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** A whole draft, by a drafter with no taste: it takes one of the three at
- *  random. Deliberately not a "good" drafter — the tuning has to hold for
- *  somebody who is not helping it. */
-function autoDraft(seed: number, board = 4): string[] {
+/** A whole draft — groups then spells — by a drafter with no taste. */
+function autoDraft(seed: number, board = 4): DraftRun {
   const rand = seeded(seed);
   let run = startDraft(board, rand);
-  while (!draftComplete(run)) run = pickCard(run, run.offer[Math.floor(rand() * run.offer.length)], rand);
-  return run.picks;
+  while (!cardsComplete(run))
+    run = pickGroup(run, run.offer[Math.floor(rand() * run.offer.length)].label, rand);
+  while (!spellsComplete(run))
+    run = pickSpell(run, run.spellOffer![Math.floor(rand() * run.spellOffer!.length)], rand);
+  return run;
 }
 
-/** A drafter with TASTE: it prefers a card already in its two leading
- *  elements. The realistic case — a player does this without being asked — and
- *  the one ELEMENT_WEIGHT was tuned against. */
-function deliberateDraft(seed: number, board = 4): string[] {
-  const rand = seeded(seed);
-  let run = startDraft(board, rand);
-  while (!draftComplete(run)) {
-    const lead = new Set(leadingElements(run.picks).slice(0, 2));
-    const on = run.offer.filter((id) => lead.has(getDef(id).element));
-    run = pickCard(run, (on.length ? on : run.offer)[0], rand);
-  }
-  return run.picks;
-}
-
-/** THE CONTROL: the same drafter, taking from three cards drawn flat out of
- *  the pool. What draft would look like with no steering at all. */
+/** THE CONTROL: three cards drawn flat out of the pool, no banners, no
+ *  steering. What this format would look like unshaped. */
 function uniformDraft(seed: number, board = 4): string[] {
   const rand = seeded(seed);
   const pool = CARDS.filter((c) => !c.boss);
   const picks: string[] = [];
   const taken = new Set<string>();
   while (picks.length < deckSizeFor(board)) {
-    const offer: string[] = [];
-    while (offer.length < OFFER_SIZE) {
-      const c = pool[Math.floor(rand() * pool.length)];
-      if (!taken.has(c.id) && !offer.includes(c.id)) offer.push(c.id);
-    }
-    const got = offer[Math.floor(rand() * offer.length)];
-    picks.push(got); taken.add(got);
+    const c = pool[Math.floor(rand() * pool.length)];
+    if (taken.has(c.id)) continue;
+    picks.push(c.id); taken.add(c.id);
   }
   return picks;
 }
 
-const shareByBucket = (decks: string[][]): Record<string, number> => {
+const curveError = (decks: string[][]): number => {
   const n: Record<string, number> = {};
   let total = 0;
   for (const d of decks) for (const id of d) {
     n[costBucket(getDef(id).cost)] = (n[costBucket(getDef(id).cost)] ?? 0) + 1;
     total++;
   }
-  const out: Record<string, number> = {};
-  for (const b of Object.keys(TARGET_CURVE)) out[b] = (n[b] ?? 0) / total;
-  return out;
+  return Object.entries(TARGET_CURVE)
+    .reduce((e, [b, want]) => e + Math.abs((n[b] ?? 0) / total - want), 0);
 };
 
-/** Total absolute distance from the target curve — one number for "how wrong". */
-const curveError = (decks: string[][]): number => {
-  const got = shareByBucket(decks);
-  return Object.entries(TARGET_CURVE).reduce((e, [b, want]) => e + Math.abs(got[b] - want), 0);
-};
+const meanTribes = (runs: DraftRun[]): number =>
+  runs.reduce((s, r) => {
+    const t = new Set<string>();
+    for (const id of r.picks) {
+      const tr = getDef(id).tribe;
+      for (const x of tr == null ? [] : Array.isArray(tr) ? tr : [tr]) t.add(x);
+    }
+    return s + t.size;
+  }, 0) / runs.length;
 
-const meanElements = (decks: string[][]): number =>
-  decks.reduce((s, d) => s + new Set(d.map((id) => getDef(id).element)).size, 0) / decks.length;
-
-describe("a draft deals three at a time and ends with a legal deck", () => {
-  it("opens with a full offer of real, distinct, draftable cards", () => {
+describe("a pick is a warband, not a card", () => {
+  it("offers three groups of three", () => {
     const run = startDraft(4, seeded(1));
     expect(run.offer).toHaveLength(OFFER_SIZE);
-    expect(new Set(run.offer).size, "no duplicates on the table").toBe(OFFER_SIZE);
-    for (const id of run.offer) expect(getDef(id).boss ?? false, `${id} is a boss`).toBe(false);
+    for (const g of run.offer) {
+      expect(g.cards, `${g.label} is not a trio`).toHaveLength(GROUP_SIZE);
+      expect(new Set(g.cards).size, "a group repeats a card").toBe(GROUP_SIZE);
+      for (const id of g.cards) expect(getDef(id).boss ?? false).toBe(false);
+    }
   });
 
-  it("never offers a card already taken — decks are singleton", () => {
+  it("every group actually shares the thing it is named after", () => {
+    // A banner that does not describe its three is a lie on the button.
+    for (let seed = 0; seed < 30; seed++) {
+      for (const g of startDraft(4, seeded(seed)).offer) {
+        for (const id of g.cards) {
+          const d = getDef(id);
+          if (g.kind === "tribe") {
+            const tr = d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
+            expect(tr, `${d.id} is not a ${g.label}`).toContain(g.label);
+          } else {
+            expect(d.element, `${d.id} is not ${g.label}`).toBe(g.label);
+          }
+        }
+      }
+    }
+  });
+
+  it("never offers the same banner twice at once", () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const labels = startDraft(4, seeded(seed)).offer.map((g) => g.label);
+      expect(new Set(labels).size, "two of the same banner").toBe(labels.length);
+    }
+  });
+
+  it("takes all three and never offers a taken card again", () => {
     const rand = seeded(7);
     let run = startDraft(4, rand);
-    while (!draftComplete(run)) {
-      for (const id of run.offer) expect(run.picks).not.toContain(id);
-      run = pickCard(run, run.offer[0], rand);
+    while (!cardsComplete(run)) {
+      for (const g of run.offer)
+        for (const id of g.cards) expect(run.picks).not.toContain(id);
+      const before = run.picks.length;
+      run = pickGroup(run, run.offer[0].label, rand);
+      expect(run.picks.length - before, "a pick is three cards").toBe(GROUP_SIZE);
     }
-    expect(new Set(run.picks).size, "and the deck holds no duplicate").toBe(run.picks.length);
+    expect(new Set(run.picks).size, "the deck holds no duplicate").toBe(run.picks.length);
   });
 
-  it("ends at exactly the board's deck size, with the table cleared", () => {
-    const picks = autoDraft(3);
-    expect(picks).toHaveLength(deckSizeFor(4));
-    const rand = seeded(3);
-    let run = startDraft(4, rand);
-    while (!draftComplete(run)) run = pickCard(run, run.offer[0], rand);
-    expect(run.offer, "nothing left on the table").toEqual([]);
-    expect(draftSize(run)).toBe(18);
+  it("lands on exactly the board's deck size", () => {
+    // 18 and 30 both divide by three, so six picks and ten picks land square.
+    expect(autoDraft(3).picks).toHaveLength(deckSizeFor(4));
+    expect(autoDraft(3, 5).picks).toHaveLength(deckSizeFor(5));
   });
 
-  it("refuses a pick that is not on the table", () => {
-    // Loudly, like `getDef` on an unknown id. A pick that silently does nothing
-    // is a lost turn the player cannot see.
+  it("refuses a banner that is not on the table", () => {
     const run = startDraft(4, seeded(5));
-    expect(() => pickCard(run, "leaf_alpha", seeded(5))).toThrow(/not on offer/);
+    expect(() => pickGroup(run, "Not A Tribe", seeded(5))).toThrow(/not on offer/);
   });
 
   it("replays identically from a seed", () => {
-    expect(autoDraft(42)).toEqual(autoDraft(42));
-    expect(autoDraft(42)).not.toEqual(autoDraft(43));
+    expect(autoDraft(42).picks).toEqual(autoDraft(42).picks);
+    expect(autoDraft(42).spells).toEqual(autoDraft(42).spells);
+    expect(autoDraft(42).picks).not.toEqual(autoDraft(43).picks);
+  });
+});
+
+describe("then the spellbook", () => {
+  it("opens the moment the cards are done, and not before", () => {
+    const rand = seeded(11);
+    let run = startDraft(4, rand);
+    expect(run.spellOffer, "no book while there are cards to take").toBeUndefined();
+    while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+    expect(run.spells, "the book opens empty").toEqual([]);
+    expect(run.spellOffer, "with three on the table").toHaveLength(OFFER_SIZE);
+    expect(run.offer, "and the cards are off it").toEqual([]);
   });
 
-  it("produces a deck the engine will actually play", () => {
-    // The point of the whole feature: 18 cards from across the elements, handed
-    // to a real match with a DERIVED spellbook (spells undefined), played to a
-    // finish. If a drafted deck could not be seated this is where it shows.
+  it("fills to the board's cap and then stops", () => {
+    const run = autoDraft(9);
+    expect(run.spells).toHaveLength(spellCapForBoard(4));
+    expect(draftSpellCap(run)).toBe(spellCapForBoard(4));
+    expect(spellsComplete(run)).toBe(true);
+    expect(draftComplete(run), "cards and book both done").toBe(true);
+    expect(run.spellOffer, "nothing left on the table").toEqual([]);
+  });
+
+  it("assembles only a book the deck builder would allow", () => {
+    // The cost-tier law: one spell at cost 5+, two at 3-4, unlimited below. A
+    // draft that could out-build the builder would be a way around the rule.
+    for (let seed = 0; seed < 25; seed++) {
+      const spells = autoDraft(seed * 31 + 7).spells!;
+      expect(new Set(spells).size, "the same spell twice").toBe(spells.length);
+      const perCost = new Map<number, number>();
+      for (const id of spells) {
+        const sp = SPELLS.find((s) => s.id === id)!;
+        perCost.set(sp.cost, (perCost.get(sp.cost) ?? 0) + 1);
+      }
+      for (const [cost, n] of perCost)
+        expect(n, `${n} spells at cost ${cost}`).toBeLessThanOrEqual(spellCostCap(cost));
+    }
+  });
+
+  it("leans toward the elements the deck actually plays", () => {
+    // A book for elements you did not draft is the incoherent book the derived
+    // one at least avoided. Off-element still appears — a splash is a real
+    // choice — so this is a lean, measured over many drafts, not a rule.
+    let on = 0, total = 0;
+    for (let seed = 0; seed < 60; seed++) {
+      const run = autoDraft(seed * 17 + 3);
+      const mine = new Set(run.picks.map((id) => getDef(id).element));
+      for (const id of run.spells!) {
+        total++;
+        if (mine.has(SPELLS.find((s) => s.id === id)!.element)) on++;
+      }
+    }
+    expect(on / total, `${(100 * on / total).toFixed(0)}% on-element`).toBeGreaterThan(0.6);
+  });
+
+  it("comes out castable, not ornamental", () => {
+    // Uniform offers hand a drafter a book they cannot cast. Magic income tops
+    // out around 18 across a median 11-round match and Specials spend from the
+    // same pool, so a book averaging cost 7 is decoration — and five of the
+    // eight cost-10 spells are never cast by anyone in 896 real matches.
+    // Measured over 200 drafts: mean book cost 3.48.
+    let sum = 0, n = 0, top = 0;
+    for (let seed = 0; seed < 120; seed++)
+      for (const id of autoDraft(seed * 31 + 7).spells!) {
+        const c = SPELLS.find((s) => s.id === id)!.cost;
+        sum += c; n++;
+        if (c >= 8) top++;
+      }
+    const mean = sum / n;
+    expect(mean, `mean book cost ${mean.toFixed(2)}`).toBeLessThan(4.5);
+    // Thinned, not banned — a finisher is still a real gamble worth taking.
+    expect(top, "the top of the curve never appears at all").toBeGreaterThan(0);
+    expect(top / n, "and it must not dominate").toBeLessThan(0.2);
+  });
+
+  it("refuses a spell that is not on the table", () => {
+    const rand = seeded(4);
+    let run = startDraft(4, rand);
+    while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+    expect(() => pickSpell(run, "leaf_sprout_not_real", rand)).toThrow(/not on offer/);
+  });
+});
+
+describe("the countdown", () => {
+  it("counts both stages, so the book is never a surprise", () => {
+    // Six group picks and five spell picks on the small board.
+    const fresh = startDraft(4, seeded(2));
+    expect(picksLeft(fresh)).toBe(deckSizeFor(4) / GROUP_SIZE + spellCapForBoard(4));
+    expect(picksLeft(autoDraft(2)), "nothing left when it is done").toBe(0);
+  });
+});
+
+describe("the curve still holds", () => {
+  it("starts neutral — an empty draft is on pace by definition", () => {
+    for (const v of Object.values(curveDeficit([]))) expect(v).toBe(0);
+  });
+
+  it("lands nearer the premade curve than no steering does", () => {
+    // Harder than it was card-at-a-time: a group is three cards taken together,
+    // so the steering can only choose WHICH trio, never trim one out of it.
+    const seeds = Array.from({ length: 90 }, (_, i) => i * 31 + 7);
+    const got = curveError(seeds.map((s) => autoDraft(s).picks));
+    const flat = curveError(seeds.map((s) => uniformDraft(s)));
+    expect(got, `grouped ${got.toFixed(3)} vs uniform ${flat.toFixed(3)}`).toBeLessThan(flat);
+  });
+});
+
+describe("the shape of a drafted squad", () => {
+  it("is built out of a handful of warbands, not a rainbow", () => {
+    // The whole point of the format. Eighteen cards from six banners cannot be
+    // eighteen unrelated cards, and the banner nudge keeps a drafter who likes
+    // a tribe coming back to it.
+    const runs = Array.from({ length: 60 }, (_, i) => autoDraft(i * 31 + 7));
+    const mean = meanTribes(runs);
+    expect(mean, `averaged ${mean.toFixed(1)} tribes across 18 cards`).toBeLessThan(12);
+  });
+
+  it("produces a deck the engine will actually play, with its own book", () => {
+    // The point of the whole feature, now including the spells the drafter
+    // chose rather than a book derived for them.
     for (const seed of [11, 12, 13]) {
-      const deck = autoDraft(seed);
-      let s = createInitialState(seed, deck, deck, [], undefined, undefined, 4);
+      const run = autoDraft(seed);
+      let s = createInitialState(seed, run.picks, run.picks, [], run.spells, run.spells, 4);
       let steps = 0;
       while (s.phase !== "gameover" && steps < 8000) { s = advance(s); steps++; }
       expect(s.phase, `seed ${seed} did not finish`).toBe("gameover");
@@ -145,127 +271,23 @@ describe("a draft deals three at a time and ends with a legal deck", () => {
   });
 });
 
-describe("the big board drafts too", () => {
-  // Thirty picks instead of eighteen. Nothing in the module is board-specific —
-  // `deckSizeFor` decides the count and everything else follows — so what is
-  // worth pinning is that the TUNING survives the longer draft rather than
-  // that the loop terminates. Measured over 200 drafts: curve error 0.063 at
-  // both sizes, elements 2.94 at 18 picks and 3.65 at 30. The drift is the
-  // right direction and the right size — twelve more cards is twelve more
-  // chances to splash — and neither number moved enough to need its own tuning.
-  it("deals a full thirty for a 5x5, all distinct", () => {
-    const deck = deliberateDraft(5, 5);
-    expect(deck).toHaveLength(deckSizeFor(5));
-    expect(new Set(deck).size, "a duplicate on the big board").toBe(deck.length);
-  });
-
-  it("holds the same curve it holds on the small one", () => {
-    const seeds = Array.from({ length: 60 }, (_, i) => i * 31 + 7);
-    const small = curveError(seeds.map((s) => deliberateDraft(s, 4)));
-    const big = curveError(seeds.map((s) => deliberateDraft(s, 5)));
-    expect(big, `18-pick ${small.toFixed(3)} vs 30-pick ${big.toFixed(3)}`)
-      .toBeLessThan(small + 0.04);
-  });
-
-  it("stays coherent over the longer draft", () => {
-    const seeds = Array.from({ length: 60 }, (_, i) => i * 17 + 3);
-    const mean = meanElements(seeds.map((s) => deliberateDraft(s, 5)));
-    expect(mean, `30-pick drafter averaged ${mean.toFixed(2)} elements`).toBeLessThan(5);
-  });
-});
-
-describe("the curve steering", () => {
-  it("starts neutral — an empty draft is on pace by definition", () => {
-    // Pace-relative, not absolute. Against the FINISHED deck's target a fresh
-    // draft is 6.5 cheap cards behind before it has seen a card, and the first
-    // offers would be nothing but 1-2 drops.
-    for (const v of Object.values(curveDeficit([]))) expect(v).toBe(0);
-  });
-
-  it("pushes back once a drafter drifts expensive", () => {
-    const heavy = CARDS.filter((c) => !c.boss && c.cost >= 9).slice(0, 4).map((c) => c.id);
-    const d = curveDeficit(heavy);
-    expect(d["9+"], "over on the top end").toBeLessThan(0);
-    expect(d["1-2"], "and behind on the bottom").toBeGreaterThan(0);
-  });
-
-  it("lands nearer the premade curve than no steering does", () => {
-    const seeds = Array.from({ length: 120 }, (_, i) => i * 31 + 7);
-    const drafted = seeds.map((s) => autoDraft(s));
-    const control = seeds.map((s) => uniformDraft(s));
-    const got = curveError(drafted), flat = curveError(control);
-    // Reported as a ratio so a failure says how much worse, not just "worse".
-    expect(got, `steered ${got.toFixed(3)} vs uniform ${flat.toFixed(3)}`).toBeLessThan(flat);
-    expect(got, "and close to the premades in absolute terms").toBeLessThan(0.12);
-  });
-
-  it("gets the cheap end right, which is the half that decides games", () => {
-    // OPENING_COST_CAP gates what can be played early, so a deck short on 1-2
-    // drops loses before its expensive half arrives. This is the bucket the
-    // uniform control misses worst.
-    const seeds = Array.from({ length: 120 }, (_, i) => i * 17 + 3);
-    const got = shareByBucket(seeds.map((s) => autoDraft(s)))["1-2"];
-    expect(got, `cheap share ${got.toFixed(3)} vs target ${TARGET_CURVE["1-2"]}`)
-      .toBeGreaterThan(TARGET_CURVE["1-2"] - 0.06);
-  });
-});
-
-describe("the element pressure", () => {
-  it("leaves the first picks alone, then follows the drafter", () => {
-    expect(leadingElements([]), "nothing to follow yet").toEqual([]);
-    const two = ["leaf_alpha", "leaf_alpha"].map((id) => getDef(id).element);
-    expect(two[0]).toBe("LEAF");
-  });
-
-  it("narrows a deck's elements against no pressure at all", () => {
-    const seeds = Array.from({ length: 120 }, (_, i) => i * 31 + 7);
-    const drafted = meanElements(seeds.map((s) => autoDraft(s)));
-    const control = meanElements(seeds.map((s) => uniformDraft(s)));
-    expect(drafted, `drafted ${drafted.toFixed(2)} elements vs uniform ${control.toFixed(2)}`)
-      .toBeLessThan(control);
-  });
-
-  it("gets a deliberate drafter to a COHERENT deck, which is the point", () => {
-    // The realistic case, and what the weight was tuned on: a player who takes
-    // on-element cards should land around three elements — coherent enough for
-    // `spellbookFor` to derive a real book, loose enough for a splash. At the
-    // first weight tried (3) this was 4.17 and the pressure was decorative.
-    const seeds = Array.from({ length: 120 }, (_, i) => i * 31 + 7);
-    const mean = meanElements(seeds.map((s) => deliberateDraft(s)));
-    expect(mean, `deliberate drafter averaged ${mean.toFixed(2)} elements`).toBeLessThan(4);
-  });
-
-  it("stays SOFT — it never locks the drafter into one element", () => {
-    // A multiplier, not a filter. If drafts ever came out mono-element the
-    // pressure has become a lock, and the splash that makes a draft interesting
-    // is gone with it.
-    const seeds = Array.from({ length: 60 }, (_, i) => i * 13 + 5);
-    const counts = seeds.map((s) => new Set(autoDraft(s).map((id) => getDef(id).element)).size);
-    expect(Math.min(...counts), "some draft came out mono-element").toBeGreaterThan(1);
-  });
-});
-
-describe("rollOffer", () => {
-  it("keeps one rarity per offer so the pick is about the card", () => {
-    // Mixed rarities answer the question for you — nobody weighs a rare against
-    // a mythic. Measured rather than asserted absolutely: the tier can run thin
-    // late in a draft and widening to keep THREE on the table is the deliberate
-    // fallback, so a small number of mixed offers is correct behaviour.
-    const rand = seeded(99);
-    let run: DraftRun = startDraft(4, rand);
-    let offers = 0, single = 0;
-    while (!draftComplete(run)) {
-      const rarities = new Set(run.offer.map((id) => getDef(id).rarity));
-      offers++;
-      if (rarities.size === 1) single++;
-      run = pickCard(run, run.offer[0], rand);
-    }
-    expect(single / offers, `${single}/${offers} offers were single-rarity`).toBeGreaterThan(0.9);
-  });
-
-  it("always fills the table while the pool can", () => {
+describe("rollGroups", () => {
+  it("fills the table while the banners can", () => {
     const run = startDraft(4, seeded(21));
-    for (let i = 0; i < 50; i++)
-      expect(rollOffer(run, seeded(i)), `seed ${i}`).toHaveLength(OFFER_SIZE);
+    for (let i = 0; i < 40; i++)
+      expect(rollGroups(run, seeded(i)), `seed ${i}`).toHaveLength(OFFER_SIZE);
+  });
+
+  it("still fills it deep into a draft, when banners are running thin", () => {
+    // Six picks take eighteen cards out of the pool, and a tribe of four is
+    // finished after one. The offer must not shrink.
+    const rand = seeded(33);
+    let run = startDraft(4, rand);
+    while (!cardsComplete(run)) {
+      expect(run.offer.length, `only ${run.offer.length} groups at pick ${run.picks.length / 3}`)
+        .toBe(OFFER_SIZE);
+      run = pickGroup(run, run.offer[0].label, rand);
+    }
+    expect(draftSize(run)).toBe(18);
   });
 });

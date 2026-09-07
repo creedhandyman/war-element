@@ -70,8 +70,8 @@ import { LevelUpModal } from "./LevelUpModal";
 import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
   DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
-  draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickCard, settleDraft,
-  startDraft,
+  draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickGroup, pickSpell,
+  settleDraft, startDraft,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
@@ -637,7 +637,7 @@ export function App() {
    *  to learn what a draft is. It exists only while a run is PLAYING, so the
    *  entry cannot be selected out of a picker between runs. */
   const draftDeck: CustomDeck | null = draftPlaying(draftRun)
-    ? { id: DRAFT_DECK_ID, name: "Your draft", cards: draftRun!.picks }
+    ? { id: DRAFT_DECK_ID, name: "Your draft", cards: draftRun!.picks, spells: draftRun!.spells }
     : null;
   /** The run is holding YOUR chair — so the lobby must not offer to change it.
    *  Only while the mode is draft AND the run is playing: a draft parked while
@@ -5138,10 +5138,18 @@ export function App() {
       {draftRun && !draftComplete(draftRun) && (
         <DraftScreen
           run={draftRun}
-          onPick={(id) => {
+          onPickGroup={(label) => {
             setStory((prev) => {
               if (!prev.draft) return prev;
-              const next = { ...prev, draft: pickCard(prev.draft, id) };
+              const next = { ...prev, draft: pickGroup(prev.draft, label) };
+              saveStory(next);
+              return next;
+            });
+          }}
+          onPickSpell={(id) => {
+            setStory((prev) => {
+              if (!prev.draft) return prev;
+              const next = { ...prev, draft: pickSpell(prev.draft, id) };
               saveStory(next);
               return next;
             });

@@ -38,6 +38,7 @@ describe("the draft pick screen", () => {
     // and it would still look right on every screenshot until then.
     expect(SCREEN, "should read draftSize(run)").toContain("draftSize(run)");
     expect(SCREEN, "should read draftComplete(run)").toContain("draftComplete(run)");
+    expect(SCREEN, "and the book's cap, which is 5 or 8").toContain("draftSpellCap(run)");
     expect(/\bof 18\b/.test(SCREEN), "a hardcoded 18 in the copy").toBe(false);
   });
 
@@ -46,14 +47,17 @@ describe("the draft pick screen", () => {
     // leaves through onPick. If this screen ever starts a draft or rolls an
     // offer itself, two things own the run and they will disagree.
     expect(SCREEN.includes("startDraft"), "screen must not start its own draft").toBe(false);
-    expect(SCREEN.includes("rollOffer"), "screen must not roll its own offer").toBe(false);
-    expect(SCREEN).toContain("props.onPick");
+    expect(SCREEN.includes("rollGroups"), "screen must not roll its own offer").toBe(false);
+    expect(SCREEN.includes("rollSpellOffer"), "nor its own spells").toBe(false);
+    expect(SCREEN).toContain("props.onPickGroup");
+    expect(SCREEN).toContain("props.onPickSpell");
   });
 
   it("closes the card reader before the offer changes underneath it", () => {
-    // Tapping ⓘ then taking the card leaves a reader open over three cards that
-    // are no longer the three it was opened from.
-    expect(SCREEN).toMatch(/const take = \([\s\S]{0,120}setDetailId\(null\)/);
+    // Tapping a card's ⓘ and then taking a banner leaves the reader open over
+    // three cards it was not opened from. Both stages route through a closer.
+    expect(SCREEN).toMatch(/const takeGroup = [\s\S]{0,80}setDetailId\(null\)/);
+    expect(SCREEN).toMatch(/const takeSpell = [\s\S]{0,80}setDetailId\(null\)/);
   });
 
   it("adds no always-on animation to a screen that sits still", () => {
