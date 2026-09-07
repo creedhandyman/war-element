@@ -32,16 +32,22 @@
 // pairing, heroes ON:
 //
 //              vs   Attack Defense Control   Hoard      overall
-//     ♠ Attack        —      46%     53%     51%         50.0%
-//     ♣ Defense      54%      —      44%     59%         52.1%
-//     ♥ Control      48%     56%      —      46%         50.0%
-//     ♦ Hoard        49%     41%     54%      —          47.9%
+//     ♠ Attack        —      49%     49%     56%         51.2%
+//     ♣ Defense      51%      —      56%     48%         51.7%
+//     ♥ Control      51%     44%      —      48%         47.5%
+//     ♦ Hoard        44%     53%     53%      —          49.6%
 //
-// Spread 4.2 points across the four.
+// Spread 4.2 points across the four, WITH the hero powers live and used.
 //
 // THE CYCLE IS THE POINT: Attack beats Control, Control beats Defense, Defense
 // beats Attack. Three of the four counter each other, which is what keeps a
 // dealt suit a matchup rather than a difficulty roll.
+//
+// CONTROL'S LIGHT BANK IS GONE. It was added when Control had no cost at all
+// and measured 60.0%; once the hero powers arrived it was overpaying, and
+// removing it took the spread from 11.2 to 6.7. `reluctant` STAYS — taking that
+// off instead measured worse (9.6), because not racing is not a cost for a
+// control seat, it is the plan.
 //
 // CONTROL WAS THE OUTLIER — 60.0% with no losing matchup at all — and what
 // fixed it was not a nerf to its strengths but giving it the COST its identity

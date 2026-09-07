@@ -80,13 +80,23 @@
 // competes with that. Gating every power behind round 5 took the spread from
 // 34.2 to 11.2 without touching a single magnitude.
 //
-//     suit        overall     (spread 11.2 points)
-//     ♠ Attack     54.6%
-//     ♦ Hoard      51.2%
-//     ♣ Defense    50.8%
-//     ♥ Control    43.3%
+// AND THE LAST 7 POINTS WERE A TYPO. Control sat at 43.3% because its AI never
+// fired Arcane Focus — not rarely, NEVER, in 0% of games while the other three
+// fired in 100%. The trigger matched the reason string "Not enough Magic" and
+// the engine says "Not enough magic". One capital letter, no error, a branch
+// that was simply never true, and a hero power that did not exist in play. It
+// compares numbers now, Control fires in 73% of games, and the table closed to
+// where the styles alone were:
 //
-// Control is the low one and is the open question here, as it was before.
+//     suit        overall     (spread 4.2 points)
+//     ♣ Defense    51.7%
+//     ♠ Attack     51.2%
+//     ♦ Hoard      49.6%
+//     ♥ Control    47.5%
+//
+// A power measured as WEAK and a power never FIRED look identical in a win
+// rate table. The usage rate is what tells them apart, and it is worth
+// checking first the next time a suit reads as underpowered.
 import type { PlayerId, Suit } from "./types";
 
 export interface Hero {
