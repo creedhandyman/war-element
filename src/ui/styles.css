@@ -6901,6 +6901,54 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    square nothing can stand on should not look like a square you can take. */
 .slot.dom-closed.obj { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.72); animation: none; border-color: rgba(150, 150, 170, 0.30); }
 
+/* ── WHAT YOU CAN DO OUTRANKS WHAT THE GROUND IS ──────────────────────────
+   The terrain block above says the interaction states "still read on top of
+   it". They did not, and Domination is where it showed: a road, a shrine and
+   every square of every Point all set `border-color`, all of them are
+   two-class selectors exactly like `.slot.legal`, and all of them are declared
+   six thousand lines further down this file. Same specificity, later wins — so
+   on precisely the squares worth moving to, the green movement border was
+   never drawn at all and the only cue left was the glow, competing with
+   hatching, a radial shrine wash and an inset objective ring.
+
+   Reported as "the movement highlights in Domination are hard to see", which
+   is exactly what it looks like from the other side: not missing, just losing.
+
+   The rule this states, once, for every board: TERRAIN AND OBJECTIVES ARE
+   GROUND — what a square IS. The interaction states are what you can DO with
+   it right now, and a thing you can do always beats a thing a square is.
+
+   Doubling the class buys the specificity without `!important` and without
+   depending on source order, so a future terrain rule cannot quietly take the
+   cue back the way these did. Unscoped deliberately: on a 4x4 nothing else
+   sets these borders, so every line here is a no-op there — it fixes the class
+   of bug rather than the one board it was noticed on. */
+.slot.legal.legal    { border-color: var(--legal); }
+.slot.staged.staged  { border-color: var(--legal); }
+.slot.target.target  { border-color: var(--threat); }
+.slot.preview.preview{ border-color: var(--threat); }
+.slot.movable.movable{ border-color: rgba(56, 189, 248, 0.65); }
+/* The aim footprint is washed on rather than bordered, and `background` is a
+   SHORTHAND — a road or a shrine setting it wipes the gold out entirely. */
+.slot.aim.aim {
+  background-image:
+    linear-gradient(rgba(232, 200, 119, 0.22), rgba(232, 200, 119, 0.22));
+}
+
+/* ...and on ground this busy the border alone is still thin. A legal
+   destination also gets a crisp ring on its own glow layer, which is a CHILD
+   of the slot and so paints above the objective's inset ring rather than
+   underneath it — the one place the two cues were drawn on top of each other.
+   Green stays green: it means "go here" on every board and Domination is not
+   the place to teach a second vocabulary. */
+.slot.legal > .slot-glow {
+  box-shadow:
+    inset 0 0 0 2px rgba(120, 235, 175, 0.95),
+    0 0 24px rgba(78, 203, 143, 0.45),
+    inset 0 0 22px var(--legal-soft);
+}
+.slot.legal { z-index: 2; }
+
 /* ── WHOSE CARD IS THIS ───────────────────────────────────────────────────
    The token's name is tinted by SEAT. `mine`/`enemy` is viewer-relative and
    collapses every opponent into one colour — all a 1v1 ever needed, and not
