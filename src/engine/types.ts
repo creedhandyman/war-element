@@ -1829,6 +1829,15 @@ export interface CardInstance {
    *  head-start reads whichever boss it finds first. Each of those now skips a
    *  tamed body, and this flag is how. */
   tamed?: boolean;
+  /** ROUNDS THIS BODY HOLDS ITS OWN HOME ROW before it may step forward — the
+   *  seated-boss opening, carried by the INSTANCE because it is a property of
+   *  how the body was placed rather than of the card.
+   *
+   *  A Void Tower boss gets this from its `boss` flag and needs no stamp. A
+   *  Throne's Mythic is an ownable card — it is the reward for clearing the
+   *  node — so it cannot wear that flag, and the seat stamps the hold instead.
+   *  See `bossHeldHome`, which is the one reader. */
+  heldHomeRounds?: number;
   hitsBonusRound: number; // extra basic hits for the turn (Flow Change Liquid on multi-hit)
   tempShields: number; // shields granted "for the turn" (removed in Cleanup)
   /** Basic hits this card has LANDED on each target this round (keyed by target
@@ -2952,17 +2961,39 @@ export function homeRow(player: PlayerId, boardSize: number): number {
  *  It HOLDS rather than freezes — attacks, Specials and the free clock all fire
  *  normally, and it may still slide ALONG its own home row (Skeleeze's
  *  Swiftshooter), because that is repositioning, not advancing. What it cannot
- *  do is leave the row. */
+ *  do is leave the row.
+ *
+ *  A Throne's seated Mythic holds for longer and carries its own number — see
+ *  `THRONE_HOLD_ROUNDS` in data/story.ts, and `heldHomeRounds` below for why
+ *  that one rides on the body rather than on the card. */
 export const BOSS_HOLD_ROUNDS = 2;
 
-/** Is this card a boss that has not yet been released from its home row?
+/** Is this BODY still held on its own home row?
  *
  *  One function, because there are two ways off that row — the AI moving it in
  *  Prep and `roundTick.advance` walking it at Cleanup — and a rule written
  *  twice is a rule that drifts. (See the ARC discharge passive, which was
  *  gated in the engine and ungated in the card text for a month.) */
-export function bossHeldHome(state: GameState, def: CardDef): boolean {
-  return def.boss === true && state.round <= BOSS_HOLD_ROUNDS;
+export function bossHeldHome(state: GameState, card: CardInstance, def: CardDef): boolean {
+  // The BODY's own hold wins, then the card's. A Void Tower boss is held by
+  // what it IS; a Throne's Mythic by how it was seated — see `heldHomeRounds`,
+  // which exists because that Mythic is an ownable card and can never carry the
+  // `boss` flag. Both end up in one predicate so the two ways off the row (the
+  // AI moving it in Prep, `roundTick.advance` walking it at Cleanup) still read
+  // a single rule.
+  const hold = card.heldHomeRounds ?? (def.boss === true ? BOSS_HOLD_ROUNDS : 0);
+  return hold > 0 && state.round <= hold;
+}
+
+/** The centre of a seat's own home row — where a boss stands.
+ *
+ *  One definition for the three bodies that are placed there outside the
+ *  economy: the Void Tower boss, a tamed boss fighting for the player, and now
+ *  a Throne's seated Mythic. It was arithmetic written out at each of them,
+ *  which is how the tamed ally and the boss could have drifted onto different
+ *  squares on an even board. */
+export function centreHomeSeat(player: PlayerId, boardSize: number): Pos {
+  return { row: homeRow(player, boardSize), col: Math.floor(boardSize / 2) } as Pos;
 }
 
 export function isMidRow(row: number): boolean {

@@ -20,7 +20,11 @@ import {
   SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout, fieldedBy,
+  THRONE_HOLD_ROUNDS, throneSeatedCard,
 } from "../../data/story";
+import { BOSS_HOLD_ROUNDS, bossHeldHome, centreHomeSeat, homeRow } from "../types";
+import { summonCard } from "../state";
+import { canMove, legalMoves, validTargets } from "../rules";
 import { finisherOf } from "../../ui/DeckPickerSheet";
 import { spellCapForBoard } from "../spells";
 import { CORES } from "../../data/cards";
@@ -2444,5 +2448,112 @@ describe("a border crossing is fought on the Domination map", () => {
     expect(s.domination, "the stamp survived the match").toBeTruthy();
     expect(["capture", "overrun"], "decided as an oversized duel, not on the map")
       .not.toContain(s.win?.by);
+  });
+});
+
+
+/* -- THE THRONE IS SEATED --------------------------------------------------
+   A Throne's Mythic used to arrive like any other body: bottom of a
+   cheapest-first stack, affordable somewhere past round ten, often never. It
+   now opens the way a Void Tower boss opens - standing on the centre of its own
+   home row, outside the economy, holding that row for three rounds. */
+describe("a Throne opens with its Mythic already standing", () => {
+  const thrones = ALL_NODES.filter((n) => n.kind === "throne");
+
+  it("every Throne resolves exactly one seated Mythic, and nothing else does", () => {
+    expect(thrones.length).toBeGreaterThan(0);
+    for (const n of thrones) {
+      const seated = throneSeatedCard(n);
+      expect(seated, `${n.id} ${n.name} seats nobody`).toBeTruthy();
+      // The card the node is named for, and the card clearing it hands over.
+      expect(getDef(seated!).rarity, `${n.id} seats a non-Mythic`).toBe("mythic");
+      expect(n.roster, `${n.id} seats a card off its own roster`).toContain(seated!);
+    }
+    // Skirmishes, Wardens, Landmarks and Gates are untouched — a Landmark is a
+    // set piece too, and deliberately not this one.
+    for (const n of ALL_NODES.filter((x) => x.kind !== "throne"))
+      expect(throneSeatedCard(n), `${n.id} (${n.kind}) seats something`).toBeNull();
+  });
+
+  it("the seat is the centre of the enemy home row, the boss square", () => {
+    // The same square a Void Tower boss stands on, from the same function —
+    // three bodies are placed there outside the economy and the arithmetic is
+    // written once.
+    expect(centreHomeSeat("P2", 5)).toEqual({ row: 0, col: 2 });
+    expect(centreHomeSeat("P1", 5)).toEqual({ row: 4, col: 2 });
+    expect(centreHomeSeat("P2", 4)).toEqual({ row: 0, col: 2 });
+  });
+
+  /** A Throne fight's opening, built the way the fight builder builds it. */
+  function seated(round: number) {
+    const s0 = createInitialState(1, [], [], ["P1", "P2"], [], [], 5);
+    s0.phase = "prep";
+    s0.round = round;
+    s0.prep = { priority: "P2", consecutivePasses: 0, movedThisTurn: false };
+    const seat = centreHomeSeat("P2", 5);
+    // Griffith rather than Oakgre: Oakgre is printed at SP 0 and cannot move at
+    // all, so it would pass this test by accident and prove nothing about the
+    // hold. The one worth pinning is a Mythic that could otherwise walk.
+    const throned = summonCard(s0, "P2", "gale_griffith", seat as never);
+    throned.summonedThisRound = false;
+    throned.heldHomeRounds = THRONE_HOLD_ROUNDS;
+    return { s0, throned };
+  }
+
+  it("holds its row for three rounds, then walks", () => {
+    // Stamped on the BODY, not the card: a Throne's Mythic is the reward for
+    // clearing the node, so it can never wear the `boss` flag the tower's hold
+    // reads. The rule is one predicate all the same.
+    const def = getDef("gale_griffith");
+    for (const round of [1, 2, 3]) {
+      const { s0, throned } = seated(round);
+      expect(bossHeldHome(s0, throned, def), `round ${round}`).toBe(true);
+      // Driven through the real movement rule, not just the predicate: every
+      // square it may legally reach is still on its own home row.
+      const moves = legalMoves(s0, "P2", throned.instanceId);
+      expect(moves.length, `round ${round}: nowhere to go at all`).toBeGreaterThan(0);
+      for (const m of moves)
+        expect(m.row, `round ${round}: stepped off the home row`).toBe(homeRow("P2", 5));
+    }
+    const late = seated(4);
+    expect(bossHeldHome(late.s0, late.throned, def)).toBe(false);
+    expect(canMove(late.s0, "P2", late.throned.instanceId, { row: 1, col: 2 } as never).ok).toBe(true);
+    // ...and the hold is longer than the tower's, deliberately: a tower run is
+    // a built deck behind a wall of free gates, a Throne is a node you walked
+    // to with whatever the campaign has given you.
+    expect(THRONE_HOLD_ROUNDS).toBeGreaterThan(BOSS_HOLD_ROUNDS);
+  });
+
+  it("it HOLDS, it is not frozen — it slides and it shoots", () => {
+    // Three rounds of a stunned body would be three free rounds of shooting it,
+    // which is the opposite of an opening. It repositions along its row and it
+    // fights; what it cannot do is advance.
+    const { s0, throned } = seated(1);
+    expect(canMove(s0, "P2", throned.instanceId, { row: 0, col: 1 } as never).ok).toBe(true);
+    expect(canMove(s0, "P2", throned.instanceId, { row: 1, col: 2 } as never).ok).toBe(false);
+    // And it can answer anything that comes into reach on round one.
+    const prey = summonCard(s0, "P1", "leaf_greegon", { row: 1, col: 2 } as never);
+    prey.summonedThisRound = false;
+    expect(validTargets(s0, throned.instanceId).map((t) => t.instanceId)).toContain(prey.instanceId);
+  });
+
+  it("an ordinary body carries no hold at all", () => {
+    const s0 = createInitialState(1, [], [], ["P1"], [], [], 5);
+    s0.round = 1;
+    const grunt = summonCard(s0, "P2", "leaf_greegon", { row: 0, col: 0 } as never);
+    expect(bossHeldHome(s0, grunt, getDef("leaf_greegon"))).toBe(false);
+  });
+
+  it("the seated Mythic comes OUT of the formation, so it is fielded once", () => {
+    // The fight splices one copy; this is the guarantee that makes the splice
+    // exact — a formation holds exactly one, so removing one leaves none.
+    const save = newSave();
+    for (const n of thrones) {
+      const region = regionOfNode(n.id)!;
+      const squad = buildFormation(save, region, n);
+      const seated = throneSeatedCard(n)!;
+      const held = squad.filter((id) => id === seated).length;
+      expect(held, `${n.id} fields ${held} copies of ${seated}`).toBe(1);
+    }
   });
 });

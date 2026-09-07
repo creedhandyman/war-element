@@ -2111,6 +2111,48 @@ export const BIG_BATTLE_KINDS: readonly NodeKind[] = ["landmark", "throne"];
  *  the climax, and there are far more of them. */
 export const THRONE_OPENING_STACK = 5;
 
+/** THE THRONE IS SEATED. Rounds its Mythic holds its own home row before it may
+ *  take a step forward.
+ *
+ *  A Throne is the region's climax and it was arriving like any other card: at
+ *  the bottom of a cheapest-first stack, affordable somewhere past round ten,
+ *  and often not at all — the fight named after Oakgre could and did end
+ *  without Oakgre on the board. It now opens the way a Void Tower boss opens.
+ *  It is STANDING when you arrive, on the centre of its own home row, outside
+ *  the economy, and the fight is about getting past it rather than about
+ *  whether it turns up.
+ *
+ *  THREE, where a tower boss holds for two (`BOSS_HOLD_ROUNDS`). The extra
+ *  round is not generosity, it is the difference in what the player brought: a
+ *  tower run is a deliberate trip with a built deck and a wall of free Fortress
+ *  Gates in front of it, and a Throne is a node on a map you walked to with
+ *  whatever the campaign has given you so far. Three rounds is long enough to
+ *  put a board down and choose your ground against a body you cannot yet fight.
+ *
+ *  It HOLDS rather than freezes, exactly as the tower's does: it attacks, fires
+ *  its Special, and may slide ALONG its home row. What it cannot do is advance.
+ *  A Throne that stood there stunned for three rounds would be three free
+ *  rounds of shooting it, which is the opposite of an opening. */
+export const THRONE_HOLD_ROUNDS = 3;
+
+/** The Mythic a Throne opens SEATED on the board, or null for any other node.
+ *
+ *  Every one of the seventeen Thrones has a roster of exactly one Mythic — the
+ *  card the node is named for and the reward for clearing it — so this is
+ *  nearly `roster[0]`. It asks for the Mythic by rarity anyway, and falls back
+ *  to the dearest card in the roster, because "the roster's first entry" is an
+ *  ordering nobody is maintaining and this is the card the whole fight is built
+ *  around. `story.test.ts` pins that all seventeen still resolve one.
+ *
+ *  ONE definition: the fight seats what this names and removes THAT id from the
+ *  formation, so the two can never disagree and field the Mythic twice. */
+export function throneSeatedCard(node: StoryNode): string | null {
+  if (node.kind !== "throne" || !node.roster.length) return null;
+  const mythic = node.roster.find((id) => getDef(id).rarity === "mythic");
+  if (mythic) return mythic;
+  return [...node.roster].sort((a, b) => getDef(b).cost - getDef(a).cost)[0] ?? null;
+}
+
 /** The board a node is fought on — decided by the NODE, not by deck size.
  *
  *  This deliberately breaks the old coupling. Constructed play ties the two

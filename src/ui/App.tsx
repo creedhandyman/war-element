@@ -21,6 +21,7 @@ import {
   getSpell,
   spellPickKind,
   homeRow,
+  centreHomeSeat,
   liquidGivesHit,
   legalMoves,
   legalWallRows,
@@ -125,6 +126,7 @@ import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
+  THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
@@ -1421,7 +1423,7 @@ export function App() {
       // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
       // The gates stand in the row IN FRONT of home, so this square is free.
       if (bossRun?.ally) {
-        const mySeat = { row: homeRow("P1", fresh.boardSize), col: Math.floor(fresh.boardSize / 2) };
+        const mySeat = centreHomeSeat("P1", fresh.boardSize);
         if (!cardAt(fresh, mySeat.row, mySeat.col)) {
           const ally = summonCard(fresh, "P1", bossRun.ally, mySeat as never);
           ally.summonedThisRound = false;
@@ -4104,6 +4106,16 @@ export function App() {
             // target so a 3-card roster still fields a full board (§10.7).
             const squad = buildFormation(story, home, node);
             const board = boardForNode(home, node);
+            // A THRONE OPENS SEATED. Its Mythic is the card the node is named
+            // for, and it was arriving like any other body — bottom of a
+            // cheapest-first stack, affordable somewhere past round ten, often
+            // never. It is placed on the board below instead, so exactly one
+            // copy comes OUT of the formation here. Splice, not filter: the
+            // duplicate caps put one Mythic in a formation today, and a filter
+            // would quietly delete a second the day that changes.
+            const seated = throneSeatedCard(node);
+            const seatedAt = seated ? squad.indexOf(seated) : -1;
+            if (seatedAt >= 0) squad.splice(seatedAt, 1);
             // §4: the region's Field spell runs the whole battle, both sides.
             // Matched by NAME rather than element — an element can have more
             // than one field spell, and `region.terrain` names the exact one.
@@ -4138,6 +4150,32 @@ export function App() {
             // impassable and whose home rows are not the win condition -- the
             // same trap the balance harness hit.
             if (board === DOMINATION_7X7.boardSize) fresh.domination = newDomination(DOMINATION_7X7);
+            // THE THRONE, standing when you arrive. Same door and same square
+            // as a Void Tower boss: `summonCard` so auras and on-summon hooks
+            // all fire, `summonedThisRound` cleared so it can act from round
+            // one, and the centre of its own home row.
+            //
+            // It is NOT flagged `boss` — it cannot be, that flag means "fought,
+            // never owned" and this Mythic is the reward for clearing the node
+            // — so the hold is stamped on the body instead. Three rounds of
+            // holding the row is the opening: it looms, it shoots, and you get
+            // to put a board down before it walks.
+            if (seated) {
+              const seat = centreHomeSeat("P2", fresh.boardSize);
+              if (cardAt(fresh, seat.row, seat.col)) {
+                // Unreachable today — a Throne is never the campaign's first
+                // battle, so nothing is pre-deployed and this square is empty.
+                // Handled anyway because the alternative failure is silent and
+                // total: the Mythic was spliced out of the formation above, so
+                // a skipped seat would leave the region's climax in NEITHER the
+                // deck nor the board. Put it back on top of the deck instead.
+                fresh.players.P2.deck.unshift(seated);
+              } else {
+                const throned = summonCard(fresh, "P2", seated, seat as never);
+                throned.summonedThisRound = false;
+                throned.heldHomeRounds = THRONE_HOLD_ROUNDS;
+              }
+            }
             setGame(fresh);
             navDo({ t: "fight", node });
             setViewSide("P1");

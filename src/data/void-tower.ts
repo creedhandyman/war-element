@@ -39,6 +39,7 @@
 import { CARD_INDEX, TOKENS, getDef } from "./cards";
 import { DUPLICATE_CAP } from "./story";
 import { deckSizeFor } from "./custom-decks";
+import { centreHomeSeat } from "../engine/types";
 import type { CardDef, Element } from "../engine/types";
 
 /** Floor-1 boss body budget; grows per floor. A SOFT cap: the band below
@@ -977,9 +978,14 @@ export function buildVoidEncounter(boss: VoidBoss): {
 export const VOID_PLAYER_HEAD_START = 2;
 export const voidPlayerHeadStart = (_bossCost: number): number => VOID_PLAYER_HEAD_START;
 
-/** Where the boss stands: centre of P2's home row (row 0 on every board). */
+/** Where the boss stands: centre of P2's home row (row 0 on every board).
+ *
+ *  Reads `centreHomeSeat` rather than owning the arithmetic — a Throne's seated
+ *  Mythic and a tamed boss fighting for the player stand on the same square in
+ *  their own rows, and three copies of "the middle of the home row" is three
+ *  chances to disagree about which middle an even board has. */
 export function voidBossSeat(boardSize: number): { row: number; col: number } {
-  return { row: 0, col: Math.floor(boardSize / 2) };
+  return centreHomeSeat("P2", boardSize);
 }
 /** Where a boss's own WALL stands: the three centre columns of the row directly
  *  in front of its home row — the mirror of `voidGateSeats`, narrower on

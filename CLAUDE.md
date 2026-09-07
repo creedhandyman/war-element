@@ -1125,6 +1125,23 @@ engine runtime and no React, so it stays testable headlessly
   card is placed exactly once, that no roster contains a token, and that **no
   node is dead on arrival** (a node whose whole roster is already in the
   starter deck can never pay out; L1 and L2 both shipped that way once).
+- **A Throne opens SEATED** (`THRONE_HOLD_ROUNDS`, `throneSeatedCard`). The
+  region's climax used to arrive like any other body — bottom of a
+  cheapest-first `THRONE_OPENING_STACK`, affordable somewhere past round ten,
+  frequently never — so the fight named after Oakgre could end without Oakgre in
+  it. Its Mythic is now placed on the **centre of the enemy home row**
+  (`centreHomeSeat`, the same square a Void Tower boss stands on) at match
+  start, outside the economy, and **one copy is spliced out of the formation**
+  so it is fielded once. It **holds that row for three rounds** — a round longer
+  than a tower boss's `BOSS_HOLD_ROUNDS`, because a tower run is a built deck
+  behind a wall of free Fortress Gates and a Throne is a node you walked to with
+  whatever the campaign has given you. It HOLDS rather than freezes: it attacks,
+  fires its Special, and slides along its own row; it just cannot advance.
+  Mechanically the hold rides on the **instance** (`CardInstance.heldHomeRounds`,
+  read by `bossHeldHome`) rather than on the card, because a Throne's Mythic is
+  the reward for clearing the node and so can never carry `boss: true`. Nothing
+  else changed: the win condition is still the ordinary one, there is no boss
+  clock on it, and rewards read `node.roster` as they always did.
 - **Recruiting**: one roll per captured slot (min 1); base odds by rarity
   (`DROP_RATE`), `PITY_STEP` per dry clear, guaranteed Mythic on a Throne's
   first clear. Owned cards drop out of the pool, so repeat clears self-target.
@@ -3373,9 +3390,14 @@ purging them would only reach ~120MB in exchange for rewriting every SHA.
   unrecruitable that run. The load-bearing guardrail is that recruitment rolls
   once per UNIQUE card however many copies are on the board: duplicates are a
   difficulty knob, not a loot knob, and a test pins it.
-- **Opening deployment (§10.6)** — **STORY-ONLY.** Each side leads with **one
-  free teammate** before round one, then the ordinary game resumes; a Throne
-  leads with two. It shipped as a 4-card / 10-gold opening board and was scaled
+- **Opening deployment (§10.6)** — **STORY-ONLY, and the CAMPAIGN'S FIRST
+  FIGHT only.** The PLAYER leads with **one free teammate** before round one and
+  the enemy gets nothing (`PLAYER_DEPLOY = 1`, `ENEMY_DEPLOY = 0`); every later
+  node uses the ordinary summon ramp (`isFirstBattle` is the gate). It was once
+  symmetric, one each and two for a Throne — the doc said so long after the code
+  stopped. It matters for more than tidiness: it is why a Throne's home row is
+  guaranteed empty at construction, which is what lets the seated Mythic below
+  take the centre slot unconditionally. It shipped as a 4-card / 10-gold opening board and was scaled
   back — a whole formation landed before anyone had made a decision. One card
   asks the only interesting question ("who do you lead with?") and leaves the
   rest traditional. The placement costs **nothing**: `canSummon` skips the gold

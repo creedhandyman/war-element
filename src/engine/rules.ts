@@ -564,7 +564,7 @@ export function canMove(
     return { ok: false, reason: "FRIGHTENED — cannot move" };
   // A boss holds its home row for the opening — see BOSS_HOLD_ROUNDS. Sliding
   // ALONG the row is still fine; what it cannot do is leave it.
-  if (bossHeldHome(state, getDef(card.defId))
+  if (bossHeldHome(state, card, getDef(card.defId))
       && to.row !== homeRow(card.owner, state.boardSize)) {
     return { ok: false, reason: "The boss has not moved from its home row yet" };
   }
