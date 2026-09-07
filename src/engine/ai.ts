@@ -34,6 +34,7 @@ import {
   homeSlots,
 
   domMap,
+  effectiveSpecialCost,
 } from "./rules";
 import type {
   CardInstance,
@@ -138,9 +139,16 @@ function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
     }
     case "heart": {
       // Arcane Focus: a Special it wants and cannot pay for.
+      //
+      // COMPARED AS NUMBERS, not against the reason STRING. The first cut
+      // matched "Not enough Magic" and the engine says "Not enough magic" — one
+      // capital letter, and Control never fired its power in a single game out
+      // of 48 while the other three fired in every one. That was the whole of
+      // its deficit in the balance table, and a string compare is how it hid:
+      // nothing failed, the branch was simply never true.
       const stuck = board.some((c) => {
         const sp = getDef(c.defId).special;
-        return sp && canFireSpecial(state, c.instanceId).reason === "Not enough Magic";
+        return Boolean(sp) && p.magicPool < effectiveSpecialCost(state, c, sp!.cost);
       });
       return stuck ? { type: "HERO_POWER", player } : null;
     }

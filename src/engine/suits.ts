@@ -138,7 +138,7 @@ export const SUIT_STYLES: Record<Suit, SuitStyle> = {
   heart: {
     key: "heart", glyph: "♥", name: "Control",
     blurb: "Specials first, and slow to start. It would rather own the board than win the race.",
-    summon: "caster", bankFor: 0.5, bankMaxRounds: 2, advance: "reluctant", specialSurplus: 0,
+    summon: "caster", bankFor: 0, bankMaxRounds: 0, advance: "reluctant", specialSurplus: 0,
   },
   diamond: {
     key: "diamond", glyph: "♦", name: "Hoard",
