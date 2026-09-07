@@ -117,6 +117,11 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   const hand = state.players[player].hand.slice().sort(
     style.summon === "cheapest"
       ? (a, b) => getDef(a.defId).cost - getDef(b.defId).cost
+      : style.summon === "hardest"
+        ? (a, b) => {
+            const hit = (x: HandCard) => getDef(x.defId).dmg * getDef(x.defId).hits;
+            return hit(b) - hit(a) || byCost(a, b);
+          }
       : style.summon === "toughest"
         ? (a, b) => wall(getDef(b.defId)) - wall(getDef(a.defId)) || byCost(a, b)
         : style.summon === "caster"

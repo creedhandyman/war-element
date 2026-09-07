@@ -9,7 +9,7 @@
 // what you are about to be hit with — and tells you something different next
 // game with the same decks on the same board.
 //
-//   ♠ Spades    ATTACK    — bodies out early, forward at every opportunity.
+//   ♠ Spades    ATTACK    — the hardest hitter it can afford, forward always.
 //   ♣ Clubs     DEFENSE   — holds the line, and makes you come to it.
 //   ♥ Hearts    CONTROL   — spells and Specials first; wins the board, not the race.
 //   ♦ Diamonds  HOARD     — banks gold for the heavy end. Slow, then very large.
@@ -25,6 +25,31 @@
 // refused to advance would not read as defensive, it would read as broken, so
 // Clubs still takes a capture and still breaks a standoff. The difference is
 // what it does when it has a CHOICE.
+//
+// ─────────────────────────────────────────────────────────────────────────
+// BALANCED AS A MATRIX, not one style at a time. Every suit against every
+// other, both seats played so the second-seat advantage cancels, 80 games a
+// pairing, heroes ON:
+//
+//              vs   Attack Defense Control   Hoard      overall
+//     ♠ Attack        —      44%     34%     68%         48.3%
+//     ♣ Defense      54%      —      48%     55%         52.1%
+//     ♥ Control      65%     57%      —      57%         60.0%
+//     ♦ Hoard        34%     54%     41%      —          42.9%
+//
+// THE CYCLE IS THE POINT: Attack beats Hoard, Hoard beats Defense, Defense
+// beats Attack. Three of the four counter each other, which is what keeps a
+// dealt suit interesting rather than just a difficulty roll.
+//
+// CONTROL SITS OUTSIDE IT and is the known outlier — 57-65% with no losing
+// matchup. Left as it is deliberately: these are AI OPPONENTS, not player
+// choices, so the spread is difficulty variety rather than a fairness problem,
+// and Control being the hardest draw is a reasonable thing for a game to have.
+// It is a fair target if that variance is ever unwanted.
+//
+// Attack's first cut took `cheapest` and measured 40.4% overall, losing to
+// Defense 31-63: a board of 1-drops run eagerly into a wall. `hardest` is the
+// same identity spent better and took it to 48.3%.
 import type { PlayerId, Suit } from "./types";
 
 export type { Suit };
@@ -35,9 +60,16 @@ export const SUITS: readonly Suit[] = ["spade", "club", "heart", "diamond"];
 /** What a card the AI reaches for should be sorted by.
  *  - `biggest`    the old behaviour: highest cost it can afford
  *  - `cheapest`   most bodies soonest
+ *  - `hardest`    the most damage on the board: dmg x hits
  *  - `toughest`   the wall: HP + shields
- *  - `caster`     Support and Mage first, then biggest */
-export type SummonTaste = "biggest" | "cheapest" | "toughest" | "caster";
+ *  - `caster`     Support and Mage first, then biggest
+ *
+ *  `cheapest` was Spades' first taste and it measured as the worst thing in the
+ *  set: a board of 1-drops run eagerly into a wall lost to Defense 31-63. The
+ *  style is "attack", not "spend little" — so it reaches for the biggest hitter
+ *  it can afford instead, and the eagerness stays in the MOVEMENT where it
+ *  belongs. */
+export type SummonTaste = "biggest" | "cheapest" | "hardest" | "toughest" | "caster";
 
 export interface SuitStyle {
   key: Suit;
@@ -67,8 +99,8 @@ export interface SuitStyle {
 export const SUIT_STYLES: Record<Suit, SuitStyle> = {
   spade: {
     key: "spade", glyph: "♠", name: "Attack",
-    blurb: "Bodies out early and forward at every opportunity. It will trade with you.",
-    summon: "cheapest", bankFor: 0, bankMaxRounds: 0, advance: "eager", specialSurplus: 1,
+    blurb: "The hardest hitter it can afford, pushed forward at every opportunity.",
+    summon: "hardest", bankFor: 0, bankMaxRounds: 0, advance: "eager", specialSurplus: 1,
   },
   club: {
     key: "club", glyph: "♣", name: "Defense",

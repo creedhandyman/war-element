@@ -59,28 +59,37 @@ describe("the four personalities actually differ", () => {
     const s = prepState(7, "P2");
     s.seatSuits = { ...(s.seatSuits ?? {}), P2: suit } as never;
     s.players.P2.gold = 99; // afford anything, so the CHOICE is the only variable
+    // A hand where the four tastes pull APART. The dearest card must not also
+    // be the hardest hitter or the toughest body, or the test passes on a
+    // coincidence — which is how it broke when Spades moved from `cheapest` to
+    // `hardest` and both it and the hoarder reached for the same Mythic.
     s.players.P2.hand = [
-      { handId: "h1", defId: "leaf_nettle" },      // cost 1
-      { handId: "h2", defId: "bore_bolder" },      // cost 5, the wall
-      { handId: "h3", defId: "leaf_elderroot" },   // Support
-      { handId: "h4", defId: "dusk_shadowhorsemen" }, // cost 10, the heavy end
+      { handId: "h1", defId: "leaf_nettle" },      // c1,  3 dmg   — the cheapest
+      { handId: "h2", defId: "pyro_spitfire" },    // c3,  6 dmg   — the hardest hitter
+      { handId: "h3", defId: "leaf_elderroot" },   // c6,  Support — the caster
+      { handId: "h4", defId: "bore_bastion" },     // c8, 31+12 hp — dearest AND toughest
     ];
     const intent = aiPrepIntent(s, "P2");
     if (intent.type !== "SUMMON") return null;
     return s.players.P2.hand.find((h) => h.handId === intent.handId)?.defId ?? null;
   }
 
-  it("Spades reaches for the cheapest body, Diamonds for the dearest", () => {
+  it("Spades reaches for the hardest hitter, Diamonds for the dearest", () => {
     const spade = firstSummon("spade");
     const diamond = firstSummon("diamond");
-    expect(spade, "attack wants bodies now").toBe("leaf_nettle");
-    expect(diamond, "the hoarder wants the heavy end").toBe("dusk_shadowhorsemen");
+    expect(spade, "attack wants damage on the board").toBe("pyro_spitfire");
+    expect(diamond, "the hoarder wants the heavy end").toBe("bore_bastion");
+    // The point of the pairing: they are DIFFERENT cards, and Spades' pick is
+    // not simply the expensive one.
     expect(getDef(spade!).cost).toBeLessThan(getDef(diamond!).cost);
+    expect(getDef(spade!).dmg * getDef(spade!).hits)
+      .toBeGreaterThan(getDef(diamond!).dmg * getDef(diamond!).hits);
   });
 
   it("Clubs reaches for the toughest, Hearts for the caster", () => {
-    expect(getDef(firstSummon("club")!).hp, "defense wants a wall")
-      .toBeGreaterThanOrEqual(getDef("bore_bolder").hp);
+    const club = firstSummon("club")!;
+    expect(getDef(club).hp + getDef(club).shields * 2, "defense wants a wall")
+      .toBeGreaterThanOrEqual(getDef("bore_bastion").hp);
     expect(getDef(firstSummon("heart")!).cardClass, "control wants its Support").toBe("Support");
   });
 
