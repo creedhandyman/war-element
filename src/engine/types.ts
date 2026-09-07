@@ -2465,6 +2465,16 @@ export interface SpellSlot {
 export interface PlayerState {
   deck: string[]; // defIds, top of deck = index 0
   hand: HandCard[];
+  /** HERO POWERS — one free use per game, and the visible half of a hero (the
+   *  curve shift is the invisible half). See `heroes.ts`.
+   *
+   *  `heroPowerUsed` is the once-per-game latch. The other two are ARMED
+   *  states: Muster and Arcane Focus do not act on their own, they make the
+   *  NEXT summon or Special free, so the player still chooses which one —
+   *  which is the whole value of a free cast. */
+  heroPowerUsed?: boolean;
+  freeSummon?: boolean;
+  freeSpecial?: boolean;
   /** Spells available to this player this game (each castable once). */
   spellbook: SpellSlot[];
   /** GOLD — the summoning resource. Gains = round # each round (cap 10
@@ -2793,6 +2803,10 @@ export type Intent =
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }
+  /** Fire this seat's hero power. Free, once per game, and it takes no target:
+   *  two of the four ARM a free cast rather than acting, so the player still
+   *  picks what to spend it on. See `heroes.ts`. */
+  | { type: "HERO_POWER"; player: PlayerId }
   | { type: "FLOW_CHANGE"; player: PlayerId; instanceId: string; mode: "water" | "ice" | "steam" }
   | {
       type: "BATTLE_ACTION";

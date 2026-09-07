@@ -73,11 +73,26 @@ export interface Hero {
   /** Rounds of offset into the magic curve. POSITIVE = earlier tiers. */
   magicShift: number;
   /** The one visible thing — a free, once-per-game ability, so the hero has
-   *  presence rather than being an invisible arithmetic change. Declared here
-   *  and NOT yet wired: the curve shift is the part that needed measuring and
-   *  the part that can be wrong, so it ships first and alone. */
+   *  presence rather than being an invisible arithmetic change.
+   *
+   *  TWO OF THE FOUR ARM RATHER THAN ACT. Muster and Arcane Focus make the
+   *  NEXT summon or Special free instead of picking one themselves, because
+   *  choosing what to spend a free cast on IS the power — a version that
+   *  summoned "a card" would be handing the player a random body. The other two
+   *  resolve on the spot, since neither has a meaningful target: shielding the
+   *  whole line and turning the two dearest cards in hand into gold.
+   *
+   *  Fired by the `HERO_POWER` intent, gated on `GameState.heroes` like the
+   *  curve — a dealt suit must never hand a skirmish a hero. */
   power: { name: string; text: string };
 }
+
+/** The numbers behind the powers, named rather than inlined at the one place
+ *  each is used — they appear in the card text the player reads AND in the
+ *  effect, and those two drifting apart is how a power comes to lie. */
+export const HERO_SHIELDS = 2;   // Hold the Line, per ally
+export const HERO_DISCARD = 2;   // Requisition, cards spent
+export const HERO_GOLD = 4;      // Requisition, gold gained
 
 export const HEROES: Record<Suit, Hero> = {
   spade: {
@@ -86,7 +101,7 @@ export const HEROES: Record<Suit, Hero> = {
     // ONE round, against the Mage's three. Gold is the strong currency and a
     // Warlord that opened two tiers up would simply win the opening.
     goldShift: 1, magicShift: -1,
-    power: { name: "Muster", text: "Once per game, free: summon a card from hand at no gold cost." },
+    power: { name: "Muster", text: "Once per game, free: your next summon costs no gold." },
   },
   club: {
     suit: "club", name: "Sentinel",
@@ -94,7 +109,7 @@ export const HEROES: Record<Suit, Hero> = {
     // THE DEFAULT, deliberately unmodified. A roster needs a seat that is
     // simply the game as designed, or "balanced" has nothing to mean.
     goldShift: 0, magicShift: 0,
-    power: { name: "Hold the Line", text: "Once per game, free: every ally gains 2 shields." },
+    power: { name: "Hold the Line", text: `Once per game, free: every ally gains ${HERO_SHIELDS} shields.` },
   },
   heart: {
     suit: "heart", name: "Mage",
@@ -105,7 +120,7 @@ export const HEROES: Record<Suit, Hero> = {
     // against the baseline. At +5 it lands at −0.8. Anything that reads as a
     // fair-looking trade here is a trap for the player who takes it.
     goldShift: -1, magicShift: 5,
-    power: { name: "Arcane Focus", text: "Once per game, free: refund the magic cost of one Special." },
+    power: { name: "Arcane Focus", text: "Once per game, free: your next Special costs no magic." },
   },
   diamond: {
     suit: "diamond", name: "Scholar",
@@ -115,7 +130,7 @@ export const HEROES: Record<Suit, Hero> = {
     // a bigger pile of cards they cannot afford. Its power converts the surplus
     // instead, which is why it is the one hero whose ability IS the identity.
     goldShift: 0, magicShift: 0,
-    power: { name: "Requisition", text: "Once per game, free: discard 2 cards, gain 4 gold." },
+    power: { name: "Requisition", text: `Once per game, free: discard your ${HERO_DISCARD} dearest cards, gain ${HERO_GOLD} gold.` },
   },
 };
 

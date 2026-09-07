@@ -2,7 +2,11 @@
 import { describe, expect, it } from "vitest";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
-import { HEROES, goldRoundFor, magicRoundFor } from "../heroes";
+import { HEROES, HERO_GOLD, HERO_SHIELDS, goldRoundFor, magicRoundFor } from "../heroes";
+import { canSummon, effectiveSpecialCost } from "../rules";
+import { applyIntent } from "../phases";
+import { getDef } from "../../data/cards";
+import { place, prepState } from "./helpers";
 import { SUITS } from "../suits";
 import { poolGainForRound } from "../types";
 import type { GameState, Suit } from "../types";
@@ -74,5 +78,79 @@ describe("heroes are OFF unless a mode turns them on", () => {
     const magic = (suit: Suit, round: number) =>
       poolGainForRound(magicRoundFor(round, suit, true));
     expect(magic("heart", 5)).toBeGreaterThan(magic("spade", 5));
+  });
+});
+
+describe("the hero powers", () => {
+  /** A prep state with heroes live and the seat wearing `suit`. */
+  function armed(suit: Suit) {
+    const s = prepState(7, "P1");
+    s.heroes = true;
+    s.seatSuits = { ...(s.seatSuits ?? {}), P1: suit } as never;
+    return s;
+  }
+
+  it("Hold the Line shields the whole line, once", () => {
+    const s = armed("club");
+    const a = place(s, "leaf_nettle", "P1", 3, 0, { curShields: 0 });
+    const b = place(s, "leaf_weeds", "P1", 3, 1, { curShields: 1 });
+    const foe = place(s, "dusk_gool", "P2", 0, 0, { curShields: 0 });
+    const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(next.cards[a.instanceId].curShields).toBe(HERO_SHIELDS);
+    expect(next.cards[b.instanceId].curShields, "stacks on what it had").toBe(1 + HERO_SHIELDS);
+    expect(next.cards[foe.instanceId].curShields, "allies only").toBe(0);
+    // ...and it is spent.
+    const again = applyIntent(next, { type: "HERO_POWER", player: "P1" });
+    expect(again.cards[a.instanceId].curShields, "once per game").toBe(HERO_SHIELDS);
+  });
+
+  it("Requisition trades the dearest cards for gold", () => {
+    const s = armed("diamond");
+    s.players.P1.gold = 0;
+    s.players.P1.hand = [
+      { handId: "h1", defId: "leaf_nettle" },          // c1 — kept
+      { handId: "h2", defId: "bore_bastion" },         // c8 — stranded, goes
+      { handId: "h3", defId: "dusk_shadowhorsemen" },  // c10 — stranded, goes
+    ];
+    const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(next.players.P1.gold).toBe(HERO_GOLD);
+    expect(next.players.P1.hand.map((h) => h.handId), "the dearest two go")
+      .toEqual(["h1"]);
+  });
+
+  it("Muster makes the next summon free, and only the next one", () => {
+    const s = armed("spade");
+    s.players.P1.gold = 0; // cannot afford anything at all
+    s.players.P1.hand = [
+      { handId: "h1", defId: "bore_bastion" },   // c8
+      { handId: "h2", defId: "leaf_nettle" },    // c1
+    ];
+    expect(canSummon(s, "P1", "h1", 0).ok, "broke, and no power yet").toBe(false);
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(canSummon(ready, "P1", "h1", 0).ok, "armed: price is no object").toBe(true);
+    const after = applyIntent(ready, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
+    expect(after.players.P1.gold, "and nothing was paid").toBe(0);
+    // The arming is spent by the summon it paid for.
+    expect(canSummon(after, "P1", "h2", 1).ok, "back to broke").toBe(false);
+  });
+
+  it("Arcane Focus zeroes the next Special's cost", () => {
+    const s = armed("heart");
+    const caster = place(s, "aqua_sapphire", "P1", 3, 0);
+    const cost = getDef("aqua_sapphire").special!.cost;
+    expect(effectiveSpecialCost(s, s.cards[caster.instanceId], cost), "priced as normal").toBe(cost);
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(effectiveSpecialCost(ready, ready.cards[caster.instanceId], cost), "free once armed").toBe(0);
+  });
+
+  it("does nothing at all when heroes are off", () => {
+    // The same gate the curve obeys: a dealt suit must never hand a skirmish a
+    // hero, and a power is the loudest possible way to break that.
+    const s = prepState(7, "P1");
+    s.seatSuits = { ...(s.seatSuits ?? {}), P1: "club" } as never;
+    const ally = place(s, "leaf_nettle", "P1", 3, 0, { curShields: 0 });
+    const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(next.cards[ally.instanceId].curShields).toBe(0);
+    expect(next.players.P1.heroPowerUsed).toBeFalsy();
   });
 });

@@ -67,7 +67,9 @@ export function canSummon(
     if ((state.opening[player] ?? 0) <= 0) return { ok: false, reason: "No deployment slots left" };
     if (def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
-  } else if (def.cost > state.players[player].gold) {
+  } else if (!state.players[player].freeSummon && def.cost > state.players[player].gold) {
+    // Muster (Warlord): an armed free summon ignores the price entirely, so a
+    // card you could never afford is exactly what it is for.
     return { ok: false, reason: "Not enough Gold" };
   }
   // A NAMED SQUARE rather than a column landing on your own Home row: a shrine,
@@ -1820,6 +1822,10 @@ export function canFireTalent(
  *  the BOLT ultimate's permanent per-player discount applies to BOLT cards and
  *  floors at 1. */
 export function effectiveSpecialCost(state: GameState, card: CardInstance, cost: number): number {
+  // Arcane Focus (Mage): armed, the next Special is free. A true 0 rather than
+  // a discount — the floor of 1 below applies to stacking discounts, and a
+  // refund that still charged a point would not be a refund.
+  if (state.players[card.owner].freeSpecial) return 0;
   const base = Math.max(0, cost - (card.specialCostReduction ?? 0)); // King Me (per-card)
   // BOLT discounts: Total Network Control (permanent, per-player) + Power Grid
   // (temporary, per-field). fieldBonus only matches a BOLT card to a BOLT field,

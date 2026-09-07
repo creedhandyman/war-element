@@ -1,7 +1,7 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
-import { goldRoundFor, magicRoundFor } from "./heroes";
+import { goldRoundFor, magicRoundFor, HEROES, HERO_SHIELDS, HERO_DISCARD, HERO_GOLD } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -120,7 +120,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const def = getDef(hand.defId);
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
       // The opening placement is free — that is the whole of the head start.
-      if (!draft.opening) p.gold -= def.cost;
+      // ...and so is a Mustered one, which spends the arming instead of gold.
+      if (p.freeSummon) {
+        p.freeSummon = false;
+        draft.log.push(`${intent.player} musters ${def.name} — no gold spent.`);
+      } else if (!draft.opening) {
+        p.gold -= def.cost;
+      }
       // The row is RESOLVED, not assumed: normally the home row, and the nearest
       // open slot up the column when the home row has been taken entirely. See
       // `summonLandingRow` — canSummon approved exactly this square.
@@ -612,6 +618,52 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const card = draft.cards[intent.instanceId];
       if (!card || card.owner !== intent.player) throw new Error("Not your card");
       card.autoMode = intent.mode;
+      return draft;
+    }
+    case "HERO_POWER": {
+      // The VISIBLE half of a hero. The curve shift wins games quietly; this is
+      // the thing the player remembers doing, which is why every hero has one.
+      const p = draft.players[intent.player];
+      const suit = draft.seatSuits?.[intent.player];
+      // Gated on heroes being live for the mode, so a plain skirmish cannot
+      // fire one just because a suit was dealt — the same rule the curve obeys.
+      if (!draft.heroes || !suit || p.heroPowerUsed) return draft;
+      const hero = HEROES[suit];
+      p.heroPowerUsed = true;
+      switch (suit) {
+        case "spade":   // Muster: the next summon is free.
+          p.freeSummon = true;
+          break;
+        case "heart":   // Arcane Focus: the next Special is free.
+          p.freeSpecial = true;
+          break;
+        case "club": {  // Hold the Line: the whole line digs in.
+          let n = 0;
+          for (const c of boardCards(draft, intent.player)) {
+            if (c.curHp <= 0) continue;
+            c.curShields += HERO_SHIELDS;
+            n++;
+          }
+          draft.log.push(`${intent.player} — ${hero.power.name}: ${n} ally(ies) gain ${HERO_SHIELDS} shields.`);
+          break;
+        }
+        case "diamond": {
+          // Requisition: turn the cards you cannot cast into the gold to cast
+          // the rest. Takes the DEAREST in hand, deliberately — those are the
+          // ones the draw flood leaves stranded, and choosing them for the
+          // player keeps a free once-per-game power to a single tap.
+          const doomed = [...p.hand]
+            .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost)
+            .slice(0, HERO_DISCARD)
+            .map((h) => h.handId);
+          p.hand = p.hand.filter((h) => !doomed.includes(h.handId));
+          p.gold += HERO_GOLD;
+          draft.log.push(`${intent.player} — ${hero.power.name}: discards ${doomed.length} for ${HERO_GOLD} gold.`);
+          break;
+        }
+      }
+      if (suit === "spade" || suit === "heart")
+        draft.log.push(`${intent.player} — ${hero.power.name} is ready.`);
       return draft;
     }
     case "SURRENDER": {
@@ -1874,6 +1926,11 @@ function performBattleAction(
       card.talentUsed = true; // once per game — no cost, no cooldown
     } else if (!wasFree) {
       draft.players[card.owner].magicPool -= effectiveSpecialCost(draft, card, special.cost);
+      // Arcane Focus is spent by the cast it paid for, not by the round.
+      if (draft.players[card.owner].freeSpecial) {
+        draft.players[card.owner].freeSpecial = false;
+        draft.log.push(`${label(draft, card)}'s Special is refunded — Arcane Focus.`);
+      }
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).
       // Rounds a Special must sit out. The +1 is because this same round's

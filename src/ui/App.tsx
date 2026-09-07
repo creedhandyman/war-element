@@ -108,8 +108,9 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
-import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
+import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT, suitFor } from "./shared";
 import { pinSuit } from "../engine/suits";
+import { HEROES } from "../engine/heroes";
 import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
@@ -3566,6 +3567,31 @@ export function App() {
                 the same trap one step later. A half-built SPELL is deliberately
                 NOT blocked — passing is how you stop placing, and the hint for
                 it says so. */}
+            {/* THE HERO POWER, beside the pass. Free and once per game, so it
+                sits with the other end-of-turn decisions rather than competing
+                with the board — and it disappears entirely once spent, because
+                a permanently dead button is worse than no button.
+
+                Only when heroes are LIVE for the mode: a suit is dealt to every
+                match, and a skirmish must not grow a hero button because a
+                glyph was dealt. Same gate the curve and the intent obey. */}
+            {(() => {
+              if (!game.heroes || !me || !myPrep) return null;
+              const suit = game.seatSuits?.[me];
+              if (!suit || game.players[me].heroPowerUsed) return null;
+              const hero = HEROES[suit];
+              const armed = game.players[me].freeSummon || game.players[me].freeSpecial;
+              return (
+                <button
+                  className={`lockin hero-btn suit-${suitFor(game.seatSuits, me).key}`}
+                  disabled={staged !== null || Boolean(armed)}
+                  title={armed ? `${hero.power.name} is ready — spend it` : hero.power.text}
+                  onClick={() => dispatch({ type: "HERO_POWER", player: me })}
+                >
+                  {hero.power.name}
+                </button>
+              );
+            })()}
             <button
               className={`lockin pass-btn ${myPrep && !staged && sel === null && !hasAnyPlay ? "nudge" : ""}`}
               disabled={!myPrep || staged !== null}
