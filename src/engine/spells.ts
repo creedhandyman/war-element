@@ -388,9 +388,27 @@ export const SPELLS: SpellDef[] = [
     cost: 7,
     kind: "aoe",
     area: "board",
-    text: "Deal 8 DMG to every opponent and PARALYZE each for 2 rounds.",
+    // PARALYZE 2 -> 1, and the reason is the cost rung it sits on.
+    //
+    // Board-wide damage is priced consistently across the set: dmg 3 at cost 5,
+    // dmg 8 at cost 9 (Maelstrom, Tremor, Dawn's Judgment, Cataclysm, Cyclone,
+    // Harvest), dmg 15 at cost 10. This is dmg 8 board-wide at cost SEVEN — two
+    // magic under every other element's equivalent — and it carried an
+    // unconditional 2-round PARALYZE where four of those cost-9s carry only a
+    // CONDITIONAL doubler. It was a cost-9 spell on the cost-7 rung.
+    //
+    // Measured: a spellbook ablation over 3,360 matches put BOLT's book at
+    // +16.7 win-rate points, by far the most valuable in the game and about a
+    // third of the element's 56.2. The book is a large part of why BOLT leads.
+    //
+    // The round rather than the cost, because the cost is the cheaper half of
+    // what makes it strong: 8 to the whole board for 7 is a real finisher and
+    // the element should keep one. Two rounds of board-wide PARALYZE is the
+    // half that ends games — it caps reach at 1 for everything the opponent
+    // owns, twice over, off one cast.
+    text: "Deal 8 DMG to every opponent and PARALYZE each for 1 round.",
     dmg: 8,
-    status: { kind: "PARALYZE", duration: 2, power: 0 },
+    status: { kind: "PARALYZE", duration: 1, power: 0 },
   },
 
   // ───────── Cost 9 — board wipes that punish a condition (double DMG) ─────────
@@ -714,10 +732,28 @@ export const SPELLS: SpellDef[] = [
     cost: 10,
     kind: "aoe",
     area: "board",
-    text: "Heal all LEAF allies to full HP and ROOT every opponent for 2 rounds. For the rest of the game, LEAF allies heal 1 extra HP each round.",
+    // +8 MAX HP, PERMANENTLY, on top of the regen.
+    //
+    // This is the only cost-10 in the set with no damage on it at all — six of
+    // the other seven print 15 board-wide — and it was buying a full heal, a
+    // 2-round ROOT and one HP a round. A full heal is worth nothing on an
+    // undamaged board and the regen takes eight rounds to equal what this now
+    // grants at once, which on a ten-magic finisher is a bill that arrives
+    // after the game is decided.
+    //
+    // Measured: a spellbook ablation over 3,360 matches put LEAF's book at
+    // MINUS 10.6 win-rate points — LEAF is better off casting nothing. This is
+    // the rung with the most room to fix that, and size is the thing LEAF's
+    // whole identity (regen, shields, roots) is trying to buy time for.
+    //
+    // Granted through `gainMaxHp`, so the ceiling arrives FILLED and a card
+    // with a `maxHpCap` cannot float above its own. It reaches later arrivals
+    // too, from the player record — "for the rest of the game" has to mean the
+    // cards that show up afterwards, not just the ones standing when it landed.
+    text: "Heal all LEAF allies to full HP and ROOT every opponent for 2 rounds. For the rest of the game, LEAF allies have +8 max HP and heal 1 extra HP each round.",
     status: { kind: "ROOT", duration: 2, power: 0 },
     healAlliesFull: true,
-    grantElementPerm: { healPerRound: 1 },
+    grantElementPerm: { healPerRound: 1, maxHp: 8 },
   },
 
   // ── AQUA ────────────────────────────────────────────────────────────────

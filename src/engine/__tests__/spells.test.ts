@@ -6,7 +6,7 @@ import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
 import { canCastSpell } from "../rules";
 import { SPELLS, spellPickKind, getSpell } from "../spells";
-import { getDef } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, bigPrepState, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -1098,12 +1098,46 @@ describe("area spells do the whole of what they say", () => {
     expect(next.cards[kin.instanceId].curShields).toBe(5);
   });
 
-  it("Heart of the Forest heals the LEAF team to full", () => {
+  it("Heart of the Forest heals the LEAF team to full AND grows it", () => {
+    // 20 + 8: healed to its old ceiling, then permanently bigger by 8 with the
+    // new room already filled. `gainMaxHp` does the filling — the card makes
+    // the forest larger, it does not hand it a wound to heal.
     const s = prepState();
     armSpell(s, "leaf_heart_of_the_forest", 10);
     const hurt = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 20 });
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
-    expect(next.cards[hurt.instanceId].curHp).toBe(20);
+    expect(next.cards[hurt.instanceId].maxHp, "permanently bigger").toBe(28);
+    expect(next.cards[hurt.instanceId].curHp, "and filled, not left wounded").toBe(28);
+  });
+
+  it("...and it grows LEAF cards summoned AFTERWARDS", () => {
+    // "For the rest of the game" has to mean the cards that show up later, not
+    // just the ones standing when it landed — the same rule the SP half of this
+    // grant already followed.
+    const s = prepState();
+    armSpell(s, "leaf_heart_of_the_forest", 10);
+    place(s, "leaf_alpha", "P1", 3, 0);
+    let next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
+    next.players.P1.gold = 20;
+    next.phase = "prep";
+    next.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+    const handId = giveHand(next, "P1", "leaf_alpha");
+    next = applyIntent(next, { type: "SUMMON", player: "P1", handId, col: 2 });
+    const late = boardCards(next, "P1").find((c) => c.pos?.col === 2)!;
+    expect(late.maxHp, "the latecomer is grown too").toBe(getDef("leaf_alpha").hp + 8);
+    expect(late.curHp, "and arrives full").toBe(late.maxHp);
+  });
+
+  it("...but never past a card's own ceiling", () => {
+    // A `maxHpCap` card must not float above its cap and then have Cleanup claw
+    // it back — the reason this rides `gainMaxHp` rather than a raw bump.
+    const capped = CARDS.find((c) => c.element === "LEAF" && c.maxHpCap != null);
+    if (!capped) return; // no LEAF card caps its HP today; the rule still holds
+    const s = prepState();
+    armSpell(s, "leaf_heart_of_the_forest", 10);
+    const c = place(s, capped.id, "P1", 3, 0);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
+    expect(next.cards[c.instanceId].maxHp).toBeLessThanOrEqual(capped.maxHpCap!);
   });
 
   it("Bloodroot Surge heals LEAF for the BLEED it deals", () => {

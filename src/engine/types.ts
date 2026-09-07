@@ -2349,6 +2349,11 @@ export interface SpellDef {
    *  The per-round halves (shield/heal) are paid out at Cleanup. */
   grantElementPerm?: {
     sp?: number;
+    /** Heart of the Forest: every LEAF ally is permanently BIGGER, now and for
+     *  the rest of the game. Granted through `gainMaxHp`, so the new ceiling
+     *  arrives FILLED — the card makes the forest larger, it does not hand it a
+     *  wound to heal. */
+    maxHp?: number;
     shieldPerRound?: number;
     healPerRound?: number;
     /** Endless Night: DUSK allies gain the DRAIN keyword if they lack it. */
@@ -2581,6 +2586,7 @@ export interface PlayerState {
   elementPerm?: {
     element: Element;
     sp?: number;
+    maxHp?: number;
     shieldPerRound?: number;
     healPerRound?: number;
     drain?: boolean;

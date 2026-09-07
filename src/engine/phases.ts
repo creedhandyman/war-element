@@ -317,6 +317,8 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const permOnSummon = draft.players[inst.owner].elementPerm;
       if (permOnSummon && def.element === permOnSummon.element && permOnSummon.sp)
         inst.spBonus += permOnSummon.sp;
+      if (permOnSummon && def.element === permOnSummon.element && permOnSummon.maxHp)
+        gainMaxHp(inst, permOnSummon.maxHp);
       const dmgPerm = draft.players[inst.owner].elementDmgBuff;
       if (dmgPerm && def.element === dmgPerm.element) inst.dmgBonus += dmgPerm.amount;
       if (arrived) applyElementSummonAura(draft, inst);
@@ -1026,6 +1028,7 @@ function resolveSpell(
       draft.players[player].elementPerm = {
         element: spell.element,
         sp: (prev?.sp ?? 0) + (g.sp ?? 0),
+        maxHp: (prev?.maxHp ?? 0) + (g.maxHp ?? 0),
         shieldPerRound: (prev?.shieldPerRound ?? 0) + (g.shieldPerRound ?? 0),
         healPerRound: (prev?.healPerRound ?? 0) + (g.healPerRound ?? 0),
         drain: prev?.drain || g.drain,
@@ -1035,6 +1038,13 @@ function resolveSpell(
       if (g.sp) {
         for (const c of boardCards(draft, player))
           if (getDef(c.defId).element === spell.element) c.spBonus += g.sp;
+      }
+      // ...and the same for size. Through `gainMaxHp` rather than a raw bump so
+      // a `maxHpCap` card cannot float above its own ceiling and the new body
+      // arrives filled.
+      if (g.maxHp) {
+        for (const c of boardCards(draft, player))
+          if (getDef(c.defId).element === spell.element && c.curHp > 0) gainMaxHp(c, g.maxHp);
       }
       draft.log.push(`${player}'s ${spell.element} allies are permanently changed.`);
     }
