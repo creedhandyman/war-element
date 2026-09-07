@@ -367,7 +367,13 @@ Three traps that have all burned real time:
    runs leaf_pyro-vs-leaf_pyro every match and reports a meaningless flat 50%
    across the board. **Pass `CORES[i].cards` (the string array) directly.**
    The fallback itself is still in the code — a latent bug worth fixing if any
-   other caller ever passes an unrecognized id.
+   other caller ever passes an unrecognized id. On the balance harness it at
+   least announces itself as a flat 50%; on any OTHER measurement it does not.
+   A playability sweep written this way reported a perfectly plausible "34.4% of
+   early prep turns have nothing to play" that was really one matchup repeated
+   1,120 times. Same fix, and the reason to apply it everywhere and not just
+   here: a wrong number that looks wrong costs an hour, a wrong number that
+   looks right gets written down.
 2. **`state.win` is `{ winner, by }`, not a player string.** `end.win === "P1"`
    is always false and every element reports 0%.
 3. **The spell argument is not optional.** `undefined` derives a book from the
@@ -465,12 +471,29 @@ which matters at 5,600 matches.
 Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
 
 ```
-bolt 56.2 · dawn 55.6 · dusk 54.0 · aqua 51.7
-bore 47.9 · gale 46.3 · leaf 44.2 · pyro 44.0     spread 12.2
+dawn 56.1 · bore 54.3 · bolt 54.2 · dusk 53.1
+aqua 50.3 · gale 46.0 · leaf 43.0 · pyro 43.0     spread 13.1
 ```
 
-**THAT 12.2 IS THE BEST SPREAD RECORDED HERE, and one change bought 7.7 of
-it.** Immediately before, the same harness on the same HEAD read:
+Read immediately before the opening-hand guarantee went in, the same harness
+on the same HEAD said `dawn 57.6 · bolt 56.7 · dusk 53.6 · aqua 50.6 / gale
+47.0 · bore 46.9 · pyro 46.7 · leaf 40.8`, **spread 16.9** — so guaranteeing
+two 1-drops in the opening hand (`seedOpeningCurve`, state.ts) tightened the
+field by 3.8 while moving one element beyond ±2.6: BORE, +7.4, from 46.9 to
+54.3. That is the deck suffering most from a slow opening getting its opening
+back, and it is the second time BORE has turned out to be the element a
+whole-game rule moves. See the note below about ELEMENT-WIDE levers — an
+opening rule is one.
+
+The 16.9 that reading replaced is itself well above the 12.2 recorded further
+down, and none of that drift was the guarantee: it accumulated across the Super
+Squad tribe, the Storm recost, foils and the spell changes, none of which were
+re-measured against this harness at the time. **Re-read the table after a batch
+of card work, not only after a rule change.** LEAF is the standing casualty —
+44.2 then, 43.0 now, still bottom.
+
+**12.2 WAS THE BEST SPREAD RECORDED HERE, and one change bought 7.7 of it.**
+Before that, the same harness on the same HEAD read:
 
 ```
 bolt 58.2 · dawn 58.0 · dusk 54.4 · aqua 53.6
@@ -790,6 +813,51 @@ the DAWN battle commands all moved numbers because they touch the race.
 None of which makes the SEALs wrong to have: they read well on the cards and
 cost nothing. They are simply not a balance lever, and should not be reached for
 as one.
+
+### The opening hand is dealt playable, and the draft has a floor under it
+
+A 45-card core holds exactly six 1-drops, so a four-card opening misses them
+entirely **54.4%** of the time and holds fewer than two **91.9%** of the time.
+Across 1,120 headless core-vs-core matches that came out as **34.4% of every
+prep turn in rounds 1–5 having nothing the seat could legally summon** — and
+not for want of a slot: the board is nearly empty then and the diagnosis was
+"can't afford" on all of them. `poolGainForRound` pays 1 a round through round
+5. More than half of all matches opened with a hand you sit and look at.
+
+`seedOpeningCurve` (state.ts) swaps two cheap cards up into the opening window
+at **both** shuffle sites — `createInitialState` and `applyMulligan`, because a
+guarantee a mulligan undoes is not one. It reorders, never adds or removes.
+Openings short of two 1-drops go 91.9% → 0.0% and early dead turns 34.4% →
+21.0%. Three things are load-bearing and each was measured, not reasoned:
+
+- **Two, not one.** Each point buys exactly one guaranteed round and the round
+  after dips, because the cheap cards were spent. At one, round 2 comes back
+  *below* the baseline (60% → 53% of turns with a play) — the 1-drop went down
+  on round 1. At three, three of your four cards are dealt for you.
+- **It displaces the LAST card in the window, not the priciest.** Taking the
+  bomb is the intuitive fix; the harness read spread 18.7 against 13.1 for it.
+- **`stackFirst` opts out.** This runs after `restackByCost` and went straight
+  over the top of a Void Tower boss's scripted formation — a seeded run dealt
+  two of three named cards and swapped the Mythic out for a 1-drop.
+
+**It applies to BOTH seats.** Human-only would be a hidden difficulty setting
+and would quietly corrupt the harness, which plays AI against AI.
+
+The draft needed its own fix, because the guarantee cannot help a deck with
+nothing cheap in it: **17.5% of drafted decks held fewer than two 1-drops and
+2.5% held none**, one of them `1,1,3,3,3,3,5,5,5,5,5,6,7,7,8,8,9,10`.
+`TARGET_CURVE` buckets 1 and 2 together and that is what hid it — the two are
+not interchangeable when gold pays 1 a round until round 6. `CHEAP_TARGET` /
+`CHEAP_OFFERS` (draft.ts) hold a seat for a cheap card in **two of three**
+offers while the drafter is behind, and `rollGroups` favours banners that can
+actually field one. Two, not three, so one group is always left alone and a
+greedy pick stays possible. Short decks 17.5% → **0.3%**, empty ones → **0.0%**,
+and the 1-2 bucket 31.2% → **35.7%** against its own 36% target.
+
+Reweighting alone does not work and it is worth knowing why: multiplying the
+curve pull by four moved short decks 17.5% → 16.3%. The BANNER decides what is
+on offer long before the weights do, and no weighting finds a 1-drop inside a
+Dragon warband. It took a held seat plus a banner bias.
 
 ### The cost curve, and the cost-3 migration
 
