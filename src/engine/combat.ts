@@ -460,6 +460,7 @@ export function defeatCard(
     if (doRevive) {
       card.revived = true;
       card.curHp = Math.max(1, Math.min(effectiveMaxHp(draft, card), def.onRevive.heal));
+      if (def.onRevive.shields) card.curShields += def.onRevive.shields;
       if (def.onRevive.sleep) {
         // Self-inflicted downtime — bypasses statusImmune (Hibernation).
         card.statuses = card.statuses.filter((s) => s.kind !== "SLEEP");
@@ -3361,8 +3362,26 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
       .filter((e) => e.curHp > 0)
       .sort((a, b) => a.curHp - b.curHp)[0];
     if (prey) {
+      // WHERE IT LANDS IS DECIDED FIRST. The step is "in front of the card you
+      // just shot", and a prey that dies to the poke leaves no position to
+      // measure from — so the square is taken now, while it still stands.
+      const dest = def.closeOnPrey && prey.pos
+        ? (() => {
+            const home = homeRow(killer.owner, draft.boardSize);
+            const dir = Math.sign(home - prey.pos!.row);
+            if (dir === 0) return null; // already on the killer's own home row
+            const row = prey.pos!.row + dir;
+            return row < 0 || row >= draft.boardSize ? null : { row, col: prey.pos!.col };
+          })()
+        : null;
       draft.log.push(`${name} strikes the weakest — ${def.lowestHpDmg} DMG to ${getDef(prey.defId).name}.`);
       directDamage(draft, killer, prey, def.lowestHpDmg, false);
+      if (dest && killer.curHp > 0 && killer.pos
+          && !draft.slots[dest.row][dest.col].capturedBy
+          && !cardAt(draft, dest.row, dest.col)) {
+        killer.pos = { row: dest.row as Pos["row"], col: dest.col };
+        draft.log.push(`${name} closes in.`);
+      }
     }
   }
   if (def.buffHits) {

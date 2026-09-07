@@ -180,6 +180,17 @@ export interface OnKillDef {
   /** Infinite Serpent (Hydrogon): on a kill, snipe the LOWEST-HP surviving
    *  opponent for `lowestHpDmg` — the serpent finishes the weak. */
   lowestHpDmg?: number;
+  /** ...and then CLOSE on it (Sapphire's Vaporizer). The killer steps into the
+   *  square directly in front of the card it just sniped — one slot back from
+   *  the prey, on the killer's own side — so the poke is an opening move rather
+   *  than a parting shot.
+   *
+   *  Only with `lowestHpDmg`, since the prey is the one that shot picks. The
+   *  destination is measured BEFORE the damage lands, so a prey that dies to the
+   *  poke still decides where the killer ends up; the move is then skipped if
+   *  that square is occupied or captured, the same way `takeSpotOnKill` and
+   *  `retreatHome` refuse to phase through a body. */
+  closeOnPrey?: boolean;
   coinBonusDmg?: number; // coin flip: +this or +this−1 permanent DMG
   /** King of Sunfall Harbor (Scallywag): a coin flip between two DIFFERENT
    *  stats — armour or teeth — where coinBonusDmg only ever chooses between two
@@ -692,6 +703,11 @@ export interface TimedBuff {
 export interface OnReviveDef {
   heal: number;
   sleep?: number;
+  /** Shields granted on the way back up (Fenix's Burning Ashes). A revive at
+   *  1 HP is a body that dies again to anything; the armour is what buys the
+   *  second life a round to matter, and it pairs with `sleep` — the card comes
+   *  back protected but cannot act yet. */
+  shields?: number;
   /** Zombie Husk's Reanimation: instead of a one-time revive, come back with
    *  every base stat (DMG/HP/SP) reduced by `decay`, until a stat would hit 0 —
    *  then it stays dead. Revives at its (now lower) full HP. */

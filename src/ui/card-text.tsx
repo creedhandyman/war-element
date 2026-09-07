@@ -428,7 +428,7 @@ export function describePassives(def: CardDef): string[] {
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.blindInRange && `BLIND nearby opponents for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,
       k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
-      k.lowestHpDmg && `${k.lowestHpDmg} DMG to the lowest-HP opponent`,
+      k.lowestHpDmg && `${k.lowestHpDmg} DMG to the lowest-HP opponent${k.closeOnPrey ? ", then moves in front of it" : ""}`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,
       // Name the Special outright and say it stacks — "Special costs 1 less"
       // read as a flat, one-off, possibly team-wide discount.
@@ -590,7 +590,7 @@ export function describePassives(def: CardDef): string[] {
         ? def.onRevive.maxRevives
           ? `Gets back up ${def.onRevive.maxRevives === 1 ? "once" : `${def.onRevive.maxRevives} times`} at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat — after that it stays down.`
           : `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
-        : `Revives when defeated at ${def.onRevive.heal} HP${def.onRevive.secondChance ? `, with a ${def.onRevive.secondChance}% chance to revive a second time` : " once"}${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
+        : `Revives when defeated at ${def.onRevive.heal} HP${def.onRevive.shields ? ` with ${def.onRevive.shields} shields` : ""}${def.onRevive.secondChance ? `, with a ${def.onRevive.secondChance}% chance to revive a second time` : " once"}${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
     );
   if (def.deathSave)
     named(

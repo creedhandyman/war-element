@@ -1517,10 +1517,17 @@ export const CARDS: CardDef[] = [
     shields: 2,
     keywords: {},
     tribe: ["Dragon", "Vapor"],
-    // Vaporizer (On Kill): +1 SP and +1 DMG permanently. (Doc also pokes the
-    // lowest-HP enemy + repositions — those halves aren't modeled yet.)
+    // Vaporizer (On Kill): +1 SP and +1 DMG permanently, then 1 DMG to the
+    // lowest-HP opponent and a step in front of it.
+    //
+    // WHOLE now. The last two halves were written on the card from the start
+    // and modelled by nothing, so the ability the player read was not the
+    // ability the card had. The poke reuses `lowestHpDmg` (Hydrogon's Infinite
+    // Serpent); `closeOnPrey` is the step, and it is what makes a kill CHAIN —
+    // Sapphire finishes something, marks the next weakest, and is already
+    // standing over it with +1 DMG for next round.
     passiveNames: { onKill: "Vaporizer" },
-    onKill: { buffSp: 1, buffDmg: 1 },
+    onKill: { buffSp: 1, buffDmg: 1, lowestHpDmg: 1, closeOnPrey: true },
     special: {
       name: "Geyser Gash",
       cost: 3,
@@ -3700,13 +3707,21 @@ export const CARDS: CardDef[] = [
     // Once per ATTACK, not per hit — `onHitPush` fires on the volley, so the
     // three-hit spray does not become a three-slot shove. Free against the
     // curve, like every passive: the line stays at 3*3 + 15 + 1*2 + 9 = 35.
-    passiveNames: { onHitPush: "Fault Line" },
+    passiveNames: { onHitPush: "Fault Line", onSpecialUse: "Magnitude Shift" },
     onHitPush: 1,
+    // Magnitude Shift: every Quaking Comet leaves the ground — and Shift —
+    // harder. +1 DMG permanently per cast, which is the ramp the Special was
+    // named for and carried as an "unmodeled" note since it was written.
+    //
+    // The ramp lands on the CARD's damage rather than inside the Special's
+    // payload, because `onSpecialUse` is the per-cast hook the engine has and
+    // four other cards already ramp through it. So the comet stays 2x2 and the
+    // quake makes the thing throwing it heavier every time.
+    onSpecialUse: { dmg: 1 },
     special: {
       name: "Quaking Comet",
       cost: 2,
       handler: "barrage",
-      // Magnitude Shift (per-use +1 DMG ramp) is unmodeled — flat each cast.
       params: { dmg: 2, hits: 2, targets: 99 },
       targetSide: "enemy",
       text: "Deal 2×2 DMG to all opponents.",
@@ -4017,10 +4032,16 @@ export const CARDS: CardDef[] = [
     shields: 0,
     tribe: "Avian",
     keywords: {},
-    // Burning Ashes (On Death): revive once at 1 HP. (Doc also grants +4 shields
-    // and a skipped turn on revive — not modeled.)
+    // Burning Ashes (On Death): revive once at 1 HP, with +4 shields, and lose
+    // the turn getting up.
+    //
+    // ALL THREE HALVES NOW. The card printed a revive at 1 HP and nothing else,
+    // which on a 10-HP body is a second death rather than a second life — the
+    // ash is supposed to protect what climbs out of it. The shields are the
+    // second life; the sleep is its price, and `onRevive.sleep` bypasses
+    // statusImmune deliberately (see combat.ts) because it is self-inflicted.
     passiveNames: { onRevive: "Burning Ashes" },
-    onRevive: { heal: 1 },
+    onRevive: { heal: 1, shields: 4, sleep: 1 },
     special: {
       name: "Phoenix Blast",
       cost: 2,

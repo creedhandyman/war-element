@@ -891,13 +891,22 @@ export function canTarget(
     }
   } else if (forBasic && aDef.targetsOnSound) {
     // Echolocation (The Deepest): blind, aims by sound. A basic can only find a
-    // target that is right beside it (king reach) or that MOVED this round —
-    // footsteps it hears anywhere on the board. A stationary far enemy is silent.
+    // target that is right beside it (king reach) or that MADE A NOISE this
+    // round — heard anywhere on the board. A far enemy that stood still and did
+    // nothing is silent.
+    //
+    // FOOTSTEPS **OR** BLOWS. Movement used to be the only sound in the game,
+    // and that was both wrong and the whole of the card's problem: an archer
+    // that plants itself and fires all match was inaudible, so the one archetype
+    // The Deepest could never answer was the one that never has to approach it.
+    // On a 3-SP body that cannot close the distance either, a cost-10 Mythic
+    // spent whole matches unable to take a shot. Swinging a weapon is not quiet.
     const dRow = Math.abs(attacker.pos.row - target.pos.row);
     const dCol = Math.abs(attacker.pos.col - target.pos.col);
     const kingClose = dRow <= 1 && dCol <= 1;
     if (!kingClose) {
-      if (!target.movedThisRound) return false;
+      const struck = Object.keys(target.struckThisRound ?? {}).length > 0;
+      if (!target.movedThisRound && !struck) return false;
       // It hears the movement anywhere, but the shot still can't pass through a
       // screen of enemy bodies — sound reaches, a projectile doesn't.
       if (!rangedCanSee(state, attacker.pos, target.pos, attacker.owner, state.boardSize)) return false;

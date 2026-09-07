@@ -5083,3 +5083,55 @@ describe("an enchanter rekindles between rounds", () => {
     expect(next.cards[p.instanceId].enchant).toBe("sleeping");
   });
 });
+
+describe("the doc riders that shipped as notes", () => {
+  // Three cards printed an ability and modelled part of it, each carrying an
+  // inline "not modeled" note. What the player read was not what the card did.
+  const inBattle = (st: GameState, active: string): GameState => {
+    st.phase = "battle";
+    st.prep = null;
+    st.battle = { queue: [active], index: 0, awaitingInput: active };
+    return st;
+  };
+
+  it("Vaporizer: Sapphire pokes the weakest, then steps in front of it", () => {
+    const s = prepState();
+    const sapphire = place(s, "aqua_sapphire", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 3, 1, { curHp: 1, maxHp: 40, curShields: 0 });
+    // The prey: lowest HP of the SURVIVORS, far away, square in front of it free.
+    const prey = place(s, "dusk_gool", "P2", 1, 2, { curHp: 9, maxHp: 40, curShields: 0 });
+    const spBefore = effectiveSp(s, s.cards[sapphire.instanceId]);
+    basicAttack(s, sapphire.instanceId, victim.instanceId);
+    expect(s.cards[victim.instanceId]?.curHp ?? 0, "the kill that triggers it").toBeLessThanOrEqual(0);
+    // ...the +1 SP half it already had...
+    expect(effectiveSp(s, s.cards[sapphire.instanceId])).toBe(spBefore + 1);
+    // ...and the two halves that were only ever a comment.
+    expect(9 - s.cards[prey.instanceId].curHp, "1 DMG to the lowest-HP opponent").toBe(1);
+    expect(s.cards[sapphire.instanceId].pos, "and it closes on what it marked")
+      .toEqual({ row: 2, col: 2 });
+  });
+
+  it("Burning Ashes: Fenix comes back armoured, and loses the turn getting up", () => {
+    const s = prepState();
+    const fenix = place(s, "pyro_fenix", "P1", 3, 0, { curHp: 4, maxHp: 10, curShields: 0 });
+    const killer = place(s, "dusk_gool", "P2", 3, 1, { curHp: 40, maxHp: 40 });
+    basicAttack(s, killer.instanceId, fenix.instanceId);
+    const back = s.cards[fenix.instanceId];
+    expect(back, "it is still on the board").toBeTruthy();
+    expect(back.curHp, "up at 1 HP").toBe(1);
+    expect(back.curShields, "but not naked — the ash is armour").toBe(4);
+    expect(statusOf(back, "SLEEP")?.duration, "and it skips the turn").toBe(1);
+  });
+
+  it("Magnitude Shift: every Quaking Comet leaves Shift heavier", () => {
+    const s = prepState();
+    const shift = place(s, "bore_shift", "P1", 3, 0);
+    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 200, maxHp: 200, curShields: 0 });
+    s.players.P1.magicPool = 20;
+    const before = effectiveDmg(s, s.cards[shift.instanceId]);
+    const next = applyIntent(inBattle(s, shift.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(effectiveDmg(next, next.cards[shift.instanceId]), "+1 DMG per cast").toBe(before + 1);
+  });
+});
