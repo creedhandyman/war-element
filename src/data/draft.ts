@@ -22,9 +22,11 @@
  */
 
 import { CARDS, getDef } from "./cards";
-import { deckSizeFor } from "./custom-decks";
+import { deckSizeFor, type DeckTier } from "./custom-decks";
+import { tierForStreak } from "./matchmaker";
 import { PACK_WEIGHT } from "./story";
 import type { CardDef, Element } from "../engine";
+import type { StorySave } from "./story";
 
 /** How many cards a pick chooses between. */
 export const OFFER_SIZE = 3;
@@ -92,6 +94,12 @@ export interface DraftRun {
   picks: string[];
   /** The ids currently on the table. Empty once the draft is done. */
   offer: string[];
+  /** Matches won with the finished deck. Absent on a run still picking, and on
+   *  every run written before phase 3 — which reads as zero, the state those
+   *  runs were actually in. */
+  won?: number;
+  /** Matches lost. `DRAFT_LOSSES` of them ends the run. */
+  lost?: number;
 }
 
 /** Bosses are not draftable, for the same reason they are not pullable. */
@@ -213,4 +221,97 @@ export function pickCard(run: DraftRun, id: string, rand: () => number = Math.ra
   const picks = [...run.picks, id];
   const next: DraftRun = { ...run, picks, offer: [] };
   return draftComplete(next) ? next : { ...next, offer: rollOffer(next, rand) };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PHASE 3 — the RUN: playing the deck you drafted.
+//
+// The picking above ends with eighteen cards. This half is what they are for:
+// a run of matches against escalating premades that ends on three losses, and
+// pays out on the way out. It mirrors gauntlet.ts deliberately — same settle
+// shape, same "pure money path" rule, same reason. Whether a win actually paid,
+// and paid once, is not a question to answer by playing ten matches in a
+// browser.
+
+/** Losses that end a run. Three is the Arena standard, and it is the number
+ *  that makes the third match tense rather than the tenth. */
+export const DRAFT_LOSSES = 3;
+
+/** Wins that end a run at the top. Seven, to rhyme with the matchmaker's own
+ *  ladder — "the seventh win in a row is an elite deck" — so the two ways to
+ *  climb this game describe the same shape. */
+export const DRAFT_MAX_WINS = 7;
+
+/** What a run costs to enter, in shards. A pack (PACK_COST) is the anchor: a
+ *  draft is the other thing you spend a pack's worth of shards on, and it buys
+ *  a deck you cannot keep instead of cards you can. */
+export const DRAFT_ENTRY = 50;
+
+/** Shards paid out by wins, on the way out of the run.
+ *
+ *  Break-even sits at three wins, so a losing run is a real loss and a middling
+ *  one is close to free. The top pays 140 against a 50 entry — 2.8x for a 7-0,
+ *  which is the same order as the Gauntlet's elite clear (50 for four matches)
+ *  once the longer run is counted, and deliberately NOT the best shards-per-
+ *  minute in the game. Draft is meant to be the interesting way to spend an
+ *  hour, not the efficient one. */
+export const DRAFT_PAY: readonly number[] = [0, 10, 22, 36, 54, 76, 104, 140];
+
+export const draftWins = (run?: DraftRun): number => run?.won ?? 0;
+export const draftLosses = (run?: DraftRun): number => run?.lost ?? 0;
+
+/** The run is finished — out of lives, or at the top. Distinct from
+ *  `draftComplete`, which only means the PICKING is done. */
+export const draftRunOver = (run?: DraftRun): boolean =>
+  !!run && draftComplete(run)
+  && (draftLosses(run) >= DRAFT_LOSSES || draftWins(run) >= DRAFT_MAX_WINS);
+
+/** True while the run still wants matches played — picking done, lives left. */
+export const draftPlaying = (run?: DraftRun): boolean =>
+  !!run && draftComplete(run) && !draftRunOver(run);
+
+/** The difficulty this run is owed next.
+ *
+ *  Read straight off `tierForStreak` rather than given its own table, so the
+ *  draft ladder and the matchmaker ladder cannot describe different games. Wins
+ *  are the streak: a draft run has no losses to carry between rungs because
+ *  three of them end it outright. */
+export const draftTier = (run: DraftRun): DeckTier =>
+  tierForStreak(draftWins(run), run.board);
+
+/** Record one match. Only counts while the run is actually playing — a match
+ *  fought in any other mode must not spend a life, which is the exact bug
+ *  `settleArena`'s `gauntletSeat` flag exists to prevent. */
+export function recordDraftResult(run: DraftRun, won: boolean): DraftRun {
+  if (!draftPlaying(run)) return run;
+  return won
+    ? { ...run, won: draftWins(run) + 1 }
+    : { ...run, lost: draftLosses(run) + 1 };
+}
+
+/** Shards owed, and zero until the run is actually over. Paid once, on the way
+ *  out — the same rule `rewardFor` follows for a Gauntlet run. */
+export const draftReward = (run?: DraftRun): number =>
+  draftRunOver(run) ? (DRAFT_PAY[Math.min(draftWins(run), DRAFT_PAY.length - 1)] ?? 0) : 0;
+
+/** Settle one draft match against the save.
+ *
+ *  `draftSeat` is stated by the caller rather than inferred from "a run is
+ *  live", for the reason written at length on `settleArena`: those are not the
+ *  same question, and answering the wrong one ended a Gauntlet run with a
+ *  casual match it never dealt. A draft run survives every other mode.
+ *
+ *  The payout rides the SAME call that records the result, so the money and the
+ *  record cannot come apart. */
+export function settleDraft(
+  save: StorySave,
+  opts: { won: boolean; draftSeat?: boolean },
+  addShards: (s: StorySave, n: number) => StorySave,
+): StorySave {
+  const run = save.draft;
+  if (!opts.draftSeat || !draftPlaying(run)) return save;
+  const after = recordDraftResult(run!, opts.won);
+  const paid = draftReward(after);
+  const next: StorySave = { ...save, draft: after };
+  return paid > 0 ? addShards(next, paid) : next;
 }

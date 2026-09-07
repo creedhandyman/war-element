@@ -16,6 +16,7 @@ import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spe
 import { DOMINATION_7X7 } from "./domination";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
+import type { DraftRun } from "./draft";
 import type { LadderState } from "./matchmaker";
 
 // ── shape ───────────────────────────────────────────────────────────────────
@@ -2487,6 +2488,9 @@ export interface StorySave {
    *  the save rather than in React state precisely so it CANNOT be re-rolled:
    *  leaving the Arena and coming back has to resume the same four opponents. */
   gauntlet?: GauntletState;
+  /** The draft in progress — picking, or playing the deck it produced. One run
+   *  at a time, like the Gauntlet's. */
+  draft?: DraftRun;
   /** Tutorial steps already taught. See `ui/TutorialCoach.tsx`.
    *
    *  In the save because a tutorial that repeats is a nag: these fire once per
@@ -2830,6 +2834,21 @@ export function loadStory(): StorySave {
             : undefined,
           cleared: Array.isArray(g.cleared) ? g.cleared.filter((t) => DECK_TIERS.includes(t)) : [],
         };
+      })(),
+      // Same posture as the gauntlet run above: restored as written, dropped
+      // whole if malformed. `board` decides how many picks a run owes and what
+      // `deckSizeFor` will demand of it, so a junk value would strand a draft
+      // that can never complete; `picks`/`offer` must be arrays of ids or the
+      // pick screen renders nothing it can act on.
+      draft: (() => {
+        const d = p.draft as DraftRun | undefined;
+        if (!d || typeof d !== "object") return undefined;
+        const ids = (x: unknown): x is string[] =>
+          Array.isArray(x) && x.every((y) => typeof y === "string");
+        const num = (x: unknown): boolean => x === undefined || (typeof x === "number" && x >= 0);
+        const ok = ids(d.picks) && ids(d.offer)
+          && [4, 5, 7].includes(d.board as number) && num(d.won) && num(d.lost);
+        return ok ? d : undefined;
       })(),
       taught: Array.isArray(p.taught) ? p.taught.filter((x) => typeof x === "string") : undefined,
       // Two non-negative integers or nothing. A junk streak would pick the rung
