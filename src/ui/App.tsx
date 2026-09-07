@@ -622,6 +622,11 @@ export function App() {
   const draftDeck: CustomDeck | null = draftPlaying(draftRun)
     ? { id: DRAFT_DECK_ID, name: "Your draft", cards: draftRun!.picks }
     : null;
+  /** The run is holding YOUR chair — so the lobby must not offer to change it.
+   *  Only while the mode is draft AND the run is playing: a draft parked while
+   *  you play Casual leaves your own deck yours, the same way it leaves the
+   *  opponent chair alone. */
+  const draftOwnsMySeat = arenaGame === "draft" && !!draftDeck && !onlineMode && !twoPlayer;
   /** The event being fought, DERIVED from the opponent seat rather than stored.
    *
    *  Storing it would mean owning a lifecycle — set it on the Home tap, clear it
@@ -4583,10 +4588,22 @@ export function App() {
             <div className="ar-vs">
               <DeckSeat
                 side="mine"
-                flag={onlineMode ? (onlineRole === "host" ? "YOU · HOST · P1" : "YOU · GUEST · P2") : "YOU · P1"}
+                flag={onlineMode
+                  ? (onlineRole === "host" ? "YOU · HOST · P1" : "YOU · GUEST · P2")
+                  : draftOwnsMySeat ? "YOU · P1 · DRAFT" : "YOU · P1"}
                 label={deckLabel(mySeatDeckId)}
                 cards={resolveDeckCards(mySeatDeckId)}
-                onChange={() => setPickSeat(onlineMode && onlineRole === "guest" ? "p2" : "p1")}
+                /* A DRAFT OWNS BOTH SEATS. The opponent's has been locked since
+                   the mode was written; this one was left changeable, so the
+                   lobby offered a deck sheet over a squad you are not allowed
+                   to swap — and picking from it did nothing, because the effect
+                   that seats the drafted deck put it straight back. A control
+                   that fights an effect is worse than no control. `DeckSeat`
+                   already draws an absent `onChange` as a locked panel; it was
+                   only ever the Gauntlet that used it. */
+                onChange={draftOwnsMySeat
+                  ? undefined
+                  : () => setPickSeat(onlineMode && onlineRole === "guest" ? "p2" : "p1")}
               />
 
               <div className="ar-vsline"><span /><em>VS</em><span /></div>

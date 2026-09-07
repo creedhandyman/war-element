@@ -118,6 +118,27 @@ describe("the draft wiring", () => {
     expect(APP).toContain("That run is over. Draft again above.");
   });
 
+  it("locks YOUR seat too — a run owns both chairs", () => {
+    // The opponent chair has been locked since the mode was written; this one
+    // was left changeable, so the lobby offered a deck sheet over a squad you
+    // are not allowed to swap. Picking from it did nothing either, because the
+    // effect that seats the drafted deck put it straight back — a control that
+    // fights an effect is worse than no control.
+    expect(APP).toContain("const draftOwnsMySeat");
+    // `DeckSeat` draws an ABSENT onChange as a locked panel; that is the lock.
+    expect(APP).toMatch(/onChange=\{draftOwnsMySeat[\s\S]{0,30}\?\s*undefined/);
+    // ...and it says why, rather than just going dead.
+    expect(APP).toContain('"YOU · P1 · DRAFT"');
+  });
+
+  it("only takes the seat while the run is actually playing", () => {
+    // A draft parked while you play Casual leaves your own deck yours, the same
+    // way it leaves the opponent chair alone — and online/hot-seat are neither.
+    expect(APP).toMatch(
+      /const draftOwnsMySeat = arenaGame === "draft" && !!draftDeck && !onlineMode && !twoPlayer/,
+    );
+  });
+
   it("styles the entry control it adds", () => {
     for (const c of ["ar-gauntlet", "gt-start", "gt-start-main", "gt-sub", "gt-pay",
                      "gt-head", "gt-pips", "gt-quit", "ar-flabel"])
