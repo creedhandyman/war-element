@@ -960,7 +960,7 @@ const DUSK: StoryRegion = {
      },
     { id: "D13", name: "The Long Night", kind: "throne", at: { x: 50, y: 79 },
       requires: ["D10", "D11"], tribe: "Dark", roster: ["dusk_shadowhorsemen"],
-      adds: ["dusk_specter_tok", "dusk_risen_tok", "dusk_silkstalker"], required: true,
+      adds: ["dusk_specter_tok", "dusk_ravven", "dusk_nightfang", "dusk_destro"], required: true,
       note: "Death Island, land of the forgotten. Required.",
       lore: "Not a place the forgotten go, but a place where forgetting itself has settled, the way fog settles into a valley it likes. No living ruler has claimed it; the Shadow Horsemen ride it anyway."
     },
@@ -1069,7 +1069,7 @@ const DAWN: StoryRegion = {
     },
     { id: "W13", name: "Dawn Castle", kind: "throne", at: { x: 50, y: 22 },
       requires: ["W10"], tribe: "Suns", roster: ["dawn_imperator"],
-      adds: ["dawn_warrider_tok", "dawn_radiant_guardian", "dawn_amble"], required: true,
+      adds: ["dawn_warrider_tok", "dawn_dawn", "dawn_leo", "dawn_commander"], required: true,
       note: "The Golden Seat, throne of the kingdom. Required — the end of the road.",
       lore: "The Golden King's title is not ruler but keeper of the Eternal Vigil, a watch the records insist has never once failed. Imperator holds the Golden Seat and does not discuss the alternative."
     },
