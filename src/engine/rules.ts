@@ -1742,6 +1742,54 @@ export function canPlummet(
 
 /** A Talent is free and once-per-game; it fires in the Battle Phase instead of
  *  a basic attack. */
+/** Talent handlers that read only the CASTER and never the target list.
+ *
+ *  Not a judgement call — it is readable off the handlers themselves, which
+ *  name the parameter `_targets` when they ignore it (`empower`, `shellTuck`,
+ *  `electroSurge`, `reposition`), plus `loadHits`, which the talent dispatcher
+ *  handles inline and never passes a list to at all. A test derives that same
+ *  set from the source and fails if this list drifts from it, so a new
+ *  self-affecting handler cannot quietly end up gated on enemies it does not
+ *  want. */
+export const TALENT_NEEDS_NO_TARGET: ReadonlySet<string> = new Set([
+  "loadHits", "empower", "shellTuck", "electroSurge", "reposition",
+]);
+
+/** Does this Talent need something to aim at before it is worth firing?
+ *
+ *  Two params override the handler, because both build their own victim list
+ *  and neither is a mistake:
+ *
+ *    `rollThrough` — Tumbleweed's Roll Through. `strike` uses its targets, but
+ *    it has an explicit path for an empty list and the card prints "roll even
+ *    with nothing to hit". Gating it would delete the half of the ability its
+ *    own text promises.
+ *
+ *    `nearby` — Patch Job. `grantShield` recomputes its crew from the caster's
+ *    OWN side and never reads the list it was handed, so an empty enemy list
+ *    says nothing about whether there are allies to plate. */
+export function talentNeedsTarget(def: CardDef): boolean {
+  const t = def.talent;
+  if (!t) return false;
+  if (TALENT_NEEDS_NO_TARGET.has(t.handler)) return false;
+  if (Number(t.params?.rollThrough ?? 0) > 0) return false;
+  if (Number(t.params?.nearby ?? 0) > 0) return false;
+  return true;
+}
+
+/** Talent handlers that cannot act on the CASTER, so the caster does not count
+ *  as something to aim at.
+ *
+ *  `validAllyTargets` returns the whole side INCLUDING the caster, which is
+ *  right for a self-heal and wrong for a swap. `swapAlly` filters the caster
+ *  out itself — so Stone standing alone was handed a list containing only
+ *  Stone, passed the gate on it, fired, found no ally and spent the charge.
+ *  The same bug as the missing gate, one level in.
+ *
+ *  Derived rather than decided: it is the only talent handler that compares
+ *  `instanceId !== attacker.instanceId`, and a test reads that back. */
+export const TALENT_EXCLUDES_SELF: ReadonlySet<string> = new Set(["swapAlly"]);
+
 export function canFireTalent(
   state: GameState,
   instanceId: string,
@@ -1752,6 +1800,19 @@ export function canFireTalent(
   if (!def.talent) return { ok: false, reason: "No Talent" };
   if (card.talentUsed) return { ok: false, reason: "Talent already used this game" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
+  // NOTHING TO AIM AT IS NOT A TURN. The Special has refused this since it was
+  // written (`canFireSpecial`, "No valid target"); the Talent never got the
+  // same line, so a Talent with an empty board in front of it was still
+  // offered — and firing it spent the once-per-game charge, did nothing, and
+  // logged nothing to say why. That is the exact failure `talentTargets` was
+  // written to fix for Stone's Search and Rescue; the targeting was corrected
+  // and the GATE was not.
+  if (talentNeedsTarget(def)) {
+    const selfIsNoUse = TALENT_EXCLUDES_SELF.has(def.talent.handler);
+    const aim = talentTargets(state, instanceId)
+      .filter((t) => !selfIsNoUse || t.instanceId !== instanceId);
+    if (aim.length === 0) return { ok: false, reason: "No valid target" };
+  }
   return { ok: true };
 }
 
