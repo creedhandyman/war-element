@@ -64,6 +64,11 @@ import { ChatPanel } from "./ChatPanel";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { talentEffect } from "./card-text";
+import { DraftScreen } from "./DraftScreen";
+import {
+  DRAFT_DECK_ID, DRAFT_ENTRY, draftComplete, draftPlaying, draftTier, pickCard,
+  settleDraft, startDraft,
+} from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
 import { ProfilePanel } from "./ProfilePanel";
@@ -87,7 +92,7 @@ import {
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import {
-  loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
+  decksForTier, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -602,8 +607,20 @@ export function App() {
   // own fight and scores nothing, Streak climbs the ladder, Gauntlet runs the
   // four seats. A run now survives you playing the other two, which is the
   // reported bug: with a run armed, ANY match advanced it and a loss ENDED it.
-  const [arenaGame, setArenaGame] = useState<"casual" | "streak" | "gauntlet">("casual");
+  const [arenaGame, setArenaGame] = useState<"casual" | "streak" | "gauntlet" | "draft">("casual");
   const gauntletRun = story.gauntlet?.run;
+  const draftRun = story.draft;
+  /** THE DRAFTED DECK, as a pool entry.
+   *
+   *  Registering it rather than special-casing the seat is what keeps this
+   *  wiring small: the label, the spellbook (absent = derived from its own
+   *  elements, which is exactly right for a mixed draft), validation and the
+   *  match-start call all go through `deckPool` already, and none of them needs
+   *  to learn what a draft is. It exists only while a run is PLAYING, so the
+   *  entry cannot be selected out of a picker between runs. */
+  const draftDeck: CustomDeck | null = draftPlaying(draftRun)
+    ? { id: DRAFT_DECK_ID, name: "Your draft", cards: draftRun!.picks }
+    : null;
   /** The event being fought, DERIVED from the opponent seat rather than stored.
    *
    *  Storing it would mean owning a lifecycle — set it on the Home tap, clear it
@@ -664,6 +681,24 @@ export function App() {
   useEffect(() => {
     if (gauntletSeatId && gauntletSeatId !== p2DeckId) setP2DeckId(gauntletSeatId);
   }, [gauntletSeatId, p2DeckId]);
+  /** The draft's opponent, dealt from the rung its win count has earned.
+   *
+   *  Gated exactly like `gauntletSeat` above, and for the same reasons written
+   *  there: vs-AI only, never over an event, and only while the mode is the one
+   *  the run belongs to — so a draft parked mid-run neither seizes the opponent
+   *  chair nor is scored by whatever you play instead. */
+  const draftSeat = arenaGame === "draft" && arenaMode === "ai" && !eventRun && draftPlaying(draftRun)
+    ? decksForTier(draftTier(draftRun!), boardSize)[0] ?? null
+    : null;
+  const draftSeatId = draftSeat?.id ?? null;
+  useEffect(() => {
+    if (draftSeatId && draftSeatId !== p2DeckId) setP2DeckId(draftSeatId);
+  }, [draftSeatId, p2DeckId]);
+  // ...and the drafted deck takes YOUR chair while its run is live, for the
+  // same reason: a run deals both seats or it is not a run.
+  useEffect(() => {
+    if (draftDeck && arenaGame === "draft" && p1DeckId !== DRAFT_DECK_ID) setP1DeckId(DRAFT_DECK_ID);
+  }, [draftDeck, arenaGame, p1DeckId]);
   /** The account panel (email sign-in + cloud save). */
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
@@ -684,7 +719,7 @@ export function App() {
   // `customDecks` are what the deck sheet is handed, and this list is not one of
   // them. Without them here the event seat resolved through the `?? modePremades[0]`
   // fallback and you fought Inferno Blitz under the event's name.
-  const deckPool: CustomDeck[] = [...modePremades, ...customDecks, ...EVENT_DECKS];
+  const deckPool: CustomDeck[] = [...modePremades, ...customDecks, ...EVENT_DECKS, ...(draftDeck ? [draftDeck] : [])];
   // Resolve a side's card list / label; fall back to the first premade if a
   // selection ever goes missing (e.g. a custom deck deleted mid-session).
   const resolveDeckCards = (deckId: string): string[] =>
@@ -966,6 +1001,12 @@ export function App() {
             { won, againstPremade, gauntletSeat: arenaGame === "gauntlet" },
             (sv) => awardShards(sv, "arena"),
           );
+      // The draft run is a FOURTH axis, settled the same way and on the same
+      // one-per-match guard. `draftSeat` is stated rather than inferred — see
+      // settleDraft, and the Gauntlet bug it is copied from.
+      const drafted = event
+        ? settled
+        : settleDraft(settled, { won, draftSeat: arenaGame === "draft" }, (sv, n) => addShards(sv, n));
       // The ladder is a THIRD axis, independent of both shards and the run: it
       // moves on any match against the rung it asked for — a matchmade fight or
       // a Gauntlet seat, both are premade decks at a known difficulty — and
@@ -981,10 +1022,10 @@ export function App() {
       // Gauntlet seat did too, scoring one match on two ladders at once.
       const climb = event || arenaGame !== "streak"
         ? null
-        : recordLadderMatch(settled.ladder, { won, tier: tierOf(p2DeckId), boardSize });
-      const next = !climb || climb.ladder === settled.ladder
-        ? settled
-        : addShards({ ...settled, ladder: climb.ladder }, climb.bonus);
+        : recordLadderMatch(drafted.ladder, { won, tier: tierOf(p2DeckId), boardSize });
+      const next = !climb || climb.ladder === drafted.ladder
+        ? drafted
+        : addShards({ ...drafted, ladder: climb.ladder }, climb.bonus);
       if (next !== prev) saveStory(next);
       return next;
     });
@@ -4180,6 +4221,7 @@ export function App() {
                     ["casual", "Casual", "Pick your own fight. Nothing is scored."],
                     ["streak", "Streak", "Climb the rungs. Wins pay more the longer you hold it."],
                     ["gauntlet", "Gauntlet", "Four dealt opponents. One loss ends the run."],
+                    ["draft", "Draft", "Build a squad from cards you do not own, three at a time. Three losses end the run."],
                   ] as const).map(([id, label, why]) => (
                     <button
                       key={id}
@@ -4202,6 +4244,13 @@ export function App() {
                       {label}
                       {id === "gauntlet" && gauntletRun && !runOver(gauntletRun) && (
                         <i className="mode-live" title="A run is waiting" aria-hidden="true">•</i>
+                      )}
+                      {id === "draft" && draftRun && (
+                        <i
+                          className="mode-live"
+                          title={draftComplete(draftRun) ? "A drafted squad is waiting" : "A draft is half-picked"}
+                          aria-hidden="true"
+                        >•</i>
                       )}
                     </button>
                   ))}
@@ -4310,6 +4359,38 @@ export function App() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* DRAFT. The entry is charged at the moment the run is created, in
+                the same write that creates it, so a draft can never exist
+                unpaid — the pattern the money path uses everywhere else. */}
+            {!onlineMode && !twoPlayer && arenaGame === "draft" && !draftRun && (
+              <div className="ar-gauntlet">
+                <button
+                  className="gt-start"
+                  disabled={(story.hero?.shards ?? 0) < DRAFT_ENTRY}
+                  title={`Draft eighteen cards you do not own, then run them until three losses`}
+                  onClick={() => {
+                    const next = {
+                      ...addShards(story, -DRAFT_ENTRY),
+                      draft: startDraft(boardSize),
+                    };
+                    setStory(next); saveStory(next);
+                  }}
+                >
+                  <span className="gt-start-main">
+                    Draft a squad
+                    <em className="gt-pay">
+                      -{DRAFT_ENTRY}<i className="shard" aria-hidden="true" />
+                    </em>
+                  </span>
+                  <span className="gt-sub">
+                    {(story.hero?.shards ?? 0) < DRAFT_ENTRY
+                      ? `Needs ${DRAFT_ENTRY} shards`
+                      : "Eighteen picks from cards you do not own · three lives"}
+                  </span>
+                </button>
               </div>
             )}
 
@@ -4785,6 +4866,36 @@ export function App() {
               onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>
+      )}
+
+      {/* THE PICK SCREEN. Mounted only while a run is still choosing cards, so
+          the moment the eighteenth lands it falls away and the run is a deck in
+          your chair like any other. It owns nothing: every pick comes back here
+          and is written to the save immediately, because a draft interrupted by
+          a closed tab should resume on the pick it was on. */}
+      {draftRun && !draftComplete(draftRun) && (
+        <DraftScreen
+          run={draftRun}
+          onPick={(id) => {
+            setStory((prev) => {
+              if (!prev.draft) return prev;
+              const next = { ...prev, draft: pickCard(prev.draft, id) };
+              saveStory(next);
+              return next;
+            });
+          }}
+          onExit={() => {
+            // Abandoning DISCARDS the run — the entry was already paid, and a
+            // draft you can walk out of and back into at will is a way to shop
+            // for an opening hand rather than a run.
+            setStory((prev) => {
+              const next = { ...prev, draft: undefined };
+              saveStory(next);
+              return next;
+            });
+            setArenaGame("casual");
+          }}
+        />
       )}
 
       <DeckBuilder

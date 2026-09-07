@@ -235,6 +235,11 @@ export function pickCard(run: DraftRun, id: string, rand: () => number = Math.ra
 
 /** Losses that end a run. Three is the Arena standard, and it is the number
  *  that makes the third match tense rather than the tenth. */
+/** The pool id the drafted deck is registered under while its run is live.
+ *  Reserved and double-underscored so it can never collide with a premade or a
+ *  squad the player named. */
+export const DRAFT_DECK_ID = "__draft__";
+
 export const DRAFT_LOSSES = 3;
 
 /** Wins that end a run at the top. Seven, to rhyme with the matchmaker's own
