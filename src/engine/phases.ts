@@ -20,6 +20,7 @@ import {
   effectiveSp,
   fieldBonus,
   gainMaxHp,
+  reconcileAuraHp,
   hasCaptureWin,
   hasStatus,
   auraShieldBonus,
@@ -473,6 +474,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       card.pos = { ...intent.to };
       draft.prep!.movedThisTurn = true;
       card.movedThisRound = true; // Swamp Monster: moving gives up the muck
+      // A step can walk into (or out of) an `adjacent` aura, so the ceilings
+      // move with it — settle them here, the same as on a summon.
+      reconcileAuraHp(draft);
       // Power Grab (General): a move cycles to the next Basic Attack Weapon,
       // once per round. (The doc's per-weapon ⚡ cost is simplified out.)
       {
@@ -2540,6 +2544,9 @@ function doRoundTicks(draft: GameState): void {
         continue;
       }
     }
+    // Ceilings settled once a round regardless of how they moved — a death,
+    // a transform or a token arriving by some path that does not summon.
+    reconcileAuraHp(draft);
     // PRISM'S WEAPON IS NEVER COLD. An enchanter holding no charge re-arms at
     // the top of the round, in whatever mode it last chose.
     //

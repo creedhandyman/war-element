@@ -6,7 +6,7 @@
 // fire at every hook, because the card inspector prints that it will.
 
 import { describe, expect, it } from "vitest";
-import { auraDrainBonus } from "../state";
+import { auraDrainBonus, auraMaxHpBonus } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { describeSharedPassives } from "../../ui/card-text";
 import {
@@ -923,5 +923,46 @@ describe("Sanguine Court — Vesper sharpens the whole Vamp line's bite", () => 
     const vamp2 = place(s, "dusk_vamp", "P1", 2, 2, { curHp: 10, maxHp: 10, curShields: 0 });
     basicAttack(s, vamp2.instanceId, prey2.instanceId);
     expect(90 - s.cards[prey2.instanceId].maxHp, "back to 1 with the lord gone").toBe(1);
+  });
+});
+
+describe("an aura's max HP arrives filled, like every other growth", () => {
+  // `effectiveMaxHp` is computed on read, so a card coming under a +max-HP aura
+  // used to gain headroom it then had to go and heal — the one route into
+  // "bigger, and freshly wounded" that did not pass through `gainMaxHp`.
+  it("a SeaC ally heals to match when Kraken's school reaches it", () => {
+    const s = prepState();
+    const fish = place(s, "aqua_spinefin", "P1", 3, 1);
+    const base = s.cards[fish.instanceId].curHp;
+    expect(auraMaxHpBonus(s, s.cards[fish.instanceId]), "no school yet").toBe(0);
+    place(s, "aqua_kraken", "P1", 3, 0); // +4 max HP to SeaC
+    expect(auraMaxHpBonus(s, s.cards[fish.instanceId]), "the school is up").toBe(4);
+    expect(s.cards[fish.instanceId].curHp, "and the fish is 4 bigger, not 4 hurt")
+      .toBe(base + 4);
+  });
+
+  it("pays ONCE — an aura holder is not a renewable heal", () => {
+    // The exploit the high-water mark exists for: summon the holder, heal the
+    // line, let it die, summon it again. The second raise is not growth.
+    const s = prepState();
+    const fish = place(s, "aqua_spinefin", "P1", 3, 1);
+    const base = s.cards[fish.instanceId].curHp;
+    const kraken = place(s, "aqua_kraken", "P1", 3, 0);
+    expect(s.cards[fish.instanceId].curHp).toBe(base + 4);
+    // Wound it, drop the holder, bring it back.
+    s.cards[fish.instanceId].curHp = 3;
+    delete s.cards[kraken.instanceId];
+    place(s, "aqua_kraken", "P1", 3, 2);
+    expect(s.cards[fish.instanceId].curHp, "no second payout").toBe(3);
+  });
+
+  it("SEAL stops it, the same as every other growth fill", () => {
+    const s = prepState();
+    const fish = place(s, "aqua_spinefin", "P1", 3, 1);
+    const base = s.cards[fish.instanceId].curHp;
+    applyStatus(s, s.cards[fish.instanceId], "SEAL", 2, 0, "PYRO");
+    place(s, "aqua_kraken", "P1", 3, 0);
+    expect(s.cards[fish.instanceId].curHp, "sealed: the ceiling rises, the body does not")
+      .toBe(base);
   });
 });

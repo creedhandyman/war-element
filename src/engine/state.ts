@@ -283,6 +283,32 @@ export function notePassive(draft: GameState, card: CardInstance, key: string): 
   void draft;
 }
 
+/** AURA GROWTH COMES WITH ITS HEAL TOO.
+ *
+ *  `effectiveMaxHp` is computed on read rather than stored, so a card coming
+ *  under a +max-HP aura silently gained headroom it then had to go and heal
+ *  — the same "bigger, and freshly wounded" shape `gainMaxHp` exists to stop,
+ *  arriving by the one route that did not go through it.
+ *
+ *  Pays on a NEW HEIGHT only (`hpPeakSeen`). An aura is removable where a
+ *  permanent gain is not, so without the mark an aura holder would be a heal
+ *  engine — summon, heal the line, let it die, summon again. Raising a ceiling
+ *  the card has already stood under is not growth, and heals nothing.
+ *
+ *  Losing an aura is left alone: the ceiling drops, Cleanup clamps curHp to it,
+ *  and nothing is clawed back that was not lent. */
+export function reconcileAuraHp(draft: GameState): void {
+  for (const card of boardCards(draft)) {
+    if (card.curHp <= 0) continue;
+    const bonus = auraMaxHpBonus(draft, card);
+    const seen = card.hpAuraSeen ?? 0;
+    if (bonus <= seen) continue;
+    // Raw, like every other growth fill — SEAL is the one thing that stops it.
+    if (!hasStatus(card, "SEAL")) card.curHp += bonus - seen;
+    card.hpAuraSeen = bonus;
+  }
+}
+
 export function cardAt(state: GameState, row: number, col: number): CardInstance | null {
   for (const c of Object.values(state.cards)) {
     if (c.pos && c.pos.row === row && c.pos.col === col) return c;
@@ -448,6 +474,21 @@ export function effectiveMaxHp(state: GameState, card: CardInstance): number {
   // Floored at 1: a penalty aura must be able to make a card frail, never to
   // reduce it to a 0-HP body that every cap and heal then divides against.
   return Math.max(1, card.maxHp + auraPick(vals));
+}
+
+/** Just the max-HP aura bonus on a card — what `effectiveMaxHp` adds to its own
+ *  `maxHp`, with no body underneath it. Split out so `reconcileAuraHp` can ask
+ *  about the AURA alone; see `hpAuraSeen` for why the total will not do. */
+export function auraMaxHpBonus(state: GameState, card: CardInstance): number {
+  const vals: number[] = [];
+  for (const holder of boardCards(state, card.owner)) {
+    const hDef = getDef(holder.defId);
+    for (const a of [hDef.aura, ...(hDef.auras ?? [])]) {
+      if (!a?.maxHp || !auraMatches(a, holder, card)) continue;
+      vals.push(a.maxHp);
+    }
+  }
+  return auraPick(vals);
 }
 
 /** The single choke-point for RAISING a card's max HP, and the only place
@@ -961,6 +1002,10 @@ export function summonCard(
     inst.curShields = mask.shields;
   }
   draft.cards[inst.instanceId] = inst;
+  // The new body may BE an aura holder, or may stand under one already up:
+  // either way the board's ceilings just moved, so settle them now rather than
+  // leaving a card taller and no healthier until the next round tick.
+  reconcileAuraHp(draft);
   return inst;
 }
 

@@ -5807,7 +5807,15 @@ export const CARDS: CardDef[] = [
     // still fully wired — types, state, combat and card text — so it costs
     // nothing to keep and is there for the next card that wants it.
     passiveNames: { onSummon: "Lure" },
-    onSummon: { handler: "strike", params: { dmg: 2, reachNearest: 1 }, targetSide: "enemy" },
+    // ...and the bite FRIGHTENS. The dangle was always the half that made the
+    // name work, and this is it: the light draws something in, and what it
+    // finds behind the light sends it back. `strike` carries the status rider,
+    // so the hit and the fright are one event rather than a second effect.
+    onSummon: {
+      handler: "strike",
+      params: { dmg: 2, reachNearest: 1, statusKind: "FRIGHTEN", statusDuration: 1 },
+      targetSide: "enemy",
+    },
   },
   {
     id: "gale_stormhide_bison",

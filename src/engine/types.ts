@@ -2135,6 +2135,20 @@ export interface CardInstance {
    *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the
    *  one-move-per-turn budget for the whole side. Reset each Cleanup. */
   movedThisRound?: boolean;
+  /** The largest max-HP AURA BONUS this card has ever stood under — the aura
+   *  part alone, never the total.
+   *
+   *  The aura part ONLY, deliberately. A stored peak of the whole effective
+   *  ceiling desyncs from every direct write to `maxHp` — transforms, Sea
+   *  Terror's revert, `scaleInstance`, a drain — and each of those would then
+   *  read as aura growth and pay a heal for it. The bonus is the only quantity
+   *  this is actually about.
+   *
+   *  A HIGH-WATER MARK, because an aura can be REMOVED where a permanent gain
+   *  cannot. Healing on every rise with no memory makes an aura holder a
+   *  renewable heal: summon it, the line heals, let it die, summon it again.
+   *  The mark means each genuine new height pays once. */
+  hpAuraSeen?: number;
   autoMode: AutoMode;
   pos: Pos | null; // null only transiently (never for a living board card)
 }
