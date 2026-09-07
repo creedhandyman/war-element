@@ -43,7 +43,7 @@ import type {
   StatusKind,
   HandCard,
 } from "./types";
-import { enemyOf, homeRow, NEGATIVE_STATUSES, seatsOf } from "./types";
+import { enemyOf, homeRow, NEGATIVE_STATUSES, seatsOf, POOL_CARRYOVER_CAP } from "./types";
 import { isImpassable, poiAt, poiRing, type PoiDef } from "../data/domination";
 
 // ── mulligan ────────────────────────────────────────────────────────────────
@@ -117,6 +117,19 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   const hand = state.players[player].hand.slice().sort(
     style.summon === "cheapest"
       ? (a, b) => getDef(a.defId).cost - getDef(b.defId).cost
+      : style.summon === "scaling"
+        ? (a, b) => {
+            // GROWTH FIRST. A card that gains DMG on a kill, or every N rounds,
+            // is worth more the longer the game runs — which is the only form
+            // of "long term" this economy actually pays out on.
+            const grows = (x: HandCard) => {
+              const d = getDef(x.defId);
+              const k = d.onKill;
+              return (k?.buffDmg || k?.buffHits || k?.buffMaxHp || k?.buffSp
+                || d.roundTick?.buffDmgEveryN) ? 0 : 1;
+            };
+            return grows(a) - grows(b) || byCost(a, b);
+          }
       : style.summon === "hardest"
         ? (a, b) => {
             const hit = (x: HandCard) => getDef(x.defId).dmg * getDef(x.defId).hits;
@@ -139,7 +152,17 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   // ...and DIAMONDS may decline to spend at all. A hoarder that can only afford
   // the cheap end of its hand waits for the heavy end instead — but only for
   // `bankMaxRounds`, because an empty board is not a long game, it is a loss.
-  if (style.bankFor > 0 && state.round <= style.bankMaxRounds && hand.length > 1) {
+  //
+  // AND ONLY WHILE THE BANK HAS ROOM. `POOL_CARRYOVER_CAP` truncates gold to 10
+  // at the top of every Resource phase, BEFORE the round's income is added — so
+  // a hoarder sitting on the cap burns its surplus every single round. It was
+  // saving into a bucket with a hole in it, which is why it lost to everything
+  // and to the turtle worst of all (42.3% against Defense over 300 games): all
+  // of the tempo cost, and the payoff quietly deleted. Past the cap, spending IS
+  // the thriftier move.
+  const purse = state.players[player].gold;
+  if (style.bankFor > 0 && purse < POOL_CARRYOVER_CAP
+      && state.round <= style.bankMaxRounds && hand.length > 1) {
     const dearest = Math.max(...hand.map((h) => getDef(h.defId).cost));
     const affordable = hand
       .filter((h) => canSummon(state, player, h.handId, 0).ok

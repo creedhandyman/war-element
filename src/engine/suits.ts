@@ -32,10 +32,12 @@
 // pairing, heroes ON:
 //
 //              vs   Attack Defense Control   Hoard      overall
-//     ♠ Attack        —      46%     53%     66%         55.0%
-//     ♣ Defense      54%      —      44%     55%         50.8%
-//     ♥ Control      48%     56%      —      56%         53.3%
-//     ♦ Hoard        34%     45%     44%      —          40.8%
+//     ♠ Attack        —      46%     53%     51%         50.0%
+//     ♣ Defense      54%      —      44%     59%         52.1%
+//     ♥ Control      48%     56%      —      46%         50.0%
+//     ♦ Hoard        49%     41%     54%      —          47.9%
+//
+// Spread 4.2 points across the four.
 //
 // THE CYCLE IS THE POINT: Attack beats Control, Control beats Defense, Defense
 // beats Attack. Three of the four counter each other, which is what keeps a
@@ -56,7 +58,21 @@
 // preference (1.3 points, the wrong way). Neither `specialSurplus` nor the
 // summon RANK is a real lever — the costs are.
 //
-// HOARD IS NOW THE FLOOR at 40.8% and is the open question, not Control.
+// HOARD STOPPED HOARDING GOLD, and that is the other half of this table. It
+// banked for three rounds, lost to everything, and lost worst of all to the
+// turtle (42.3% against Defense over 300 games). The economy simply does not
+// pay for saving: income is 1/round early, so a 60%-of-dearest threshold is
+// unreachable inside the window, and `POOL_CARRYOVER_CAP` truncates gold to 10
+// before each round's income lands — a hoarder was saving into a bucket with a
+// hole in it. All of the tempo cost, none of the payoff.
+//
+// So the long game is now what COMPOUNDS rather than what is banked: Diamonds
+// fields cards that grow (on-kill ramps, per-round growth), which is the one
+// form of "long term" this economy actually rewards. 42.3% -> 47.7% against
+// Defense, and the spread across all four fell from 14.2 points to 4.2.
+//
+// The bank gate is kept and now respects the carryover cap. It is unused by any
+// style, but it was wrong in a way the next author would have hit.
 //
 // Attack's first cut took `cheapest` and measured 40.4% overall, losing to
 // Defense 31-63: a board of 1-drops run eagerly into a wall. `hardest` is the
@@ -73,14 +89,15 @@ export const SUITS: readonly Suit[] = ["spade", "club", "heart", "diamond"];
  *  - `cheapest`   most bodies soonest
  *  - `hardest`    the most damage on the board: dmg x hits
  *  - `toughest`   the wall: HP + shields
- *  - `caster`     Support and Mage first, then biggest
+ *  - `caster`     Mages first, then biggest
+ *  - `scaling`    cards that GROW: on-kill ramps and per-round growth
  *
  *  `cheapest` was Spades' first taste and it measured as the worst thing in the
  *  set: a board of 1-drops run eagerly into a wall lost to Defense 31-63. The
  *  style is "attack", not "spend little" — so it reaches for the biggest hitter
  *  it can afford instead, and the eagerness stays in the MOVEMENT where it
  *  belongs. */
-export type SummonTaste = "biggest" | "cheapest" | "hardest" | "toughest" | "caster";
+export type SummonTaste = "biggest" | "cheapest" | "hardest" | "toughest" | "caster" | "scaling";
 
 export interface SuitStyle {
   key: Suit;
@@ -125,8 +142,8 @@ export const SUIT_STYLES: Record<Suit, SuitStyle> = {
   },
   diamond: {
     key: "diamond", glyph: "♦", name: "Hoard",
-    blurb: "Banks its gold for the heavy end. Slow to start, and then very large.",
-    summon: "biggest", bankFor: 0.6, bankMaxRounds: 3, advance: "normal", specialSurplus: 2,
+    blurb: "Fields what compounds. Every kill and every round makes its line worse to face.",
+    summon: "scaling", bankFor: 0, bankMaxRounds: 0, advance: "normal", specialSurplus: 2,
   },
 };
 

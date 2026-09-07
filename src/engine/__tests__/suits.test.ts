@@ -66,7 +66,7 @@ describe("the four personalities actually differ", () => {
     s.players.P2.hand = [
       { handId: "h1", defId: "leaf_nettle" },      // c1,  3 dmg, Mage — the caster
       { handId: "h2", defId: "pyro_spitfire" },    // c3,  6 dmg   — the hardest hitter
-      { handId: "h3", defId: "leaf_elderroot" },   // c6,  Support — sustain, NOT control
+      { handId: "h3", defId: "leaf_greegon" },     // c3,  Dragon's Fury — it GROWS
       { handId: "h4", defId: "bore_bastion" },     // c8, 31+12 hp — dearest AND toughest
     ];
     const intent = aiPrepIntent(s, "P2");
@@ -74,16 +74,17 @@ describe("the four personalities actually differ", () => {
     return s.players.P2.hand.find((h) => h.handId === intent.handId)?.defId ?? null;
   }
 
-  it("Spades reaches for the hardest hitter, Diamonds for the dearest", () => {
+  it("Spades reaches for the hardest hitter, Diamonds for what grows", () => {
     const spade = firstSummon("spade");
     const diamond = firstSummon("diamond");
     expect(spade, "attack wants damage on the board").toBe("pyro_spitfire");
-    expect(diamond, "the hoarder wants the heavy end").toBe("bore_bastion");
-    // The point of the pairing: they are DIFFERENT cards, and Spades' pick is
-    // not simply the expensive one.
-    expect(getDef(spade!).cost).toBeLessThan(getDef(diamond!).cost);
-    expect(getDef(spade!).dmg * getDef(spade!).hits)
-      .toBeGreaterThan(getDef(diamond!).dmg * getDef(diamond!).hits);
+    // The long-term thinker takes what COMPOUNDS, not what is dearest — gold
+    // banking measured as a pure loss in this economy (see suits.ts).
+    expect(diamond, "the long game wants what grows").toBe("leaf_greegon");
+    expect(getDef(diamond!).onKill?.buffDmg, "and that is why").toBeTruthy();
+    // Neither reaches for the dearest card, which is what a naive taste does.
+    expect(getDef(spade!).cost).toBeLessThan(getDef("bore_bastion").cost);
+    expect(getDef(diamond!).cost).toBeLessThan(getDef("bore_bastion").cost);
   });
 
   it("Clubs reaches for the toughest, Hearts for the caster", () => {
