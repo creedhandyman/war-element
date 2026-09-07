@@ -121,9 +121,15 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
       // The opening placement is free — that is the whole of the head start.
       // ...and so is a Mustered one, which spends the arming instead of gold.
-      if (p.freeSummon) {
+      //
+      // IT IS ONLY SPENT WHEN IT WAS NEEDED. During the opening, placement is
+      // already free, so the only thing Muster buys there is a card OVER the
+      // cost cap — and burning a once-per-game power on a 1-drop the player
+      // could have placed anyway would be the game quietly robbing them.
+      const musterNeeded = draft.opening ? def.cost > OPENING_COST_CAP : true;
+      if (p.freeSummon && musterNeeded) {
         p.freeSummon = false;
-        draft.log.push(`${intent.player} musters ${def.name} — no gold spent.`);
+        draft.log.push(`${intent.player} musters ${def.name} — cost ignored.`);
       } else if (!draft.opening) {
         p.gold -= def.cost;
       }

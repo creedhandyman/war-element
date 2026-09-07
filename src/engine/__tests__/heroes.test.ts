@@ -134,6 +134,37 @@ describe("the hero powers", () => {
     expect(canSummon(after, "P1", "h2", 1).ok, "back to broke").toBe(false);
   });
 
+  it("Muster beats the OPENING cost cap too, not just the gold", () => {
+    // The cap and the price are the same rule wearing two hats — both say "not
+    // this early" — so a free summon that answered one and not the other could
+    // not summon the thing you saved it for.
+    const s = armed("spade");
+    s.opening = { P1: 2, P2: 2 } as never;
+    s.players.P1.hand = [
+      { handId: "h1", defId: "dusk_shadowhorsemen" }, // c10, far over the cap
+      { handId: "h2", defId: "leaf_nettle" },         // c1, placeable anyway
+    ];
+    expect(canSummon(s, "P1", "h1", 0).ok, "over the cap, unarmed").toBe(false);
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(canSummon(ready, "P1", "h1", 0).ok, "armed: the cap is a cost too").toBe(true);
+  });
+
+  it("...and is NOT spent on an opening placement that never needed it", () => {
+    // Opening placement is already free, so a 1-drop costs the player nothing
+    // to put down. Burning a once-per-game power on it would be the game
+    // quietly robbing them.
+    const s = armed("spade");
+    s.opening = { P1: 2, P2: 2 } as never;
+    s.players.P1.hand = [
+      { handId: "h1", defId: "leaf_nettle" },         // c1 — under the cap
+      { handId: "h2", defId: "dusk_shadowhorsemen" }, // c10 — what it was saved for
+    ];
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    const after = applyIntent(ready, { type: "SUMMON", player: "P1", handId: "h1", col: 0 });
+    expect(after.players.P1.freeSummon, "still armed").toBe(true);
+    expect(canSummon(after, "P1", "h2", 1).ok, "and still good for the big one").toBe(true);
+  });
+
   it("Arcane Focus zeroes the next Special's cost", () => {
     const s = armed("heart");
     const caster = place(s, "aqua_sapphire", "P1", 3, 0);

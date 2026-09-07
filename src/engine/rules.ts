@@ -65,7 +65,12 @@ export function canSummon(
     // Free placement: slots are the currency, not gold — but the card still has
     // to be something you could plausibly lead with.
     if ((state.opening[player] ?? 0) <= 0) return { ok: false, reason: "No deployment slots left" };
-    if (def.cost > OPENING_COST_CAP)
+    // Muster (Warlord) beats the opening cap too. The cap and the gold price are
+    // the same rule wearing two hats — both say "not this early" — and a power
+    // that answered one of them and not the other would be a free summon that
+    // could not summon the thing you saved it for. The SLOT is still spent:
+    // Muster pays a card's cost, not a seat's deployment.
+    if (!state.players[player].freeSummon && def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
   } else if (!state.players[player].freeSummon && def.cost > state.players[player].gold) {
     // Muster (Warlord): an armed free summon ignores the price entirely, so a

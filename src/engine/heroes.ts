@@ -101,7 +101,7 @@ export const HEROES: Record<Suit, Hero> = {
     // ONE round, against the Mage's three. Gold is the strong currency and a
     // Warlord that opened two tiers up would simply win the opening.
     goldShift: 1, magicShift: -1,
-    power: { name: "Muster", text: "Once per game, free: your next summon costs no gold." },
+    power: { name: "Muster", text: "Once per game, free: your next summon ignores its cost — gold, and the opening cap." },
   },
   club: {
     suit: "club", name: "Sentinel",
