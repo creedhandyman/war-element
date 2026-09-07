@@ -17,6 +17,7 @@ import { DOMINATION_7X7 } from "./domination";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { DraftRun } from "./draft";
+import { playerLevel } from "./player";
 import type { LadderState } from "./matchmaker";
 
 // ── shape ───────────────────────────────────────────────────────────────────
@@ -2491,6 +2492,14 @@ export interface StorySave {
   /** The draft in progress — picking, or playing the deck it produced. One run
    *  at a time, like the Gauntlet's. */
   draft?: DraftRun;
+  /** The player level this save has been SHOWN and paid for.
+   *
+   *  `playerLevel` is derived from the collection, so there is no level-up
+   *  event to catch — this is the high-water mark that turns a moving number
+   *  into one. Absent means "never shown", which `seenLevel` reads as the
+   *  CURRENT level so a save that predates the feature is not owed hundreds of
+   *  shards for levels it earned before there was anything to pay them. */
+  levelSeen?: number;
   /** Tutorial steps already taught. See `ui/TutorialCoach.tsx`.
    *
    *  In the save because a tutorial that repeats is a nag: these fire once per
@@ -2761,7 +2770,15 @@ export function loadStory(): StorySave {
     // A brand-new player is not "a current player": they start with every past
     // gift already marked given, so compensation for something they never
     // experienced is not also a welcome bonus.
-    if (!raw) return { ...newSave(), gifts: GIFTS.map((g) => g.id) };
+    if (!raw) {
+      const fresh: StorySave = { ...newSave(), gifts: GIFTS.map((g) => g.id) };
+      // Same reasoning as the gifts above, one line down: the starter card is a
+      // gift, not a level anybody earned, so the mark starts where they start.
+      // Stamped rather than left absent because `seenLevel` reads absent as the
+      // CURRENT level — without a written mark it would follow the level up
+      // forever and no level-up would ever fire.
+      return { ...fresh, levelSeen: playerLevel(fresh) };
+    }
     const p = JSON.parse(raw) as Partial<StorySave>;
     const known = (ids: unknown): string[] =>
       Array.isArray(ids) ? ids.filter((i): i is string => typeof i === "string" && !!CARD_INDEX[i]) : [];
@@ -2850,6 +2867,13 @@ export function loadStory(): StorySave {
           && [4, 5, 7].includes(d.board as number) && num(d.won) && num(d.lost);
         return ok ? d : undefined;
       })(),
+      // A non-negative integer or nothing. Junk is DROPPED rather than clamped:
+      // absent reads as the current level, which owes nothing, and that is the
+      // safe answer for a hand-edited save. A clamp to 0 would be the unsafe
+      // one — it would pay out the whole collection.
+      levelSeen: typeof p.levelSeen === "number" && Number.isFinite(p.levelSeen) && p.levelSeen >= 0
+        ? Math.floor(p.levelSeen)
+        : undefined,
       taught: Array.isArray(p.taught) ? p.taught.filter((x) => typeof x === "string") : undefined,
       // Two non-negative integers or nothing. A junk streak would pick the rung
       // the matchmaker seats, so a hand-edited save could deal itself elite
@@ -2951,8 +2975,19 @@ export function loadStory(): StorySave {
     // re-granted on every single load until something else happens to save —
     // harmless for a refill, but it would mean a taming that never runs down.
     const gifted = applyGifts(save);
-    if (gifted.granted.length) saveStory(gifted.save);
-    return gifted.save;
+    // THE LEVEL MARK, stamped on the way out when the save has none.
+    //
+    // `seenLevel` reads an absent mark as the current level, which is the right
+    // answer for a save that predates the feature — nobody is owed hundreds of
+    // shards for levels earned before there was a popup. But it is only right
+    // ONCE: left unwritten it would keep following the level upward and no
+    // level-up would ever be detected. Writing it here is what turns "owe
+    // nothing for the past" into "start counting from now".
+    const marked: StorySave = gifted.save.levelSeen === undefined
+      ? { ...gifted.save, levelSeen: playerLevel(gifted.save) }
+      : gifted.save;
+    if (gifted.granted.length || marked !== gifted.save) saveStory(marked);
+    return marked;
   } catch {
     return newSave();
   }

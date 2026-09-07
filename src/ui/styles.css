@@ -7381,3 +7381,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .dr-card { transition: border-color 0.14s ease; }
   .dr-card:hover, .dr-card:focus-visible, .dr-card:active { transform: none; }
 }
+
+/* ── LEVEL UP · one card for the whole span ───────────────────────────────
+   No always-on animation here, for the same reason the draft screen has none
+   (see `.slot-glow`): a modal the player reads for a few seconds does not need
+   a shadow repainting behind it at 60fps. The badge lands with ONE transform
+   keyframe and then stops. */
+.lvl-up { max-width: 420px; text-align: center; }
+.lvl-badge {
+  width: 84px; height: 84px; margin: 2px auto 14px; border-radius: 50%;
+  display: grid; place-items: center;
+  font-family: var(--head); font-size: 34px; font-weight: 900; color: var(--gold-hi);
+  background: radial-gradient(circle at 50% 38%, rgba(201,162,75,.30), rgba(0,0,0,.42));
+  border: 2px solid var(--gold-line);
+  box-shadow: 0 0 26px rgba(201,162,75,.32);
+  animation: lvlPop .42s cubic-bezier(.2,1.5,.4,1) both;
+}
+@keyframes lvlPop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.lvl-span { color: var(--ink-dim); font-size: 14px; margin-bottom: 16px; }
+.lvl-span b { color: var(--ink); }
+.lvl-rewards { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.lvl-row {
+  display: flex; align-items: baseline; justify-content: space-between; gap: 10px;
+  padding: 9px 12px; border-radius: 10px; text-align: left;
+  background: rgba(0,0,0,.3); border: 1px solid var(--panel-line);
+}
+.lvl-row.big { border-color: var(--gold-line); }
+.lvl-amt { font-family: var(--head); font-size: 17px; color: var(--gold-hi); white-space: nowrap; }
+.lvl-why { color: var(--ink-faint); font-size: 11px; text-align: right; }
+.lvl-next { color: var(--ink-faint); font-size: 11px; margin-bottom: 14px; }
+@media (prefers-reduced-motion: reduce) { .lvl-badge { animation: none; } }

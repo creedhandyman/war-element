@@ -65,6 +65,8 @@ import { Board } from "./Board";
 import { CardView } from "./CardView";
 import { talentEffect } from "./card-text";
 import { DraftScreen } from "./DraftScreen";
+import { LevelUpModal } from "./LevelUpModal";
+import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
   DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
   draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickCard, settleDraft,
@@ -725,6 +727,15 @@ export function App() {
   useEffect(() => {
     if (draftDeck && arenaGame === "draft" && p1DeckId !== DRAFT_DECK_ID) setP1DeckId(DRAFT_DECK_ID);
   }, [draftDeck, arenaGame, p1DeckId]);
+  /** Levels earned but not yet shown, or null.
+   *
+   *  Read straight off the save every render rather than latched into state:
+   *  the level is derived from the collection, so the only honest source is the
+   *  save itself, and a latch would need clearing on every path that changes it
+   *  (a pack, a boss, a story clear, a restore). `claimLevelUp` writes the mark
+   *  it just paid, so this goes null on its own the moment it is collected. */
+  const levelUp = useMemo(() => pendingLevelUp(story), [story]);
+
   /** The account panel (email sign-in + cloud save). */
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
@@ -4973,6 +4984,25 @@ export function App() {
           your chair like any other. It owns nothing: every pick comes back here
           and is written to the save immediately, because a draft interrupted by
           a closed tab should resume on the pick it was on. */}
+      {/* LEVEL UP. Derived from the save rather than fired by an event, because
+          `playerLevel` has no event to fire — whatever moved the collection
+          (a pack, a boss, a story clear) moved the level as a side effect, and
+          this notices on the next render. One card for the whole span; both
+          buttons pay, because `claimLevelUp` is what closes it either way. */}
+      {levelUp && (
+        <LevelUpModal
+          reward={levelUp}
+          onClose={() => {
+            setStory((prev) => {
+              const next = claimLevelUp(prev);
+              if (next === prev) return prev;
+              saveStory(next);
+              return next;
+            });
+          }}
+        />
+      )}
+
       {draftRun && !draftComplete(draftRun) && (
         <DraftScreen
           run={draftRun}
