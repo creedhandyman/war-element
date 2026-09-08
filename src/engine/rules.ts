@@ -1869,7 +1869,21 @@ export function canFireSpecial(
   if (def.special.talent && card.talentUsed)
     return { ok: false, reason: "Talent already used this game" };
   // A free Special (Volcanon's On-Kill recast) ignores cooldown + magic cost.
-  if (!card.freeSpecial && !def.special.talent && card.specialCooldown > 0)
+  //
+  // ARCANE FOCUS DOES TOO, and it has to. Measured across 160 matches: magic
+  // blocked 0% of the Mage's Specials — not rarely, never, because its own
+  // `magicShift: +5` had already removed magic as a constraint (average pool
+  // 10-13 by round 10). A power that refunds a cost nobody was paying is worth
+  // nothing, and it showed: the Mage cast 2.9 Specials a match against the
+  // Sentinel's 3.0, last in the suit table, while its identity line promised
+  // "Specials early and often". Cooldown blocked it 24% of the time. This is
+  // the constraint that actually binds, so this is where the charges act.
+  //
+  // BOUNDED, not a rate change — four casts, once a game, which is the same
+  // safety argument the curves are built on. A hero that halved cooldowns
+  // outright would compound for the whole match.
+  const focused = (state.players[card.owner].freeSpecial ?? 0) > 0;
+  if (!card.freeSpecial && !focused && !def.special.talent && card.specialCooldown > 0)
     return { ok: false, reason: `Special is recharging (${card.specialCooldown} more round${card.specialCooldown === 1 ? "" : "s"})` };
   // THE BOSS CLOCK owns this Special outright. Without this the AI would also
   // cast it whenever it could afford the magic, and a threat that lands on a

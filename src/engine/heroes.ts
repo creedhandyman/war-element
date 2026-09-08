@@ -114,19 +114,52 @@
 //     ♣ Sentinel  47.8%        88%
 //     ♥ Mage      45.5%        43%      spread 13.3
 //
-// TWO THINGS TO LOOK AT, neither of them Requisition's discard rule — that
-// change measured at −1.7 for the Scholar with the spread a shade tighter, so
-// it is not what put the Scholar there:
+// ──────────────────────────────────────────────────────────────────
+// THE MAGE WAS PAYING FOR SOMETHING IT ALREADY HAD. Three changes, ablated one
+// at a time on the harness above, and only the third of them is worth anything:
 //
-//   1. The Scholar is ten points clear of second. `HERO_GOLD` went back to 4
-//      on the reading that 4 and 2 were "the same table within noise"; on THIS
-//      harness they are not, and 4 gold on a power that now costs the player
-//      nothing they wanted is the obvious suspect. Re-measure the payout before
-//      touching anything else.
-//   2. The Mage fires Arcane Focus in 43% of games against the 73% recorded
-//      above, and sits last. That is the exact shape of the capital-letter bug
-//      this file already caught once. Check the usage rate before the magnitude
-//      — see the paragraph directly above.
+//     change                                      ♥ Mage    spread
+//     (baseline)                                   45.5      13.3
+//     + fixed the dead trigger (fires 43% -> 58%)  45.7      13.0
+//     + Arcane Focus waives COOLDOWN, not just     46.3      12.4
+//       cost
+//     + dropped `goldShift: -1`                    49.1      11.5
+//
+// The diagnosis came first and the numbers only confirmed it. Sampling every
+// Special-capable body on every prep turn across 160 matches, what stops a cast:
+//
+//     blocker            ♥ Mage    ♣ Sentinel
+//     ready                33%         34%
+//     no valid target      26%         25%
+//     cooldown             24%         18%
+//     just summoned        16%         15%
+//     NOT ENOUGH MAGIC      0%          8%
+//
+// Zero. Not rarely — never, in any round, because `magicShift: +5` had already
+// taken magic off the table (pool 10-13 by round 10). So the hero's own bonus
+// suppressed its own power: Arcane Focus refunded a cost nobody was paying, and
+// the AI trigger asked "is there a Special you cannot afford" of the one seat
+// that always could — 0% true in every round, firing at all only by catching a
+// mid-round moment after the pool had been spent down. That is the
+// capital-letter bug one layer deeper: not a branch that never matched, a
+// branch whose premise the rest of the hero had made impossible.
+//
+// The outcome it produced: the Mage cast 2.9 Specials a match. The Sentinel,
+// with no bonus at all, cast 3.0. An identity line promising "Specials early
+// and often" over a hero that cast fewer of them than the baseline.
+//
+// AND THE LESSON IS THE SAME ONE TWICE. +0.2 for fixing usage and +0.6 for
+// making the power act on the constraint that actually binds; +2.8 for one
+// round of the gold curve. A hero's strength is in its CURVE. The button is
+// presence, not power — which is what the Hold the Line experiment above found
+// when a 60-100% buff moved the table 0.4 points, and `FOCUS_CASTS` climbing
+// 2 -> 4 while nothing happened was the same signal going unread.
+//
+// STILL OPEN: the Scholar at 57.6%, eight clear of second and untouched by any
+// of this. `HERO_GOLD` went back to 4 on the reading that 4 and 2 were "the
+// same table within noise"; on this harness they are not. Re-measure the payout
+// before touching anything else — and note Requisition's discard rule is not
+// the cause, it measured at −1.7 for the Scholar.
 import type { CardDef, PlayerId, Suit } from "./types";
 
 export interface Hero {
@@ -206,7 +239,22 @@ export const MUSTER_MAX_COST = 3;
  *
  *  TWO, because one was worth almost nothing: magic is the cheap currency and a
  *  single refunded cast left Control at 22.5%. Two casts is still under what
- *  one free body is worth, which is the exchange rate doing its job. */
+ *  one free body is worth, which is the exchange rate doing its job. (Four now
+ *  — the count kept climbing while the power stayed worthless, which was the
+ *  clue that the count was never the problem. See below.)
+ *
+ *  AND THE CHARGES WAIVE COOLDOWN, not just cost, which is the whole of what
+ *  makes this a power at all. Measured across 160 matches: magic blocked 0% of
+ *  the Mage's Specials — never, in any round — because its own `magicShift: +5`
+ *  had already taken magic off the table (average pool 10-13 by round 10). A
+ *  refund of a cost nobody was paying is worth exactly nothing, and it showed:
+ *  the Mage cast 2.9 Specials a match against the Sentinel's 3.0, last in the
+ *  suit table, under an identity line promising "Specials early and often".
+ *
+ *  What DID block it: cooldown 24%, no valid target 26%, summon-turn 16%. The
+ *  waiver acts on cooldown because that is the one a hero can move — and it
+ *  stays BOUNDED at `FOCUS_CASTS` casts, once a game, rather than becoming the
+ *  rate change this file's whole safety argument is against. */
 export const FOCUS_CASTS = 4;
 /** No hero power before this round.
  *
@@ -236,14 +284,33 @@ export const HEROES: Record<Suit, Hero> = {
   },
   heart: {
     suit: "heart", name: "Mage",
-    identity: "Specials early and often, paid for out of the board.",
-    // FIVE rounds of magic for ONE of gold, and it is still not a bargain —
-    // which is the exchange rate arriving as a design constraint. The first cut
-    // traded 1 gold for 3 magic, looked generous, and measured at −7.5 points
-    // against the baseline. At +5 it lands at −0.8. Anything that reads as a
-    // fair-looking trade here is a trap for the player who takes it.
-    goldShift: -1, magicShift: 5,
-    power: { name: "Arcane Focus", text: `Once per game, free: your next ${FOCUS_CASTS} Specials cost no magic.` },
+    identity: "Specials early and often, and the magic to keep them coming.",
+    // NO GOLD PENALTY ANY MORE, and this is the single change that fixed the
+    // Mage. It used to pay `goldShift: -1` for its magic, on the reasoning that
+    // five rounds of the cheap currency for one of the dear one is a fair-
+    // looking trade that is really a trap — measured, at the time, at −0.8
+    // against the baseline.
+    //
+    // That reading came from injecting income deltas by hand into a mirror
+    // match, which answers "what is +5 magic worth if you can spend it". On the
+    // live table the answer is: nothing. Magic blocks 0% of this hero's
+    // Specials, in every round, because the +5 has already taken magic off the
+    // table — the pool sits at 10-13 by round 10 and never runs short. The
+    // Mage was paying real money for a benefit it had already saturated, and it
+    // sat LAST at 45.5% under an identity line promising more casting than
+    // anyone else while casting 2.9 Specials a match to the Sentinel's 3.0.
+    //
+    // Dropping the penalty alone moved it 46.3% -> 49.1% and took the suit
+    // spread to 11.5, the tightest of any configuration measured. The two
+    // changes to the POWER either side of it were worth +0.2 and +0.6 — inside
+    // noise, and the third time this file has found that a hero's strength
+    // lives in its curve and not in its once-per-game button.
+    //
+    // The +5 magic stays. It is close to free (it buys off the 8% of casts the
+    // Sentinel loses to an empty pool and nothing more), it is what the hero
+    // reads as, and removing it would leave a Sentinel with a different power.
+    goldShift: 0, magicShift: 5,
+    power: { name: "Arcane Focus", text: `Once per game, free: your next ${FOCUS_CASTS} Specials cost no magic and ignore cooldown.` },
   },
   diamond: {
     suit: "diamond", name: "Scholar",

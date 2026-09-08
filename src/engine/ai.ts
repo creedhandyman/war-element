@@ -34,7 +34,6 @@ import {
   homeSlots,
 
   domMap,
-  effectiveSpecialCost,
 } from "./rules";
 import type {
   CardInstance,
@@ -138,19 +137,23 @@ function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
         ? { type: "HERO_POWER", player } : null;
     }
     case "heart": {
-      // Arcane Focus: a Special it wants and cannot pay for.
+      // Arcane Focus: a board that will actually SPEND the four charges.
       //
-      // COMPARED AS NUMBERS, not against the reason STRING. The first cut
-      // matched "Not enough Magic" and the engine says "Not enough magic" — one
-      // capital letter, and Control never fired its power in a single game out
-      // of 48 while the other three fired in every one. That was the whole of
-      // its deficit in the balance table, and a string compare is how it hid:
-      // nothing failed, the branch was simply never true.
-      const stuck = board.some((c) => {
-        const sp = getDef(c.defId).special;
-        return Boolean(sp) && p.magicPool < effectiveSpecialCost(state, c, sp!.cost);
-      });
-      return stuck ? { type: "HERO_POWER", player } : null;
+      // It used to ask "is there a Special you cannot pay for", and that was
+      // dead — 0% true in every round of 160 measured matches, because the
+      // Mage's own `magicShift: +5` is what makes it magic-rich. The hero's
+      // bonus was suppressing the hero's power. It still fired in 41% of games
+      // only by catching a mid-round moment after the pool had been spent down,
+      // which is a top-up rather than the burst it is meant to be.
+      //
+      // This is the same shape as the capital-letter bug above, one layer
+      // deeper: not a branch that never matched, a branch whose premise the
+      // rest of the hero had made impossible.
+      //
+      // Two bodies, because four refunds want somewhere to land — one Special
+      // on a 2-round cooldown spends at most two of them before the match ends.
+      const casters = board.filter((c) => getDef(c.defId).special).length;
+      return casters >= 2 ? { type: "HERO_POWER", player } : null;
     }
     case "club":
       // Hold the Line: once there is a line to hold and someone to hold it

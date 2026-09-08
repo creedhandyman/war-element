@@ -5,7 +5,7 @@ import { join } from "node:path";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
 import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, cardPower, goldRoundFor, magicRoundFor } from "../heroes";
-import { canSummon, effectiveSpecialCost } from "../rules";
+import { canFireSpecial, canSummon, effectiveSpecialCost } from "../rules";
 import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
@@ -80,6 +80,25 @@ describe("heroes are OFF unless a mode turns them on", () => {
     const magic = (suit: Suit, round: number) =>
       poolGainForRound(magicRoundFor(round, suit, true));
     expect(magic("heart", 5)).toBeGreaterThan(magic("spade", 5));
+  });
+
+  it("charges the Mage NOTHING in gold for its magic", () => {
+    // The measured fix, and the one the assertion above cannot see: at round 5
+    // a -1 shift and a 0 shift both read tier 1, so `gold("heart", 5) === 1`
+    // passes either way. This compares the shift itself.
+    //
+    // The Mage used to pay `goldShift: -1`, on a mirror-match reading that five
+    // rounds of magic for one of gold was a trap. On the live table magic
+    // blocks 0% of its Specials in every round — the +5 has already saturated
+    // it — so the penalty bought nothing and the Mage sat LAST at 45.5%.
+    // Removing it alone: 46.3% -> 49.1%, suit spread down to 11.5.
+    expect(HEROES.heart.goldShift, "the Mage pays no gold penalty").toBe(0);
+    expect(HEROES.heart.magicShift, "and keeps the magic").toBeGreaterThan(0);
+    // Round 21 puts every curve on the top tier, so a shift is invisible there;
+    // round 6 is a boundary and the honest place to read one.
+    const at = (suit: Suit, r: number) => poolGainForRound(goldRoundFor(r, suit, true));
+    expect(at("heart", 6), "level with the Sentinel, not behind it")
+      .toBe(at("club", 6));
   });
 });
 
@@ -225,6 +244,41 @@ describe("the hero powers", () => {
     expect(effectiveSpecialCost(s, s.cards[caster.instanceId], cost), "priced as normal").toBe(cost);
     const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
     expect(effectiveSpecialCost(ready, ready.cards[caster.instanceId], cost), "free once armed").toBe(0);
+  });
+
+  it("Arcane Focus also beats the COOLDOWN, which is what it was for", () => {
+    // The refund alone was worth nothing, and the measurement is why. Across
+    // 160 matches magic blocked 0% of the Mage's Specials — never, because its
+    // own `magicShift: +5` had already taken magic off the table — while
+    // cooldown blocked 24%. The Mage cast 2.9 Specials a match against the
+    // Sentinel's 3.0 and sat last in the table, with an identity line promising
+    // "Specials early and often". Waiving a cost nobody paid is not a power.
+    const s = armed("heart");
+    const caster = place(s, "aqua_sapphire", "P1", 3, 0);
+    place(s, "leaf_nettle", "P2", 2, 0); // in reach, so targeting is not the variable
+    s.cards[caster.instanceId].specialCooldown = 2;
+    s.players.P1.magicPool = 99; // magic is not the variable here
+    expect(canFireSpecial(s, caster.instanceId).reason, "recharging, as normal")
+      .toMatch(/recharging/);
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(canFireSpecial(ready, caster.instanceId).ok, "armed: it fires anyway").toBe(true);
+  });
+
+  it("does not hand every OTHER seat a free cooldown skip", () => {
+    // The waiver reads `players[owner].freeSpecial`, which only Arcane Focus
+    // ever sets. If it ever keyed off something shared, every hero would get a
+    // cooldown-free burst and the whole cooldown rule would be optional.
+    const s = armed("heart");
+    const mine = place(s, "aqua_sapphire", "P1", 3, 0);
+    const theirs = place(s, "aqua_sapphire", "P2", 2, 0);
+    s.cards[mine.instanceId].specialCooldown = 2;
+    s.cards[theirs.instanceId].specialCooldown = 2;
+    s.players.P1.magicPool = 99;
+    s.players.P2.magicPool = 99;
+    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    expect(canFireSpecial(ready, mine.instanceId).ok, "the Mage's own").toBe(true);
+    expect(canFireSpecial(ready, theirs.instanceId).reason, "not the opponent's")
+      .toMatch(/recharging/);
   });
 
   it("does nothing at all when heroes are off", () => {
