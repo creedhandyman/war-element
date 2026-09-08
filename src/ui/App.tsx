@@ -374,10 +374,26 @@ export function App() {
   const [onlineRole, setOnlineRole] = useState<Role>("host");
   const [roomCode, setRoomCode] = useState("");
   const [netStatus, setNetStatus] = useState("");
-  /** The PvP versus screen, up between the deal and the first mulligan. Online
-   *  only — it exists because it is the one mode where the opposing deck is a
-   *  stranger's, and the Arena already shows you both decks you picked. */
-  const [pvpIntro, setPvpIntro] = useState(false);
+  /** The versus screen, up between the deal and the first mulligan.
+   *
+   *  IT WAS ONLINE-ONLY, on the reasoning that PvP is the one mode where the
+   *  opposing deck is a stranger's. That stopped being the whole story when the
+   *  suits started carrying the AI's personality: the opponent's SUIT is dealt
+   *  fresh every match and decides how it plays, and this screen is the only
+   *  place in the game that says what a dealt suit means. Against an AI the
+   *  deck was never the secret — the playstyle is — so a tell that only ever
+   *  showed against other humans was a tell nobody could read where it counted.
+   *
+   *  A curtain, not a gate: it sits over a mulligan that is already live, holds
+   *  for `HOLD_MS`, and takes a tap to skip. */
+  const [matchIntro, setMatchIntro] = useState(false);
+  /** Seat names for the intro in the OFFLINE modes, where no host relays them.
+   *
+   *  Deliberately not `seatNames`: that one is the online name channel and is
+   *  read by the board and the result screen as well, so filling it in for a
+   *  campaign fight would put a node's name on surfaces that have never shown
+   *  one. This feeds the intro and nothing else. */
+  const [introNames, setIntroNames] = useState<Partial<Record<PlayerId, string>> | null>(null);
   /** Both seats' deck names. Not derivable from the state — see `StateMeta` —
    *  so the host relays them and every broadcast carries them, which also means
    *  a client that missed the opening message still gets them on the next one.
@@ -395,6 +411,15 @@ export function App() {
   const setupRef = useRef<{
     p1: string[]; p1s?: string[]; p2: string[]; p2s?: string[];
     board: number; humans: PlayerId[];
+    /** THE RULES IT WAS DEALT UNDER, not only the lists. Carrying the decks and
+     *  dropping these meant Rematch ran the same two squads under a different
+     *  game — heroes live for Start Match, silently off for the rematch, with
+     *  nothing on screen to explain where the powers had gone.
+     *
+     *  `suits` holds only what each deck PINNED. The rest are re-dealt on
+     *  purpose: a fresh suit every match is the design (see suits.ts), and only
+     *  a chosen one belongs to the deck rather than to the match. */
+    heroes?: boolean; suits?: Partial<Record<PlayerId, Suit>>;
   } | null>(null);
   /** Rematch handshake. BOTH sides must ask before the host re-deals, so a
    *  rematch can't yank someone off a result screen they are still reading. */
@@ -1275,14 +1300,27 @@ export function App() {
     const s = setupRef.current;
     if (!s) return;
     const g = createInitialState(newSeed(), s.p1, s.p2, s.humans, s.p1s, s.p2s, s.board);
+    // SAME RULES, NEW DEAL. See `setupRef` — the hero flag and the decks' own
+    // pinned suits are part of the match's setup and have to come with it.
+    // Everything else about the deal is fresh, the unpinned suits included.
+    g.heroes = s.heroes ?? false;
+    for (const [seat, want] of Object.entries(s.suits ?? {}) as [PlayerId, Suit][]) {
+      if (g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, seat, want);
+    }
     setGame(g);
     setViewSide(online?.myId ?? "P1");
     setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
     setRematchMine(false); setRematchTheirs(false);
     setHint("Mulligan: click cards to send back, then confirm.");
     setStarted(true);
+    // AND THE INTRO REPLAYS, offline as well as on. A rematch re-deals the
+    // suits, so the seat you just learned to read is not the seat you are about
+    // to face — showing the tell only on the first match of a set would be
+    // showing it exactly when it is least likely to have changed. The names are
+    // whatever the last deal set: a rematch is the same two decks by
+    // definition, so they are still correct.
+    setMatchIntro(true);
     if (online) {
-      setPvpIntro(true);
       roomRef.current?.sendState(g, {
         names: seatNamesRef.current ?? undefined,
         foils: seatFoilsRef.current ?? undefined,
@@ -1358,11 +1396,22 @@ export function App() {
       ? seatCount : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
-    // Remembered so Rematch can run the same two decks back.
+    // WHICH SUITS THE DECKS CHOSE, resolved here rather than at the pin site
+    // below, because the rematch needs the same answer and two lookups of the
+    // same thing are two chances to disagree.
+    const pinnedSuits = ([["P1", p1DeckId], ["P2", p2DeckId]] as const)
+      .reduce<Partial<Record<PlayerId, Suit>>>((acc, [seat, id]) => {
+        const want = resolveDeckSuit(id);
+        if (want) acc[seat] = want;
+        return acc;
+      }, {});
+    // Remembered so Rematch can run the same two decks back — under the same
+    // rules, which is the part it used to lose.
     setupRef.current = {
       p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
+      heroes: !eventRun, suits: pinnedSuits,
     };
     // EXTRA SEATS (Domination free-for-all), now the PLAYER's choice rather
     // than the lobby's. They resolve through the same two helpers the first two
@@ -1415,9 +1464,8 @@ export function App() {
     // deal fills in for anyone who did not. `pinSuit` ASSIGNS — two seats may
     // land on the same suit if both decks chose it, and `suitVariantOf` gives
     // the second one its own shade so the board still reads.
-    for (const [seat, deckId] of [["P1", p1DeckId], ["P2", p2DeckId]] as const) {
-      const want = resolveDeckSuit(deckId);
-      if (want && fresh.seatSuits) fresh.seatSuits = pinSuit(fresh.seatSuits, seat, want);
+    for (const [seat, want] of Object.entries(pinnedSuits) as [PlayerId, Suit][]) {
+      if (fresh.seatSuits) fresh.seatSuits = pinSuit(fresh.seatSuits, seat, want);
     }
     // DOMINATION: the 7x7 is the map, so picking that battlefield IS picking
     // the mode. Stamped here rather than plumbed through createInitialState
@@ -1492,6 +1540,16 @@ export function App() {
       });
     }
     setGame(fresh);
+    // THE OPPONENT, NAMED — you picked both decks here, so the intro can say so
+    // rather than falling back to "Their deck". A Void Trial is named for its
+    // BOSS, not for the shelf its summons came off.
+    setIntroNames({
+      P1: deckLabel(p1DeckId),
+      P2: eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId),
+      ...(domSeats > 2 ? { P3: deckLabel(p3DeckId) } : {}),
+      ...(domSeats > 3 ? { P4: deckLabel(p4DeckId) } : {}),
+    });
+    setMatchIntro(true);
     setViewSide("P1");
     setSel(null);
     setPending(null);
@@ -1822,7 +1880,7 @@ export function App() {
       : "Buddy joined! Mulligan: click cards to send back, then confirm.");
     setOnline({ role: "host", code, myId: "P1" });
     setStarted(true);
-    setPvpIntro(true);
+    setMatchIntro(true);
     roomRef.current?.sendState(g, { names, foils }); // deal the opening state
   }
 
@@ -1864,7 +1922,7 @@ export function App() {
           setRematchMine(false); setRematchTheirs(false);
           setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
           setHint("Mulligan: click cards to send back, then confirm.");
-          setPvpIntro(true);
+          setMatchIntro(true);
         }
         if (!onlineStartedRef.current) {
           onlineStartedRef.current = true;
@@ -1876,7 +1934,7 @@ export function App() {
           setHint("Connected! Mulligan: click cards to send back, then confirm.");
           setOnline({ role: "guest", code, myId: mySeatRef.current });
           setStarted(true);
-          setPvpIntro(true);
+          setMatchIntro(true);
         }
       },
       onRematch: () => setRematchTheirs(true),
@@ -1900,7 +1958,7 @@ export function App() {
     lobbyRef.current = [];
     setOnline(null);
     setNetStatus("");
-    setPvpIntro(false); // else it reappears over the next room's deal
+    setMatchIntro(false); // else it reappears over the next room's deal
     seatNamesRef.current = null;
     setSeatNames(null);
     setRematchMine(false);
@@ -3894,8 +3952,13 @@ export function App() {
           and the host may already be advancing, so this is a curtain rather
           than a gate. Rendered out here with the other overlays so it paints
           above the board and the mulligan sheet both. */}
-      {started && online && pvpIntro && (
-        <VersusIntro game={game} me={online.myId} names={seatNames} onDone={() => setPvpIntro(false)} />
+      {started && matchIntro && (
+        <VersusIntro
+          game={game}
+          me={online?.myId ?? "P1"}
+          names={online ? seatNames : introNames}
+          onDone={() => setMatchIntro(false)}
+        />
       )}
 
       {game.pendingFlow && game.cards[game.pendingFlow] && (() => {
@@ -4259,6 +4322,11 @@ export function App() {
               }
             }
             setGame(fresh);
+            // The campaign gets the tell too. Its foes are AI seats with a
+            // dealt suit exactly as the Arena's are, and a node you have never
+            // fought before is where knowing the playstyle is worth the most.
+            setIntroNames({ P2: node.name });
+            setMatchIntro(true);
             navDo({ t: "fight", node });
             setViewSide("P1");
             setSel(null);
