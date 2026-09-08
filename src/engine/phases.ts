@@ -1,7 +1,7 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
-import { goldRoundFor, magicRoundFor, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, FOCUS_CASTS, HERO_MIN_ROUND } from "./heroes";
+import { goldRoundFor, magicRoundFor, cardPower, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, FOCUS_CASTS, HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -660,17 +660,34 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           break;
         }
         case "diamond": {
-          // Requisition: turn the cards you cannot cast into the gold to cast
-          // the rest. Takes the DEAREST in hand, deliberately — those are the
-          // ones the draw flood leaves stranded, and choosing them for the
-          // player keeps a free once-per-game power to a single tap.
+          // Requisition: turn the cards you do not need into the gold for the
+          // ones you do. Takes the WEAKEST in hand by `cardPower` — the same
+          // stat budget the whole set is costed against — with ties going to
+          // the dearer card, since the same stats at a higher price is the
+          // worse card twice over.
+          //
+          // It used to take the two DEAREST, which is on-theme and miserable to
+          // press: it asked you to burn the Mythic you were saving for, so the
+          // honest play was often not to fire it. Choosing FOR the player is
+          // kept either way — a free once-per-game power should be one tap.
           const doomed = [...p.hand]
-            .sort((a, b) => getDef(b.defId).cost - getDef(a.defId).cost)
-            .slice(0, HERO_DISCARD)
-            .map((h) => h.handId);
-          p.hand = p.hand.filter((h) => !doomed.includes(h.handId));
+            .sort((a, b) => {
+              const da = getDef(a.defId), db = getDef(b.defId);
+              return cardPower(da) - cardPower(db) || db.cost - da.cost;
+            })
+            .slice(0, HERO_DISCARD);
+          const names = doomed.map((h) => getDef(h.defId).name);
+          const ids = doomed.map((h) => h.handId);
+          p.hand = p.hand.filter((h) => !ids.includes(h.handId));
           p.gold += HERO_GOLD;
-          draft.log.push(`${intent.player} — ${hero.power.name}: discards ${doomed.length} for ${HERO_GOLD} gold.`);
+          // NAMED, unlike the old line's bare count. "Discards 2" was legible
+          // enough when the rule was "the dearest" and the player could see
+          // which two those were; "the weakest" is a stat-budget comparison
+          // nobody does in their head, so the log has to say what went.
+          draft.log.push(
+            `${intent.player} — ${hero.power.name}: discards `
+            + `${names.join(" and ") || "nothing"} for ${HERO_GOLD} gold.`,
+          );
           break;
         }
       }

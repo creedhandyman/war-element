@@ -97,7 +97,37 @@
 // A power measured as WEAK and a power never FIRED look identical in a win
 // rate table. The usage rate is what tells them apart, and it is worth
 // checking first the next time a suit reads as underpowered.
-import type { PlayerId, Suit } from "./types";
+//
+// ──────────────────────────────────────────────────────────────────
+// THAT 4.2 NO LONGER REPRODUCES, and this is a different harness saying so
+// rather than a correction to it — the lesson under "Measuring balance" is that
+// two readings which disagree on their setup are not two readings of the same
+// thing. This one, written down so it can be re-run:
+//
+//     every ordered pair of suits (a !== b), CORES[i] vs CORES[(i+3)%8] for all
+//     eight i, 40 seeds (k*31+7), board 4, `heroes = true`, suits pinned with
+//     `pinSuit`, humans []. n=1,920 per suit, +/-2.2 at 95%.
+//
+//     suit         win     power fired
+//     ♦ Scholar   58.8%        93%
+//     ♠ Warlord   48.0%        91%
+//     ♣ Sentinel  47.8%        88%
+//     ♥ Mage      45.5%        43%      spread 13.3
+//
+// TWO THINGS TO LOOK AT, neither of them Requisition's discard rule — that
+// change measured at −1.7 for the Scholar with the spread a shade tighter, so
+// it is not what put the Scholar there:
+//
+//   1. The Scholar is ten points clear of second. `HERO_GOLD` went back to 4
+//      on the reading that 4 and 2 were "the same table within noise"; on THIS
+//      harness they are not, and 4 gold on a power that now costs the player
+//      nothing they wanted is the obvious suspect. Re-measure the payout before
+//      touching anything else.
+//   2. The Mage fires Arcane Focus in 43% of games against the 73% recorded
+//      above, and sits last. That is the exact shape of the capital-letter bug
+//      this file already caught once. Check the usage rate before the magnitude
+//      — see the paragraph directly above.
+import type { CardDef, PlayerId, Suit } from "./types";
 
 export interface Hero {
   suit: Suit;
@@ -116,7 +146,7 @@ export interface Hero {
    *  choosing what to spend a free cast on IS the power — a version that
    *  summoned "a card" would be handing the player a random body. The other two
    *  resolve on the spot, since neither has a meaningful target: shielding the
-   *  whole line and turning the two dearest cards in hand into gold.
+   *  whole line and turning the two weakest cards in hand into gold.
    *
    *  Fired by the `HERO_POWER` intent, gated on `GameState.heroes` like the
    *  curve — a dealt suit must never hand a skirmish a hero. */
@@ -129,6 +159,17 @@ export interface Hero {
 export const HERO_SHIELDS = 5;   // Hold the Line, per ally
 export const HERO_HEAL = 6;      // Hold the Line, HP per ally
 export const HERO_DISCARD = 2;   // Requisition, cards spent
+
+/** How strong a card is on paper — the stat budget, which is the same formula
+ *  the whole set is costed against (`5 * cost + 10`, +/-2).
+ *
+ *  Named here rather than inlined because Requisition discards by it, and a
+ *  power that says "your weakest cards" has to mean the same thing the rest of
+ *  the game means by weak. HP and shields are not interchangeable — a shield
+ *  blocks a whole hit — which is why shields are worth two, and `dmg` is worth
+ *  `hits` because a four-hit card swings four times. */
+export const cardPower = (d: CardDef): number =>
+  d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
 /** Requisition's payout.
  *
  *  FOUR, and it was briefly 2 for the wrong reason. The cut happened during the
@@ -206,13 +247,21 @@ export const HEROES: Record<Suit, Hero> = {
   },
   diamond: {
     suit: "diamond", name: "Scholar",
-    identity: "Turns the cards it cannot cast into the gold to cast them.",
+    identity: "Turns the cards it does not need into the gold for the ones it does.",
     // NO CURVE SHIFT. The Scholar's axis is DRAW, and draw already outruns gold
     // roughly three to one — a hero that drew more would be handing the player
     // a bigger pile of cards they cannot afford. Its power converts the surplus
     // instead, which is why it is the one hero whose ability IS the identity.
+    //
+    // WHICH surplus changed. Requisition used to take the two DEAREST cards,
+    // which is on-theme and miserable to press: the power asked you to burn the
+    // Mythic you were saving for, so the honest play was often not to fire it at
+    // all. A once-per-game button whose best use is "don't" is not a power. It
+    // takes the two WEAKEST now — read off `cardPower`, ties broken toward the
+    // dearer of two equally-weak cards, since the same stats at a higher price
+    // is the worse card twice over.
     goldShift: 0, magicShift: 0,
-    power: { name: "Requisition", text: `Once per game, free: discard your ${HERO_DISCARD} dearest cards, gain ${HERO_GOLD} gold.` },
+    power: { name: "Requisition", text: `Once per game, free: discard your ${HERO_DISCARD} weakest cards, gain ${HERO_GOLD} gold.` },
   },
 };
 

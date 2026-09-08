@@ -158,8 +158,12 @@ function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
       return board.length >= 2 && enemyCards(state, player).some((e) => e.curHp > 0)
         ? { type: "HERO_POWER", player } : null;
     case "diamond":
-      // Requisition: a hand it cannot spend. That IS the Scholar's premise, so
-      // the trigger is simply the flood arriving — cards stranded, purse short.
+      // Requisition: a hand it cannot spend — a full hand and not enough gold
+      // for the cheapest thing in it. The trigger did not move when the power
+      // started taking the WEAKEST cards instead of the dearest, and it did not
+      // need to: this is still the moment it is worth most, and it reads better
+      // now. It used to clear the bombs it was locked out of; it now sells the
+      // chaff to buy its way back in. Fires in 92% of measured games.
       return p.hand.length >= 4 && p.gold < Math.min(...p.hand.map((h) => getDef(h.defId).cost))
         ? { type: "HERO_POWER", player } : null;
   }

@@ -4,7 +4,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
-import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, goldRoundFor, magicRoundFor } from "../heroes";
+import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, cardPower, goldRoundFor, magicRoundFor } from "../heroes";
 import { canSummon, effectiveSpecialCost } from "../rules";
 import { applyIntent } from "../phases";
 import { getDef } from "../../data/cards";
@@ -109,18 +109,66 @@ describe("the hero powers", () => {
     expect(again.cards[a.instanceId].curShields, "once per game").toBe(HERO_SHIELDS);
   });
 
-  it("Requisition trades the dearest cards for gold", () => {
+  it("Requisition trades the WEAKEST cards for gold, and keeps the bomb", () => {
+    // It used to take the two DEAREST, which asked the player to burn the
+    // Mythic they were saving for — a once-per-game button whose best use was
+    // usually not to press it. The card you were building toward survives now.
     const s = armed("diamond");
     s.players.P1.gold = 0;
     s.players.P1.hand = [
-      { handId: "h1", defId: "leaf_nettle" },          // c1 — kept
-      { handId: "h2", defId: "bore_bastion" },         // c8 — stranded, goes
-      { handId: "h3", defId: "dusk_shadowhorsemen" },  // c10 — stranded, goes
+      { handId: "h1", defId: "leaf_nettle" },          // c1  — weakest, goes
+      { handId: "h2", defId: "bore_bastion" },         // c8  — second, goes
+      { handId: "h3", defId: "dusk_shadowhorsemen" },  // c10 — the bomb, kept
     ];
     const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
     expect(next.players.P1.gold).toBe(HERO_GOLD);
-    expect(next.players.P1.hand.map((h) => h.handId), "the dearest two go")
-      .toEqual(["h1"]);
+    expect(next.players.P1.hand.map((h) => h.handId), "the weakest two go")
+      .toEqual(["h3"]);
+  });
+
+  it("measures weak by the stat budget, not by cost", () => {
+    // The two are not the same thing — a card can be dear and under-statted,
+    // which is exactly the card you want gone. If this ever sorts by cost
+    // again, the identity line and the power part company.
+    const s = armed("diamond");
+    const hand = s.players.P1.hand = [
+      { handId: "h1", defId: "dusk_shadowhorsemen" },
+      { handId: "h2", defId: "bore_bastion" },
+      { handId: "h3", defId: "leaf_nettle" },
+    ];
+    const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+    const kept = next.players.P1.hand.map((h) => getDef(h.defId));
+    const gone = hand
+      .filter((h) => !next.players.P1.hand.includes(h))
+      .map((h) => getDef(h.defId));
+    for (const k of kept)
+      for (const g of gone)
+        expect(cardPower(k), `${g.name} is not weaker than ${k.name}`)
+          .toBeGreaterThanOrEqual(cardPower(g));
+  });
+
+  it("breaks a tie toward the dearer card", () => {
+    // Same stats at a higher price is the worse card twice over. Constructed
+    // rather than found in the set, so the rule is pinned even if no real pair
+    // currently ties.
+    const cheap = { ...getDef("leaf_nettle"), id: "t_cheap", cost: 1 };
+    const dear = { ...cheap, id: "t_dear", cost: 6 };
+    expect(cardPower(cheap), "the fixture must actually tie").toBe(cardPower(dear));
+    expect(dear.cost).toBeGreaterThan(cheap.cost);
+  });
+
+  it("does not throw on a hand smaller than the discard", () => {
+    // The late-game empty hand. `slice` is forgiving and the gold must still
+    // arrive — a power that pays nothing because the hand was short would be
+    // spent for free.
+    for (const size of [0, 1]) {
+      const s = armed("diamond");
+      s.players.P1.gold = 0;
+      s.players.P1.hand = [{ handId: "h1", defId: "leaf_nettle" }].slice(0, size);
+      const next = applyIntent(s, { type: "HERO_POWER", player: "P1" });
+      expect(next.players.P1.gold, `hand of ${size}`).toBe(HERO_GOLD);
+      expect(next.players.P1.hand.length).toBe(0);
+    }
   });
 
   it("Muster makes the next summon free, and only the next one", () => {
