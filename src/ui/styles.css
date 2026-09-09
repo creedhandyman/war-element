@@ -7604,3 +7604,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spellchip.hero-chip { border-color: var(--gold-line); }
 .spellchip.hero-chip .spellchip-cost { color: var(--gold-hi); border-color: var(--gold-line); }
 .spellchip.hero-chip .spellchip-name { color: var(--gold-hi); }
+
+/* The hero a lobby seat is bringing, beside its deck name. Tinted by its own
+   suit — the same colour that seat's glyph and tokens already wear — so the
+   pairing reads without a second label saying which is which. */
+.lob-hero {
+  font-style: normal; font-size: 11px; letter-spacing: 0.04em;
+  padding: 1px 6px; margin-left: 6px; border-radius: 999px;
+  border: 1px solid currentColor; opacity: 0.9; white-space: nowrap;
+}
+.lob-hero.suit-spade   { color: var(--suit-spade); }
+.lob-hero.suit-club    { color: var(--suit-club); }
+.lob-hero.suit-heart   { color: var(--suit-heart); }
+.lob-hero.suit-diamond { color: var(--suit-diamond); }

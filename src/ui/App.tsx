@@ -109,7 +109,7 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
-import { pinSuit } from "../engine/suits";
+import { pinSuit, SUIT_STYLES } from "../engine/suits";
 import { HEROES } from "../engine/heroes";
 import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
@@ -468,7 +468,7 @@ export function App() {
    *  arrival and the third player would overwrite the second. */
   const lobbyRef = useRef<{
     clientId: string; seat: PlayerId; cards: string[];
-    spells?: string[]; name?: string; foils: string[]; ready: boolean;
+    spells?: string[]; name?: string; foils: string[]; ready: boolean; suit?: Suit;
   }[]>([]);
   /** GUEST: this client's id, and the seat the host gave it. A two-seat room
    *  never needed either — the guest WAS P2 — and with four the host is the
@@ -489,8 +489,9 @@ export function App() {
    *  room opened, so reading the deck ids from there would deal whatever was
    *  picked at that moment — which is the whole thing a lobby exists to let you
    *  change. Refreshed every render, so it is never stale. */
-  const deckNowRef = useRef<{ cards: string[]; spells?: string[]; name: string }>(
-    { cards: [], name: "" });
+  const deckNowRef = useRef<{
+    cards: string[]; spells?: string[]; name: string; suit?: Suit;
+  }>({ cards: [], name: "" });
   const onlineStartedRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [customDecks, setCustomDecks] = useState<Squad[]>(() => {
@@ -853,6 +854,9 @@ export function App() {
     cards: resolveDeckCards(mySeatDeckId),
     spells: resolveDeckSpells(mySeatDeckId),
     name: deckLabel(mySeatDeckId),
+    // The hero this deck was built under. Read here with everything else so
+    // the two send sites cannot disagree about which one is current.
+    suit: resolveDeckSuit(mySeatDeckId),
   };
 
   /** The battlefield is the RUN's while one is live — it was dealt for a board
@@ -1729,7 +1733,7 @@ export function App() {
     } else {
       roomRef.current.sendJoin(
         clientIdRef.current, deckNowRef.current.cards, deckNowRef.current.spells,
-        deckNowRef.current.name, [...foilIds], ready);
+        deckNowRef.current.name, [...foilIds], ready, deckNowRef.current.suit);
     }
   }
 
@@ -1777,7 +1781,7 @@ export function App() {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
-      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
+      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady, guestSuit) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         const lobby = lobbyRef.current;
         // A REJOIN keeps its seat. `sendJoin` fires on every subscribe, and a
@@ -1796,11 +1800,13 @@ export function App() {
           already.name = guestName;
           already.foils = guestFoils ?? [];
           already.ready = !!guestReady;
+          already.suit = guestSuit;
         } else {
           if (lobby.length >= hostSeatCount - 1) return; // room is full
           lobby.push({
             clientId, seat, cards: guestCards, spells: guestSpells,
             name: guestName, foils: guestFoils ?? [], ready: !!guestReady,
+            suit: guestSuit,
           });
         }
         // Tell them which seat they are in, and how full the room is. Sent on a
@@ -1816,9 +1822,12 @@ export function App() {
   /** HOST: publish the roster so every client renders the same lobby. */
   function publishLobby() {
     const seats: LobbySeat[] = [
-      { seat: "P1", name: deckNowRef.current.name, ready: hostReadyRef.current, host: true },
+      {
+        seat: "P1", name: deckNowRef.current.name, ready: hostReadyRef.current,
+        host: true, suit: deckNowRef.current.suit,
+      },
       ...lobbyRef.current.map((e) => ({
-        seat: e.seat, name: e.name?.trim() || "Their deck", ready: e.ready,
+        seat: e.seat, name: e.name?.trim() || "Their deck", ready: e.ready, suit: e.suit,
       })),
     ];
     setLobby({ seats, need: hostSeatCountRef.current });
@@ -1848,6 +1857,30 @@ export function App() {
       lobby.slice(1).map((e) => ({ id: e.seat, deck: e.cards, spells: e.spells })),
     );
     if (hostBoardSize === DOMINATION_7X7.boardSize) g.domination = newDomination(DOMINATION_7X7);
+    // HEROES ARE ON, AND EVERY SEAT WEARS THE ONE ITS OWN DECK CHOSE.
+    //
+    // Both halves of that were missing and the second is why the first went
+    // unnoticed. `createInitialState` deals `seatSuits` from the seed but never
+    // sets `heroes`, and this path never set it either — so an online match ran
+    // with the flag off: no curve shift, no once-per-game power, and the suit
+    // on the board pure decoration. Offline the same line reads
+    // `fresh.heroes = !eventRun`, so the mode you play against a stranger was
+    // the one mode missing the thing you built the deck around.
+    //
+    // The pins then come from BOTH sides. The host can only read its own
+    // (`resolveDeckSuit` looks in the local deck pool), so a guest's chosen
+    // hero was discarded even once the flag was on — it now rides in on the
+    // join message. A seat whose deck pinned nothing keeps its dealt suit,
+    // which is the same fallback hot-seat has.
+    g.heroes = true;
+    const hostSuit = deckNowRef.current.suit;
+    if (hostSuit && g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, "P1", hostSuit);
+    const pinned: Partial<Record<PlayerId, Suit>> = hostSuit ? { P1: hostSuit } : {};
+    for (const e of lobby) {
+      if (!e.suit) continue;
+      pinned[e.seat] = e.suit;
+      if (g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, e.seat, e.suit);
+    }
     // The host is the only side that knows EVERY name, so it names the seats
     // and relays them; the others read them off the state message.
     const names: Partial<Record<PlayerId, string>> = { P1: hostName };
@@ -1870,6 +1903,11 @@ export function App() {
     setupRef.current = {
       p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
       board: hostBoardSize, humans: seats,
+      // A REMATCH RUNS THE SAME HEROES. Without these two, `dealRematch` reads
+      // `s.heroes ?? false` and an empty pin map — so the second game of a set
+      // silently dropped both players' choices and turned the heroes off, which
+      // is exactly the bug the offline rematch already had and fixed.
+      heroes: true, suits: pinned,
     };
     setRematchMine(false); setRematchTheirs(false);
     setGame(g);
@@ -1894,6 +1932,7 @@ export function App() {
     const guestCards = resolveDeckCards(p2DeckId);
     const guestSpells = resolveDeckSpells(p2DeckId);
     const guestName = deckLabel(p2DeckId);
+    const guestSuit = resolveDeckSuit(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     onlineStartedRef.current = false;
     // One id per join attempt. It is what lets the host hand this client a seat
@@ -1940,7 +1979,8 @@ export function App() {
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
       onSubscribed: () => roomRef.current?.sendJoin(
-        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false),
+        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false,
+        guestSuit),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -4864,6 +4904,18 @@ export function App() {
                             {row ? row.name : "waiting for a player…"}
                             {row?.host && <i className="lob-tag">host</i>}
                             {isMe && <i className="lob-tag you">you</i>}
+                            {/* THE HERO, BEFORE THE DEAL. It shifts its owner's
+                                economy and carries a once-per-game power, so
+                                "who am I facing" is a real question — and the
+                                answer used to arrive only with the board. A
+                                seat whose deck pinned nothing shows nothing and
+                                takes a dealt suit. */}
+                            {row?.suit && (
+                              <i className={`lob-hero suit-${row.suit}`}
+                                 title={`${HEROES[row.suit].name} — ${HEROES[row.suit].power.name}: ${HEROES[row.suit].power.text}`}>
+                                {SUIT_STYLES[row.suit].glyph} {HEROES[row.suit].name}
+                              </i>
+                            )}
                           </span>
                           {row
                             ? <span className={`lob-ready${row.ready ? " on" : ""}`}>

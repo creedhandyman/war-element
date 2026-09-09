@@ -9,7 +9,7 @@
 // Get them from any free Supabase project → Settings → API. No tables needed.
 
 import { createClient, type RealtimeChannel } from "@supabase/supabase-js";
-import type { GameState, PlayerId } from "../engine";
+import type { GameState, PlayerId, Suit } from "../engine";
 
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
@@ -32,6 +32,13 @@ export interface LobbySeat {
   name: string;
   ready: boolean;
   host?: boolean;
+  /** The HERO this player is bringing, chosen with their deck in the builder.
+   *
+   *  In the lobby so the choice is visible BEFORE the deal — a hero shifts its
+   *  owner's economy and carries a once-per-game power, so "who am I facing"
+   *  is a real question and the answer used to arrive only once the board did.
+   *  Undefined means that deck pinned nothing and the seat takes a dealt suit. */
+  suit?: Suit;
 }
 
 /** Table dressing that rides along with the state.
@@ -121,15 +128,20 @@ export interface Room {
   resend: () => void;
   /** Guest → host: announce arrival with the guest's resolved deck (card ids),
    *  hand-picked spellbook (spell ids; empty = auto-from-elements), the deck's
-   *  display name, and the card ids it holds in FOIL — the host is the only
-   *  side that can see both collections, so it is the only side that can relay
-   *  them back. */
+   *  display name, the card ids it holds in FOIL, and the SUIT its deck pinned
+   *  — the host is the only side that can see both collections, so it is the
+   *  only side that can relay them back.
+   *
+   *  The suit travels for the same reason the foils do, and it matters more: a
+   *  hero is chosen with the deck in the builder, and the host deals the board.
+   *  Without this the host could only read its OWN pin, so a guest's chosen
+   *  hero was silently discarded and both seats got whatever `dealSuits` said. */
   /** Guest → host. Sent on arrival AND again whenever this player changes deck
    *  or readiness in the lobby: the host keys on `clientId`, so a re-send
    *  UPDATES that seat rather than taking another one. */
   sendJoin: (
     clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
-    ready?: boolean,
+    ready?: boolean, suit?: Suit,
   ) => void;
   /** Host → the room: the whole lobby, every time it changes. */
   sendLobby: (seats: LobbySeat[], need: number) => void;
@@ -167,7 +179,7 @@ export function joinRoom(
     onState: (state: GameState, meta?: StateMeta) => void;
     onJoin?: (
       clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
-      ready?: boolean,
+      ready?: boolean, suit?: Suit,
     ) => void; // host only
     onLobby?: (seats: LobbySeat[], need: number) => void; // guests
     onSeat?: (clientId: string, seat: PlayerId, have: number, need: number) => void; // guests
@@ -227,6 +239,7 @@ export function joinRoom(
         payload.name as string | undefined,
         payload.foils as string[] | undefined,
         payload.ready as boolean | undefined,
+        payload.suit as Suit | undefined,
       ),
     );
   }
@@ -268,10 +281,10 @@ export function joinRoom(
     resend: () => {
       if (last) push(last.state, last.clock, last.meta);
     },
-    sendJoin: (clientId, cards, spells, name, foils, ready) =>
+    sendJoin: (clientId, cards, spells, name, foils, ready, suit) =>
       void channel.send({
         type: "broadcast", event: "join",
-        payload: { clientId, cards, spells, name, foils, ready },
+        payload: { clientId, cards, spells, name, foils, ready, suit },
       }),
     sendLobby: (seats, need) =>
       void channel.send({ type: "broadcast", event: "lobby", payload: { seats, need } }),
