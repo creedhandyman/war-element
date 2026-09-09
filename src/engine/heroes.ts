@@ -114,6 +114,18 @@
 //     ♣ Sentinel  47.8%        88%
 //     ♥ Mage      45.5%        43%      spread 13.3
 //
+// ...and where it stands NOW, after the Mage's curve and Requisition's payout
+// were each taken apart below. Same harness, n=1,920 per suit, +/-2.2:
+//
+//     ♦ Scholar   52.1%        93%
+//     ♥ Mage      50.7%        65%
+//     ♠ Warlord   48.9%        91%
+//     ♣ Sentinel  48.3%        88%      spread 3.8
+//
+// 3.8 is the tightest reading in this file, and both points of it came off the
+// same two questions: what is this hero's advantage actually made of, and is
+// anything stopping it from arriving.
+//
 // ──────────────────────────────────────────────────────────────────
 // THE MAGE WAS PAYING FOR SOMETHING IT ALREADY HAD. Three changes, ablated one
 // at a time on the harness above, and only the third of them is worth anything:
@@ -155,11 +167,20 @@
 // when a 60-100% buff moved the table 0.4 points, and `FOCUS_CASTS` climbing
 // 2 -> 4 while nothing happened was the same signal going unread.
 //
-// STILL OPEN: the Scholar at 57.6%, eight clear of second and untouched by any
-// of this. `HERO_GOLD` went back to 4 on the reading that 4 and 2 were "the
-// same table within noise"; on this harness they are not. Re-measure the payout
-// before touching anything else — and note Requisition's discard rule is not
-// the cause, it measured at −1.7 for the Scholar.
+// AND THE SCHOLAR WAS THE OTHER HALF, resolved the same way. It sat 8 clear of
+// second on nothing but `HERO_GOLD`, which had gone back to 4 on the reading
+// that 4 and 2 were "the same table within noise". On this harness they are 12.2
+// against 4.2, and Requisition's discard rule was not the cause — it measured at
+// −1.7. The payout at 3 is what closed the table; see `HERO_GOLD` below for the
+// full sweep and why 4 stopped being the right answer.
+//
+// THE PATTERN ACROSS BOTH. The Mage's fix was its CURVE and its power was worth
+// +0.8; the Scholar's fix was its POWER and it has no curve at all. What they
+// share is that neither deficit was a magnitude — one hero could not use what it
+// was given, the other was given too much of the only thing it had — and in both
+// cases the arithmetic had to be checked against what the game actually does
+// with it. USAGE RATE FIRST, then what the currency is worth on a real board,
+// then the number.
 import type { CardDef, PlayerId, Suit } from "./types";
 
 export interface Hero {
@@ -205,13 +226,40 @@ export const cardPower = (d: CardDef): number =>
   d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
 /** Requisition's payout.
  *
- *  FOUR, and it was briefly 2 for the wrong reason. The cut happened during the
- *  panic pass when the powers had just blown the spread to 59.6 points, before
- *  `HERO_MIN_ROUND` was found — so it was calibrated against a problem that the
- *  round gate then solved. Measured again with the gate in place, 4 gold gives
- *  a spread of 4.6 points against 2 gold's 4.2: the same table within noise.
- *  The early spike was never the SIZE of the purse, it was WHEN it arrived. */
-export const HERO_GOLD = 4;      // Requisition, gold gained
+ *  THREE, and the number is load-bearing: the Scholar has no curve at all, so
+ *  unlike every other hero this power IS the hero, and the payout is the only
+ *  dial it has. One gold is worth about 4.8 points of win rate to it — close to
+ *  linear across the range, which is what makes this measurable at all:
+ *
+ *      gold   ♠      ♣      ♥      ♦ Scholar   spread
+ *         4   47.7   45.6   49.0     57.7       12.2
+ *         3   48.4   47.6   51.1     52.9        5.3
+ *         2   50.7   48.3   52.4     48.6        4.2
+ *
+ *  (n=1,152 per suit, +/-2.9. Harness spec is in the roster section above.)
+ *
+ *  2 AND 3 THEN HAD TO BE SEPARATED AT FULL RESOLUTION, because at that sample
+ *  size they were symmetric — 2 landed the Scholar 1.4 low, 3 landed it 2.9
+ *  high, which is a coin flip and not an answer. Re-run at n=1,920 (+/-2.2):
+ *
+ *      gold=2   spade 51.0 · club 49.8 · heart 52.1 · diamond 47.1   spread 5.0
+ *      gold=3   spade 48.9 · club 48.3 · heart 50.7 · diamond 52.1   spread 3.8
+ *
+ *  The extra samples moved 2 further out, not closer — the Scholar went from
+ *  48.6 to 47.1 and finished LAST — so 3 wins on both counts and the choice
+ *  needed no judgement call in the end.
+ *
+ *  WHY FOUR STOPPED BEING RIGHT. It was defended on a reading that 4 gave a
+ *  spread of 4.6 against 2 gold's 4.2 — the same table within noise, and on
+ *  that evidence 4 was the reasonable pick. Two things changed. Requisition
+ *  used to discard your two DEAREST cards, which is a real price; it now takes
+ *  your two weakest, which is close to free, so a payout calibrated against the
+ *  expensive version was calibrated against a power that no longer exists. And
+ *  on the harness above the two values are nowhere near within noise — 12.2
+ *  against 4.2. That earlier harness's setup was never written down, so the two
+ *  readings cannot be reconciled; this one is recorded in the file it measures
+ *  for exactly that reason. */
+export const HERO_GOLD = 3;      // Requisition, gold gained
 /** Muster only pays for a card up to this cost.
  *
  *  UNCAPPED IT WAS THE WHOLE PROBLEM. A free summon of anything is a free
