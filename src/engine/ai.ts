@@ -3,6 +3,7 @@
 // would see (its own hand + the board — it never reads P1's hand or deck).
 
 import { styleOf } from "./suits";
+import { skillOf } from "./skill";
 import { HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { getSpell, spellPickKind } from "./spells";
@@ -177,6 +178,9 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   // the AI always walked; the style only changes what it reaches for first and
   // how willing it is to leave the wall. See suits.ts.
   const style = styleOf(state.seatSuits, player);
+  // ...and how much of the game it knows. The style says what it WANTS; this
+  // says what it can see coming. See skill.ts.
+  const skill = skillOf(state, player);
   // The hero power, before anything else it might pay for. It does not end the
   // turn — the two arming powers exist to be spent by the very next action —
   // and `heroPowerUsed` is what stops this returning forever.
@@ -186,7 +190,8 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   //    biggest (the original), cheapest, toughest, or the casters first.
   const byCost = (a: HandCard, b: HandCard) => getDef(b.defId).cost - getDef(a.defId).cost;
   const wall = (d: ReturnType<typeof getDef>) => d.hp + d.shields * 2;
-  const hand = state.players[player].hand.slice().sort(
+  const unsorted = state.players[player].hand.slice();
+  const hand = !skill.readsCurve ? unsorted : unsorted.sort(
     style.summon === "cheapest"
       ? (a, b) => getDef(a.defId).cost - getDef(b.defId).cost
       : style.summon === "scaling"
@@ -246,7 +251,7 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     // the line: bank the gold. With an EMPTY board it always deploys — a
     // hoarder with no bodies is just conceding the opening.
     if (best > 0 && best < dearest * style.bankFor && boardCards(state, player).length > 0) {
-      const spellNow = findSpellCast(state, player);
+      const spellNow = skill.spells ? findSpellCast(state, player) : null;
       return spellNow ?? { type: "PASS", player };
     }
   }
@@ -281,7 +286,7 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
 
   // 2. Cast a high-value spell (once per game each): a Cost-1 damage spell to
   //    secure a kill, or a Cost-4 wall over a row packed with opponents.
-  const spell = findSpellCast(state, player);
+  const spell = skill.spells ? findSpellCast(state, player) : null;
   if (spell) return spell;
 
   // 3. DOMINATION plays a different game entirely — the board is the win
@@ -313,7 +318,10 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   if (!state.domination && !state.prep?.movedThisTurn) {
     const move = style.advance === "reluctant" ? null : findAdvance(state, player, false);
     if (move) return move;
-    if (style.advance === "eager") {
+    // The eager press is a PLAN — a pathed closing route, or a sidestep that
+    // sets up a shot it does not have yet — so a learning opponent does not
+    // reach for it. Spades still advances; it just does not scheme.
+    if (style.advance === "eager" && skill.plans) {
       const press = findClosingMove(state, player) ?? findFlankingMove(state, player);
       if (press) return press;
     }
@@ -336,7 +344,9 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     // a turn, nobody ever advanced, and matches ran to the round cap. When the
     // WHOLE army is idle the answer is to close the distance; a sidestep is for
     // the card that is idle while the rest of the board is fighting.
-    const flank = findFlankingMove(state, player);
+    // Gated with the press above, and AFTER the stall-breaker either way: the
+    // standoff escape is survival, not skill, and every opponent keeps it.
+    const flank = skill.plans ? findFlankingMove(state, player) : null;
     if (flank) return flank;
   }
 
@@ -1374,8 +1384,11 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     // because Specials are what it wins with; Clubs sits on 3 and keeps the
     // pool for an emergency. A guaranteed KILL is unaffected — that branch
     // does not consult `rich`, and no personality should decline a kill.
-    const rich = state.players[card.owner].magicPool
-      >= sp.cost + styleOf(state.seatSuits, card.owner).specialSurplus;
+    // ...and whether it spends magic on VALUE at all. A `learning` opponent
+    // only ever fires a Special that kills something. See skill.ts.
+    const rich = skillOf(state, card.owner).readsMagic
+      && state.players[card.owner].magicPool
+        >= sp.cost + styleOf(state.seatSuits, card.owner).specialSurplus;
     // Don't fire a self-damaging Special (Kraken's Black Wave Crash, or Skyrend's
     // 10% Dive Bomb recoil) if it would kill the caster.
     const recoilCost = Math.round((Number(params.dmg ?? 0) * Number(params.recoilPct ?? 0)) / 100);
@@ -1386,7 +1399,8 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       const kill = specTargets.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t), state.boardSize));
       const basicKillsIt =
         kill && willKill(kill, estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), kill), state.boardSize);
-      const wide = sp.handler === "barrage" && specTargets.length >= 3;
+      const wide = sp.handler === "barrage" && specTargets.length >= 3
+        && skillOf(state, card.owner).readsMagic;
       const outDamagesBasic =
         dmg * hits * (sp.handler === "barrage" ? Math.min(specTargets.length, Number(params.targets ?? 1)) : 1) >
         effectiveDmg(state, card) * def.hits;
@@ -1551,7 +1565,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         // is on the table, otherwise spend spare magic on the biggest cluster.
         const kill = reachable.find((t) => willKill(t, estimateVolley(dmg, hits, pen, t), state.boardSize));
         if (kill) return { action: "special", targetId: specTargets.length ? kill.instanceId : undefined };
-        if (rich || reachable.length >= 2)
+        if (rich || (reachable.length >= 2 && skillOf(state, card.owner).readsMagic))
           return { action: "special", targetId: specTargets.length ? specTargets[0].instanceId : undefined };
       } else if (heals || shields) {
         const hurt = validAllyTargets(state, instanceId).filter((a) => a.curHp < a.maxHp);
@@ -1565,7 +1579,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
       } else if (reachable.length > 0) {
         // Control with no damage number — statuses, pulls, debuffs. Worth it on
         // a cluster, or on anything at all when the magic would otherwise rot.
-        if (reachable.length >= 2 || (rich && !basicCanKill))
+        if ((reachable.length >= 2 && skillOf(state, card.owner).readsMagic) || (rich && !basicCanKill))
           return { action: "special", targetId: specTargets.length ? specTargets[0].instanceId : undefined };
       }
     }
@@ -1599,19 +1613,28 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
 
   if (targets.length === 0) return { action: "skip" };
 
+  // WHO TO SWING AT — and the three questions below are exactly the three a new
+  // player has not learned to ask yet, so each one is a switch. See skill.ts.
+  const skill = skillOf(state, card.owner);
+
   // Capture awareness: an invader standing on our own Home row dies first,
   // before it survives to a permanent capture.
   const myHome = homeRow(card.owner, state.boardSize);
-  const invaders = targets.filter((t) => t.pos!.row === myHome);
+  const invaders = skill.guardsHome ? targets.filter((t) => t.pos!.row === myHome) : [];
   const pool = invaders.length > 0 ? invaders : targets;
 
   // Kill the lowest-HP target we can actually finish…
-  const killable = pool.filter((t) => willKill(t, est(t), state.boardSize));
+  const killable = skill.readsLethal
+    ? pool.filter((t) => willKill(t, est(t), state.boardSize))
+    : [];
   if (killable.length > 0) {
     const pick = killable.reduce((b, t) => (t.curHp < b.curHp ? t : b));
     return { action: "basic", targetId: pick.instanceId };
   }
   // …else the highest-threat target (prefer Assassins/Mages, then raw damage).
+  // An opponent that does not read threat swings at whatever came back first,
+  // which is board order — it fights what is in front of it.
+  if (!skill.readsThreat) return { action: "basic", targetId: pool[0].instanceId };
   const threatScore = (t: CardInstance) => {
     const d = getDef(t.defId);
     const classBias = d.cardClass === "Assassin" || d.cardClass === "Mage" ? 100 : 0;

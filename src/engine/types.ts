@@ -6,6 +6,11 @@
  *  has to name the type. */
 export type Suit = "spade" | "club" | "heart" | "diamond";
 
+/** How much of the game the AI opponent knows — the profiles themselves live in
+ *  `skill.ts`, which imports this. Declared HERE for the same reason `Suit` is:
+ *  this file imports nothing, and the state has to name the type. */
+export type AiSkill = "learning" | "steady" | "sharp";
+
 /** Four seats exist; a match uses as many as it seats. `GameState.seats` is
  *  the list actually playing, in turn order — two for every mode that shipped
  *  before Domination, up to four for that one.
@@ -2725,6 +2730,16 @@ export interface GameState {
    *  Absent/false = the printed curve for everyone, which is every mode that
    *  shipped before heroes. Story Mode and the Void Tower turn it on. */
   heroes?: boolean;
+  /** How much of the game the AI seats know this match — see `skill.ts`.
+   *
+   *  A HANDICAP, and the only knob in the engine that exists to make the game
+   *  EASIER rather than to make it different. The deck ladder was the only
+   *  difficulty lever the Arena had, and a weak list piloted by an opponent that
+   *  never misses a lethal is still an opponent that never misses a lethal.
+   *
+   *  Absent = `sharp`, the opponent that shipped, so every saved game, replay
+   *  and test fixture faces exactly what it always faced. */
+  aiSkill?: AiSkill;
   firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */

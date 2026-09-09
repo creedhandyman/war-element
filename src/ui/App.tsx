@@ -110,6 +110,9 @@ import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
 import { pinSuit, SUIT_STYLES } from "../engine/suits";
+import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
+import type { AiSkill } from "../engine/skill";
+import { loadAiSkill, saveAiSkill } from "../data/prefs";
 import { HEROES } from "../engine/heroes";
 import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
@@ -419,7 +422,7 @@ export function App() {
      *  `suits` holds only what each deck PINNED. The rest are re-dealt on
      *  purpose: a fresh suit every match is the design (see suits.ts), and only
      *  a chosen one belongs to the deck rather than to the match. */
-    heroes?: boolean; suits?: Partial<Record<PlayerId, Suit>>;
+    heroes?: boolean; suits?: Partial<Record<PlayerId, Suit>>; skill?: AiSkill;
   } | null>(null);
   /** Rematch handshake. BOTH sides must ask before the host re-deals, so a
    *  rematch can't yank someone off a result screen they are still reading. */
@@ -532,6 +535,20 @@ export function App() {
   // a win into a recruitment roll. Null means this is an ordinary skirmish and
   // nothing should be recruited from it.
   const [story, setStory] = useState<StorySave>(() => loadStory());
+  /** HOW MUCH OF THE GAME THE OPPONENT KNOWS — the Arena's only handicap.
+   *
+   *  The deck ladder was the difficulty dial the Arena shipped with, and it
+   *  moves the wrong thing: the easiest list in the game is still piloted by an
+   *  opponent that never misses a lethal and never wastes a Special, which is
+   *  what a player learning the rules is actually losing to. See `skill.ts`.
+   *
+   *  Seeded from whether this save has cleared anything, so a fresh install
+   *  opens gentle and an established one opens on the opponent it has always
+   *  played. Read once — a default that re-derived itself mid-session would
+   *  change the fight under a player who had just picked. */
+  const [aiSkill, setAiSkill] = useState<AiSkill>(
+    () => loadAiSkill((loadStory().cleared ?? []).length > 0),
+  );
   /** Which of the four out-of-match destinations is showing. Story keeps its
    *  own `open` flag inside `nav` because the map owns the whole screen when it
    *  is up; the tab just drives it. */
@@ -1308,6 +1325,7 @@ export function App() {
     // pinned suits are part of the match's setup and have to come with it.
     // Everything else about the deal is fresh, the unpinned suits included.
     g.heroes = s.heroes ?? false;
+    g.aiSkill = s.skill;
     for (const [seat, want] of Object.entries(s.suits ?? {}) as [PlayerId, Suit][]) {
       if (g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, seat, want);
     }
@@ -1415,7 +1433,7 @@ export function App() {
       p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
-      heroes: !eventRun, suits: pinnedSuits,
+      heroes: !eventRun, suits: pinnedSuits, skill: aiSkill,
     };
     // EXTRA SEATS (Domination free-for-all), now the PLAYER's choice rather
     // than the lobby's. They resolve through the same two helpers the first two
@@ -1463,6 +1481,11 @@ export function App() {
     // to. Ordinary Arena matches are where a player brings a squad they built,
     // so that is where the hero they built it under counts.
     fresh.heroes = !eventRun;
+    // THE HANDICAP, on every Arena match including the tuned ones. An event or a
+    // Void Trial is a designed encounter, but it is designed around the same
+    // opponent everything else faces — and a player who needs the handicap needs
+    // it most against the fight built to be hard.
+    fresh.aiSkill = aiSkill;
     // EACH SEAT WEARS ITS OWN DECK'S HERO. A suit is pinned per DECK in the
     // builder, so both sides of a hot-seat match can have chosen one, and the
     // deal fills in for anyone who did not. `pinSuit` ASSIGNS — two seats may
@@ -4823,6 +4846,31 @@ export function App() {
                     onClick={() => setOnlineRole("guest")}
                   >Join game</button>
                 </div>
+              </div>
+            )}
+
+            {/* HOW MUCH THE OPPONENT KNOWS. Only against an AI — a human
+                opponent has no knowledge to take away, and offering the dial
+                where it does nothing would read as a setting that is broken
+                rather than one that does not apply. */}
+            {!onlineMode && !twoPlayer && (
+              <div className="ar-modes">
+                <div className="ar-field">
+                  <label className="ar-flabel">OPPONENT</label>
+                  <div className="seg">
+                    {AI_SKILLS.map((k) => (
+                      <button
+                        key={k}
+                        className={aiSkill === k ? "on" : ""}
+                        onClick={() => { setAiSkill(k); saveAiSkill(k); }}
+                      >{SKILL_PROFILES[k].name}</button>
+                    ))}
+                  </div>
+                </div>
+                {/* The blurb is the point, not decoration: a handicap whose
+                    shape the player cannot see is one they cannot decide to
+                    give up. */}
+                <p className="ar-mode-note">{SKILL_PROFILES[aiSkill].blurb}</p>
               </div>
             )}
 

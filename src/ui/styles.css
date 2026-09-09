@@ -2155,6 +2155,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ar-mode-note { margin: 7px 0 0; font-size: 11.5px; line-height: 1.4; color: var(--ink-faint); }
 .ar-field { flex: none; padding: 0 16px; display: flex; align-items: center; gap: 10px; }
 .ar-field .seg { flex: 1; min-width: 0; }
+/* A labelled row nested inside a padded block — the opponent-skill picker sits
+   in an `.ar-modes` so its blurb lines up with the mode note above it, and both
+   carry the same 16px gutter. Without this the row is inset twice. */
+.ar-modes .ar-field { padding: 0; }
 .ar-flabel { flex: none; font-family: var(--head); font-size: 10px; font-weight: 700; letter-spacing: .1em; color: var(--ink-faint); }
 
 /* ── the versus card ─────────────────────────────────────────────────────── */

@@ -127,10 +127,19 @@ export interface PremadeDeck extends CustomDeck {
   premade: true;
   /** How hard this deck is to beat, for the Arena's matchmaker.
    *
-   *  Difficulty is a property of the DECK, not of the opponent, because the
-   *  opponent does not have a skill dial: `chooseBattleAction` is one rule set
-   *  and it plays the same way behind every list. So the tiers are a matter of
-   *  what the list is trying to do —
+   *  Difficulty is a property of the DECK. It used to be the ONLY thing
+   *  difficulty could be a property of — "the opponent does not have a skill
+   *  dial: `chooseBattleAction` is one rule set and it plays the same way behind
+   *  every list" — and `skill.ts` is that dial, added because the two axes were
+   *  never interchangeable. A tier decides what the opponent is HOLDING; the
+   *  skill decides how well it plays it, and the weakest list in the game
+   *  piloted by something that never misses a lethal is still the thing a new
+   *  player is losing to.
+   *
+   *  THE TWO ARE INDEPENDENT and should stay that way. These rungs are measured
+   *  against a `sharp` opponent on both sides, so a handicap does not invalidate
+   *  the ladder — it moves the whole ladder down together. So the tiers remain a
+   *  matter of what the list is trying to do —
    *
    *    easy  a melee pile with a top-heavy curve, no front line and no healer.
    *    mid   a curve, a wall, a healer, and enough reach to use them.

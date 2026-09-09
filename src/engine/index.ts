@@ -74,6 +74,8 @@ export { SPELLS, SPELL_INDEX, getSpell, isSpell, spellPickKind, spellbookFor, sp
 export { applyIntent, advance, advanceUntilInput, needsP1Input, needsInput, distributeBasicHits } from "./phases";
 export { effectiveBasicHits } from "./combat";
 export { aiMulligan, aiPrepIntent, chooseBattleAction } from "./ai";
+export { AI_SKILLS, SKILL_PROFILES, skillOf } from "./skill";
+export type { AiSkill, SkillProfile } from "./skill";
 export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById, CORES, coreById, pairingCards } from "../data/cards";
 export type { DeckDef, CoreDef } from "../data/cards";
 export { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, FOG_MISS_PCT, GALE_SP_CAP, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, FLOW_MODES, hasArcDischarge, liquidGivesHit, weakenMult, weakenStacks } from "./auras";
