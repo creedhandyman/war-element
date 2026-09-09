@@ -77,6 +77,31 @@ describe("the prep-phase freeze — Arcane Focus", () => {
     expect(out.players.P2.heroPowerUsed, "refunded for a person").toBeFalsy();
   });
 
+  it("the watchdog stays INERT through real matches", () => {
+    // WHAT THIS DOES AND DOES NOT TEST, stated plainly. The watchdog in the
+    // prep branch of advance() passes a turn whose intent changed nothing. With
+    // Arcane Focus fixed at the source there is no longer a live intent that
+    // does that, so the FIRE path has nothing to trigger it — disabling the
+    // watchdog entirely leaves every test in this file green, which is the
+    // honest position: it is a backstop for a class of bug that currently has
+    // no instance.
+    //
+    // What IS testable is the risk of ADDING it: a watchdog that misreads a
+    // legitimate turn as no-progress would silently eat it. So this asserts it
+    // never fires in ordinary play. If it ever does, something either really is
+    // stuck or `progressKey` is blind to a real action — both worth knowing.
+    const field = CARDS.filter((c) => c.element === "DUSK" && !c.boss).slice(0, 18).map((c) => c.id);
+    for (const seed of [5, 21, 44]) {
+      let s: GameState = createInitialState(seed, field, field, [], [], [], 4);
+      s.heroes = true;
+      let steps = 0;
+      while (s.phase !== "gameover" && steps < 8000) { s = advance(s); steps++; }
+      expect(s.phase, `seed ${seed} did not finish`).toBe("gameover");
+      const fired = s.log.filter((l) => /had nothing it could do/.test(l));
+      expect(fired, `seed ${seed}: watchdog fired on a real turn`).toEqual([]);
+    }
+  }, 120_000);
+
   it("a hearts AI match runs to completion instead of stalling", () => {
     // The end-to-end guard. Before the fix this loops until the step cap with
     // the round never advancing — which in the app is a frozen board.

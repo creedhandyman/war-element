@@ -4386,8 +4386,30 @@ export function advance(state: GameState): GameState {
       // AI priority turn: one intent per advance() call. Drive whichever player
       // holds priority — normally P2, but a fully-AI game (humans=[]) also drives
       // P1 here, so read the player from prep rather than defaulting to P2.
-      const intent = aiPrepIntent(draft, draft.prep?.priority ?? "P2");
-      return applyIntent(draft, intent);
+      const seat = draft.prep?.priority ?? "P2";
+      const intent = aiPrepIntent(draft, seat);
+      if (intent.type === "PASS") return applyIntent(draft, intent);
+      // THE NO-PROGRESS WATCHDOG. An intent the rules refuse resolves to a
+      // state identical to the one it came from, and an AI that proposed it
+      // once proposes it again on the next tick — forever. Nothing downstream
+      // notices: the UI's driver has no step budget, `needsInput` stays null
+      // because it is not the human's turn, and `phaseKey` never changes, so
+      // the hint does not even move. The board simply stops, and Pass and
+      // Surrender are both dead in that state because they gate on `me`, which
+      // is null while an AI holds priority. Reloading the page is the only way
+      // out, and that has happened to a player mid-match.
+      //
+      // Arcane Focus was one such intent (see the heart branch of HERO_POWER —
+      // `canChannel` promised a waiver the resolve path did not deliver) and it
+      // stalled 30% of hero matches. That one is fixed at the source, where it
+      // belongs. This is the backstop for the NEXT disagreement between a
+      // predicate and the path that honours it: one wasted turn instead of a
+      // dead match. It fires on nothing that works.
+      const before = progressKey(draft, seat);
+      const next = applyIntent(draft, intent);
+      if (progressKey(next, seat) !== before) return next;
+      next.log.push(`${seat} had nothing it could do (${intent.type}).`);
+      return applyIntent(next, { type: "PASS", player: seat });
     }
     case "battle": {
       stepBattle(draft);
@@ -4399,6 +4421,24 @@ export function advance(state: GameState): GameState {
     default:
       return draft;
   }
+}
+
+/** A cheap value signature of "did that turn accomplish anything for this seat".
+ *
+ *  Deliberately NOT a deep compare: this runs on every AI prep turn, and the
+ *  question is only whether the last intent moved the game at all. Everything a
+ *  legal prep action touches is in here — the purse, the hand, the board, the
+ *  turn itself, and the log, which every action worth taking writes to. */
+function progressKey(s: GameState, seat: PlayerId): string {
+  const p = s.players[seat];
+  return [
+    s.phase, s.round, s.prep?.priority ?? "-", s.prep?.consecutivePasses ?? -1,
+    s.prep?.movedThisTurn ? 1 : 0, s.log.length,
+    p.gold, p.magicPool, p.hand.length, p.deck.length,
+    p.heroPowerUsed ? 1 : 0, p.freeSummon ? 1 : 0,
+    Object.keys(s.cards).length,
+    p.spellbook.filter((e) => e.used).length,
+  ].join("|");
 }
 
 /** Run advance() until P1 input is needed or the game ends. For tests/headless. */
