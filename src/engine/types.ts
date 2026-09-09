@@ -2498,9 +2498,6 @@ export interface PlayerState {
    *  card, once, is the narrowest form the lever has, and it is the only one
    *  that can be priced onto a cost-1 body. */
   seek?: { defId: string; discount: number };
-  /** A COUNT, not a flag: Arcane Focus arms more than one cast. Each free
-   *  Special decrements it, and 0/undefined means pay as normal. */
-  freeSpecial?: number;
   /** Spells available to this player this game (each castable once). */
   spellbook: SpellSlot[];
   /** GOLD — the summoning resource. Gains = round # each round (cap 10
@@ -2847,7 +2844,16 @@ export type Intent =
   /** Fire this seat's hero power. Free, once per game, and it takes no target:
    *  two of the four ARM a free cast rather than acting, so the player still
    *  picks what to spend it on. See `heroes.ts`. */
-  | { type: "HERO_POWER"; player: PlayerId }
+  | {
+      type: "HERO_POWER";
+      player: PlayerId;
+      /** ARCANE FOCUS only: the ally to channel — its Special fires now, in
+       *  prep. Absent for the other three, which have nothing to aim. */
+      instanceId?: string;
+      /** The channelled Special's own targets, same shape a BATTLE_ACTION
+       *  passes: first pick aims a corridor, several picks spread. */
+      targetIds?: string[];
+    }
   | { type: "FLOW_CHANGE"; player: PlayerId; instanceId: string; mode: "water" | "ice" | "steam" }
   | {
       type: "BATTLE_ACTION";

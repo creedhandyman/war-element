@@ -906,10 +906,6 @@ export function DeckBuilder(props: {
                 {SUITS.map((k) => {
                   const h = HEROES[k];
                   const st = SUIT_STYLES[k];
-                  const curve = [
-                    h.goldShift ? `gold ${h.goldShift > 0 ? "+" : ""}${h.goldShift} rounds` : "",
-                    h.magicShift ? `magic ${h.magicShift > 0 ? "+" : ""}${h.magicShift} rounds` : "",
-                  ].filter(Boolean).join(" · ") || "no curve change";
                   return (
                     <button
                       key={k}
@@ -918,7 +914,7 @@ export function DeckBuilder(props: {
                     >
                       <b>{st.glyph} {h.name}</b>
                       <span>{h.identity}</span>
-                      <em>{curve}</em>
+                      <em>{st.blurb}</em>
                       <i>{h.power.name}: {h.power.text}</i>
                     </button>
                   );

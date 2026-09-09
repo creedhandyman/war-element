@@ -2685,6 +2685,27 @@ export function App() {
   function onSlotClick(row: number, col: number) {
     const clicked = cardAt(game, row, col);
 
+    // ARCANE FOCUS ARMED: the next ally tapped fires its Special, here in
+    // prep. Checked FIRST, above every other armed state, because the chip
+    // that armed it is the only thing that can have armed it — nothing else
+    // can be pending at the same time (arming it clears `pending`).
+    if (sel?.kind === "channel") {
+      if (!clicked || me === null) return;
+      if (clicked.owner !== me) {
+        setDetailId(clicked.instanceId);
+        setHint("⚠ Channel one of <b>your own</b> cards — its Special fires now.");
+        return;
+      }
+      if (!getDef(clicked.defId).special) {
+        setDetailId(clicked.instanceId);
+        setHint("⚠ That card has no Special to channel.");
+        return;
+      }
+      setSel(null);
+      dispatch({ type: "HERO_POWER", player: me, instanceId: clicked.instanceId });
+      return;
+    }
+
     // Battle-phase target pick — click up to maxPicks targets (repeat a
     // target to stack hits on it); fires automatically at the cap. A click on a
     // non-target card just inspects it (the pick prompt stays armed).
@@ -3266,13 +3287,24 @@ export function App() {
     const suit = game.seatSuits?.[me];
     if (!suit || game.players[me].heroPowerUsed) return undefined;
     const hero = HEROES[suit];
-    const armed = Boolean(game.players[me].freeSummon || game.players[me].freeSpecial);
+    const armed = Boolean(game.players[me].freeSummon);
+    // ARCANE FOCUS AIMS, so its chip ARMS a selection instead of resolving.
+    // The other three have nothing to point at and fire where they stand.
+    const aims = suit === "heart";
+    const channelling = sel?.kind === "channel";
     return {
       name: hero.power.name,
       text: hero.power.text,
-      ready: armed,
+      ready: armed || channelling,
       disabled: !myPrep || staged !== null || armed,
-      onUse: () => dispatch({ type: "HERO_POWER", player: me }),
+      onUse: () => {
+        if (!aims) { dispatch({ type: "HERO_POWER", player: me }); return; }
+        // A second press disarms — the same escape every other armed
+        // control here gives you, and this one spends a once-per-game
+        // ability so it needs the way out more than they do.
+        setSel(channelling ? null : { kind: "channel" });
+        setPending(null);
+      },
     };
   })();
   // Gentle nudge: on your prep turn, before you've spent your one move and while

@@ -1,7 +1,7 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
-import { goldRoundFor, magicRoundFor, cardPower, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, FOCUS_CASTS, HERO_MIN_ROUND } from "./heroes";
+import { cardPower, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -38,6 +38,7 @@ import {
   aoeRowsHit,
   basicIsInert,
   canCastSpell,
+  canChannel,
   canFireSpecial,
   effectiveSpecialCost,
   canFireTalent,
@@ -651,9 +652,46 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         case "spade":   // Muster: the next summon is free.
           p.freeSummon = true;
           break;
-        case "heart":   // Arcane Focus: the next few Specials are free.
-          p.freeSpecial = FOCUS_CASTS;
+        case "heart": {
+          // ARCANE FOCUS: reach into an ally and fire its Special NOW, in
+          // prep, for nothing — off cooldown, out of turn, in the phase
+          // where a spell would be cast.
+          //
+          // It used to refund the magic on the next few Specials, which was
+          // worth +1.3 points against the same seat with its power disabled
+          // — where the other three heroes' powers are worth 10 to 14. (It
+          // was worse than that, −11.4, back when the Mage also carried a
+          // magic curve: a refund on a currency the hero already had in
+          // surplus only ever talked it into casting more. See heroes.ts.)
+          // A discount is also not a decision: nothing about it is chosen
+          // except when to press it.
+          //
+          // This is a decision twice over — which body, and what it aims at
+          // — and it takes an action the game does not otherwise sell: a
+          // Special in the prep phase. Cooldown and magic are both waived
+          // through `card.freeSpecial`, the same flag Volcanon's on-kill
+          // recast already uses, so this rides machinery that is proven
+          // rather than inventing a second way to fire a Special.
+          const src = intent.instanceId ? draft.cards[intent.instanceId] : undefined;
+          // A power spent on nothing is the worst outcome, so an illegal
+          // channel refuses BEFORE `heroPowerUsed` would strand it — see the
+          // early return below the switch.
+          if (!src || src.owner !== intent.player
+              || !canChannel(draft, src.instanceId).ok) { p.heroPowerUsed = false; return draft; }
+          const wasFree = src.freeSpecial;
+          src.freeSpecial = true;
+          try {
+            performBattleAction(draft, src.instanceId, "special", intent.targetIds);
+          } catch {
+            // Nothing legal to point it at. Hand the power back rather than
+            // eating a once-per-game ability on a misclick.
+            src.freeSpecial = wasFree;
+            p.heroPowerUsed = false;
+            return draft;
+          }
+          draft.log.push(`${intent.player} — ${hero.power.name}: channels ${label(draft, src)}.`);
           break;
+        }
         case "club": {  // Hold the Line: the whole line digs in, and patches up.
           let n = 0;
           for (const c of boardCards(draft, intent.player)) {
@@ -1661,16 +1699,16 @@ function doResourcePhase(draft: GameState): void {
   // puts pieces back, and it was the one income that never grew.
   //
   // Both pools cap carryover at 10.
-  // PER SEAT NOW, because a hero shifts its owner's curve and nobody else's.
-  // The shift is an offset in ROUNDS into the same curve — a boundary move, so
-  // the hero is ahead early and the two curves re-converge — rather than a rate
-  // change, which would compound without limit. See heroes.ts.
-  const magicGainFor = (seat: PlayerId) =>
-    poolGainForRound(magicRoundFor(draft.round, draft.seatSuits?.[seat], draft.heroes));
-  const goldBaseFor = (seat: PlayerId) =>
-    poolGainForRound(goldRoundFor(draft.round, draft.seatSuits?.[seat], draft.heroes));
-  // The unshifted magic value, for the log line's baseline.
+  //
+  // THE SAME CURVE FOR EVERY SEAT. Heroes used to shift it — an offset in
+  // rounds, per suit — and that half of the hero is gone: a hero is now its
+  // once-per-game power and nothing else. The shift was invisible by
+  // construction (nobody feels `poolGainForRound(round + 1)`), it was the
+  // part that needed a paragraph to explain, and measurement kept finding it
+  // mattered more than the powers it was supposed to be balancing against —
+  // which is a strange thing for the half a player cannot see. See heroes.ts.
   const magicGain = poolGainForRound(draft.round);
+  const goldBase = magicGain;
   const gains = {} as Record<PlayerId, number>;
   // THE VOID TOWER HEAD START. The boss is placed outside the economy — a
   // 12-cost body standing there on round one, for nothing — while the player is
@@ -1710,7 +1748,7 @@ function doResourcePhase(draft: GameState): void {
     // means nothing to them, since homeRow only has an answer for two seats.
     const points = draft.domination ? heldCount(draft.domination.held, player) : 0;
     const gain =
-      goldBaseFor(player) + (draft.domination ? 0 : homeSlotsHeld(draft, player))
+      goldBase + (draft.domination ? 0 : homeSlotsHeld(draft, player))
       + (player === "P1" ? headStart : 0) + bossPurse
       + points * POI_GOLD;
     gains[player] = gain;
@@ -1733,7 +1771,7 @@ function doResourcePhase(draft: GameState): void {
       }
     }
     p.gold = Math.min(p.gold, POOL_CARRYOVER_CAP) + gain;
-    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGainFor(player);
+    p.magicPool = Math.min(p.magicPool, POOL_CARRYOVER_CAP) + magicGain;
   }
   // The two sides can now earn different amounts, so the log has to say whose.
   // Every SEAT, not the first two — a four-player round that only reported P1
@@ -1965,12 +2003,6 @@ function performBattleAction(
       card.talentUsed = true; // once per game — no cost, no cooldown
     } else if (!wasFree) {
       draft.players[card.owner].magicPool -= effectiveSpecialCost(draft, card, special.cost);
-      // Arcane Focus is spent one CAST at a time, not by the round.
-      const focus = draft.players[card.owner].freeSpecial ?? 0;
-      if (focus > 0) {
-        draft.players[card.owner].freeSpecial = focus - 1;
-        draft.log.push(`${label(draft, card)}'s Special is refunded — Arcane Focus (${focus - 1} left).`);
-      }
       // 1-round floor; a printed longer cooldown overrides (+1 because the
       // current round's Cleanup ticks it once).
       // Rounds a Special must sit out. The +1 is because this same round's

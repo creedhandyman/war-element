@@ -201,6 +201,10 @@ export type Selection =
   | { kind: "hand"; handId: string }
   | { kind: "card"; instanceId: string }
   | { kind: "spell"; spellId: string; mode?: "attack" | "shield" }
+  /** ARCANE FOCUS armed: the next ally tapped has its Special fired, in prep.
+   *  A hero power that AIMS is the only one of the four that needs a selection
+   *  state at all — the other three resolve where they stand. */
+  | { kind: "channel" }
   | null;
 
 /** What the action bar is currently ARMED for, waiting on a confirming second

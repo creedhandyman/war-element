@@ -19,6 +19,7 @@ import { hasEvasion, TARGETLESS_HANDLERS } from "./combat";
 import {
   canCastSpell,
   spellAllyTargets,
+  canChannel,
   canFireSpecial,
   canFireTalent,
   canPlummet,
@@ -138,23 +139,39 @@ function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
         ? { type: "HERO_POWER", player } : null;
     }
     case "heart": {
-      // Arcane Focus: a board that will actually SPEND the four charges.
+      // ARCANE FOCUS: channel the ally whose Special is worth the most right
+      // now and fire it in prep.
       //
-      // It used to ask "is there a Special you cannot pay for", and that was
-      // dead — 0% true in every round of 160 measured matches, because the
-      // Mage's own `magicShift: +5` is what makes it magic-rich. The hero's
-      // bonus was suppressing the hero's power. It still fired in 41% of games
-      // only by catching a mid-round moment after the pool had been spent down,
-      // which is a top-up rather than the burst it is meant to be.
+      // The power used to refund magic on the next few Specials, and the
+      // trigger asked whether there was a Special the seat could not afford
+      // — dead, 0% true in every round, because the Mage's own curve made it
+      // rich. Both are gone. This one cannot be dead: it fires whenever
+      // there is anything to channel, and the only judgement is WHICH.
       //
-      // This is the same shape as the capital-letter bug above, one layer
-      // deeper: not a branch that never matched, a branch whose premise the
-      // rest of the hero had made impossible.
-      //
-      // Two bodies, because four refunds want somewhere to land — one Special
-      // on a 2-round cooldown spends at most two of them before the match ends.
-      const casters = board.filter((c) => getDef(c.defId).special).length;
-      return casters >= 2 ? { type: "HERO_POWER", player } : null;
+      // Ranked by the Special's own COST, which is the set's own statement of
+      // how much a Special is worth — the stat budget prices them, so an
+      // expensive one is a bigger effect. A body that could fire it THIS
+      // battle anyway is discounted: the power buys an extra activation, not
+      // an earlier one, so spending it on something already available wastes
+      // most of what it is for.
+      let best: { id: string; picks?: string[]; score: number } | null = null;
+      for (const c of board) {
+        const def = getDef(c.defId);
+        // `canChannel` is the ENGINE's own predicate, and asking it here is
+        // what keeps this from deadlocking: an illegal channel is handed
+        // back rather than spent, so a seat that proposes one proposes it
+        // again next turn and the match never ends. It did — a third of all
+        // games stopped finishing until both sides asked the same question.
+        if (!canChannel(state, c.instanceId).ok) continue;
+        const aim = specialTargets(state, c.instanceId);
+        if (aim.length === 0) continue;
+        const score = def.special!.cost * (canFireSpecial(state, c.instanceId).ok ? 0.6 : 1);
+        if (score > 0 && (!best || score > best.score))
+          best = { id: c.instanceId, picks: [aim[0].instanceId], score };
+      }
+      return best
+        ? { type: "HERO_POWER", player, instanceId: best.id, targetIds: best.picks }
+        : null;
     }
     case "club":
       // Hold the Line: once there is a line to hold and someone to hold it

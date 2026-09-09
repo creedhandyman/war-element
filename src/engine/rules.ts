@@ -1859,10 +1859,6 @@ export function canFireTalent(
  *  the BOLT ultimate's permanent per-player discount applies to BOLT cards and
  *  floors at 1. */
 export function effectiveSpecialCost(state: GameState, card: CardInstance, cost: number): number {
-  // Arcane Focus (Mage): armed, the next Special is free. A true 0 rather than
-  // a discount — the floor of 1 below applies to stacking discounts, and a
-  // refund that still charged a point would not be a refund.
-  if (state.players[card.owner].freeSpecial) return 0;
   const base = Math.max(0, cost - (card.specialCostReduction ?? 0)); // King Me (per-card)
   // BOLT discounts: Total Network Control (permanent, per-player) + Power Grid
   // (temporary, per-field). fieldBonus only matches a BOLT card to a BOLT field,
@@ -1873,6 +1869,48 @@ export function effectiveSpecialCost(state: GameState, card: CardInstance, cost:
   const roundWide = state.players[card.owner].specialDiscountRound ?? 0;
   const total = permBolt + roundWide + fieldBonus(state, card, "specialDiscount");
   return total > 0 ? Math.max(1, base - total) : base;
+}
+
+/** Can Arcane Focus CHANNEL this card — fire its Special out of turn, free?
+ *
+ *  `canFireSpecial` minus the two things the power pays for: the cooldown and
+ *  the magic. Everything else still applies — a dismounted body has no Special,
+ *  a quarantined one is locked out, MUTED is MUTED, a boss clock owns its own
+ *  Special, and a Special with nothing to point at cannot be aimed.
+ *
+ *  SHARED WITH THE AI ON PURPOSE, and the reason is a livelock this exact
+ *  function was written to end. The engine hands the power BACK when a channel
+ *  is illegal, so a misclick cannot eat a once-per-game ability — which means
+ *  an AI that proposes an illegal channel proposes it again next turn, forever.
+ *  Measured: a third of all matches stopped finishing. One predicate, asked by
+ *  the seat choosing and by the engine resolving, is what makes that
+ *  impossible rather than merely unlikely. */
+export function canChannel(
+  state: GameState,
+  instanceId: string,
+): { ok: boolean; reason?: string } {
+  const card = state.cards[instanceId];
+  if (!card) return { ok: false, reason: "No such card" };
+  const def = getDef(card.defId);
+  if (!def.special) return { ok: false, reason: "No Special" };
+  if (card.curHp <= 0) return { ok: false, reason: "Defeated" };
+  if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
+  if ((card.specialLockedRounds ?? 0) > 0) return { ok: false, reason: "Specials locked (quarantined)" };
+  // THE SUMMON LOCKOUT DOES NOT APPLY. A body that just landed cannot fire its
+  // own Special this round, and reaching past that is the most distinctive
+  // thing this power does: play the piece and set it off in the same prep.
+  // It is also where the fire rate was going — the power sat unusable in 22% of
+  // games, and a once-per-game ability that often has nothing to point at is
+  // not a power, it is a coin flip.
+  if (def.special.talent && card.talentUsed)
+    return { ok: false, reason: "Talent already used this game" };
+  if (def.roundTick?.fireSpecialEveryN)
+    return { ok: false, reason: "Fires on its own clock" };
+  if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
+  if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
+  if (specialTargets(state, instanceId).length === 0)
+    return { ok: false, reason: "No valid target" };
+  return { ok: true };
 }
 
 export function canFireSpecial(
@@ -1911,8 +1949,7 @@ export function canFireSpecial(
   // BOUNDED, not a rate change — four casts, once a game, which is the same
   // safety argument the curves are built on. A hero that halved cooldowns
   // outright would compound for the whole match.
-  const focused = (state.players[card.owner].freeSpecial ?? 0) > 0;
-  if (!card.freeSpecial && !focused && !def.special.talent && card.specialCooldown > 0)
+  if (!card.freeSpecial && !def.special.talent && card.specialCooldown > 0)
     return { ok: false, reason: `Special is recharging (${card.specialCooldown} more round${card.specialCooldown === 1 ? "" : "s"})` };
   // THE BOSS CLOCK owns this Special outright. Without this the AI would also
   // cast it whenever it could afford the magic, and a threat that lands on a

@@ -7,15 +7,25 @@
 // AI) how it will play. Nothing new to learn and nothing extra on screen.
 //
 // ─────────────────────────────────────────────────────────────────────────
-// BOUNDARY SHIFTS, NOT RATE CHANGES. This is the whole safety argument.
+// A HERO IS ITS POWER. There is no economy curve any more.
 //
-// A rate change ("+1 gold per round") compounds without limit: by round 20 it
-// is +20, and the hero is balanced at one match length and wrong at every
-// other. A boundary shift ("reach gold tier 2 two rounds early") is worth a
-// fixed few points and then the curves RE-CONVERGE — the hero is ahead early
-// and even later, which is a tempo effect and a bounded one. Every hero here
-// shifts boundaries only, expressed as rounds of offset into
-// `poolGainForRound`.
+// Each one used to carry a `goldShift`/`magicShift` as well — an offset in
+// rounds into `poolGainForRound`, so a suit reached its next income tier early
+// or late. That half is gone, and the case against it is in this file's own
+// measurements.
+//
+// IT WAS INVISIBLE. Nobody feels `poolGainForRound(round + 1)`. It is a number
+// behind a number, and it was the part that needed a paragraph of explanation
+// in a picker — the opposite of what a chosen thing should be.
+//
+// AND IT WAS THE PART THAT MATTERED, which is worse. Removing the Mage's ONE
+// round of gold penalty moved it 46.3% -> 49.1%; fixing its power outright was
+// worth +0.2 and +0.6. A hero whose hidden arithmetic outweighs its visible
+// ability is not really being chosen by anyone.
+//
+// The exchange-rate table below is kept because it is why: it is the reason a
+// curve could never be a SMALL effect here, and therefore the reason a hero
+// built on one could not be both fair and interesting.
 //
 // ─────────────────────────────────────────────────────────────────────────
 // THE EXCHANGE RATE IS NOT 1:1, AND IT IS NOT CLOSE. Measured over 120 mirror
@@ -31,19 +41,10 @@
 //     +3 MAGIC                       65.8%              +18.3
 //     +4 MAGIC                       68.3%              +20.8
 //
-// Gold is worth MORE THAN FOUR TIMES magic, and the gap widens: magic's
-// returns diminish hard (+8.3, then +5.9, +4.1, +2.5) while gold's do not.
-// The reason is structural — a board can only fire so many Specials a round, so
-// surplus magic evaporates, where gold always becomes a body that then works
-// every round after.
-//
-// Two rules follow, and both are load-bearing here:
-//   1. GOLD SHIFTS ARE TINY. One round of offset is already a real edge.
-//   2. MAGIC SHIFTS CAN BE GENEROUS. Three rounds of magic offset costs less
-//      than one round of gold, so the Mage can actually feel like a Mage.
-//
-// A hero that trades gold for magic at anything near parity is taking a
-// downgrade, not a sidegrade. None of these do.
+// Gold is worth MORE THAN FOUR TIMES magic, and a single round of it is a real
+// edge. Reproduced independently later: a flat +2 gold a round to one seat wins
+// ~99% of games whatever hero is flying it. An economy dial in this game has no
+// gentle setting, which is exactly why the heroes no longer own one.
 //
 // ─────────────────────────────────────────────────────────────────────────
 // AND THE ROSTER, MEASURED THE SAME WAY. Both seats pinned to one AI style and
@@ -188,10 +189,6 @@ export interface Hero {
   name: string;
   /** One sentence. If it needs two, the hero is too complicated. */
   identity: string;
-  /** Rounds of offset into the gold curve. POSITIVE = earlier tiers. */
-  goldShift: number;
-  /** Rounds of offset into the magic curve. POSITIVE = earlier tiers. */
-  magicShift: number;
   /** The one visible thing — a free, once-per-game ability, so the hero has
    *  presence rather than being an invisible arithmetic change.
    *
@@ -259,7 +256,7 @@ export const cardPower = (d: CardDef): number =>
  *  against 4.2. That earlier harness's setup was never written down, so the two
  *  readings cannot be reconciled; this one is recorded in the file it measures
  *  for exactly that reason. */
-export const HERO_GOLD = 3;      // Requisition, gold gained
+export const HERO_GOLD = 2;      // Requisition, gold gained
 /** Muster only pays for a card up to this cost.
  *
  *  UNCAPPED IT WAS THE WHOLE PROBLEM. A free summon of anything is a free
@@ -283,27 +280,6 @@ export const MUSTER_OPENING_MAX = 6;
  *  exactly that reason: a rule no simulation covers should not also be
  *  unlimited. */
 export const MUSTER_MAX_COST = 3;
-/** Arcane Focus arms this many free Specials.
- *
- *  TWO, because one was worth almost nothing: magic is the cheap currency and a
- *  single refunded cast left Control at 22.5%. Two casts is still under what
- *  one free body is worth, which is the exchange rate doing its job. (Four now
- *  — the count kept climbing while the power stayed worthless, which was the
- *  clue that the count was never the problem. See below.)
- *
- *  AND THE CHARGES WAIVE COOLDOWN, not just cost, which is the whole of what
- *  makes this a power at all. Measured across 160 matches: magic blocked 0% of
- *  the Mage's Specials — never, in any round — because its own `magicShift: +5`
- *  had already taken magic off the table (average pool 10-13 by round 10). A
- *  refund of a cost nobody was paying is worth exactly nothing, and it showed:
- *  the Mage cast 2.9 Specials a match against the Sentinel's 3.0, last in the
- *  suit table, under an identity line promising "Specials early and often".
- *
- *  What DID block it: cooldown 24%, no valid target 26%, summon-turn 16%. The
- *  waiver acts on cooldown because that is the one a hero can move — and it
- *  stays BOUNDED at `FOCUS_CASTS` casts, once a game, rather than becoming the
- *  rate change this file's whole safety argument is against. */
-export const FOCUS_CASTS = 4;
 /** No hero power before this round.
  *
  *  THE SPIKE WAS THE PROBLEM, not the size. Muster and Requisition are economy
@@ -317,48 +293,41 @@ export const HEROES: Record<Suit, Hero> = {
   spade: {
     suit: "spade", name: "Warlord",
     identity: "Bodies on the board sooner. Fewer tricks, more army.",
-    // ONE round, against the Mage's three. Gold is the strong currency and a
-    // Warlord that opened two tiers up would simply win the opening.
-    goldShift: 1, magicShift: -1,
     power: { name: "Muster", text: `Once per game, free: your next summon of a cost-${MUSTER_MAX_COST} or cheaper card is free — gold and the opening cap alike.` },
   },
   club: {
     suit: "club", name: "Sentinel",
     identity: "The baseline. No curve to learn, and always viable.",
-    // THE DEFAULT, deliberately unmodified. A roster needs a seat that is
-    // simply the game as designed, or "balanced" has nothing to mean.
-    goldShift: 0, magicShift: 0,
     power: { name: "Hold the Line", text: `Once per game, free: every ally gains ${HERO_SHIELDS} shields and heals ${HERO_HEAL}.` },
   },
   heart: {
     suit: "heart", name: "Mage",
-    identity: "Specials early and often, and the magic to keep them coming.",
-    // NO GOLD PENALTY ANY MORE, and this is the single change that fixed the
-    // Mage. It used to pay `goldShift: -1` for its magic, on the reasoning that
-    // five rounds of the cheap currency for one of the dear one is a fair-
-    // looking trade that is really a trap — measured, at the time, at −0.8
-    // against the baseline.
+    identity: "Fires a Special where no Special should be — in the Prep phase.",
+    // A SPECIAL IN THE PREP PHASE, which the game does not otherwise sell.
     //
-    // That reading came from injecting income deltas by hand into a mirror
-    // match, which answers "what is +5 magic worth if you can spend it". On the
-    // live table the answer is: nothing. Magic blocks 0% of this hero's
-    // Specials, in every round, because the +5 has already taken magic off the
-    // table — the pool sits at 10-13 by round 10 and never runs short. The
-    // Mage was paying real money for a benefit it had already saturated, and it
-    // sat LAST at 45.5% under an identity line promising more casting than
-    // anyone else while casting 2.9 Specials a match to the Sentinel's 3.0.
+    // Arcane Focus used to refund the magic on the next few Specials, and it
+    // bought almost nothing. Ablated against the same seat with its power
+    // disabled, the discount was worth +1.3 while Muster was worth +14.2,
+    // Requisition +12.2 and Hold the Line +10.1.
     //
-    // Dropping the penalty alone moved it 46.3% -> 49.1% and took the suit
-    // spread to 11.5, the tightest of any configuration measured. The two
-    // changes to the POWER either side of it were worth +0.2 and +0.6 — inside
-    // noise, and the third time this file has found that a hero's strength
-    // lives in its curve and not in its once-per-game button.
+    // BE PRECISE ABOUT THE OTHER NUMBER, because it is the more dramatic one
+    // and it belongs to a build that no longer exists: back when the Mage
+    // also carried `magicShift: +5`, the same ablation said the power cost it
+    // 11.4 points — it was actively NEGATIVE. Both readings are true and they
+    // are not in conflict. The curve made magic free, so a magic refund was
+    // pure downside: all it did was talk the seat into casting more, and
+    // casting is the axis this game pays least for (gold is worth 4x magic; a
+    // wall deck beats a damage deck 65-35; the Mage out-cast the Sentinel 4.0
+    // to 2.6 and still lost). Remove the curve and the harm goes with it,
+    // leaving a power worth 1.3 points.
     //
-    // The +5 magic stays. It is close to free (it buys off the 8% of casts the
-    // Sentinel loses to an empty pool and nothing more), it is what the hero
-    // reads as, and removing it would leave a Sentinel with a different power.
-    goldShift: 0, magicShift: 5,
-    power: { name: "Arcane Focus", text: `Once per game, free: your next ${FOCUS_CASTS} Specials cost no magic and ignore cooldown.` },
+    // A discount is also not a DECISION. Nothing about it is chosen except when
+    // to press it, which is the thin end of what a hero should be. This one is
+    // chosen twice — which body, and what it aims at — and what it buys is an
+    // ACTION rather than a rebate: a Special outside the battle phase, off
+    // cooldown, on a body that may have arrived too late to have earned it.
+    // Nothing else in the game does that, which is the point.
+    power: { name: "Arcane Focus", text: "Once per game, free: channel an ally — its Special fires now, in Prep, off cooldown." },
   },
   diamond: {
     suit: "diamond", name: "Scholar",
@@ -375,25 +344,11 @@ export const HEROES: Record<Suit, Hero> = {
     // takes the two WEAKEST now — read off `cardPower`, ties broken toward the
     // dearer of two equally-weak cards, since the same stats at a higher price
     // is the worse card twice over.
-    goldShift: 0, magicShift: 0,
     power: { name: "Requisition", text: `Once per game, free: discard your ${HERO_DISCARD} weakest cards, gain ${HERO_GOLD} gold.` },
   },
 };
 
 export const heroOf = (suit: Suit): Hero => HEROES[suit];
-
-/** The round to read a seat's GOLD curve at — the real round, shifted by the
- *  hero. Floored at 1: a penalty must slow the ramp, never run it backwards.
- *
- *  `on` is `GameState.heroes`. With heroes off this is the identity function,
- *  which is what every mode that shipped before them still gets — a dealt suit
- *  alone must never move the economy. */
-export const goldRoundFor = (round: number, suit: Suit | undefined, on = false): number =>
-  on && suit ? Math.max(1, round + HEROES[suit].goldShift) : round;
-
-/** The same for MAGIC. */
-export const magicRoundFor = (round: number, suit: Suit | undefined, on = false): number =>
-  on && suit ? Math.max(1, round + HEROES[suit].magicShift) : round;
 
 /** Every seat's hero, for a readout. */
 export const heroesOf = (

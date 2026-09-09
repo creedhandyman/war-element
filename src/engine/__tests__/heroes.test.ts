@@ -4,13 +4,12 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
-import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, cardPower, goldRoundFor, magicRoundFor } from "../heroes";
-import { canFireSpecial, canSummon, effectiveSpecialCost } from "../rules";
+import { HEROES, HERO_GOLD, HERO_MIN_ROUND, HERO_SHIELDS, cardPower } from "../heroes";
+import { canFireSpecial, canSummon } from "../rules";
 import { applyIntent } from "../phases";
-import { getDef } from "../../data/cards";
+import { CARDS, getDef } from "../../data/cards";
 import { place, prepState } from "./helpers";
 import { SUITS } from "../suits";
-import { poolGainForRound } from "../types";
 import type { GameState, Suit } from "../types";
 
 describe("the roster", () => {
@@ -24,81 +23,53 @@ describe("the roster", () => {
     expect(new Set(SUITS.map((s) => HEROES[s].name)).size).toBe(4);
   });
 
-  it("shifts BOUNDARIES, never rates — so the curves re-converge", () => {
-    // The whole safety argument. A rate change compounds without limit; a
-    // boundary shift is worth a fixed few points and then both curves sit at
-    // the same tier cap. Checked at the cap: by round 25 nobody is ahead.
+  it("has no economy curve at all — a hero is its POWER", () => {
+    // The curves are GONE, and this is the guard that keeps them gone. Each
+    // hero used to carry a `goldShift`/`magicShift`: an offset in rounds into
+    // `poolGainForRound`, per suit. Two things killed it.
+    //
+    // It was invisible by construction. Nobody feels `poolGainForRound(round+1)`
+    // — the shift is a number behind a number — so the half of the hero a
+    // player could not see was the half that needed a paragraph to explain.
+    //
+    // And it was the half that MATTERED, which is worse. Removing the Mage's
+    // one round of gold penalty moved it 46.3% -> 49.1%, while fixing its power
+    // outright was worth +0.2 and +0.6. A hero whose hidden arithmetic outweighs
+    // its visible ability is a hero nobody is really choosing.
+    //
+    // A field re-added here would be silently read by nothing, which is the
+    // worst way for it to come back: this asserts the SHAPE, not a value.
     for (const suit of SUITS) {
-      const late = poolGainForRound(goldRoundFor(25, suit, true));
-      expect(late, `${HEROES[suit].name} converges`).toBe(poolGainForRound(25));
+      const h = HEROES[suit] as unknown as Record<string, unknown>;
+      expect(h.goldShift, `${HEROES[suit].name} must carry no gold curve`).toBeUndefined();
+      expect(h.magicShift, `${HEROES[suit].name} must carry no magic curve`).toBeUndefined();
     }
   });
 
-  it("never runs a curve backwards", () => {
-    // A penalty slows the ramp; it must not make round 1 into round 0.
-    for (const suit of SUITS)
-      for (const r of [1, 2, 3])
-        expect(goldRoundFor(r, suit, true)).toBeGreaterThanOrEqual(1);
+  it("pays every seat the same income, hero or no hero", () => {
+    // The rule the curves used to bend, now unconditional. Both seats earn the
+    // printed curve whatever suit they wear and whether or not heroes are live
+    // — so a dealt glyph can never move the economy.
+    for (const heroes of [false, true]) {
+      let s: GameState = createInitialState(99, "leaf_pyro", "bore_dusk");
+      s.heroes = heroes;
+      for (let i = 0; i < 4000 && s.round < 8; i++) {
+        const n = advance(s); if (n === s) break; s = n;
+      }
+      expect(s.players.P1.gold, `gold, heroes=${heroes}`).toBe(s.players.P2.gold);
+      expect(s.players.P1.magicPool, `magic, heroes=${heroes}`).toBe(s.players.P2.magicPool);
+    }
   });
 });
 
 describe("heroes are OFF unless a mode turns them on", () => {
   // A suit is dealt to EVERY match — it is the seat's identity and the AI's
-  // playstyle. A hero moves the economy, and an ordinary skirmish must not
-  // acquire one just because a glyph was dealt. Tying the shift straight to the
-  // suit broke three resource tests, which is this rule arriving as a failure.
-  it("the shift is the identity function with the flag off", () => {
-    for (const suit of SUITS) {
-      expect(goldRoundFor(7, suit)).toBe(7);
-      expect(magicRoundFor(7, suit)).toBe(7);
-      expect(goldRoundFor(7, suit, false)).toBe(7);
-    }
-  });
-
-  it("a default match pays both seats the printed curve", () => {
-    // Suits are dealt here, so this is the regression guard: same income for
-    // both seats through the early rounds, whatever they drew.
+  // playstyle. A hero hands its owner a free once-per-game ability, and an
+  // ordinary skirmish must not acquire one just because a glyph was dealt.
+  it("a default match gives neither seat a power", () => {
     let s: GameState = createInitialState(99, "leaf_pyro", "bore_dusk");
     expect(s.seatSuits, "suits are still dealt").toBeTruthy();
     expect(s.heroes, "but heroes are not on").toBeFalsy();
-    for (let i = 0; i < 4000 && s.round < 6; i++) {
-      const n = advance(s); if (n === s) break; s = n;
-    }
-    expect(s.players.P1.gold).toBe(s.players.P2.gold);
-    expect(s.players.P1.magicPool).toBe(s.players.P2.magicPool);
-  });
-
-  it("...and with heroes ON the Warlord banks gold sooner than the Mage", () => {
-    const gold = (suit: Suit, round: number) =>
-      poolGainForRound(goldRoundFor(round, suit, true));
-    // ROUND 5 is where it bites: tier 2 starts at round 6, so a +1 shift reads
-    // 6 (tier 2) while a -1 shift reads 4 (still tier 1). At round 4 both are
-    // on tier 1 and the test proves nothing — which is what it did first.
-    expect(gold("spade", 5), "Warlord is a tier up").toBe(2);
-    expect(gold("heart", 5), "the Mage is not").toBe(1);
-    // ...and magic runs the other way, by more, because magic is worth less.
-    const magic = (suit: Suit, round: number) =>
-      poolGainForRound(magicRoundFor(round, suit, true));
-    expect(magic("heart", 5)).toBeGreaterThan(magic("spade", 5));
-  });
-
-  it("charges the Mage NOTHING in gold for its magic", () => {
-    // The measured fix, and the one the assertion above cannot see: at round 5
-    // a -1 shift and a 0 shift both read tier 1, so `gold("heart", 5) === 1`
-    // passes either way. This compares the shift itself.
-    //
-    // The Mage used to pay `goldShift: -1`, on a mirror-match reading that five
-    // rounds of magic for one of gold was a trap. On the live table magic
-    // blocks 0% of its Specials in every round — the +5 has already saturated
-    // it — so the penalty bought nothing and the Mage sat LAST at 45.5%.
-    // Removing it alone: 46.3% -> 49.1%, suit spread down to 11.5.
-    expect(HEROES.heart.goldShift, "the Mage pays no gold penalty").toBe(0);
-    expect(HEROES.heart.magicShift, "and keeps the magic").toBeGreaterThan(0);
-    // Round 21 puts every curve on the top tier, so a shift is invisible there;
-    // round 6 is a boundary and the honest place to read one.
-    const at = (suit: Suit, r: number) => poolGainForRound(goldRoundFor(r, suit, true));
-    expect(at("heart", 6), "level with the Sentinel, not behind it")
-      .toBe(at("club", 6));
   });
 });
 
@@ -237,47 +208,57 @@ describe("the hero powers", () => {
     expect(canSummon(after, "P1", "h2", 1).ok, "and still good for the big one").toBe(true);
   });
 
-  it("Arcane Focus zeroes the next Special's cost", () => {
+  it("Arcane Focus fires an ally's Special in PREP, free and off cooldown", () => {
+    // The whole power. It used to refund magic on the next few Specials, which
+    // measured at ELEVEN POINTS WORSE than having no power at all — a discount
+    // makes the seat cast more, and casting is what this game pays least for.
+    // This buys an ACTION the game does not otherwise sell instead.
     const s = armed("heart");
     const caster = place(s, "aqua_sapphire", "P1", 3, 0);
-    const cost = getDef("aqua_sapphire").special!.cost;
-    expect(effectiveSpecialCost(s, s.cards[caster.instanceId], cost), "priced as normal").toBe(cost);
-    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
-    expect(effectiveSpecialCost(ready, ready.cards[caster.instanceId], cost), "free once armed").toBe(0);
+    const victim = place(s, "leaf_nettle", "P2", 2, 0);
+    s.cards[caster.instanceId].specialCooldown = 2;   // recharging…
+    s.players.P1.magicPool = 0;                        // …and broke
+    expect(canFireSpecial(s, caster.instanceId).ok, "cannot fire it normally").toBe(false);
+    const hp = s.cards[victim.instanceId].curHp;
+    const next = applyIntent(s, {
+      type: "HERO_POWER", player: "P1", instanceId: caster.instanceId,
+    });
+    expect(next.cards[victim.instanceId].curHp, "the Special actually landed")
+      .toBeLessThan(hp);
+    expect(next.players.P1.magicPool, "and cost no magic").toBe(0);
+    expect(next.players.P1.heroPowerUsed, "spent").toBe(true);
   });
 
-  it("Arcane Focus also beats the COOLDOWN, which is what it was for", () => {
-    // The refund alone was worth nothing, and the measurement is why. Across
-    // 160 matches magic blocked 0% of the Mage's Specials — never, because its
-    // own `magicShift: +5` had already taken magic off the table — while
-    // cooldown blocked 24%. The Mage cast 2.9 Specials a match against the
-    // Sentinel's 3.0 and sat last in the table, with an identity line promising
-    // "Specials early and often". Waiving a cost nobody paid is not a power.
+  it("channels only YOUR OWN card, and refuses without spending itself", () => {
+    // A once-per-game power eaten by a misclick is the worst outcome there is,
+    // so an illegal channel hands the power back rather than resolving to
+    // nothing. Three ways to be illegal: someone else's card, no card, and a
+    // card with no Special to channel.
     const s = armed("heart");
-    const caster = place(s, "aqua_sapphire", "P1", 3, 0);
-    place(s, "leaf_nettle", "P2", 2, 0); // in reach, so targeting is not the variable
-    s.cards[caster.instanceId].specialCooldown = 2;
-    s.players.P1.magicPool = 99; // magic is not the variable here
-    expect(canFireSpecial(s, caster.instanceId).reason, "recharging, as normal")
-      .toMatch(/recharging/);
-    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
-    expect(canFireSpecial(ready, caster.instanceId).ok, "armed: it fires anyway").toBe(true);
+    place(s, "aqua_sapphire", "P1", 3, 0);
+    const theirs = place(s, "aqua_sapphire", "P2", 0, 0);
+    const noSpecial = CARDS.find((c) => !c.boss && !c.special)!;
+    const mine = place(s, noSpecial.id, "P1", 3, 1);
+    for (const bad of [undefined, theirs.instanceId, mine.instanceId]) {
+      const next = applyIntent(s, { type: "HERO_POWER", player: "P1", instanceId: bad });
+      expect(next.players.P1.heroPowerUsed, `illegal channel: ${bad ?? "nothing"}`).toBeFalsy();
+    }
   });
 
-  it("does not hand every OTHER seat a free cooldown skip", () => {
-    // The waiver reads `players[owner].freeSpecial`, which only Arcane Focus
-    // ever sets. If it ever keyed off something shared, every hero would get a
-    // cooldown-free burst and the whole cooldown rule would be optional.
+  it("does not waive cooldown for anything it did not channel", () => {
+    // The old version armed a PLAYER-level counter that zeroed every Special's
+    // cost until spent. This one touches exactly one card, once — so a second
+    // body is no readier than it was.
     const s = armed("heart");
-    const mine = place(s, "aqua_sapphire", "P1", 3, 0);
-    const theirs = place(s, "aqua_sapphire", "P2", 2, 0);
-    s.cards[mine.instanceId].specialCooldown = 2;
-    s.cards[theirs.instanceId].specialCooldown = 2;
+    const a = place(s, "aqua_sapphire", "P1", 3, 0);
+    const b = place(s, "aqua_sapphire", "P1", 3, 1);
+    place(s, "leaf_nettle", "P2", 2, 0);
+    s.cards[b.instanceId].specialCooldown = 2;
     s.players.P1.magicPool = 99;
-    s.players.P2.magicPool = 99;
-    const ready = applyIntent(s, { type: "HERO_POWER", player: "P1" });
-    expect(canFireSpecial(ready, mine.instanceId).ok, "the Mage's own").toBe(true);
-    expect(canFireSpecial(ready, theirs.instanceId).reason, "not the opponent's")
+    const next = applyIntent(s, {
+      type: "HERO_POWER", player: "P1", instanceId: a.instanceId,
+    });
+    expect(canFireSpecial(next, b.instanceId).reason, "the other one still recharges")
       .toMatch(/recharging/);
   });
 
