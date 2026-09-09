@@ -852,8 +852,17 @@ export const CARDS: CardDef[] = [
     //
     // Reach is whatever the card really has (canTarget decides), so on a Melee
     // body that is the adjacent ring — walk next to the goblin and it swings.
-    passiveNames: { onOppMove: "Cave Guard" },
+    passiveNames: { onOppMove: "Cave Guard", onSummon: "Guards The Entrance" },
     onOppMove: { dmg: 2, onlyOnHomeRow: true },
+    // GUARDS THE ENTRANCE — its lore is already half the card: "It guards the
+    // entrance. Anything arriving is given four points of welcome." It guards
+    // an ENTRANCE, so it is the one that knows what is behind it.
+    //
+    // It sells ACCESS to the heavy end, which is the thing a cost-6-to-10 bomb
+    // actually lacks: on the 4x4 you draw your whole deck by round 10 and the
+    // average match is 11.9 rounds, so the finisher you drew on round eleven
+    // was a card you never had.
+    onSummon: { handler: "seek", params: { element: "BORE", minCost: 4, discount: 1 } },
   },
   {
     id: "bore_hillbilly",
@@ -4682,8 +4691,12 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Windfist (On Hit): blow the target all the way back to its own Home row,
     // as far as open slots allow (pushBack stops at home / an obstacle).
-    passiveNames: { onHitPush: "Windfist" },
+    passiveNames: { onHitPush: "Windfist", onSummon: "Carried On The Wind" },
     onHitPush: 5,
+    // CARRIED ON THE WIND — a sirocco is a NAMED wind out of the Sahara, and it
+    // is famous for exactly one thing: bringing something with it. Dust, heat,
+    // and — here — a bird.
+    onSummon: { handler: "seek", params: { element: "GALE", minCost: 4, discount: 1 } },
   },
   {
     // 2x2 + 4 + 2 + 7 = 17, +2 over the cost-1 budget (within tolerance).
@@ -5924,8 +5937,14 @@ export const CARDS: CardDef[] = [
     // Shrunk to a Cost-1 filler on purpose: at Cost 2 it displaced DAWN's stronger
     // bodies in the AI's summon order and dragged the already-top DAWN core down
     // ~16 points in testing. As a cheap footnote it measures balance-neutral.
-    passiveNames: { onEnterMidRow: "Frontline Scout" },
+    passiveNames: { onEnterMidRow: "Frontline Scout", onSummon: "Outrider" },
     onEnterMidRow: { shields: 2 },
+    // OUTRIDER — the word means the rider sent ahead of a marching column to
+    // reconnoitre the ground and bring word back to the army, which is the job
+    // exactly. DAWN's top end is ORDERS rather than threats, and an order given
+    // to nobody is a blank; this is what makes sure there is somebody to give
+    // it to.
+    onSummon: { handler: "seek", params: { element: "DAWN", minCost: 4, discount: 1 } },
   },
 
   // ── Class-per-cost grid, COST 1 (batch 1: cells with a doc card + staged art
@@ -6315,8 +6334,14 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Out with a Bang (On Death): applies BURN 1 to opponents in the far (home)
     // row — stacks with the Scorch aura.
-    passiveNames: { onDeath: "Out with a Bang" },
+    passiveNames: { onDeath: "Out with a Bang", onSummon: "Carried Flame" },
     onDeath: { dmg: 0, farRowStatus: { kind: "BURN", duration: 1, power: 1 } },
+    // CARRIED FLAME — a taper IS the finder. It is the lamplighter's tool: a
+    // thin candle whose whole purpose is to be lit from one flame and carried
+    // to find the next wick. PYRO is a multiplier deck wearing an aggro stat
+    // line and both halves fail separately when the draw is wrong; this is the
+    // half that goes and gets the other one.
+    onSummon: { handler: "seek", params: { element: "PYRO", minCost: 4, discount: 1 } },
   },
   {
     id: "aqua_arctik",
@@ -9158,8 +9183,15 @@ export const CARDS: CardDef[] = [
     // rate. The stock was still unbounded: one a round over a fifteen-round
     // match is fifteen drones, since the only way one leaves is dying. Buzzard
     // keeps a single drone up now and launches the next when that one falls.
-    passiveNames: { onOppSummon: "Drone Sweep" },
+    passiveNames: { onOppSummon: "Drone Sweep", onSummon: "Spotter's Sweep" },
     onOppSummon: { spawnToken: "bolt_drone_tok", dmg: 1, oncePerRound: true, spawnMaxAlive: 1 },
+    // SPOTTER'S SWEEP — a buzzard is the animal that finds things. It circles,
+    // it scans the ground, and it locates the one piece worth coming down for.
+    //
+    // BOLT is built as two halves that are individually near-worthless and only
+    // work together, which makes pairing them a coin flip on an eighteen-card
+    // singleton deck. This is the half that stops it being a coin flip.
+    onSummon: { handler: "seek", params: { element: "BOLT", minCost: 4, discount: 1 } },
   },
   {
     id: "bolt_staticcloud",
@@ -9947,9 +9979,19 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Dark",
     // Grave Harvest: gains +2 max HP whenever any card dies.
-    passiveNames: { salvageOnDeath: "Grave Harvest" },
+    passiveNames: { salvageOnDeath: "Grave Harvest", onSummon: "Exhume" },
     salvageOnDeath: 2,
     salvageMax: 5, // +10 HP at most, not +2 for every body that falls all game
+    // EXHUME — the Gravekeeper is the only card in DUSK whose relationship to
+    // the dead is custodial rather than predatory: everything else in the
+    // element eats them. He knows where they are buried, so he is the one who
+    // digs one up.
+    //
+    // Skeletons and not Ghosts, though Ghost is the larger tribe. The Skeleton
+    // package is the one that needs finding — it is built to be raised in
+    // numbers and it is worth nothing until the second body lands, so a deck
+    // running one Skeleton in eighteen is a deck whose plan never arrives.
+    onSummon: { handler: "seek", params: { element: "DUSK", minCost: 4, discount: 1 } },
   },
   {
     id: "gale_masala",
@@ -13361,8 +13403,13 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 1,
     keywords: {},
-    passiveNames: { falseHead: "Fake Out" },
+    passiveNames: { falseHead: "Fake Out", onSummon: "Stashed Away" },
     falseHead: true,
+    // STASHED AWAY — its lore is already a card about knowing where something
+    // is and putting it where you will find it: "It watched which way you
+    // looked, and left something there." That is a tutor written as flavour
+    // text, two years before the mechanic existed.
+    onSummon: { handler: "seek", params: { element: "LEAF", minCost: 4, discount: 1 } },
   },
   {
     id: "leaf_gorilla",
@@ -14117,7 +14164,7 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    passiveNames: { onOppSummon: "Contact Ping", revealsStealth: "Echo Return" },
+    passiveNames: { onOppSummon: "Contact Ping", revealsStealth: "Echo Return", onSummon: "Contact" },
     // The ALWAYS-useful half is the ping, not the reveal: STEALTH-as-keyword is
     // on three cards in the whole set, so a pure anti-stealth body would answer
     // almost nothing. `boardWide` because arrivals land in the summoner's home
@@ -14125,6 +14172,15 @@ export const CARDS: CardDef[] = [
     // summon reaction is a reaction to nothing.
     onOppSummon: { dmg: 2, boardWide: true, oncePerRound: true },
     revealsStealth: true,
+    // CONTACT — the card is already a detection instrument and nothing else;
+    // its lore is "One ping out, one back. Whatever is hiding is now a number
+    // on a page." It found STEALTH before this; now it finds the Ice package,
+    // which is AQUA's actual engine and the half a freeze deck is missing when
+    // it stalls out.
+    //
+    // Its Sonar Ping passive is untouched — that is the element's answer to
+    // STEALTH and the only one it has.
+    onSummon: { handler: "seek", params: { element: "AQUA", minCost: 4, discount: 1 } },
   },
 
 

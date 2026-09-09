@@ -2479,6 +2479,25 @@ export interface PlayerState {
    *  which is the whole value of a free cast. */
   heroPowerUsed?: boolean;
   freeSummon?: boolean;
+  /** SEEK'S VOUCHER — one named card, discounted once.
+   *
+   *  A card found by a Seek arrives in hand with its price already part-paid,
+   *  and this is that promise: the `defId` it applies to and how much comes off.
+   *  Consumed by the first summon of that card and then cleared, so a Seek is
+   *  worth exactly one discounted body however many copies the format allowed
+   *  (it allows one — decks are singleton).
+   *
+   *  NAMED BY defId RATHER THAN BY handId, deliberately. The card can be pushed
+   *  back on top of the deck when the hand is at HAND_CAP, and it is a different
+   *  hand entry when it is finally drawn — a handId voucher would evaporate in
+   *  exactly the case the cap was meant to be a soft landing for.
+   *
+   *  WHY A VOUCHER AND NOT AN AURA: auras.ts records the measurement. A standing
+   *  -1 Gold on an element's cheap cards moved it +41 points, and gold "has no
+   *  granularity to offer" — every shape of standing discount is worth 40+. One
+   *  card, once, is the narrowest form the lever has, and it is the only one
+   *  that can be priced onto a cost-1 body. */
+  seek?: { defId: string; discount: number };
   /** A COUNT, not a flag: Arcane Focus arms more than one cast. Each free
    *  Special decrements it, and 0/undefined means pay as normal. */
   freeSpecial?: number;
@@ -2842,6 +2861,17 @@ export type Intent =
        *  stack ("up to N targets, or stacked on fewer"). */
       targetIds?: string[];
     };
+
+/** Handlers that aim at NOBODY — they read no target list and hit no square.
+ *
+ *  Lives here rather than beside the handlers in combat.ts because two modules
+ *  need it and only one of them may import the other: combat.ts already imports
+ *  rules.ts, so rules.ts asking combat.ts "is this handler harmless?" would
+ *  close a cycle. types.ts imports nothing, which is exactly why the shared
+ *  facts live in it. combat.ts re-exports this so no existing import moved. */
+export const TARGETLESS_HANDLERS = new Set([
+  "spawn", "surfsUp", "lockSpecials", "stormCall", "boulderThrow", "seek",
+]);
 
 export const OPENING_HAND = 4;
 /** Cost ceiling on the FREE opening placement (§10.6). Without it, "free" means

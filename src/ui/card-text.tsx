@@ -68,6 +68,26 @@ function describeOnSummon(os: {
   // spelling the effect out twice would be the same words in two places — and
   // the second copy would be the one that went stale.
   if (os.castsOwnSpecial) return "Casts its Special for free the moment it lands.";
+  // SEEK — describe the FILTER, because the filter is the card. "Search your
+  // deck" says nothing; "call up a Skeleton costing 3 or less" is the reason
+  // the card is in the deck at all.
+  if (os.handler === "seek") {
+    // "a Avian" and "a ARC" both shipped on real cards before this: the article
+    // was hardcoded and the tribe branch had no head noun. Six of the eight
+    // Seek cards printed broken English off one missing helper.
+    const art = (w: string) => (/^[AEIOU]/i.test(w) ? "an" : "a");
+    const noun = p.tribe !== undefined ? String(p.tribe)
+      : p.cardClass !== undefined ? String(p.cardClass)
+      : p.element !== undefined ? String(p.element)
+      : "";
+    const what = noun ? `${art(noun)} ${noun} card` : "a card";
+    const band = [
+      p.minCost !== undefined ? `costing ${n("minCost")} or more` : "",
+      p.maxCost !== undefined ? `costing ${n("maxCost")} or less` : "",
+    ].filter(Boolean).join(" and ");
+    const cut = n("discount") > 0 ? ` It costs ${n("discount")} less to summon.` : "";
+    return `On summon: call up ${what}${band ? ` ${band}` : ""} from your deck to your hand.${cut}`;
+  }
   // A pure self-status on-summon (Frostveil's Icy Mist — no target handler).
   if (!os.handler && os.selfStatus) {
     const dur = os.selfStatusDuration ? ` for ${rounds(os.selfStatusDuration)}` : "";

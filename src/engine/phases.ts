@@ -60,6 +60,7 @@ import {
   domMap,
   corridorDir,
   onSummonTargets,
+  effectiveSummonCost,
 } from "./rules";
 import type {
   EnchantMode,
@@ -135,8 +136,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         p.freeSummon = false;
         draft.log.push(`${intent.player} musters ${def.name} — cost ignored.`);
       } else if (!draft.opening) {
-        p.gold -= def.cost;
+        // The Seek voucher is spent HERE and only here, so a card that was found
+        // but never summoned keeps its discount until it is — and a card summoned
+        // twice (it cannot be, decks are singleton, but the rule should not
+        // depend on that) pays full price the second time.
+        p.gold -= effectiveSummonCost(draft, intent.player, hand.defId);
       }
+      if (p.seek?.defId === hand.defId) p.seek = undefined;
       // The row is RESOLVED, not assumed: normally the home row, and the nearest
       // open slot up the column when the home row has been taken entirely. See
       // `summonLandingRow` — canSummon approved exactly this square.
@@ -1620,7 +1626,11 @@ function nothingCanHappen(draft: GameState): boolean {
   if (boardCards(draft).length > 0) return false; // anyone on the board can act
   for (const player of seatsOf(draft)) {
     const p = draft.players[player];
-    if (p.hand.some((h) => getDef(h.defId).cost <= p.gold)) return false;
+    // Through `effectiveSummonCost`, not the printed price: a round the voucher
+    // made playable is not a round where nothing can happen, and declaring one
+    // dead here would end the game a turn early on exactly the turn the Seek
+    // paid off.
+    if (p.hand.some((h) => effectiveSummonCost(draft, player, h.defId) <= p.gold)) return false;
     const targetless = new Set(["wall", "field", "trap", "convert"]);
     if (p.spellbook.some((e) => {
       if (e.used) return false;

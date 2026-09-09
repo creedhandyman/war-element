@@ -29,7 +29,7 @@ import type {
   SpellDef,
   StatusKind,
 } from "./types";
-import { OPENING_COST_CAP, bossHeldHome, enemyOf, homeRow } from "./types";
+import { OPENING_COST_CAP, TARGETLESS_HANDLERS, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
 import { hasElementAura } from "./auras";
 import { dominationMap, isImpassable, isRoad, isShrine, runsAlongRoad, poiRing} from "../data/domination";
@@ -48,6 +48,30 @@ export function slotIsImpassable(state: GameState, row: number, col: number): bo
 }
 
 // ── prep phase ──────────────────────────────────────────────────────────────
+
+/** WHAT THIS SUMMON ACTUALLY COSTS — the printed price, less a Seek voucher
+ *  naming this exact card.
+ *
+ *  ONE FUNCTION, read by both the affordability gate below and the payment site
+ *  in `phases.ts`. They were always going to be two descriptions of one rule,
+ *  and this codebase has the scar for that: `onSummon.castsOwnSpecial` is a flag
+ *  rather than a copy of the Special "because two descriptions of one effect
+ *  drift the first time the Special is retuned". A card the gate says you can
+ *  afford and the till charges full price for is that same bug with a worse
+ *  symptom — a summon that silently overdraws.
+ *
+ *  Floors at 0: a discount larger than the price is free, never negative income. */
+export function effectiveSummonCost(
+  state: GameState,
+  player: PlayerId,
+  defId: string,
+): number {
+  const base = getDef(defId).cost;
+  const voucher = state.players[player].seek;
+  return voucher && voucher.defId === defId
+    ? Math.max(0, base - voucher.discount)
+    : base;
+}
 
 export function canSummon(
   state: GameState,
@@ -75,7 +99,7 @@ export function canSummon(
         && def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
   } else if (!(state.players[player].freeSummon && def.cost <= MUSTER_MAX_COST)
-      && def.cost > state.players[player].gold) {
+      && effectiveSummonCost(state, player, hand.defId) > state.players[player].gold) {
     // Muster (Warlord): an armed free summon ignores the price entirely, so a
     // card you could never afford is exactly what it is for.
     return { ok: false, reason: "Not enough Gold" };
@@ -1468,7 +1492,12 @@ export function previewOnSummonArea(
   pos: Pos,
 ): Pos[] {
   const os = def.onSummon;
+  // A HANDLER THAT AIMS AT NOBODY paints no area. Without this every Seek card
+  // lit a red on-summon strike square over an enemy that takes no damage — and
+  // a non-empty preview area is also what re-imposes the extra confirm tap, so
+  // the false threat cost a press as well as being a lie.
   if (!os || os.targetSide === "ally") return [];
+  if (os.handler && TARGETLESS_HANDLERS.has(os.handler)) return [];
   const p = os.params ?? {};
   // THE FAR ROW, which nothing here knew about. Aftermath's Explosion is
   // printed as "5 DMG to the adjacent row and 3 to the row beyond", and the

@@ -33,7 +33,7 @@ import type {
   Pos,
   StatusKind,
 } from "./types";
-import { NEGATIVE_STATUSES, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
+import { HAND_CAP, NEGATIVE_STATUSES, TARGETLESS_HANDLERS, enemyOf, hillGivesHit, homeRow, isMidRow } from "./types";
 
 /** Whether a card is standing on the ENEMY half of the board — two rows or more
  *  from its own home. Gates Squall's first-strike and Ravven's Shadow Haunter. */
@@ -3681,9 +3681,131 @@ function adjacentCasterStatus(
 // would be asking about a slot the boss has not moved to yet.
 // `boulderThrow` picks its own victim at random, board-wide — there is no
 // slot for a caster to nominate.
-export const TARGETLESS_HANDLERS = new Set(["spawn", "surfsUp", "lockSpecials", "stormCall", "boulderThrow"]);
+// Declared in types.ts so `rules.ts` can read it too — see the note there.
+export { TARGETLESS_HANDLERS } from "./types";
+
+/** Does this card answer a Seek's filter? Every clause is AND, and a filter with
+ *  no clauses matches nothing rather than everything — a Seek that fetched an
+ *  arbitrary card because someone forgot a param would be the worst possible
+ *  failure mode for a deterministic engine. */
+function matchesSeek(def: CardDef, params: Record<string, number | string>): boolean {
+  let clauses = 0;
+  if (params.element !== undefined) {
+    clauses++;
+    if (def.element !== params.element) return false;
+  }
+  if (params.cardClass !== undefined) {
+    clauses++;
+    if (def.cardClass !== params.cardClass) return false;
+  }
+  if (params.tribe !== undefined) {
+    clauses++;
+    // `tribe` is `string | string[]` — Frostbeak is ["Avian", "Ice"] — so this
+    // is a MEMBERSHIP test, not equality. Reading it as equality is how a
+    // dual-tribe card quietly stops being findable by either of its tribes.
+    //
+    // Both branches spelled out rather than leaning on String(array) joining on
+    // commas: that happens to work today and reads as a coincidence, which is
+    // the kind of thing that survives until someone puts a comma in a tribe name.
+    const t = def.tribe;
+    const tribes = Array.isArray(t) ? t : t ? [t] : [];
+    if (!tribes.includes(String(params.tribe))) return false;
+  }
+  if (params.maxCost !== undefined) {
+    clauses++;
+    if (def.cost > Number(params.maxCost)) return false;
+  }
+  if (params.minCost !== undefined) {
+    clauses++;
+    if (def.cost < Number(params.minCost)) return false;
+  }
+  return clauses > 0;
+}
 
 export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
+  /** SEEK — pull one named-shape card out of your deck and part-pay for it.
+   *
+   *  The consistency primitive. Decks are SINGLETON and exactly 18 cards on the
+   *  4x4 (30 on the 5x5), so the piece an element is built around is one card in
+   *  eighteen, and whether it arrives by round 3 or round 11 is most of what
+   *  decides whether the deck got to do its thing. Seek is how a deck asks for
+   *  it.
+   *
+   *  WHAT IT IS NOT: card advantage. On the 4x4 you draw your ENTIRE deck by
+   *  round 10 (14 draws against the 14 cards left after a 4-card opening) and
+   *  the average match is 11.9 rounds, so nothing here gets you a card you were
+   *  not going to see. It buys ORDER — and, via the voucher, the gold to act on
+   *  it, which the measurements say is the half that was actually missing:
+   *  `seedOpeningCurve` records 21.0% of prep turns in rounds 1-5 still having
+   *  nothing summonable with "the diagnosis came back can't afford on
+   *  effectively all of them". Finding a card you cannot buy is not consistency.
+   *  On the 5x5 (30 cards, ~16 of 26 drawn by round 12) it is genuine access too.
+   *
+   *  RNG-FREE BY CONSTRUCTION, which is a hard requirement and not a preference:
+   *  `rngState` is a single advancing cursor that every shuffle, coin and
+   *  tie-break in the match reads IN ORDER, so consuming one draw here would
+   *  shift the opening hand of every seeded game ever recorded. This takes the
+   *  FIRST match in deck order — no sort, no shuffle, no rng.ts call — and
+   *  splices it out, leaving the rest of the order untouched. `seedOpeningCurve`
+   *  (state.ts) is the same operation at setup and states the same invariant:
+   *  "the deck is the same cards in a slightly different order".
+   *
+   *  MEASURED, paired AI-vs-AI over the shipped 4x4 premades, 360 games an arm,
+   *  the same seeds with the ability on and off:
+   *
+   *      no Seek at all      51.9%      tutor only     51.4%
+   *      tutor + voucher     51.7%      whole ability  -0.28 points
+   *
+   *  Nothing, in other words — every arm inside the noise band at this sample.
+   *  AND IT IS FIRING: 85 calls-up across the 92 matches holding a seeker, one
+   *  firing in 75% of them, 6 whiffs. That check is the point, not a footnote —
+   *  a power measured as weak and a power that never fired look identical in a
+   *  win-rate table, and this project has already been caught by that once (see
+   *  the Control hero power in heroes.ts).
+   *
+   *  A NEUTRAL MEASUREMENT IS THE GOAL HERE, not a disappointment. The first cut
+   *  put the discount on the CHEAP end and measured +8.65 points for the voucher
+   *  against +0.83 for the tutor — the card was barely a consistency tool and
+   *  almost entirely the gold lever auras.ts warns "has no granularity to
+   *  offer", riding free on a full-budget body, and it steepened the difficulty
+   *  ladder because the elite rung had targets and the easy rung did not.
+   *
+   *  Moving the band to cost 4+ fixed it for a reason worth keeping: "make it
+   *  castable" only ever meant anything for a card you CANNOT cast. A cost-2
+   *  body was already affordable, so discounting it bought pure tempo the AI
+   *  converts automatically; a cost-8 finisher is the one you find and then
+   *  cannot pay for. That the AI gains nothing from the new version is expected
+   *  — `aiPrepIntent` has no concept of card advantage and cannot plan around a
+   *  bomb it has not drawn yet. A human can. What the harness DOES prove is the
+   *  part it is good for: this cannot warp the ladder, because it moves nothing.
+   *
+   *  A FULL HAND IS A SOFT LANDING, not a fizzle: at HAND_CAP the found card
+   *  goes to the TOP of the deck instead of the hand, which is exactly what
+   *  `drawCards` does with an overflowing draw ("the cards stay on top of the
+   *  deck, not burned"). The voucher is keyed by defId precisely so it survives
+   *  that trip. */
+  seek(draft, attacker, _targets, params) {
+    const p = draft.players[attacker.owner];
+    const i = p.deck.findIndex((id) => matchesSeek(getDef(id), params));
+    if (i < 0) {
+      draft.log.push(`${getDef(attacker.defId).name} finds nothing to call up.`);
+      return;
+    }
+    const [defId] = p.deck.splice(i, 1);
+    const found = getDef(defId);
+    if (p.hand.length < HAND_CAP) {
+      p.hand.push({ handId: `h${draft.nextId++}`, defId });
+      draft.log.push(`${getDef(attacker.defId).name} calls up ${found.name}.`);
+    } else {
+      p.deck.unshift(defId);
+      draft.log.push(`${getDef(attacker.defId).name} sets ${found.name} on top — hand is full.`);
+    }
+    const discount = num(params, "discount", 0);
+    if (discount > 0) {
+      p.seek = { defId, discount };
+      draft.log.push(`${found.name} costs ${discount} less.`);
+    }
+  },
   /** Reroot (Oak): a pure reposition — advance up to `charge` open slots toward
    *  the enemy home, no attack. Lets a planted SP-0 body uproot and march. */
   reposition(draft, attacker, _targets, params) {
