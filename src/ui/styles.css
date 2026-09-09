@@ -1394,6 +1394,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   line-height: 1; display: block;
   text-shadow: 0 1px 3px #000, 0 0 4px #000, 0 0 8px rgba(0, 0, 0, .95);
 }
+/* A card a Seek has already part-paid for. The badge shows the price the till
+   will actually take, so it has to LOOK different from the printed one — an
+   unexplained smaller number reads as a typo on the card. Follows the same
+   colour the money uses everywhere else. */
+.hcard .hc-cost.discounted { border-color: var(--stat-hp); box-shadow: 0 0 12px rgba(85, 224, 138, .55); }
+.hcard .hc-cost.discounted b { color: var(--stat-hp); }
+
 .hcard.unaffordable .hc-cost { border-color: #c98a8a; box-shadow: none; }
 .hcard.unaffordable .hc-cost b { color: #f0b8b8; }
 .hcard.unaffordable .hc-cost::after { background: radial-gradient(circle, rgba(40, 10, 10, .62) 24%, rgba(20, 6, 6, .16) 64%, transparent 80%); }

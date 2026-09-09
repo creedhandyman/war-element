@@ -2341,6 +2341,15 @@ export interface SpellDef {
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number }; // onto the enemy target
   push?: number; // push the enemy target back N (if open)
+  /** A single-target damage Spell that also catches everything packed around
+   *  the victim — the eight squares surrounding it, same reading of "adjacent"
+   *  the Inferno Pit trap uses.
+   *
+   *  ITS OWN NUMBERS, not the primary's. A splash that hit for the printed
+   *  damage would not be a splash, it would be an area spell sold at
+   *  single-target price; the whole shape is "the one you aimed at, and less to
+   *  its neighbours". */
+  splash?: { dmg: number; status?: { kind: StatusKind; duration: number; power: number } };
   /** AoE spells (kind "aoe"): which opponents the dmg/status hits. "board" = all
    *  (no pick); "row" = a picked row; "tworows" = the picked row + the one behind. */
   area?: "row" | "board" | "tworows";
@@ -2498,7 +2507,8 @@ export interface PlayerState {
    *  which is the whole value of a free cast. */
   heroPowerUsed?: boolean;
   freeSummon?: boolean;
-  /** SEEK'S VOUCHER — one named card, discounted once.
+  /** SEEK'S VOUCHERS — what each found card has already had paid toward it,
+   *  keyed by card id.
    *
    *  A card found by a Seek arrives in hand with its price already part-paid,
    *  and this is that promise: the `defId` it applies to and how much comes off.
@@ -2506,17 +2516,23 @@ export interface PlayerState {
    *  worth exactly one discounted body however many copies the format allowed
    *  (it allows one — decks are singleton).
    *
-   *  NAMED BY defId RATHER THAN BY handId, deliberately. The card can be pushed
+   *  KEYED BY defId RATHER THAN BY handId, deliberately. The card can be pushed
    *  back on top of the deck when the hand is at HAND_CAP, and it is a different
    *  hand entry when it is finally drawn — a handId voucher would evaporate in
    *  exactly the case the cap was meant to be a soft landing for.
+   *
+   *  A MAP RATHER THAN ONE SLOT, because a single slot made the printed text a
+   *  lie. Two Seekers in a deck is legal and reachable in shipped premades, and
+   *  the second one silently voided the first card's "costs 1 less" — a promise
+   *  the player had already read and planned around, cancelled with no message
+   *  and no way to see it had happened. Each found card now keeps its own.
    *
    *  WHY A VOUCHER AND NOT AN AURA: auras.ts records the measurement. A standing
    *  -1 Gold on an element's cheap cards moved it +41 points, and gold "has no
    *  granularity to offer" — every shape of standing discount is worth 40+. One
    *  card, once, is the narrowest form the lever has, and it is the only one
    *  that can be priced onto a cost-1 body. */
-  seek?: { defId: string; discount: number };
+  seek?: Record<string, number>;
   /** Spells available to this player this game (each castable once). */
   spellbook: SpellSlot[];
   /** GOLD — the summoning resource. Gains = round # each round (cap 10
@@ -2816,7 +2832,8 @@ export interface GameState {
    *  round-1 income rather than banked at setup for the reason the Void
    *  head start is: gold carries over capped at 10, so a grant made before
    *  the first Resource phase can be quietly shaved. */
-  headStartP1?: number;  /** A DOMINATION match: the board is the win condition. Present only in that
+  headStartP1?: number;
+  /** A DOMINATION match: the board is the win condition. Present only in that
    *  mode, and like `voidTower` it switches the Home-row capture win OFF — see
    *  `src/data/domination.ts` for the map and the rules that ride on it.
    *

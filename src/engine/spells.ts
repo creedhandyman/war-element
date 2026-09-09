@@ -41,9 +41,18 @@ export const SPELLS: SpellDef[] = [
     element: "LEAF",
     cost: 1,
     kind: "damage",
-    text: "2 DMG to one opponent and BLEED 1 for 2 rounds.",
-    dmg: 2,
+    text: "1 DMG and BLEED 1 for 2 rounds to one opponent and everything packed around it.",
+    // ONE DAMAGE, matching the splash, so the whole patch of thorns hits alike.
+    //
+    // ITS PAYOFF IS THE BLEED, and that is why it hits softer than the other
+    // cost-1s up front. Spark and its kin are burst — what they do, they have
+    // done by the time the tray closes. This lays four rounds of ticking across
+    // as many as nine squares, and a spell that ALSO matched them on impact
+    // would simply be the better card at the same price. The trade is real:
+    // burst kills the thing on 2 HP right now, and BLEED does not.
+    dmg: 1,
     status: { kind: "BLEED", duration: 2, power: 1 },
+    splash: { dmg: 1, status: { kind: "BLEED", duration: 2, power: 1 } },
   },
   {
     id: "pyro_spark",

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  AI_SKILLS, SKILL_DEMOTE_LOSSES, SKILL_PROMOTE_WINS, SKILL_PROFILES, emptySkillTrack,
+  AI_SKILLS, SKILL_DEMOTE_MIN, SKILL_DEMOTE_RATE, SKILL_PROMOTE_MIN, SKILL_PROMOTE_RATE,
+  SKILL_PROFILES, SKILL_WINDOW, emptySkillTrack,
   recordSkillMatch, skillOf, weSetSkillSeat,
 } from "../skill";
 import { advance, chooseBattleAction, createInitialState } from "../index";
@@ -135,53 +136,61 @@ describe("the opponent adjusts in the background", () => {
   const run = (from: (typeof AI_SKILLS)[number], results: string) =>
     [...results].reduce((t, r) => recordSkillMatch(t, r === "W"), emptySkillTrack(from));
 
-  it("two wins in a row moves up a rung", () => {
-    expect(SKILL_PROMOTE_WINS).toBe(2);
-    expect(run("learning", "W").skill, "one win is not evidence").toBe("learning");
-    expect(run("learning", "W").wins).toBe(1);
-    expect(run("learning", "WW").skill).toBe("steady");
-    expect(run("learning", "WWWW").skill).toBe("sharp");
-    // ...and the counters start clean on the new rung, so the next promotion
-    // is judged on the new opponent rather than on the one already beaten.
-    expect(run("learning", "WW")).toEqual({ skill: "steady", wins: 0, losses: 0 });
+  it("promotes on a WIN RATE, not on a streak", () => {
+    expect(SKILL_PROMOTE_RATE).toBe(0.6);
+    expect(SKILL_PROMOTE_MIN).toBe(8);
+    // Two in a row used to be a promotion. It is not evidence of anything: a
+    // record is what shows a player has got better, and two games is a mood.
+    expect(run("learning", "WW").skill, "a streak alone moves nothing").toBe("learning");
+    // 5 of 8 is 62.5% — the first record that both clears the floor and the bar.
+    expect(run("learning", "WWWWWLLL").skill, "5/8 = 62.5%").toBe("steady");
+    expect(run("learning", "WWWLL").skill, "3/5 clears the bar but not the floor")
+      .toBe("learning");
   });
 
-  it("three losses in a row gives one back, not the whole ladder", () => {
-    expect(SKILL_DEMOTE_LOSSES).toBe(3);
-    expect(run("sharp", "LL").skill, "two losses is a bad night, not a pattern").toBe("sharp");
-    expect(run("sharp", "LLL").skill).toBe("steady");
-    expect(run("sharp", "LLLLLL").skill).toBe("learning");
+  it("holds the rung below the bar however long you play", () => {
+    // 50% forever is the player and the opponent being evenly matched, which is
+    // the rung doing its job — not a reason to make it harder.
+    expect(run("learning", "WLWLWLWLWL").skill).toBe("learning");
+    expect(run("steady", "WLWLWLWLWL").skill).toBe("steady");
   });
 
-  it("demotion is RELUCTANT where promotion is EAGER — that asymmetry is the design", () => {
-    // An invisible difficulty DROP is the more insulting mistake, so it takes
-    // more evidence than a climb does.
-    expect(SKILL_DEMOTE_LOSSES).toBeGreaterThan(SKILL_PROMOTE_WINS);
+  it("climbs the whole ladder for a player who keeps winning", () => {
+    expect(run("learning", "WWWWWWWW").skill).toBe("steady");
+    expect(run("learning", "WWWWWWWWWWWWWWWW").skill).toBe("sharp");
   });
 
-  it("trading wins and losses HOLDS the rung", () => {
-    // The definition of the right rung: the one you can almost beat. A player
-    // at roughly even should sit still, not oscillate.
-    expect(run("steady", "WLWLWLWL").skill).toBe("steady");
-    expect(run("steady", "LWLWLWLW").skill).toBe("steady");
+  it("counters reset on every move, so each rung is judged on its own record", () => {
+    expect(run("learning", "WWWWWWWW")).toEqual({ skill: "steady", wins: 0, losses: 0 });
   });
 
-  it("a single result clears the opposite run", () => {
-    // One win wipes a losing streak and one loss wipes a winning one, so a
-    // demotion always takes three CONSECUTIVE losses.
-    expect(run("sharp", "LLWL")).toEqual({ skill: "sharp", wins: 0, losses: 1 });
-    expect(run("sharp", "LLWLL").skill, "the count restarted at the win").toBe("sharp");
-    expect(run("learning", "WLW")).toEqual({ skill: "learning", wins: 1, losses: 0 });
+  it("gives a rung back only on a longer look — demotion is RELUCTANT", () => {
+    expect(SKILL_DEMOTE_RATE).toBeLessThan(SKILL_PROMOTE_RATE);
+    expect(SKILL_DEMOTE_MIN).toBeGreaterThan(SKILL_PROMOTE_MIN);
+    // Five straight losses is a bad run and is NOT enough — a climb needs five
+    // matches, a drop needs eight, because telling a player they are worse than
+    // they are is the more insulting mistake and they cannot see it happen.
+    expect(run("sharp", "LLLLLLLLL").skill, "nine losses is still a bad run").toBe("sharp");
+    expect(run("sharp", "LLLLLLLLLL").skill, "ten is a pattern").toBe("steady");
+  });
+
+  it("FORGETS, so an old bad run cannot bury a player who improved", () => {
+    // The whole reason the record is windowed. A lifetime average would have
+    // this player needing thirty straight wins to reach 60%.
+    const rough = run("learning", "LLLLLLLLLLL"); // a miserable start
+    const after = [...("WWWWWWWWWWWW")].reduce((t, r) => recordSkillMatch(t, r === "W"), rough);
+    expect(after.skill, "a run of honest wins gets them off the floor").toBe("steady");
+  });
+
+  it("never lets the record grow without bound", () => {
+    let t = emptySkillTrack("sharp");
+    for (let i = 0; i < 200; i++) t = recordSkillMatch(t, i % 2 === 0);
+    expect(t.wins + t.losses, "the window keeps it small").toBeLessThan(SKILL_WINDOW);
   });
 
   it("clamps at both ends instead of walking off the ladder", () => {
-    expect(run("sharp", "WWWWWW").skill).toBe("sharp");
-    expect(run("learning", "LLLLLL").skill).toBe("learning");
-    // The counter still climbs at the floor — it costs nothing, and a player
-    // who claws back to a win starts their next climb from a clean slate
-    // rather than from a buried count.
-    expect(run("learning", "LLLLLL").losses).toBe(6);
-    expect(run("learning", "LLLLLLW").wins).toBe(1);
+    expect(run("sharp", "WWWWWWWWWWWWWWWW").skill).toBe("sharp");
+    expect(run("learning", "LLLLLLLLLLLLLLLL").skill).toBe("learning");
   });
 
   it("a hand-edited rung is discarded rather than computed on", () => {
@@ -200,7 +209,9 @@ describe("the opponent adjusts in the background", () => {
       expect(AI_SKILLS).toContain(t.skill);
       expect(t.wins).toBeGreaterThanOrEqual(0);
       expect(t.losses).toBeGreaterThanOrEqual(0);
-      expect(Math.min(t.wins, t.losses), "only one run is ever live").toBe(0);
+      // Both counters climb now — a RECORD, not a streak (see SkillTrack). What
+      // still has to hold is that it stays bounded and never goes negative.
+      expect(t.wins + t.losses, "the window holds").toBeLessThan(SKILL_WINDOW);
     }
   });
 });
@@ -236,10 +247,13 @@ describe("Auto is the default, and pinning a rung stops it", () => {
   it("climbs on its own, and remembers where it got to", () => {
     withStorage(() => {
       expect(aiSkillIsAuto(), "nothing pinned yet").toBe(true);
-      expect(recordAiMatch(true, false)).toBe("learning");   // one win: not yet
-      expect(recordAiMatch(true, false)).toBe("steady");     // two in a row
+      // A RECORD, not a streak: it takes SKILL_PROMOTE_MIN matches at
+      // SKILL_PROMOTE_RATE before a rung opens, so a couple of wins move nothing.
+      for (let i = 0; i < 7; i++)
+        expect(recordAiMatch(true, false), `win ${i + 1} is not yet a record`).toBe("learning");
+      expect(recordAiMatch(true, false), "the eighth clears the floor").toBe("steady");
       expect(loadAiSkill(false), "and it persisted").toBe("steady");
-      expect(recordAiMatch(true, false)).toBe("steady");
+      for (let i = 0; i < 7; i++) recordAiMatch(true, false);
       expect(recordAiMatch(true, false)).toBe("sharp");
       expect(loadAiSkill(false)).toBe("sharp");
     });
@@ -258,8 +272,7 @@ describe("Auto is the default, and pinning a rung stops it", () => {
 
   it("unpinning hands it back on the rung it had actually climbed to", () => {
     withStorage(() => {
-      recordAiMatch(true, false);
-      recordAiMatch(true, false);            // Auto reached steady
+      for (let i = 0; i < 8; i++) recordAiMatch(true, false); // Auto reached steady
       saveAiSkill("sharp");                  // ...then the player pinned sharp
       expect(loadAiSkill(false)).toBe("sharp");
       clearAiSkill();

@@ -36,6 +36,7 @@ import {
   homeSlots,
 
   domMap,
+  effectiveSummonCost,
 } from "./rules";
 import type {
   CardInstance,
@@ -132,10 +133,15 @@ function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
       // Muster: the moment the hand holds something the purse does not.
       // Deliberately the DEAREST unaffordable card — spending a free summon on
       // a card you could have bought next round is spending it on nothing.
+      // THROUGH `effectiveSummonCost`, not the printed price. A card a Seek has
+      // already part-paid for may be affordable when its cost says otherwise,
+      // and burning a once-per-game power on a turn that was never actually
+      // stuck is the worst way to spend it.
+      const price = (h: HandCard) => effectiveSummonCost(state, player, h.defId);
       const dearest = p.hand.reduce((best, h) =>
-        getDef(h.defId).cost > (best ? getDef(best.defId).cost : 0) ? h : best,
+        price(h) > (best ? price(best) : 0) ? h : best,
         undefined as HandCard | undefined);
-      return dearest && getDef(dearest.defId).cost > p.gold
+      return dearest && price(dearest) > p.gold
         ? { type: "HERO_POWER", player } : null;
     }
     case "heart": {

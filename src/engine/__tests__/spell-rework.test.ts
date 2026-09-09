@@ -56,11 +56,11 @@ describe("the enemy summon row is spell-proof", () => {
 });
 
 describe("the two cheap LEAF spells traded roles", () => {
-  it("the cost-1 is now 2 DMG and BLEED", () => {
+  it("the cost-1 is now 1 DMG and BLEED", () => {
     const sp = getSpell("leaf_sprout");
     expect(sp.cost).toBe(1);
     expect(sp.kind).toBe("damage");
-    expect(sp.dmg).toBe(2);
+    expect(sp.dmg).toBe(1);
     expect(sp.status).toEqual({ kind: "BLEED", duration: 2, power: 1 });
     expect(sp.allyHeal, "the heal is gone").toBeUndefined();
   });
@@ -103,6 +103,62 @@ describe("the two cheap LEAF spells traded roles", () => {
     // reference these ids and a rename would silently empty them.
     expect(getSpell("leaf_sprout").name).toBe("Thorn Patch");
     expect(getSpell("leaf_thorn_patch").name).toBe("Sprout");
+  });
+});
+
+describe("Thorn Patch splashes", () => {
+  const cast = (s: GameState, targetId: string) =>
+    applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "leaf_sprout", targetId });
+
+  it("hits the whole patch alike — range is the limit, not falloff", () => {
+    const s = prepState(7, "P2");
+    arm(s, "leaf_sprout");
+    const aim = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const beside = place(s, "leaf_alpha", "P1", 2, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const diagonal = place(s, "leaf_alpha", "P1", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const far = place(s, "leaf_alpha", "P1", 1, 3, { curHp: 20, maxHp: 20, curShields: 0 });
+    const out = cast(s, aim.instanceId);
+    expect(out.cards[aim.instanceId].curHp, "the one you aimed at").toBe(19);
+    expect(out.cards[beside.instanceId].curHp, "orthogonal neighbour, same 1").toBe(19);
+    expect(out.cards[diagonal.instanceId].curHp, "diagonal counts as adjacent").toBe(19);
+    expect(out.cards[far.instanceId].curHp, "two squares away is untouched").toBe(20);
+  });
+
+  it("bleeds everything it catches, primary and splash alike", () => {
+    const s = prepState(7, "P2");
+    arm(s, "leaf_sprout");
+    const aim = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const beside = place(s, "leaf_alpha", "P1", 2, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const out = cast(s, aim.instanceId);
+    for (const c of [aim, beside]) {
+      const bleed = out.cards[c.instanceId].statuses.find((st) => st.kind === "BLEED");
+      expect(bleed?.power, "BLEED 1").toBe(1);
+      expect(bleed?.duration, "for 2 rounds").toBe(2);
+    }
+  });
+
+  it("catches OPPONENTS only — your own line standing beside them is safe", () => {
+    const s = prepState(7, "P2");
+    arm(s, "leaf_sprout");
+    const aim = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const mine = place(s, "leaf_alpha", "P2", 2, 2, { curHp: 20, maxHp: 20, curShields: 0 });
+    const out = cast(s, aim.instanceId);
+    expect(out.cards[mine.instanceId].curHp, "an ally beside the blast").toBe(20);
+    expect(out.cards[mine.instanceId].statuses.find((st) => st.kind === "BLEED")).toBeUndefined();
+  });
+
+  it("cannot use a neighbour as a side door into the summon row", () => {
+    // The row the whole home-row fix protects. A legal target one row in front
+    // has neighbours standing ON it, and a splash that reached them would undo
+    // the rule by another route.
+    const s = prepState(7, "P2");
+    arm(s, "leaf_sprout");
+    const theirHome = homeRow("P1", s.boardSize);
+    const aim = place(s, "leaf_alpha", "P1", theirHome - 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const sitting = place(s, "leaf_alpha", "P1", theirHome, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const out = cast(s, aim.instanceId);
+    expect(out.cards[aim.instanceId].curHp, "the legal target still takes it").toBe(19);
+    expect(out.cards[sitting.instanceId].curHp, "the summon row is still spell-proof").toBe(20);
   });
 });
 

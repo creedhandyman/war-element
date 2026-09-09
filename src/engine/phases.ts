@@ -143,7 +143,10 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         // depend on that) pays full price the second time.
         p.gold -= effectiveSummonCost(draft, intent.player, hand.defId);
       }
-      if (p.seek?.defId === hand.defId) p.seek = undefined;
+      if (p.seek?.[hand.defId] !== undefined) {
+        const { [hand.defId]: _spent, ...rest } = p.seek;
+        p.seek = rest;
+      }
       // The row is RESOLVED, not assumed: normally the home row, and the nearest
       // open slot up the column when the home row has been taken entirely. See
       // `summonLandingRow` — canSummon approved exactly this square.
@@ -1287,6 +1290,11 @@ function resolveSpell(
 
   // damage spell
   const target = targetId ? draft.cards[targetId] : undefined;
+  // THE SQUARE THE SPELL LANDED ON, read before anything resolves. The primary
+  // can be pushed out of it or killed off the board by its own hit, and the
+  // splash is a fact about where the thorns went, not about where the victim
+  // ended up.
+  const impact = target?.pos ? { ...target.pos } : undefined;
   if (target) {
     // Read before the hit: Withering Grasp heals "for the damage dealt", and
     // dealt is not the same as swung — BLOCK trims it, and a target on 2 HP
@@ -1315,6 +1323,27 @@ function resolveSpell(
       const dealt = Math.max(0, hpBefore) - Math.max(0, target.curHp);
       const ally = dealt > 0 ? pickSpellAlly(draft, player, spell.element) : undefined;
       if (ally) healCard(draft, ally, dealt, player);
+    }
+    // ...and everything packed around the square it landed on.
+    if (spell.splash && impact) {
+      const enemyHome = homeRow(enemyOf(player), draft.boardSize);
+      const caught = enemyCards(draft, player).filter((e) =>
+        e.instanceId !== target.instanceId
+        && e.curHp > 0 && e.pos != null
+        && chebyshev(e.pos, impact) <= 1
+        // THE SUMMON ROW IS STILL OUT OF REACH. A splash from a legal target in
+        // the row in front would otherwise be a side door into the row
+        // `canAoeRow` just closed — the neighbour is adjacent, but the rule is
+        // about the ROW, not about how the damage got there.
+        && e.pos.row !== enemyHome);
+      for (const e of caught) {
+        spellHit(draft, e, spell.splash.dmg, Boolean(spell.pen), player);
+        const st = spell.splash.status;
+        if (st && draft.cards[e.instanceId] && e.curHp > 0)
+          applyStatus(draft, e, st.kind, st.duration, st.power, spell.element);
+      }
+      if (caught.length)
+        draft.log.push(`${spell.name} catches ${caught.length} more around it.`);
     }
     if (alive && spell.drainMaxHp && target.maxHp > 1) {
       const steal = Math.min(spell.drainMaxHp, target.maxHp - 1);
@@ -1757,7 +1786,8 @@ function doResourcePhase(draft: GameState): void {
     ? voidPlayerHeadStart(
         getDef(boardCards(draft).find((c) => getDef(c.defId).boss && !c.tamed)?.defId ?? "").cost ?? 0)
     : 0)
-    + (draft.round === 1 ? (draft.headStartP1 ?? 0) : 0);  for (const player of seatsOf(draft)) {
+    + (draft.round === 1 ? (draft.headStartP1 ?? 0) : 0);
+  for (const player of seatsOf(draft)) {
     const p = draft.players[player];
     // The boss's war chest — see VOID_BOSS_INCOME. Its army is priced as a
     // build-time budget and then charged for again at retail; this is what pays

@@ -67,10 +67,7 @@ export function effectiveSummonCost(
   defId: string,
 ): number {
   const base = getDef(defId).cost;
-  const voucher = state.players[player].seek;
-  return voucher && voucher.defId === defId
-    ? Math.max(0, base - voucher.discount)
-    : base;
+  return Math.max(0, base - (state.players[player].seek?.[defId] ?? 0));
 }
 
 export function canSummon(

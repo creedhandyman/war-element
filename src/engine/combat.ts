@@ -3802,7 +3802,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     }
     const discount = num(params, "discount", 0);
     if (discount > 0) {
-      p.seek = { defId, discount };
+      // Added to the map, not over it — see `PlayerState.seek`. A second Seek
+      // must not cancel the first card's printed discount.
+      p.seek = { ...(p.seek ?? {}), [defId]: discount };
       draft.log.push(`${found.name} costs ${discount} less.`);
     }
   },

@@ -94,8 +94,7 @@ describe("Seek — the consistency primitive", () => {
       s.players.P2.deck = ["dusk_zhunk", "dusk_pumpkin"];
       s.players.P2.hand = [];
       fire(s, "bore_rockgoblin", { element: "DUSK", maxCost: 3, discount: 1 });
-      const found = s.players.P2.seek!;
-      expect(found.defId).toBe("dusk_zhunk");
+      expect(Object.keys(s.players.P2.seek!)).toEqual(["dusk_zhunk"]);
       expect(effectiveSummonCost(s, "P2", "dusk_zhunk"), "the named card is cheaper")
         .toBe(getDef("dusk_zhunk").cost - 1);
       expect(effectiveSummonCost(s, "P2", "dusk_pumpkin"), "nothing else is")
@@ -112,12 +111,43 @@ describe("Seek — the consistency primitive", () => {
       expect(effectiveSummonCost(s, "P2", "dusk_pumpkin")).toBe(0);
     });
 
+    it("a SECOND Seek does not cancel the first card's discount", () => {
+      // One slot made the printed text a lie. Two Seekers in a deck is legal
+      // and reachable in shipped premades, and the second used to silently void
+      // the first card's "costs 1 less" — a promise the player had read and
+      // planned around, cancelled with no message and no way to see it.
+      const s = prepState(7, "P2");
+      s.players.P2.deck = ["dusk_zhunk", "leaf_cactus"];
+      s.players.P2.hand = [];
+      fire(s, "bore_rockgoblin", { element: "DUSK", maxCost: 3, discount: 1 });
+      fire(s, "bore_rockgoblin", { element: "LEAF", maxCost: 3, discount: 1 });
+      expect(effectiveSummonCost(s, "P2", "dusk_zhunk"), "the first is still honoured")
+        .toBe(getDef("dusk_zhunk").cost - 1);
+      expect(effectiveSummonCost(s, "P2", "leaf_cactus"), "and so is the second")
+        .toBe(getDef("leaf_cactus").cost - 1);
+    });
+
+    it("spending one leaves the others standing", () => {
+      const s = prepState(7, "P2");
+      s.players.P2.deck = ["dusk_zhunk", "leaf_cactus"];
+      s.players.P2.hand = [];
+      fire(s, "bore_rockgoblin", { element: "DUSK", maxCost: 3, discount: 1 });
+      fire(s, "bore_rockgoblin", { element: "LEAF", maxCost: 3, discount: 1 });
+      // Spend the DUSK one by hand, the way the summon site does.
+      const { dusk_zhunk: _spent, ...rest } = s.players.P2.seek!;
+      s.players.P2.seek = rest;
+      expect(effectiveSummonCost(s, "P2", "dusk_zhunk"), "spent").toBe(getDef("dusk_zhunk").cost);
+      expect(effectiveSummonCost(s, "P2", "leaf_cactus"), "untouched")
+        .toBe(getDef("leaf_cactus").cost - 1);
+    });
+
     it("is absent when the card prints no discount", () => {
       const s = prepState(7, "P2");
       s.players.P2.deck = ["dusk_pumpkin"];
       s.players.P2.hand = [];
       fire(s, "bore_rockgoblin", { element: "DUSK", maxCost: 3 });
-      expect(s.players.P2.seek, "a Seek without a discount arms no voucher").toBeUndefined();
+      expect(s.players.P2.seek?.["dusk_pumpkin"], "a Seek without a discount arms no voucher")
+        .toBeUndefined();
     });
   });
 

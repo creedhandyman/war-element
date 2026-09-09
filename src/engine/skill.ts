@@ -188,17 +188,49 @@ export function skillOf(state: GameState, seat?: string): SkillProfile {
 // lost several times before they are won. Three honest attempts at a Void Tower
 // floor would otherwise read as a player who had got worse.
 
-/** Consecutive wins on a rung before the next one opens. */
-export const SKILL_PROMOTE_WINS = 2;
-/** Consecutive losses before a rung is given back. */
-export const SKILL_DEMOTE_LOSSES = 3;
+/** The win rate that opens the next rung. Reached on a rung, you have shown you
+ *  can beat that opponent more often than not, which is the moment it stops
+ *  teaching you anything. */
+export const SKILL_PROMOTE_RATE = 0.6;
+/** ...over at least this many matches on the rung. Without a floor the first win
+ *  is a 100% record and the ladder is a staircase you fall up.
+ *
+ *  EIGHT, NOT FIVE, and the arithmetic is why. At five the reachable rates are
+ *  0/20/40/60/80/100, so the bar is cleared by exactly 3 wins — and a player of
+ *  no particular strength, winning half their games, takes 3 of 5 half the time.
+ *  The first draft of this promoted an evenly-matched player on their fifth
+ *  match, which is not "slowly over time", it is a coin flip. Eight needs 5 wins
+ *  and cuts that to about a third — and because the check runs after every
+ *  match, an eager floor compounds into a near-certain early promotion. */
+export const SKILL_PROMOTE_MIN = 8;
+/** Fall below this and the rung is given back... */
+export const SKILL_DEMOTE_RATE = 0.35;
+/** ...but only on a LONGER look. An invisible difficulty drop is the more
+ *  insulting mistake of the two — it tells a player they are worse than they
+ *  are, and they cannot see it happen — so it takes more evidence than a climb
+ *  does. Ten matches against the climb's eight. */
+export const SKILL_DEMOTE_MIN = 10;
+/** How many matches the record remembers before it starts forgetting.
+ *
+ *  A RATE THAT NEVER FORGETS CANNOT TRACK A PLAYER WHO IMPROVES, which is the
+ *  whole job. Someone who loses their first twenty and then finds their feet
+ *  would need thirty straight wins to drag a lifetime average up to 60% — the
+ *  ladder would be measuring who they used to be. At the window the counters
+ *  halve, so the recent half of the record always outweighs everything before
+ *  it and the number keeps meaning "how are they doing NOW". */
+export const SKILL_WINDOW = 12;
 
 /** The rung being played, and how the last few matches have gone on it.
  *
- *  `wins`/`losses` are CONSECUTIVE runs, not totals, and at most one of them is
- *  ever non-zero — a win clears the losses and a loss clears the wins. Kept as
- *  two numbers rather than one signed streak because the thresholds differ in
- *  each direction and a single number would have to be read against two. */
+ *  `wins`/`losses` are the RECORD ON THIS RUNG — both climb, and neither clears
+ *  the other. They were consecutive streaks before, and a streak turned out to
+ *  be the wrong question: two lucky wins in a row is not the same evidence as
+ *  winning three of five, and the second is what "the player has got better"
+ *  actually looks like. Reset on every promotion and demotion, so each rung is
+ *  judged on its own record rather than on the one already left behind.
+ *
+ *  Bounded by `SKILL_WINDOW` — see there for why a lifetime average is the
+ *  wrong shape. */
 export interface SkillTrack {
   skill: AiSkill;
   wins: number;
@@ -222,16 +254,26 @@ export function recordSkillMatch(track: SkillTrack, won: boolean): SkillTrack {
   const i = AI_SKILLS.indexOf(track.skill);
   // An unknown rung (a hand-edited save) is not something to compute on top of.
   if (i < 0) return emptySkillTrack("learning");
-  if (won) {
-    const wins = track.wins + 1;
-    if (wins >= SKILL_PROMOTE_WINS && i < AI_SKILLS.length - 1)
-      return emptySkillTrack(AI_SKILLS[i + 1]);
-    return { skill: track.skill, wins, losses: 0 };
+  let wins = track.wins + (won ? 1 : 0);
+  let losses = track.losses + (won ? 0 : 1);
+  // FORGET THE OLDEST HALF once the record is long enough to be stale. Halving
+  // rather than dropping a queue keeps the whole thing two numbers — there is no
+  // history to store, migrate or validate — and the arithmetic is the same
+  // exponential forgetting a rolling window buys, at none of the cost.
+  if (wins + losses >= SKILL_WINDOW) {
+    wins = Math.floor(wins / 2);
+    losses = Math.floor(losses / 2);
   }
-  const losses = track.losses + 1;
-  if (losses >= SKILL_DEMOTE_LOSSES && i > 0)
+  const played = wins + losses;
+  const rate = played > 0 ? wins / played : 0;
+  // Promotion is checked FIRST, and at the top rung it simply cannot fire — a
+  // player sitting at `sharp` keeps a record that never moves them, which is
+  // correct: there is nothing above it to be promoted to.
+  if (played >= SKILL_PROMOTE_MIN && rate >= SKILL_PROMOTE_RATE && i < AI_SKILLS.length - 1)
+    return emptySkillTrack(AI_SKILLS[i + 1]);
+  if (played >= SKILL_DEMOTE_MIN && rate < SKILL_DEMOTE_RATE && i > 0)
     return emptySkillTrack(AI_SKILLS[i - 1]);
-  return { skill: track.skill, wins: 0, losses };
+  return { skill: track.skill, wins, losses };
 }
 
 /** HARNESS ONLY — confine the dial to ONE seat, so a handicapped opponent can

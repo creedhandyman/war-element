@@ -49,8 +49,7 @@ import {
   spellbookFor, summonCard, scaleInstance,
   // The boss clock, made visible.
   bossTelegraphs, telegraphBlast,
-  seatsOf,
-} from "../engine";
+  seatsOf, effectiveSummonCost } from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -2561,7 +2560,7 @@ export function App() {
       const chk = canSummon(game, me, handId, free.col, dom ? free.row : undefined);
       setHint(
         chk.reason === "Not enough Gold"
-          ? `⚠ Not enough Gold for ${def.name} (costs ${def.cost}).`
+          ? `⚠ Not enough Gold for ${def.name} (costs ${effectiveSummonCost(game, view, def.id)}).`
           : `⚠ ${chk.reason ?? `Can't summon ${def.name} right now.`}`,
       );
       return;

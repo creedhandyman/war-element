@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
-import { getDef } from "../engine";
+import { getDef, effectiveSummonCost } from "../engine";
 import { EL_ICON } from "./shared";
 import { SpIcon } from "./icons";
 
@@ -83,7 +83,13 @@ export function Hand(props: {
           // Gold veil is suppressed for anything the engine says IS summonable,
           // because the free opening placement spends slots, not Gold.
           const noRoom = myPrep && !summonable && !props.homeRowOpen;
-          const unaffordable = def.cost > me.gold && !summonable && !noRoom;
+          // THE PRICE A SEEK ALREADY PART-PAID, not the printed one. The card
+          // text promises "it costs 1 less to summon" and the hand was still
+          // charging full: a discounted card greyed out as unaffordable and
+          // showed a number the till would not have taken.
+          const price = effectiveSummonCost(props.game, props.player, def.id);
+          const cut = def.cost - price;
+          const unaffordable = price > me.gold && !summonable && !noRoom;
           const off = i - center;
           const rot = off * rotStep; // fan spread (deg)
           const ty = Math.min(tyMax, Math.pow(Math.abs(off), 1.4) * tyStep); // outer cards dip lower (clamped)
@@ -140,8 +146,12 @@ export function Hand(props: {
               {/* Cost and element are one mark now. The RING still carries
                    affordability (gold vs red) — that is a gameplay signal and
                    it does not move onto the art. */}
-              <div className="hc-cost" style={{ backgroundImage: `url(${EL_ICON[def.element]})` }}>
-                <b>{def.cost}</b>
+              <div
+                className={`hc-cost${cut > 0 ? " discounted" : ""}`}
+                style={{ backgroundImage: `url(${EL_ICON[def.element]})` }}
+                title={cut > 0 ? `${def.cost} − ${cut} (called up)` : undefined}
+              >
+                <b>{price}</b>
               </div>
               {props.foils?.has(def.id) && <i className="foil-tag" title="Foil">✦</i>}
               <div className="hc-plate">
