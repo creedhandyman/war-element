@@ -10,7 +10,7 @@
 import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import { SPECIAL_HANDLERS } from "../combat";
-import { place, prepState } from "./helpers";
+import { bigPrepState, place, prepState } from "./helpers";
 import type { CardInstance, GameState } from "../types";
 
 const SCARECROW = "dusk_tatterhand";
@@ -82,7 +82,9 @@ describe("who answers the call", () => {
   it("caps the squad at four however many could answer", () => {
     // Six allies with shots, four slots. The cap is the whole reason the number
     // is printed on the card.
-    const s = prepState(7, "P1", { boardSize: 5 });
+    // `bigPrepState` IS the 5x5 — `prepState` takes (seed, priority) and has no
+    // third argument, so the board this test needs was never being built.
+    const s = bigPrepState(7, "P1");
     const caster = place(s, SCARECROW, "P1", 4, 0);
     let placed = 0;
     for (const col of [1, 2, 3, 4]) { place(s, "pyro_wick", "P1", 4, col); placed++; }

@@ -891,6 +891,7 @@ function resolveSpell(
       push: spell.wall.push,
       stripShields: spell.wall.stripShields,
       allyBuff: spell.wall.allyBuff,
+      stopsFlying: spell.wall.stopsFlying,
       roundsLeft: spell.wall.rounds,
     };
     draft.walls.push(wall);
@@ -898,7 +899,8 @@ function resolveSpell(
     // The wall erupts immediately on the enemies already standing in that row
     // (FLYING cards are above it, same as the movement trigger).
     for (const e of enemyCards(draft, player)) {
-      if (!e.pos || e.pos.row !== row || getDef(e.defId).keywords.FLYING) continue;
+      if (!e.pos || e.pos.row !== row) continue;
+      if (getDef(e.defId).keywords.FLYING && !wall.stopsFlying) continue;
       applyWall(draft, e, wall);
     }
     return;
@@ -1093,7 +1095,13 @@ function resolveSpell(
         }
       }
     }
-    draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
+    // A spell with no opponent effect at all is not a sweep that missed — it is
+    // a spell that was never aimed at them. Announcing "sweeps 0 opponent(s) —
+    // no one in range" for a row heal reads as a fizzle to the player who just
+    // mended their line.
+    const hitsFoes = Boolean(spell.dmg || spell.status || spell.spDebuff || spell.drainMaxHp);
+    if (hitsFoes)
+      draft.log.push(`${spell.name} sweeps ${targets.length} opponent(s)${targets.length ? "" : " — no one in range"}.`);
     if (drained > 0) draft.log.push(`${spell.name} strips ${drained} max HP off the board, permanently.`);
     // ── Ally riders, same story: printed, never run. A cost-10 ultimate that
     //    said it healed the team to full healed nobody. Living element allies
@@ -1108,6 +1116,22 @@ function resolveSpell(
         draft.log.push(
           `${spell.name}: ${inside.length} ${spell.element} ally(s) in the area gain ${spell.allyShieldInArea} shield.`,
         );
+    }
+    if (spell.allyHealInArea) {
+      // Same shape as the shield rider above, and the same reading of "in the
+      // area": the rows the spell landed on, kin only, living only.
+      const inside = kin().filter(inArea);
+      let mended = 0;
+      for (const a of inside) {
+        const before = a.curHp;
+        healCard(draft, a, spell.allyHealInArea);
+        mended += a.curHp - before;
+      }
+      draft.log.push(
+        inside.length
+          ? `${spell.name} mends ${inside.length} ${spell.element} ally(s) for ${mended} HP.`
+          : `${spell.name} finds no ${spell.element} ally in that row.`,
+      );
     }
     if (spell.allyShield && spell.allAllies) {
       const all = kin();
@@ -1372,10 +1396,14 @@ function applyWall(draft: GameState, card: CardInstance, w: WallState): void {
  *  whose row lies in that vertical span — so a fast card (reach 2) can't leap
  *  over a wall untouched. FLYING cards soar over walls entirely. */
 function triggerWallsOnMove(draft: GameState, card: CardInstance, fromRow: number): void {
-  if (!card.pos || getDef(card.defId).keywords.FLYING) return;
+  if (!card.pos) return;
+  // PER WALL, not per card. Flying used to skip the whole loop, which is right
+  // for every wall with a top edge and wrong for the one made of wind.
+  const flying = Boolean(getDef(card.defId).keywords.FLYING);
   const toRow = card.pos.row;
   for (const w of draft.walls.slice()) {
     if (w.owner === card.owner) continue; // your own wall never hits you
+    if (flying && !w.stopsFlying) continue;
     // crossed if the wall's row is in (fromRow → toRow], i.e. entered or passed.
     const crossed = w.row !== fromRow && (w.row - fromRow) * (w.row - toRow) <= 0;
     if (!crossed) continue;

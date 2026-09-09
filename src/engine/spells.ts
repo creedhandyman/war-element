@@ -24,15 +24,26 @@ export function spellCapForBoard(boardSize = 4): number {
 
 export const SPELLS: SpellDef[] = [
   // ───────── Cost 1 — small damage / support ─────────
+  // THE TWO CHEAP LEAF SPELLS TRADED ROLES, and the name and picture travelled
+  // with the effect rather than with the id. LEAF's cost-1 was a single-target
+  // heal and its cost-2 was the bleed sweep; the bleed is the cheap one now and
+  // the mend is the row.
+  //
+  // THE IDS DID NOT MOVE, deliberately — `leaf_sprout` and `leaf_thorn_patch`
+  // are referenced by ten shipped spellbooks in custom-decks.ts and by saved
+  // decks in players' storage, so renaming them would silently empty a
+  // spellbook. What that costs is this: the id under "Thorn Patch" reads
+  // `leaf_sprout`, which is confusing exactly once, here, where it is explained.
   {
     id: "leaf_sprout",
-    name: "Sprout",
+    name: "Thorn Patch",
+    art: "leaf_thorn_patch",
     element: "LEAF",
     cost: 1,
-    kind: "heal",
-    text: "Heal a LEAF ally 3 HP (5 if any opponent is ROOTed).",
-    allyHeal: 3,
-    allyHealIfRooted: 5,
+    kind: "damage",
+    text: "2 DMG to one opponent and BLEED 1 for 2 rounds.",
+    dmg: 2,
+    status: { kind: "BLEED", duration: 2, power: 1 },
   },
   {
     id: "pyro_spark",
@@ -148,8 +159,11 @@ export const SPELLS: SpellDef[] = [
     element: "GALE",
     cost: 4,
     kind: "wall",
-    text: "Violent wind across a row for 3 rounds. A card that MOVES in takes 2 DMG and is pushed back 1. Ranged attacks and FLYING cards pass over.",
-    wall: { dmg: 2, push: 1, rounds: 3 },
+    // The one wall FLIERS CANNOT CLIMB OVER. Every other wall is a thing with a
+    // top edge — stone, thorns, ice — and wings answer it. A squall line is
+    // weather, and weather is the specific hazard a flying thing is worst at.
+    text: "Violent wind across a row for 3 rounds. A card that MOVES in takes 2 DMG and is pushed back 1 — FLYING cards included. Ranged attacks pass over.",
+    wall: { dmg: 2, push: 1, rounds: 3, stopsFlying: true },
   },
   {
     id: "bolt_overload_field",
@@ -270,14 +284,19 @@ export const SPELLS: SpellDef[] = [
 
   // ───────── Cost 2 — row control (a chosen row of opponents) ─────────
   {
+    // See the note on `leaf_sprout` — these two traded roles, ids held still.
+    // Kind stays "aoe" because that is what picks a ROW (`spellPickKind`); it
+    // simply carries no opponent effect, which is why the resolver has to know
+    // not to announce a sweep that hit nobody.
     id: "leaf_thorn_patch",
-    name: "Thorn Patch",
+    name: "Sprout",
+    art: "leaf_sprout",
     element: "LEAF",
     cost: 2,
     kind: "aoe",
     area: "row",
-    text: "Apply BLEED 1 for 2 rounds to every opponent in a chosen row.",
-    status: { kind: "BLEED", duration: 2, power: 1 },
+    text: "Heal every LEAF ally in a chosen row 3 HP.",
+    allyHealInArea: 3,
   },
   {
     id: "aqua_frost_patch",

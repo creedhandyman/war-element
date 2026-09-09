@@ -2002,24 +2002,33 @@ export function plannedAction(state: GameState, instanceId: string): PlannedActi
 /** The Home Slot rule for Spells: a caster reaches their own Home + every row
  *  between the homes freely, but to touch the ENEMY Home row they must already
  *  hold a card somewhere past their own home row. */
-function spellReachesEnemyHome(state: GameState, player: PlayerId): boolean {
-  const ownHome = homeRow(player, state.boardSize);
-  // "Has a card past its own home row" — the same board-derived reading the
-  // basic-attack rule uses, and for the same reason: `isMidRow` is rows 1-2 at
-  // both sizes, so on a 5x5 a beachhead in row 3 used to count for nothing even
-  // though it is the row ADJACENT to the enemy home. The proxy is meant to ask
-  // "did you commit anything forward?", not "did you land on one of two rows".
-  // The enemy home row is itself past your own, so it needs no separate clause.
-  return boardCards(state, player).some((c) => c.pos != null && c.pos.row !== ownHome);
-}
-
 /** Can `player` hit this enemy card with a damage Spell right now? */
-/** A row an offensive AoE spell may target: any row except the opponent's Home
- *  row, which stays off-limits until one of your cards reaches a Mid row (the
- *  same Home-slot proxy that gates single-target spells). */
+/** A row a spell may be aimed at: anything except the opponent's Home row.
+ *
+ *  UNCONDITIONAL NOW, and that is a reversal worth recording. The gate used to
+ *  open as soon as the caster had any card off its OWN home row — "did you
+ *  commit anything forward?" — which on the 4x4 is true from about round two and
+ *  in practice meant the back line was open all game. What it produced was an
+ *  opponent dropping row sweeps onto the summon row at will, which is the
+ *  complaint that got this changed.
+ *
+ *  It now says what `canPlaceWallRow` two functions down has always said about
+ *  the same row: "never on the opponent's summon row — a wall there would
+ *  root/freeze every one of their summons for 3 rounds, which is too
+ *  oppressive." A row AoE on the square cards arrive on is the same oppression
+ *  bought for less, and the two rules disagreeing was the actual defect: one
+ *  spell kind treated the back line as sacred and the other did not.
+ *
+ *  IT IS NOT A BLANKET IMMUNITY. `area: "board"` sweeps still reach every
+ *  opponent wherever they stand — they aim at nobody, so there is no aiming to
+ *  forbid — and that is deliberately left as the answer to a seat that never
+ *  leaves home. Cards, meanwhile, keep the older and stricter Home Slot
+ *  Targeting Rule: a body may still hit the home row, but it has to march into
+ *  a Mid row to do it. The back line is answerable; it just cannot be answered
+ *  from your own chair. */
 export function canAoeRow(state: GameState, player: PlayerId, row: number): boolean {
   if (row < 0 || row >= state.boardSize) return false;
-  if (row === homeRow(enemyOf(player), state.boardSize) && !spellReachesEnemyHome(state, player)) return false;
+  if (row === homeRow(enemyOf(player), state.boardSize)) return false;
   return true;
 }
 
@@ -2057,8 +2066,8 @@ export function canSpellHitEnemy(
   if (!target.pos || target.owner === player) return false;
   const tDef = getDef(target.defId);
   if (isStealthed(tDef, target)) return false;
-  const enemyHome = homeRow(enemyOf(player), state.boardSize);
-  if (target.pos.row === enemyHome && !spellReachesEnemyHome(state, player)) return false;
+  // THE SUMMON ROW IS OUT OF REACH OF SPELLS, full stop — see `canAoeRow`.
+  if (target.pos.row === homeRow(enemyOf(player), state.boardSize)) return false;
   return true;
 }
 

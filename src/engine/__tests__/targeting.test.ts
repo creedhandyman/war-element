@@ -213,13 +213,25 @@ describe("Home Slot Targeting Rule", () => {
     expect(canTarget(s, camper, homeSitter)).toBe(false);
   });
 
-  it("5x5: a beachhead in row 3 counts as reach for SPELLS too", () => {
-    // spellReachesEnemyHome asked the same rows-1-and-2 question, so a board
-    // presence one step from the enemy home row bought no spell reach at all.
+  it("SPELLS never reach the enemy home row, however far forward you are", () => {
+    // THIS TEST USED TO ASSERT THE OPPOSITE, and the reversal is the point.
+    // Spell reach into the summon row was gated on "has a card off its own home
+    // row" — a proxy that is true from about round two, so in practice the back
+    // line was open all game and the opponent dropped row sweeps onto freshly
+    // summoned cards at will. `canPlaceWallRow` had always refused the same row
+    // as "too oppressive"; the two rules disagreeing was the defect.
+    //
+    // A full commitment forward is the strongest case for the old rule, so it
+    // is the one asserted: even here, the answer is no.
     const s = bigPrepState();
-    place(s, "leaf_alpha", "P2", 1, 2);
-    const camping = canSpellHitEnemy(s, "P2", place(s, "leaf_alpha", "P1", 4, 0));
-    expect(camping, "row 1 is past P2's home (row 0), so it reaches").toBe(true);
+    place(s, "leaf_alpha", "P2", 1, 2);   // off its own home row
+    place(s, "leaf_alpha", "P2", 3, 2);   // and a beachhead beside their home
+    const homeSitter = place(s, "leaf_alpha", "P1", 4, 0);
+    expect(canSpellHitEnemy(s, "P2", homeSitter), "the summon row is spell-proof").toBe(false);
+    // ...while a card standing in a Mid row may still hit it. The back line is
+    // answerable — just not from your own chair.
+    const marcher = place(s, "leaf_fallona", "P2", 2, 0);
+    expect(canTarget(s, marcher, homeSitter), "a body that marched up still reaches").toBe(true);
   });
 
   it("a ranged defender sees the WHOLE of its own home row, past the reach cap", () => {

@@ -2249,6 +2249,10 @@ export interface WallState {
   push?: number;
   stripShields?: number; // strip N shields on entry, before the dmg (Stone Wall)
   allyBuff?: WallAllyBuff;
+  /** Copied off the spell — see `SpellDef.wall.stopsFlying`. Stored on the wall
+   *  rather than re-read from the spell so a wall behaves the way it did when it
+   *  was raised, whatever the def says later. */
+  stopsFlying?: boolean;
   roundsLeft: number;
 }
 
@@ -2322,6 +2326,11 @@ export interface SpellDef {
   text: string;
   /** Flavour text, attached at load from data/lore/. See CardDef.lore. */
   lore?: string;
+  /** Borrow another spell's picture. Art is `/spells/<id>.webp` by default, so
+   *  two spells that trade roles would otherwise have to trade FILES — and the
+   *  next reader would find `leaf_sprout.webp` showing a bramble with nothing
+   *  to say why. Naming the borrowed id keeps that visible in the data. */
+  art?: string;
   /** Field spells (kind "field"): the board-wide buff + how long it lasts. */
   field?: FieldBuff & { rounds: number };
   /** Conversion spells (kind "convert"): the magic paid as `cost` comes back as
@@ -2380,6 +2389,10 @@ export interface SpellDef {
   /** Glacial Wave / Landslide: element allies standing INSIDE the AoE's area
    *  gain shields — the area is the same one the enemies were hit in. */
   allyShieldInArea?: number;
+  /** Heal same-element allies standing in the area for N. The ally half of an
+   *  area spell, mirroring `allyShieldInArea` — and the whole of one, for a
+   *  spell that hits no opponent at all. */
+  allyHealInArea?: number;
   /** Harvest: DRAIN N max HP from every target, spread across the caster's
    *  surviving element allies. */
   drainMaxHpAll?: number;
@@ -2456,6 +2469,12 @@ export interface SpellDef {
     push?: number;
     stripShields?: number;
     ownHomeOnly?: boolean;
+    /** This wall catches FLIERS too. Off by default — the printed rule on every
+     *  other wall is "Ranged attacks and FLYING cards pass over", and a wall of
+     *  stone or thorns has an obvious top edge to fly over. Wind does not: a
+     *  squall line is exactly the hazard a flying thing cannot climb above, so
+     *  Squall Line is the one wall that reads wrong being dodged by wings. */
+    stopsFlying?: boolean;
     allyBuff?: WallAllyBuff;
     rounds: number;
   };

@@ -1,5 +1,6 @@
 // Tiny UI-shared bits (no game rules here).
 
+import { SPELLS } from "../engine/spells";
 import { buildableCards } from "../data/custom-decks";
 import type { Element, Keyword, PlayerId, StatusKind, Suit } from "../engine";
 import { styleOf, suitVariantOf } from "../engine/suits";
@@ -118,7 +119,11 @@ export const EL_SIGIL: Record<Element, string> = {
 // Not every spell has art yet, so every render site guards with an onError that
 // falls back to the element-tinted placeholder.
 export function spellArtSrc(spellId: string): string {
-  return `/spells/${spellId}.webp`;
+  // A spell may borrow another's picture — see `SpellDef.art`. Resolved here
+  // rather than at each call site so every surface that shows a spell (the
+  // builder, the draft, the cast flash) agrees without knowing the rule.
+  const art = SPELLS.find((s) => s.id === spellId)?.art;
+  return `/spells/${art ?? spellId}.webp`;
 }
 
 // Painted element badges (public/elements/*.png) — used for the on-card element
