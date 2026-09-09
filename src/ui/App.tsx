@@ -112,7 +112,7 @@ import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from
 import { pinSuit, SUIT_STYLES } from "../engine/suits";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
-import { aiSkillIsAuto, clearAiSkill, loadAiSkill, recordAiMatch, saveAiSkill } from "../data/prefs";
+import { aiSkillIsAuto, clearAiSkill, loadAiSkill, loadAiTrack, recordAiMatch, saveAiSkill } from "../data/prefs";
 import { HEROES } from "../engine/heroes";
 import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
@@ -550,6 +550,16 @@ export function App() {
   const [aiSkill, setAiSkill] = useState<AiSkill>(
     () => loadAiSkill((loadStory().cleared ?? []).length > 0),
   );
+  /** THE RUNG THE PLAYER HAS ACTUALLY EARNED, with any manual pin ignored.
+   *
+   *  Identical to `aiSkill` while the dial is on Auto, and the two part company
+   *  the moment someone pins one — which is exactly when the difference
+   *  matters. A pin is a CASUAL setting (see `pinApplies`), so every scored
+   *  fight reads this instead and a hand-picked `learning` cannot be carried
+   *  into a Gauntlet run, a Streak ladder or the campaign. */
+  const [autoRung, setAutoRung] = useState<AiSkill>(
+    () => loadAiTrack((loadStory().cleared ?? []).length > 0).skill,
+  );
   /** Which of the four out-of-match destinations is showing. Story keeps its
    *  own `open` flag inside `nav` because the map owns the whole screen when it
    *  is up; the tab just drives it. */
@@ -696,6 +706,25 @@ export function App() {
    *  is. The deck in the chair already answers the question, and it answers it
    *  correctly for free: pick any other deck and this goes null on its own. */
   const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;
+  /** DOES A HAND-PICKED RUNG APPLY TO THIS FIGHT? Casual only.
+   *
+   *  Casual is the sandbox — an opponent you chose, a deck you chose, nothing
+   *  scored — and the same argument `startGate` already makes about letting an
+   *  unfinished squad through there applies to letting a chosen difficulty
+   *  through it. Streak, Gauntlet and Draft are not that: they pay shards, move
+   *  a ladder and end runs, and a rung the player set for themselves would stop
+   *  two players' streaks — or two of their own runs — meaning the same thing.
+   *  An EVENT is not casual either, whatever the lobby happens to be set to: a
+   *  Void Trial is a designed encounter reached from Home and it keeps its own
+   *  shape.
+   *
+   *  THE DIAL ITSELF STILL APPLIES EVERYWHERE. What is refused here is only the
+   *  PICKING of it — a scored fight is played at the rung the player has
+   *  actually earned (`autoRung`), which is the whole point of there being one
+   *  to earn. */
+  const pinApplies = arenaGame === "casual" && !eventRun;
+  /** The rung THIS match is seated at. */
+  const matchSkill: AiSkill = pinApplies ? aiSkill : autoRung;
   /** How the opponent seat's opening is scripted: an event carries its own, an
    *  elite premade carries the rung's. A NUMBER is a depth of cheapest cards; a
    *  LIST names the exact cards to hoist (Void Trials, whose formation is the
@@ -1035,6 +1064,7 @@ export function App() {
     if (!skillAuto) return;
     const next = recordAiMatch(won, (loadStory().cleared ?? []).length > 0);
     setAiSkill(next);
+    setAutoRung(next);
   }, [skillAuto]);
 
   // A story battle resolves into recruitment rather than the normal win screen.
@@ -1469,7 +1499,7 @@ export function App() {
       p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
-      heroes: !eventRun, suits: pinnedSuits, skill: aiSkill,
+      heroes: !eventRun, suits: pinnedSuits, skill: matchSkill,
     };
     // EXTRA SEATS (Domination free-for-all), now the PLAYER's choice rather
     // than the lobby's. They resolve through the same two helpers the first two
@@ -1521,7 +1551,7 @@ export function App() {
     // Void Trial is a designed encounter, but it is designed around the same
     // opponent everything else faces — and a player who needs the handicap needs
     // it most against the fight built to be hard.
-    fresh.aiSkill = aiSkill;
+    fresh.aiSkill = matchSkill;
     // EACH SEAT WEARS ITS OWN DECK'S HERO. A suit is pinned per DECK in the
     // builder, so both sides of a hot-seat match can have chosen one, and the
     // deal fills in for anyone who did not. `pinSuit` ASSIGNS — two seats may
@@ -4421,6 +4451,13 @@ export function App() {
               deploy, terrain,
               node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined,
               undefined, { P1: [...foilIds] });
+            // THE DIAL, IN THE CAMPAIGN. Story fights have always been played
+            // against the full opponent — nothing ever set this here — while
+            // Story is precisely where a new player learns the game and where
+            // "learning" has to be able to notice it has been outgrown. The
+            // rung is the EARNED one, never a hand-picked one: the campaign is
+            // not a sandbox, it hands out cards.
+            fresh.aiSkill = autoRung;
             // A 7x7 is only DOMINATION if the mode is stamped on. Without this
             // line a border gate is an oversized duel on a map whose middle is
             // impassable and whose home rows are not the win condition -- the
@@ -4921,7 +4958,7 @@ export function App() {
                 opponent has no knowledge to take away, and offering the dial
                 where it does nothing would read as a setting that is broken
                 rather than one that does not apply. */}
-            {!onlineMode && !twoPlayer && (
+            {!onlineMode && !twoPlayer && pinApplies && (
               <div className="ar-modes">
                 <div className="ar-field">
                   <label className="ar-flabel">OPPONENT</label>
@@ -4957,6 +4994,22 @@ export function App() {
                   {SKILL_PROFILES[aiSkill].blurb}
                 </p>
               </div>
+            )}
+
+            {/* ...AND IT STILL SAYS WHICH OPPONENT YOU ARE ABOUT TO FIGHT when
+                the picking is refused. A scored mode takes the rung away as a
+                CHOICE, not as information — `skill.ts`'s rule is that a
+                handicap whose shape you cannot see is one you cannot decide to
+                give up, and a difficulty that varies silently between two runs
+                is the worse version of exactly that. Read-only: naming it is
+                the whole job. */}
+            {!onlineMode && !twoPlayer && !pinApplies && (
+              <p className="ar-mode-note">
+                <b>Opponent: {SKILL_PROFILES[matchSkill].name}.</b>{" "}
+                {eventRun
+                  ? "A designed encounter sets its own difficulty."
+                  : "Scored modes are played at the rung you have earned, not one you pick."}
+              </p>
             )}
 
             {/* THE VERSUS CARD. Two decks, viewer-relative — yours blue and the

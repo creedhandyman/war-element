@@ -5101,11 +5101,30 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const rows = num(_params, "aheadOnly") > 0
       ? new Set([ahead])
       : new Set([attacker.pos.row, ahead]);
+    // `nearest` picks the N CLOSEST allies that can actually shoot, wherever
+    // they stand, instead of taking a rank and hoping. A row is a poor proxy
+    // for a firing squad twice over: it counts bodies that have nothing in
+    // range — the order goes out, the ally has no prey, and the volley is
+    // quietly short — and it ignores an ally standing one square away in the
+    // wrong rank who could have fired. Scarecrow is a conductor; it should
+    // reach for the players who can play, not the ones sat in a particular
+    // row. Absent, nothing changes for Sunbanner, which prints no such param.
+    const wants = num(_params, "nearest");
     // Snapshot by ID, then re-look-up: a kill mid-command can remove bodies from
     // draft.cards or spawn new ones, and a held object reference would go stale.
-    const squad = boardCards(draft, attacker.owner)
-      .filter((a) => a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos != null && rows.has(a.pos.row))
-      .map((a) => a.instanceId);
+    const live = boardCards(draft, attacker.owner)
+      .filter((a) => a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos != null);
+    const foes = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && e.pos);
+    const squad = (wants > 0
+      ? live
+          // CAN IT SHOOT ANYTHING? Asked before the squad is picked, not
+          // after, so a body with no line of fire does not take one of the
+          // four slots and waste it.
+          .filter((a) => foes.some((e) => canTarget(draft, a, e)))
+          .sort((x, y) => manhattan(attacker.pos!, x.pos!) - manhattan(attacker.pos!, y.pos!))
+          .slice(0, wants)
+      : live.filter((a) => rows.has(a.pos!.row))
+    ).map((a) => a.instanceId);
     let acted = 0;
     for (const id of squad) {
       const a = draft.cards[id];

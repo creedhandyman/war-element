@@ -12889,14 +12889,22 @@ export const CARDS: CardDef[] = [
       name: "Curtain Call",
       cost: 4,
       handler: "flashSquad",
-      // THE ROW AHEAD ONLY. The shared handler commands the caster's own line as
-      // well, which is right for Sunbanner (a Melee Tank at the front) and wrong
-      // here: Scarecrow is Ranged, stands BEHIND its line, and conducting the
-      // bodies stood beside it is not what it is doing. `aheadOnly` narrows it
-      // without touching Sunbanner, which prints no such param.
-      params: { aheadOnly: 1 },
+      // THE FOUR CLOSEST THAT CAN ACTUALLY SHOOT, not a rank.
+      //
+      // This was `aheadOnly`: the row in front, whoever happened to be in it.
+      // A row is a poor proxy for a firing squad in both directions — it
+      // counts allies with nothing in range, so the order goes out and the
+      // volley comes back short, and it ignores an ally one square away in
+      // the wrong rank who had a clean shot. Scarecrow is a conductor. It
+      // should reach for the players who can play.
+      //
+      // FOUR is the row it replaces at full width on the standard board, so
+      // the ceiling is unchanged and only the floor moves — the difference is
+      // that four now means four attacks rather than four addresses.
+      // `nearest` leaves Sunbanner alone, which prints no such param.
+      params: { nearest: 4 },
       targetSide: "self",
-      text: "Command the allies in the row ahead to each make their basic attack.",
+      text: "Command the 4 closest allies that have a shot to each make their basic attack.",
     },
   },
 
