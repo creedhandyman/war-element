@@ -1748,14 +1748,16 @@ function doResourcePhase(draft: GameState): void {
   // would have two of it quietly shaved off on the way in.
   //
   // Read off the boss actually standing there, so it tracks a recost.
-  const headStart = draft.voidTower && draft.round === 1
+  // ...and the same debt, paid the same way, for a Throne's seated Mythic.
+  // `headStartP1` is set by whoever built the match; the engine does not know
+  // what a Throne is. Added rather than max()'d because the two never
+  // co-occur — a Void Trial seats a boss, a Throne seats a Mythic — and a
+  // silent precedence rule between them would be a trap if they ever did.
+  const headStart = (draft.voidTower && draft.round === 1
     ? voidPlayerHeadStart(
-        // The boss the player came to FIGHT, not a tamed one they brought with
-        // them — `find` takes the first boss-flagged body on the board in either
-        // seat, and a tamed ally could be it.
         getDef(boardCards(draft).find((c) => getDef(c.defId).boss && !c.tamed)?.defId ?? "").cost ?? 0)
-    : 0;
-  for (const player of seatsOf(draft)) {
+    : 0)
+    + (draft.round === 1 ? (draft.headStartP1 ?? 0) : 0);  for (const player of seatsOf(draft)) {
     const p = draft.players[player];
     // The boss's war chest — see VOID_BOSS_INCOME. Its army is priced as a
     // build-time budget and then charged for again at retail; this is what pays

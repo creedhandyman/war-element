@@ -2803,7 +2803,20 @@ export interface GameState {
    *  match — see `slayWin` in phases.ts. Set by the encounter, never by a
    *  player choice, and inert everywhere else. */
   voidTower?: true;
-  /** A DOMINATION match: the board is the win condition. Present only in that
+  /** Round-1 gold paid to P1 against a body seated outside the economy.
+   *
+   *  A THRONE stands its Mythic on the board before round one, for nothing,
+   *  while the player is still affording their first card — the same
+   *  asymmetry Void Tower has, and Void Tower pays for it
+   *  (`VOID_PLAYER_HEAD_START`). The Throne path simply never did, and it
+   *  showed: measured across all seventeen, the player won 10.2% of them.
+   *
+   *  Carried on the STATE rather than derived from a node, because the
+   *  engine does not know what a Throne is and should not learn. Paid as
+   *  round-1 income rather than banked at setup for the reason the Void
+   *  head start is: gold carries over capped at 10, so a grant made before
+   *  the first Resource phase can be quietly shaved. */
+  headStartP1?: number;  /** A DOMINATION match: the board is the win condition. Present only in that
    *  mode, and like `voidTower` it switches the Home-row capture win OFF — see
    *  `src/data/domination.ts` for the map and the rules that ride on it.
    *

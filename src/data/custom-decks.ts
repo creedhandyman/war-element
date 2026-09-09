@@ -1620,6 +1620,32 @@ export function premadeDecksFor(boardSize: number): PremadeDeck[] {
   return PREMADE_DECKS.filter((d) => d.boardSize === (boardSize >= 5 ? 5 : 4));
 }
 
+/** YOUR OWN squads that are legal on this battlefield.
+ *
+ *  The picker's own copy already promised this — "a deck absent from this
+ *  list is absent because it is built for the other board" — while nothing
+ *  filtered them, so a 4x4 lobby listed every 30-card build you owned under
+ *  a note reading "30/18 — not legal yet". The premades were filtered from
+ *  the day they shipped (`premadeDecksFor`); only the half a player actually
+ *  scrolls was not.
+ *
+ *  A deck UNDER the target still shows. That one is not built for the other
+ *  board, it is this board's deck half-finished, and hiding it would lose the
+ *  player their own work-in-progress with no way to find it — which is a
+ *  worse failure than a cluttered list. Only a deck sized for a DIFFERENT
+ *  format is dropped, which is exactly what the copy claims.
+ *
+ *  Same `>= 5` fold as `premadeDecksFor`, for the same reason: the 7x7 runs
+ *  the large board's economy, so a 30-card squad is legal there and an
+ *  18-card one is not. */
+export function customDecksFor<T extends { cards: readonly string[] }>(
+  decks: readonly T[], boardSize: number,
+): T[] {
+  const mine = deckLimits(boardSize).target;
+  const other = deckLimits(boardSize >= 5 ? 4 : 5).target;
+  return decks.filter((d) => d.cards.length !== other || mine === other);
+}
+
 /** The ladder's decks for one rung, sized for a battlefield. */
 export const decksForTier = (tier: DeckTier, boardSize: number): PremadeDeck[] =>
   premadeDecksFor(boardSize).filter((d) => d.tier === tier);

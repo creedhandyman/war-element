@@ -96,7 +96,7 @@ import {
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import {
-  loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
+  customDecksFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -132,7 +132,7 @@ import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
-  THRONE_HOLD_ROUNDS, throneSeatedCard,
+  THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
@@ -842,6 +842,12 @@ export function App() {
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
   // never show up in a 4x4 picker, and vice versa.
   const modePremades = premadeDecksFor(boardSize);
+  /** …and YOUR squads, same filter. The premades have been board-filtered
+   *  since they shipped; the half a player actually scrolls was not, so a
+   *  4x4 lobby listed every 30-card build under "30/18 — not legal yet".
+   *  A deck that is merely UNFINISHED for THIS board still shows — see
+   *  `customDecksFor`. */
+  const modeCustoms = customDecksFor(customDecks, boardSize);
   // Selectable decks = those + the player's own custom decks. Custom decks have
   // no board size of their own and are offered in both modes; the engine never
   // enforces deck length at match start, so a short deck simply runs out sooner.
@@ -4458,6 +4464,11 @@ export function App() {
             // rung is the EARNED one, never a hand-picked one: the campaign is
             // not a sandbox, it hands out cards.
             fresh.aiSkill = autoRung;
+            // THE THRONE'S DEBT. Its Mythic stands on the board below before
+            // round one, outside the economy — the same thing a Void Tower boss
+            // does, and Void Tower pays the player for it. This path did not,
+            // and the player won 10.2% of Thrones. See `THRONE_HEAD_START`.
+            if (node.kind === "throne") fresh.headStartP1 = THRONE_HEAD_START;
             // A 7x7 is only DOMINATION if the mode is stamped on. Without this
             // line a border gate is an oversized duel on a map whose middle is
             // impassable and whose home rows are not the win condition -- the
@@ -5279,7 +5290,7 @@ export function App() {
               }
               boardSize={boardSize}
               premades={modePremades}
-              customs={customDecks}
+              customs={modeCustoms}
               value={pickSeat === "p1" ? p1DeckId
                 : pickSeat === "p2" ? p2DeckId
                 : pickSeat === "p3" ? p3DeckId : p4DeckId}

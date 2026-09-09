@@ -2111,6 +2111,43 @@ export const BIG_BATTLE_KINDS: readonly NodeKind[] = ["landmark", "throne"];
  *  the climax, and there are far more of them. */
 export const THRONE_OPENING_STACK = 5;
 
+/** Gold the player opens a THRONE with, against the Mythic already standing.
+ *
+ *  A Throne seats its Mythic on the board before round one, outside the
+ *  economy, while the player is still affording their first card. That is the
+ *  same asymmetry a Void Tower boss creates, and Void Tower PAYS for it
+ *  (`VOID_PLAYER_HEAD_START`). The Throne path never did — it took the free-
+ *  body mechanic and skipped the compensation.
+ *
+ *  It was not a hard fight, it was a missing mechanic. All seventeen Thrones,
+ *  30 seeds each against Frostkeep, both seats AI-driven:
+ *
+ *      head   player wins
+ *         0      10.2%   <- as shipped; four Thrones at literally 0%
+ *         3      27.6%
+ *         4      36.9%
+ *         5      43.5%   <- this
+ *         6      54.5%
+ *         9      72.0%
+ *
+ *  FIVE, and the two knobs that look like difficulty are not: raising
+ *  `THRONE_HOLD_ROUNDS` from 3 to 5 bought 2.5 points and `THRONE_OPENING_STACK`
+ *  5 -> 3 bought none. Neither was worth spending, and the seated Mythic's
+ *  opening is untouched by any of this — it still stands there on round one,
+ *  which is the whole image of the fight.
+ *
+ *  Read the 43.5% as PESSIMISTIC. An AI pilots the player's seat in that
+ *  harness and a person plays better, so the target was deliberately under
+ *  even: a region's climax should be beaten on the second or third try, not
+ *  the first. 6 measured at 54.5% and would likely make it a formality.
+ *
+ *  FLAT, following Void Tower's own conclusion after it tried scaling by the
+ *  boss's cost and found every boss then needed rescaling 1.5x to 4x. Flat is
+ *  also honest here for a second reason: every seated Mythic costs 9 or 10,
+ *  so a scaled grant would vary by one gold across all seventeen. Five is
+ *  half the body it is facing. */
+export const THRONE_HEAD_START = 5;
+
 /** THE THRONE IS SEATED. Rounds its Mythic holds its own home row before it may
  *  take a step forward.
  *
