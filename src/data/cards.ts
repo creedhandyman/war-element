@@ -6531,10 +6531,18 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 3,
-    dmg: 3,
+    // 5 + 12 + 8 = 25 = 5*3+10, EXACTLY. Was 3/14/9, which totalled 26 and
+    // sat a point over — so this is a recut and a correction in one.
+    //
+    // Two points move out of HP and one out of SP, into DMG. An Assassin
+    // that hit for 3 was being paid in currencies its class does not spend:
+    // Storm wants to kill something before Supercell has finished ramping,
+    // and neither 14 HP nor a ninth point of SP was buying enough to be
+    // worth the damage it was costing.
+    dmg: 5,
     hits: 1,
-    hp: 14,
-    sp: 9,
+    hp: 12,
+    sp: 8,
     shields: 0,
     keywords: {},
     // OUT OF THE SUPER SQUAD, and the reason is that it already had the tribe's
@@ -14178,7 +14186,10 @@ export const CARDS: CardDef[] = [
     // almost nothing. `boardWide` because arrivals land in the summoner's home
     // row, which the home-slot rule puts outside ordinary reach — a range-gated
     // summon reaction is a reaction to nothing.
-    onOppSummon: { dmg: 2, boardWide: true, oncePerRound: true },
+    // ONE damage, not two. Board-wide and once a round is already the widest
+    // reach a reaction has in the set — it answers an arrival anywhere, which
+    // no other card can do — so the number on it should be a tap, not a trade.
+    onOppSummon: { dmg: 1, boardWide: true, oncePerRound: true },
     revealsStealth: true,
     // CONTACT — the card is already a detection instrument and nothing else;
     // its lore is "One ping out, one back. Whatever is hiding is now a number

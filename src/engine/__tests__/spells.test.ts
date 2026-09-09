@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { directDamage, wallEvasion, wallFlatReduction } from "../combat";
 import { applyIntent, advance } from "../phases";
-import { canCastSpell } from "../rules";
+import { canCastSpell, canTarget } from "../rules";
 import { SPELLS, spellPickKind, getSpell } from "../spells";
 import { CARDS, getDef } from "../../data/cards";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
@@ -119,29 +119,39 @@ describe("Cost-1 damage spells", () => {
 });
 
 describe("Home-slot targeting for spells", () => {
-  it("enemy Home row is off-limits until a caster card reaches a Mid row", () => {
+  it("enemy Home row is off-limits to spells, and no board presence buys in", () => {
+    // THE GATE USED TO OPEN. A card in a Mid row bought spell reach into the
+    // summon row — a condition true from about round two, so the back line was
+    // open all game and the opponent could drop a sweep on cards the turn they
+    // arrived. `canPlaceWallRow` had always refused that row outright as "too
+    // oppressive"; the two rules disagreeing was the defect.
     const s = prepState();
     armSpell(s, "pyro_spark", 3);
     const foe = place(s, "bore_armadillo", "P2", 0, 0, { curHp: 15, maxHp: 15, curShields: 0 }); // P2 home
     expect(canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId }).ok).toBe(false);
-    place(s, "leaf_alpha", "P1", 2, 3); // a P1 card in a Mid row unlocks the reach
-    expect(canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId }).ok).toBe(true);
+    place(s, "leaf_alpha", "P1", 2, 3); // used to unlock it — now buys nothing
+    expect(canCastSpell(s, "P1", "pyro_spark", { targetId: foe.instanceId }).ok).toBe(false);
+    // A card that MARCHED there can still answer the back line; only spells are
+    // barred. The row is protected, not the cards standing on it.
+    const marcher = place(s, "leaf_fallona", "P1", 1, 0);
+    expect(canTarget(s, marcher, s.cards[foe.instanceId])).toBe(true);
   });
 });
 
 describe("Support spells", () => {
-  it("Sprout heals the LEAF ally named, and is illegal with none on board", () => {
+  // SPROUT USED TO BE HERE, and it was the only single-target ally HEAL in the
+  // game. LEAF's two cheap spells traded roles — the cost-1 is the bleed now
+  // and the mend is a row — so the vehicle for this test moved with it. Bulwark
+  // carries the same rule: a targeted support spell must be NAMED.
+  it("a targeted support spell is illegal unnamed, and with no kin on board", () => {
     const s = prepState();
-    armSpell(s, "leaf_sprout", 3);
-    expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false); // no LEAF ally yet
-    const ally = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
+    armSpell(s, "bore_bulwark", 3);
+    expect(canCastSpell(s, "P1", "bore_bulwark", {}).ok).toBe(false); // no BORE ally yet
+    const ally = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
     // Still illegal unnamed: a targeted spell must be refused without a target,
     // or the tray fires it at whoever the engine picked.
-    expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false);
-    const next = applyIntent(s, {
-      type: "CAST_SPELL", player: "P1", spellId: "leaf_sprout", targetId: ally.instanceId,
-    });
-    expect(next.cards[ally.instanceId].curHp).toBe(8); // +3
+    expect(canCastSpell(s, "P1", "bore_bulwark", {}).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "bore_bulwark", { targetId: ally.instanceId }).ok).toBe(true);
   });
 });
 
@@ -153,17 +163,22 @@ describe("single-target support spells are AIMED, not auto-cast", () => {
   // the engine made. Each test below names the ally the auto-picker would NOT
   // have chosen, so a regression to auto-targeting fails loudly.
 
-  it("heals the named ally even when another is far more hurt", () => {
+  // The HEAL vehicle for this rule is gone — Sprout was the only single-target
+  // ally heal and it is a row heal now. The row heal is still AIMED (you pick
+  // the row), which is the same principle one step wider, so that is what is
+  // asserted in its place; the shield tests below keep the single-target half.
+  it("the row heal mends the row you named, not the one that needed it most", () => {
     const s = prepState();
-    armSpell(s, "leaf_sprout", 3);
-    const dying = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 1, maxHp: 14 });
-    const healthy = place(s, "leaf_greegon", "P1", 3, 1, { curHp: 12, maxHp: 14 });
+    armSpell(s, "leaf_thorn_patch", 3);
+    const healthy = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 13, maxHp: 14 });
+    const dying = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 1, maxHp: 14 });
     const next = applyIntent(s, {
-      type: "CAST_SPELL", player: "P1", spellId: "leaf_sprout", targetId: healthy.instanceId,
+      type: "CAST_SPELL", player: "P1", spellId: "leaf_thorn_patch", row: 3,
     });
-    expect(next.cards[healthy.instanceId].curHp).toBe(14); // +3, capped at max
-    expect(next.cards[dying.instanceId].curHp).toBe(1); // untouched — NOT auto-picked
+    expect(next.cards[healthy.instanceId].curHp, "the named row").toBe(14); // +3, capped
+    expect(next.cards[dying.instanceId].curHp, "another row — NOT auto-picked").toBe(1);
   });
+
 
   it("shields the named ally, not the neediest one (Bulwark)", () => {
     const s = prepState();
@@ -191,17 +206,18 @@ describe("single-target support spells are AIMED, not auto-cast", () => {
   });
 
   it("refuses an enemy, an off-element ally, and no target at all", () => {
+    // Same rule, carried by Bulwark now that Sprout is a damage spell.
     const s = prepState();
-    armSpell(s, "leaf_sprout", 3);
-    const kin = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
-    const offElement = place(s, "pyro_firebird", "P1", 3, 1, { curHp: 5, maxHp: 14 });
-    const foe = place(s, "leaf_greegon", "P2", 1, 0, { curHp: 5, maxHp: 14 });
-    expect(canCastSpell(s, "P1", "leaf_sprout", {}).ok).toBe(false);
-    // An ENEMY LEAF card matches the element but not the side — the element gate
+    armSpell(s, "bore_bulwark", 3);
+    const kin = place(s, "bore_armadillo", "P1", 3, 0, { curShields: 0 });
+    const offElement = place(s, "pyro_firebird", "P1", 3, 1, { curShields: 0 });
+    const foe = place(s, "bore_crock", "P2", 1, 0, { curShields: 0 });
+    expect(canCastSpell(s, "P1", "bore_bulwark", {}).ok).toBe(false);
+    // An ENEMY BORE card matches the element but not the side — the element gate
     // must not be the only thing checked.
-    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: foe.instanceId }).ok).toBe(false);
-    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: offElement.instanceId }).ok).toBe(false);
-    expect(canCastSpell(s, "P1", "leaf_sprout", { targetId: kin.instanceId }).ok).toBe(true);
+    expect(canCastSpell(s, "P1", "bore_bulwark", { targetId: foe.instanceId }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "bore_bulwark", { targetId: offElement.instanceId }).ok).toBe(false);
+    expect(canCastSpell(s, "P1", "bore_bulwark", { targetId: kin.instanceId }).ok).toBe(true);
   });
 
   it("but an allAllies support spell still needs no pick", () => {
@@ -443,16 +459,19 @@ describe("expansion spells (cost 3/5/7)", () => {
 });
 
 describe("AoE spells (row / two-row)", () => {
-  it("Thorn Patch: BLEEDs every opponent in the chosen row, sparing other rows", () => {
+  it("the LEAF row spell mends its own row now, sparing the others", () => {
+    // Was "Thorn Patch BLEEDs every opponent in the chosen row". The two cheap
+    // LEAF spells traded roles; the row-shaped invariant is the half worth
+    // keeping, so it is asserted on the effect that lives here now.
     const s = prepState();
     armSpell(s, "leaf_thorn_patch", 2);
-    const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20 });
-    const b = place(s, "dusk_vamp", "P2", 1, 2, { curHp: 6 });
-    const other = place(s, "dusk_skeleton_knight", "P2", 2, 0, { curHp: 7 }); // different row
+    const a = place(s, "leaf_alpha", "P1", 1, 0, { curHp: 5, maxHp: 20 });
+    const b = place(s, "leaf_alpha", "P1", 1, 2, { curHp: 6, maxHp: 20 });
+    const other = place(s, "leaf_alpha", "P1", 2, 0, { curHp: 7, maxHp: 20 }); // different row
     const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_thorn_patch", row: 1 });
-    expect(statusOf(next.cards[a.instanceId], "BLEED")?.power).toBe(1);
-    expect(statusOf(next.cards[b.instanceId], "BLEED")).toBeTruthy();
-    expect(statusOf(next.cards[other.instanceId], "BLEED")).toBeFalsy(); // row 2, spared
+    expect(next.cards[a.instanceId].curHp).toBe(8);
+    expect(next.cards[b.instanceId].curHp).toBe(9);
+    expect(next.cards[other.instanceId].curHp, "row 2, spared").toBe(7);
   });
 
   it("Charge: the DAWN line advances, THEN swings", () => {
@@ -476,14 +495,14 @@ describe("AoE spells (row / two-row)", () => {
     expect(canCastSpell(s, "P1", "dawn_solar_flare", {}).ok, "no pick required").toBe(true);
   });
 
-  it("a row AoE needs a row, and the enemy Home row stays gated until reached", () => {
+  it("a row AoE needs a row, and the enemy Home row is never one of them", () => {
     const s = prepState();
     armSpell(s, "aqua_frost_patch", 2);
     expect(canCastSpell(s, "P1", "aqua_frost_patch", {}).ok).toBe(false); // no row picked
     expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 2 }).ok).toBe(true); // a Mid row
-    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(false); // P2 Home, not reached
-    place(s, "leaf_alpha", "P1", 2, 3); // a P1 card in a Mid row unlocks the reach
-    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(true);
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(false); // P2 Home
+    place(s, "leaf_alpha", "P1", 2, 3); // used to unlock it — now buys nothing
+    expect(canCastSpell(s, "P1", "aqua_frost_patch", { row: 0 }).ok).toBe(false);
   });
 
   // ── the two-row SPILL is gated too, at BOTH seats ──────────────────────────
@@ -519,14 +538,15 @@ describe("AoE spells (row / two-row)", () => {
     ).toThrow();
     expect(statusOf(s.cards[king.instanceId], "FREEZE"), "never touched").toBeFalsy();
 
-    // Commit a card past P2's own Home row and the reach is earned honestly.
+    // ...and committing forward no longer buys it either. The spill gate is the
+    // part that still matters and it is now absolute: a pick whose spill lands
+    // on the enemy Home row is refused however the board looks.
     place(s, "dusk_crow", "P2", 1, 0);
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(true);
-    const next = applyIntent(s, {
-      type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 2,
-    });
-    // And the spill is real — which is exactly why it had to be gated.
-    expect(statusOf(next.cards[king.instanceId], "FREEZE")).toBeTruthy();
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(false);
+    expect(statusOf(s.cards[king.instanceId], "FREEZE"), "still never touched").toBeFalsy();
+    // Row 1 spills onto row 2 — both Mid, and legal, so the sweep is not simply
+    // dead. A fix that refused every row would pass the line above and fail here.
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 1 }).ok).toBe(true);
   });
 
   it("P1's two-row sweep spills toward P1's own side, so it stays legal", () => {
@@ -562,7 +582,7 @@ describe("AoE spells (row / two-row)", () => {
     expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "spills onto row 4").toBe(false);
     expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok, "spills onto row 3").toBe(true);
     place(s, "dusk_crow", "P2", 1, 0);
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "beachhead earns it").toBe(true);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "and a beachhead does not earn it").toBe(false);
   });
 });
 
