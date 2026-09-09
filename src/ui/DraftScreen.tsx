@@ -158,7 +158,7 @@ export function DraftScreen(props: {
                 </div>
               ))}
             </div>
-            <DeckStats stats={stats} compact />
+            <DeckStats stats={stats} gaps />
           </>
         )}
 
@@ -182,7 +182,7 @@ export function DraftScreen(props: {
                 </button>
               ))}
             </div>
-            <DeckStats stats={stats} compact />
+            <DeckStats stats={stats} gaps />
           </>
         )}
 
@@ -239,7 +239,7 @@ export function DraftScreen(props: {
               {draftSize(run)} cards and {run.spells?.length ?? 0} spells, none of them
               yours to keep. Take them into the fight.
             </p>
-            <DeckStats stats={stats} />
+            <DeckStats stats={stats} gaps />
           </div>
         )}
 

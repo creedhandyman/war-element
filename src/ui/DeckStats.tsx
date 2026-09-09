@@ -1,6 +1,12 @@
 /** Live composition of a deck being built: elements, classes, and the cost
  *  curve, plus the average cost.
  *
+ *  THE CLASS ROW IS NOT OPTIONAL ANY MORE. It used to be dropped behind a
+ *  `compact` flag on the reasoning that it was "the least useful of the three in
+ *  a narrow rail" — and the only caller that ever passed that flag was the DRAFT
+ *  screen, which is the one place the row matters most: a drafter takes warbands
+ *  whole and cannot go looking for a Tank.
+ *
  *  Extracted from DeckBuilder so the Story Mode collection shows the SAME
  *  readout while you add cards there. Duplicating the markup would have meant
  *  two cost curves that drift apart, and the campaign is the place the numbers
@@ -47,9 +53,16 @@ export function useComposition(cards: readonly string[]): DeckComposition {
   return useMemo(() => composition(cards), [cards]);
 }
 
-/** The three blocks. `compact` drops the class row, which is the least useful of
- *  the three in a narrow rail. */
-export function DeckStats({ stats, compact }: { stats: DeckComposition; compact?: boolean }) {
+/** The three blocks.
+ *
+ *  `gaps` SHOWS THE CLASSES YOU DO NOT HAVE, greyed at zero, and it exists for
+ *  the draft. Everywhere else the reader is holding a filterable collection and
+ *  can ask "what Tanks do I own" directly; a drafter cannot. They are handed
+ *  warbands whole, and the question they actually have — "is there a front line
+ *  in this?" — is answered by the name that is missing from the row rather than
+ *  by any of the names in it. Off by default, so the builder and the collection
+ *  keep the tighter row that only names what is there. */
+export function DeckStats({ stats, gaps }: { stats: DeckComposition; gaps?: boolean }) {
   return (
     <div className="db-stats db-panel">
       <div className="dbs-block">
@@ -63,16 +76,21 @@ export function DeckStats({ stats, compact }: { stats: DeckComposition; compact?
           ))}
         </div>
       </div>
-      {!compact && (
-        <div className="dbs-block">
-          <div className="dbs-lbl">Classes</div>
-          <div className="dbs-tags">
-            {CLASSES.filter((c) => stats.byClass[c]).map((c) => (
-              <span key={c} className="dbs-tag">{c} {stats.byClass[c]}</span>
-            ))}
-          </div>
+      <div className="dbs-block">
+        <div className="dbs-lbl">Classes</div>
+        <div className="dbs-tags">
+          {(gaps ? CLASSES : CLASSES.filter((c) => stats.byClass[c])).map((c) => {
+            const n = stats.byClass[c] ?? 0;
+            return (
+              <span
+                key={c}
+                className={`dbs-tag${n === 0 ? " none" : ""}`}
+                title={n === 0 ? `No ${c} in the squad` : `${n} ${c}`}
+              >{c} {n}</span>
+            );
+          })}
         </div>
-      )}
+      </div>
       <div className="dbs-block">
         <div className="dbs-lbl">Cost curve · avg {stats.avg.toFixed(1)}</div>
         <div className="dbs-curve">

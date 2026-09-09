@@ -64,6 +64,16 @@ describe("the draft pick screen", () => {
     expect(/SINGLE_PICKS|of 6/.test(SCREEN), "a hardcoded single count in the copy").toBe(false);
   });
 
+  it("shows the class breakdown, gaps included, at every stage of the draft", () => {
+    // The row used to be hidden behind `compact`, and the draft was the only
+    // caller that passed it — the one screen where the reader cannot go looking
+    // for a Tank. `gaps` is what puts the classes they do NOT have on the row.
+    expect(SCREEN.includes("compact"), "the class row is hidden again").toBe(false);
+    const stats = SCREEN.match(/<DeckStats[^/]*\/>/g) ?? [];
+    expect(stats.length, "no DeckStats on the draft screen at all").toBeGreaterThan(0);
+    for (const tag of stats) expect(tag, `${tag} does not ask for gaps`).toContain("gaps");
+  });
+
   it("renders one card the same way in both stages", () => {
     // The trio inside a banner and the five on a single table are the same
     // object in two containers. Written out twice, the ⓘ stops opening the

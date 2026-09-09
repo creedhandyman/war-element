@@ -2645,6 +2645,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dbs-lbl { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 700; }
 .dbs-tags { display: flex; flex-wrap: wrap; gap: 4px; }
 .dbs-tag { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; border-radius: 999px; border: 1px solid var(--panel-line); font-size: 10px; font-weight: 800; background: rgba(0,0,0,0.25); }
+/* A class the squad does NOT have — drafting only, see `gaps` in DeckStats. Kept
+   on the row rather than left off it, because the absence is the information: a
+   drafter who has taken four warbands wants to read "Tank 0", not count six
+   names and work out which one never appeared. Dashed and dim so it cannot be
+   mistaken for a count at a glance. */
+.dbs-tag.none { color: var(--ink-faint); border-style: dashed; border-color: rgba(233, 226, 210, 0.14); background: rgba(0, 0, 0, 0.14); font-weight: 600; }
 .dbs-dot { width: 7px; height: 7px; border-radius: 50%; }
 .dbs-curve { display: flex; align-items: flex-end; gap: 3px; height: 46px; }
 .dbs-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; height: 100%; }
