@@ -147,6 +147,93 @@ export function skillOf(state: GameState, seat?: string): SkillProfile {
   return SKILL_PROFILES[state.aiSkill ?? "sharp"];
 }
 
+// ─────────────────────────────────────────────────────────────────────────
+// THE DIAL MOVES ITSELF.
+//
+// The three rungs above were only ever reachable from a menu, and the default
+// was picked ONCE — `hasPlayed ? sharp : learning` — and then frozen for the
+// life of the save. That is the wrong shape for what this is. A player does not
+// stay a beginner; they go from learning the rules, to steady, to reading the
+// board better than the opponent does, and a handicap they set on the day they
+// installed the game is a handicap that is wrong every day after.
+//
+// So the rung tracks the player, in the background, off the only evidence there
+// is: whether they are winning.
+//
+// TWO WINS UP, THREE LOSSES DOWN, and the asymmetry is the design rather than a
+// rounding of it.
+//
+//   · Promotion is EAGER because the failure it fixes is boredom, and boredom
+//     is invisible — a player who has outgrown `learning` does not get an error
+//     message, they just stop playing. Two in a row is enough evidence to try
+//     them one rung higher, and if it was wrong the next three games say so.
+//
+//   · Demotion is RELUCTANT because an invisible difficulty DROP is the more
+//     insulting mistake. One loss is noise: a bad draw, a deck they were trying
+//     out, a fight they threw to see what a card did. Dropping a player a rung
+//     for that hands them an easier game they did not ask for and cannot see
+//     was given — the exact failure `prefs.ts` names about defaulting everyone
+//     to `learning`. Three in a row is a pattern rather than a night.
+//
+// CONSECUTIVE, both ways, and the counters clear on every move. Trading wins
+// and losses holds the rung, which is the definition of the right one: the
+// matchmaker's ladder in `matchmaker.ts` settles "at the difficulty you can
+// ALMOST beat", and this is the same idea applied to the opponent's knowledge
+// rather than to its deck.
+//
+// WHAT IT COUNTS is the caller's business and deliberately not this file's, but
+// the rule the callers keep is worth stating here because it is what makes the
+// signal mean anything: a match only teaches the dial when the dial was PLAYING
+// — never a human opponent, and never a boss, whose fights are designed to be
+// lost several times before they are won. Three honest attempts at a Void Tower
+// floor would otherwise read as a player who had got worse.
+
+/** Consecutive wins on a rung before the next one opens. */
+export const SKILL_PROMOTE_WINS = 2;
+/** Consecutive losses before a rung is given back. */
+export const SKILL_DEMOTE_LOSSES = 3;
+
+/** The rung being played, and how the last few matches have gone on it.
+ *
+ *  `wins`/`losses` are CONSECUTIVE runs, not totals, and at most one of them is
+ *  ever non-zero — a win clears the losses and a loss clears the wins. Kept as
+ *  two numbers rather than one signed streak because the thresholds differ in
+ *  each direction and a single number would have to be read against two. */
+export interface SkillTrack {
+  skill: AiSkill;
+  wins: number;
+  losses: number;
+}
+
+export const emptySkillTrack = (skill: AiSkill): SkillTrack => ({ skill, wins: 0, losses: 0 });
+
+/** One step along the ladder, or the same rung with its counters updated.
+ *
+ *  Pure, and returns the SAME object when nothing moved and nothing counted, so
+ *  a caller can skip the write on identity — the shape `recordLadderMatch` uses
+ *  for the same reason.
+ *
+ *  Clamped at both ends: there is nothing gentler than `learning` and nothing
+ *  harder than `sharp`, so a run of losses at the floor simply sits there. The
+ *  counter still climbs, which is deliberate — it costs nothing, and it means a
+ *  player who claws back to a win at the bottom starts their next promotion
+ *  from a clean slate rather than from a buried count. */
+export function recordSkillMatch(track: SkillTrack, won: boolean): SkillTrack {
+  const i = AI_SKILLS.indexOf(track.skill);
+  // An unknown rung (a hand-edited save) is not something to compute on top of.
+  if (i < 0) return emptySkillTrack("learning");
+  if (won) {
+    const wins = track.wins + 1;
+    if (wins >= SKILL_PROMOTE_WINS && i < AI_SKILLS.length - 1)
+      return emptySkillTrack(AI_SKILLS[i + 1]);
+    return { skill: track.skill, wins, losses: 0 };
+  }
+  const losses = track.losses + 1;
+  if (losses >= SKILL_DEMOTE_LOSSES && i > 0)
+    return emptySkillTrack(AI_SKILLS[i - 1]);
+  return { skill: track.skill, wins: 0, losses };
+}
+
 /** HARNESS ONLY — confine the dial to ONE seat, so a handicapped opponent can
  *  be measured against a sharp one. Null in shipped code, where the dial is
  *  table-wide by design (see `skillOf`) and the other seat is a human anyway.

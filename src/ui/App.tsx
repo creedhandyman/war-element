@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
@@ -112,7 +112,7 @@ import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from
 import { pinSuit, SUIT_STYLES } from "../engine/suits";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
-import { loadAiSkill, saveAiSkill } from "../data/prefs";
+import { aiSkillIsAuto, clearAiSkill, loadAiSkill, recordAiMatch, saveAiSkill } from "../data/prefs";
 import { HEROES } from "../engine/heroes";
 import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
@@ -546,6 +546,7 @@ export function App() {
    *  opens gentle and an established one opens on the opponent it has always
    *  played. Read once — a default that re-derived itself mid-session would
    *  change the fight under a player who had just picked. */
+  const [skillAuto, setSkillAuto] = useState<boolean>(() => aiSkillIsAuto());
   const [aiSkill, setAiSkill] = useState<AiSkill>(
     () => loadAiSkill((loadStory().cleared ?? []).length > 0),
   );
@@ -1018,6 +1019,24 @@ export function App() {
   const me = online ? (actor === online.myId ? online.myId : null) : actor;
   const [viewSide, setViewSide] = useState<PlayerId>("P1");
 
+  /** TELL THE DIAL HOW THAT WENT — see `recordSkillMatch` in engine/skill.ts.
+   *
+   *  A no-op while the player has pinned a rung by hand; `recordAiMatch` owns
+   *  that check so neither caller has to remember it. It hands back the rung
+   *  for the NEXT match, which is put straight into state — the Arena's picker
+   *  reads it, and the next `createInitialState` stamps it onto the game.
+   *
+   *  ONE funnel for both settle points, because what COUNTS is the whole
+   *  signal and two copies of that judgement is two chances to disagree about
+   *  it. What counts is: a match the AI actually played with the dial on.
+   *  Everything excluded here is excluded because it would LIE to the tracker
+   *  rather than because it does not matter. */
+  const reportSkillMatch = useCallback((won: boolean) => {
+    if (!skillAuto) return;
+    const next = recordAiMatch(won, (loadStory().cleared ?? []).length > 0);
+    setAiSkill(next);
+  }, [skillAuto]);
+
   // A story battle resolves into recruitment rather than the normal win screen.
   // A LOSS costs nothing but time — Story Mode is where you experiment, and Void
   // Tower owns run-loss stakes — so it drops back to the map with no roll.
@@ -1027,9 +1046,16 @@ export function App() {
       // A loss still stops on the result card. It used to bounce straight to the
       // map, which told you neither what beat you nor how close it was — and the
       // match report is the whole reason to re-fight a node differently.
+      reportSkillMatch(false);
       navDo({ t: "result", result: { node: storyNode, won: [], captured: 0, lost: true } });
       return;
     }
+    // THE CAMPAIGN IS WHERE THE DIAL EARNS ITS KEEP. It is where a new player
+    // actually plays, so it is where "learning" has to notice it has been
+    // outgrown — reporting only Arena matches would leave the one player the
+    // handicap was built for on the gentlest opponent forever, because they
+    // have no reason to walk into the Arena at all.
+    reportSkillMatch(true);
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
     const result = rollRecruits(story, storyNode, captured);
     setStory((prev) => {
@@ -1088,6 +1114,16 @@ export function App() {
     const won = game.win?.winner === "P1";
     const againstPremade = PREMADE_DECKS.some((d) => d.id === p2DeckId);
     const event = eventForDeck(p2DeckId);
+    // A BOSS IS SUPPOSED TO BEAT YOU FIRST. Void Tower floors are designed to
+    // be lost to several times before they are solved — that is the mode — so
+    // three honest attempts at one would read here as a player who had got
+    // worse and would quietly hand them an easier opponent everywhere else.
+    // The dial still APPLIES in a boss fight (see `fresh.aiSkill` below); it
+    // just does not learn from one.
+    //
+    // Hot-seat is excluded upstream: this effect only reaches here when the
+    // match was not online, and a two-human match never had the dial on.
+    if (!event?.bossId && !twoPlayer) reportSkillMatch(won);
     setStory((prev) => {
       // An event settles on its OWN path and never through `settleArena`, which
       // advances or ends a live Gauntlet run unconditionally — so routing an
@@ -4858,19 +4894,36 @@ export function App() {
                 <div className="ar-field">
                   <label className="ar-flabel">OPPONENT</label>
                   <div className="seg">
+                    {/* AUTO FIRST, and it is the default. The dial moves itself
+                        off your results — two wins up, three losses down — so
+                        the opponent tracks you from learning to steady to
+                        sharp without anyone opening this menu. The three rungs
+                        beside it PIN it, which is the escape hatch: a player
+                        showing someone the game, or one who simply wants the
+                        hardest opponent every time, says so here and the
+                        tracking stops. */}
+                    <button
+                      className={skillAuto ? "on" : ""}
+                      onClick={() => { setSkillAuto(true); clearAiSkill(); setAiSkill(loadAiSkill((story.cleared ?? []).length > 0)); }}
+                    >Auto</button>
                     {AI_SKILLS.map((k) => (
                       <button
                         key={k}
-                        className={aiSkill === k ? "on" : ""}
-                        onClick={() => { setAiSkill(k); saveAiSkill(k); }}
+                        className={!skillAuto && aiSkill === k ? "on" : ""}
+                        onClick={() => { setSkillAuto(false); setAiSkill(k); saveAiSkill(k); }}
                       >{SKILL_PROFILES[k].name}</button>
                     ))}
                   </div>
                 </div>
                 {/* The blurb is the point, not decoration: a handicap whose
                     shape the player cannot see is one they cannot decide to
-                    give up. */}
-                <p className="ar-mode-note">{SKILL_PROFILES[aiSkill].blurb}</p>
+                    give up. On Auto that goes double — it names the rung it has
+                    put you on, so a difficulty nobody chose is still one you
+                    can read. */}
+                <p className="ar-mode-note">
+                  {skillAuto && <b>{SKILL_PROFILES[aiSkill].name} — adjusting as you play. </b>}
+                  {SKILL_PROFILES[aiSkill].blurb}
+                </p>
               </div>
             )}
 
