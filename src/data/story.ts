@@ -16,7 +16,7 @@ import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spe
 import { DOMINATION_7X7 } from "./domination";
 import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
-import type { DraftRun } from "./draft";
+import type { DraftGroup, DraftRun } from "./draft";
 import { playerLevel } from "./player";
 import type { LadderState } from "./matchmaker";
 
@@ -2934,15 +2934,39 @@ export function loadStory(): StorySave {
       // Same posture as the gauntlet run above: restored as written, dropped
       // whole if malformed. `board` decides how many picks a run owes and what
       // `deckSizeFor` will demand of it, so a junk value would strand a draft
-      // that can never complete; `picks`/`offer` must be arrays of ids or the
-      // pick screen renders nothing it can act on.
+      // that can never complete.
+      //
+      // `offer` IS AN ARRAY OF GROUPS, NOT OF IDS, and reading it as ids is how
+      // a half-picked draft was silently destroyed on every reload. It was ids
+      // once; the warband rework made each offer a {label, kind, cards} banner
+      // and this validator was not moved with it. `[].every()` is true, so an
+      // EMPTY offer passed and a run between phases survived — the check only
+      // failed when there were actually three banners on the table, which is to
+      // say whenever the player was mid-pick. Reported as "a draft match froze",
+      // and from the player's side that is exactly what losing the run looks
+      // like: the screen has nothing left to act on.
+      //
+      // Every other array the pick screen renders is checked here too, for the
+      // same reason and against the same failure: a field nobody validates is a
+      // field that silently ends the run the first time its shape moves.
       draft: (() => {
         const d = p.draft as DraftRun | undefined;
         if (!d || typeof d !== "object") return undefined;
         const ids = (x: unknown): x is string[] =>
           Array.isArray(x) && x.every((y) => typeof y === "string");
+        const optIds = (x: unknown): boolean => x === undefined || ids(x);
+        const groups = (x: unknown): boolean =>
+          Array.isArray(x) && x.every((g) => {
+            const grp = g as DraftGroup | null;
+            return !!grp && typeof grp === "object"
+              && typeof grp.label === "string"
+              && (grp.kind === "tribe" || grp.kind === "element")
+              && ids(grp.cards);
+          });
         const num = (x: unknown): boolean => x === undefined || (typeof x === "number" && x >= 0);
-        const ok = ids(d.picks) && ids(d.offer)
+        const ok = ids(d.picks) && groups(d.offer)
+          && optIds(d.cardOffer) && optIds(d.spells) && optIds(d.spellOffer)
+          && (d.seat === undefined || typeof d.seat === "string")
           && [4, 5, 7].includes(d.board as number) && num(d.won) && num(d.lost);
         return ok ? d : undefined;
       })(),
