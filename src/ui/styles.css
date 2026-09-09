@@ -7597,6 +7597,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    three cards on a phone is nine tiles across, which is nothing legible. */
 .dr-trio { display: flex; flex-direction: column; gap: 4px; }
 .dr-trio .dr-card { cursor: default; }
+/* THE SINGLE TABLE — five cards, and here the CARD is the button. The warband
+   half has a banner to press and its trio is read-only; this half has no banner,
+   so the tap target is the tile itself and it gets the same lift on hover the
+   banner does. Five across a 430px phone is ~78px a tile, which is why the row
+   scrolls sideways instead of shrinking below legible: a card you cannot read
+   the cost of is not a pick you can make. */
+.dr-singles {
+  display: flex; gap: 6px; margin-bottom: 14px;
+  overflow-x: auto; padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.dr-single {
+  flex: 1 0 86px; min-width: 86px; padding: 0;
+  background: none; border: 1px solid transparent; border-radius: 10px;
+  cursor: pointer; font: inherit; color: inherit;
+  transition: transform .14s ease, border-color .14s ease;
+}
+.dr-single:hover, .dr-single:focus-visible { transform: translateY(-2px); border-color: var(--gold-line); outline: none; }
+/* The ⓘ inside still opens the reader rather than spending the pick — it stops
+   the event — so the card under it keeps the pointer the button implies. */
+.dr-single .dr-card { cursor: pointer; }
 .dr-spells { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .dr-spell { width: 100%; text-align: left; }
 .dr-book { display: flex; flex-wrap: wrap; gap: 5px; }

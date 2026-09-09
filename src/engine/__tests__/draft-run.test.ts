@@ -14,7 +14,8 @@ import { loadStory, newSave, saveStory, type StorySave } from "../../data/story"
 import {
   DRAFT_ENTRY, DRAFT_LOSSES, DRAFT_MAX_WINS, DRAFT_PAY, cardsComplete, dealDraftSeat,
   draftComplete, draftLosses, draftPlaying, draftReward, draftRunOver, draftTier, draftWins,
-  pickGroup, pickSpell, spellsComplete, recordDraftResult, settleDraft, startDraft,
+  inGroupPhase, pickCard, pickGroup, pickSpell, spellsComplete, recordDraftResult,
+  settleDraft, startDraft,
   type DraftRun,
 } from "../../data/draft";
 import { PREMADE_DECKS, decksForTier } from "../../data/custom-decks";
@@ -33,7 +34,13 @@ function seeded(seed: number): () => number {
 function drafted(seed = 4): DraftRun {
   const rand = seeded(seed);
   let run = startDraft(4, rand);
-  while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+  // Warbands, then the six singles, then the book — it asks the run which phase
+  // it is in rather than counting picks, so the boundary stays `groupCards`'s.
+  while (!cardsComplete(run)) {
+    run = inGroupPhase(run)
+      ? pickGroup(run, run.offer[0].label, rand)
+      : pickCard(run, run.cardOffer![0], rand);
+  }
   while (!spellsComplete(run)) run = pickSpell(run, run.spellOffer![0], rand);
   return run;
 }

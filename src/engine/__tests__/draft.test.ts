@@ -1,10 +1,12 @@
-// DRAFT — three warbands a pick, then a spellbook.
+// DRAFT — warbands, then singles, then a spellbook.
 //
-// A pick is a GROUP OF THREE sharing a tribe, so eighteen cards is six
-// decisions about what KIND of squad you are building rather than eighteen
-// about which of three strangers is marginally better. Then the book, which
-// used to be derived from the finished deck's elements — the right default for
-// a deck somebody built and a decision taken away from a drafter.
+// The early picks are GROUPS OF THREE sharing a tribe, so the shape of the
+// squad is chosen before any of its gaps are. The LAST SIX are single cards out
+// of five, which is the only point in the format where a specific hole can be
+// answered — a warband arrives whole, and no amount of reweighting finds a
+// 1-drop inside a Dragon warband. Then the book, which used to be derived from
+// the finished deck's elements — the right default for a deck somebody built
+// and a decision taken away from a drafter.
 //
 // Half of this file is measurement rather than assertion, for the same reason
 // as before: whether a draft produces a playable CURVE cannot be checked on one
@@ -16,9 +18,11 @@ import { SPELLS, spellCapForBoard, spellCostCap } from "../spells";
 import { createInitialState } from "../state";
 import { advance } from "../phases";
 import {
-  CHEAP_COST, CHEAP_OFFERS, GROUP_SIZE, OFFER_SIZE, TARGET_CURVE, cardsComplete,
-  costBucket, curveDeficit, draftComplete, draftSize, draftSpellCap, picksLeft,
-  pickGroup, pickSpell, rollGroups, spellsComplete, startDraft, type DraftRun,
+  CHEAP_COST, CHEAP_OFFERS, GROUP_SIZE, OFFER_SIZE, SINGLE_OFFER, SINGLE_PICKS,
+  TARGET_CURVE, cardsComplete, costBucket, curveDeficit, draftComplete, draftSize,
+  draftSpellCap, groupCards, inGroupPhase, inSinglePhase, picksLeft, pickCard,
+  pickGroup, pickSpell, rollCardOffer, rollGroups, spellsComplete, startDraft,
+  type DraftRun,
 } from "../../data/draft";
 
 function seeded(seed: number): () => number {
@@ -31,15 +35,29 @@ function seeded(seed: number): () => number {
   };
 }
 
-/** A whole draft — groups then spells — by a drafter with no taste. */
+/** A whole draft — warbands, then singles, then spells — by a drafter with no
+ *  taste. Three phases now, and it asks the run which one it is in rather than
+ *  counting picks itself: the boundary is `groupCards`'s to own. */
 function autoDraft(seed: number, board = 4): DraftRun {
   const rand = seeded(seed);
   let run = startDraft(board, rand);
-  while (!cardsComplete(run))
-    run = pickGroup(run, run.offer[Math.floor(rand() * run.offer.length)].label, rand);
+  while (!cardsComplete(run)) {
+    run = inGroupPhase(run)
+      ? pickGroup(run, run.offer[Math.floor(rand() * run.offer.length)].label, rand)
+      : pickCard(run, run.cardOffer![Math.floor(rand() * run.cardOffer!.length)], rand);
+  }
   while (!spellsComplete(run))
     run = pickSpell(run, run.spellOffer![Math.floor(rand() * run.spellOffer!.length)], rand);
   return run;
+}
+
+/** One pick, in whichever phase the run is in. The tests that step through a
+ *  draft assertion-by-assertion use this so none of them has to know where the
+ *  phase boundary is — that is `groupCards`'s to own. */
+function takeAny(run: DraftRun, rand: () => number): DraftRun {
+  return inGroupPhase(run)
+    ? pickGroup(run, run.offer[0].label, rand)
+    : pickCard(run, run.cardOffer![0], rand);
 }
 
 /** THE CONTROL: three cards drawn flat out of the pool, no banners, no
@@ -116,12 +134,19 @@ describe("a pick is a warband, not a card", () => {
   it("takes all three and never offers a taken card again", () => {
     const rand = seeded(7);
     let run = startDraft(4, rand);
-    while (!cardsComplete(run)) {
+    while (inGroupPhase(run)) {
       for (const g of run.offer)
         for (const id of g.cards) expect(run.picks).not.toContain(id);
       const before = run.picks.length;
       run = pickGroup(run, run.offer[0].label, rand);
-      expect(run.picks.length - before, "a pick is three cards").toBe(GROUP_SIZE);
+      expect(run.picks.length - before, "a warband pick is three cards").toBe(GROUP_SIZE);
+    }
+    // ...and the singles take exactly one, off a table that is also clean.
+    while (!cardsComplete(run)) {
+      for (const id of run.cardOffer!) expect(run.picks).not.toContain(id);
+      const before = run.picks.length;
+      run = pickCard(run, run.cardOffer![0], rand);
+      expect(run.picks.length - before, "a single pick is one card").toBe(1);
     }
     expect(new Set(run.picks).size, "the deck holds no duplicate").toBe(run.picks.length);
   });
@@ -149,7 +174,11 @@ describe("then the spellbook", () => {
     const rand = seeded(11);
     let run = startDraft(4, rand);
     expect(run.spellOffer, "no book while there are cards to take").toBeUndefined();
-    while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+    while (!cardsComplete(run)) {
+      run = takeAny(run, rand);
+      if (!cardsComplete(run))
+        expect(run.spellOffer, "still no book mid-draft").toBeUndefined();
+    }
     expect(run.spells, "the book opens empty").toEqual([]);
     expect(run.spellOffer, "with three on the table").toHaveLength(OFFER_SIZE);
     expect(run.offer, "and the cards are off it").toEqual([]);
@@ -219,17 +248,41 @@ describe("then the spellbook", () => {
   it("refuses a spell that is not on the table", () => {
     const rand = seeded(4);
     let run = startDraft(4, rand);
-    while (!cardsComplete(run)) run = pickGroup(run, run.offer[0].label, rand);
+    while (!cardsComplete(run)) run = takeAny(run, rand);
     expect(() => pickSpell(run, "leaf_sprout_not_real", rand)).toThrow(/not on offer/);
   });
 });
 
 describe("the countdown", () => {
-  it("counts both stages, so the book is never a surprise", () => {
-    // Six group picks and five spell picks on the small board.
+  it("counts all three stages, so neither the singles nor the book is a surprise", () => {
+    // Four warbands, six singles and five spells on the small board: 15.
     const fresh = startDraft(4, seeded(2));
-    expect(picksLeft(fresh)).toBe(deckSizeFor(4) / GROUP_SIZE + spellCapForBoard(4));
+    expect(picksLeft(fresh)).toBe(
+      groupCards(fresh) / GROUP_SIZE + SINGLE_PICKS + spellCapForBoard(4),
+    );
+    expect(picksLeft(fresh), "and that is fifteen, spelled out").toBe(15);
     expect(picksLeft(autoDraft(2)), "nothing left when it is done").toBe(0);
+  });
+
+  it("counts DOWN by one per pick, in every phase", () => {
+    // The bug this pins: dividing the whole card remainder by three understated
+    // a draft in its last six picks, so the countdown jumped four at the
+    // boundary and then stalled.
+    const rand = seeded(5);
+    let run = startDraft(4, rand);
+    let left = picksLeft(run);
+    while (!cardsComplete(run)) {
+      run = takeAny(run, rand);
+      const now = picksLeft(run);
+      expect(now, `went ${left} -> ${now} at ${run.picks.length} cards`).toBe(left - 1);
+      left = now;
+    }
+    while (!spellsComplete(run)) {
+      run = pickSpell(run, run.spellOffer![0], rand);
+      expect(picksLeft(run)).toBe(left - 1);
+      left = picksLeft(run);
+    }
+    expect(left).toBe(0);
   });
 });
 
@@ -283,7 +336,7 @@ describe("rollGroups", () => {
     // finished after one. The offer must not shrink.
     const rand = seeded(33);
     let run = startDraft(4, rand);
-    while (!cardsComplete(run)) {
+    while (inGroupPhase(run)) {
       expect(run.offer.length, `only ${run.offer.length} groups at pick ${run.picks.length / 3}`)
         .toBe(OFFER_SIZE);
       run = pickGroup(run, run.offer[0].label, rand);
@@ -388,5 +441,111 @@ describe("the cheap-card floor", () => {
     const share = cheapBucket / total;
     expect(share, "1-2 share").toBeGreaterThan(TARGET_CURVE["1-2"] - 0.06);
     expect(share, "1-2 share").toBeLessThan(TARGET_CURVE["1-2"] + 0.06);
+  });
+});
+
+
+describe("the last six are single cards", () => {
+  it("the warband half covers everything but the last six, on every board", () => {
+    // The format rule, stated once as a subtraction. Both boards divide by
+    // three, which is what keeps the last warband from being a short group.
+    for (const board of [4, 5]) {
+      const run = startDraft(board, seeded(1));
+      expect(groupCards(run)).toBe(deckSizeFor(board) - SINGLE_PICKS);
+      expect(groupCards(run) % GROUP_SIZE, `board ${board} leaves a part-warband`).toBe(0);
+    }
+    // Four warbands then six singles on 18; eight then six on 30.
+    expect(groupCards(startDraft(4, seeded(1))) / GROUP_SIZE).toBe(4);
+    expect(groupCards(startDraft(5, seeded(1))) / GROUP_SIZE).toBe(8);
+  });
+
+  it("hands over from warbands to singles exactly once, at the boundary", () => {
+    const rand = seeded(9);
+    let run = startDraft(4, rand);
+    expect(run.cardOffer, "no singles while the warbands are up").toBeUndefined();
+    while (inGroupPhase(run)) {
+      expect(run.offer, "a warband table").toHaveLength(OFFER_SIZE);
+      run = pickGroup(run, run.offer[0].label, rand);
+    }
+    expect(run.picks).toHaveLength(groupCards(run));
+    expect(run.offer, "the banners come off the table").toEqual([]);
+    expect(run.cardOffer, "and five cards go on it").toHaveLength(SINGLE_OFFER);
+    expect(inSinglePhase(run)).toBe(true);
+  });
+
+  it("refuses a card that is not on the table", () => {
+    const rand = seeded(13);
+    let run = startDraft(4, rand);
+    while (inGroupPhase(run)) run = pickGroup(run, run.offer[0].label, rand);
+    expect(() => pickCard(run, "leaf_not_a_real_card", rand)).toThrow(/not on offer/);
+    // ...and a warband cannot be taken once the banners are down.
+    expect(() => pickGroup(run, "Dragon", rand)).toThrow(/not on offer/);
+  });
+
+  it("keeps the table full of five to the very last pick", () => {
+    const rand = seeded(17);
+    let run = startDraft(4, rand);
+    while (inGroupPhase(run)) run = pickGroup(run, run.offer[0].label, rand);
+    let singles = 0;
+    while (!cardsComplete(run)) {
+      expect(run.cardOffer, `only ${run.cardOffer!.length} cards on single ${singles + 1}`)
+        .toHaveLength(SINGLE_OFFER);
+      run = pickCard(run, run.cardOffer![0], rand);
+      singles++;
+    }
+    expect(singles, "six singles, no more and no fewer").toBe(SINGLE_PICKS);
+    expect(run.picks).toHaveLength(draftSize(run));
+    expect(run.cardOffer, "and the table clears").toEqual([]);
+  });
+
+  it("rollCardOffer never repeats itself or offers what is taken", () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const run = autoDraft(seed);
+      const mid: DraftRun = { ...run, picks: run.picks.slice(0, groupCards(run)) };
+      const offer = rollCardOffer(mid, seeded(seed));
+      expect(offer, `seed ${seed}`).toHaveLength(SINGLE_OFFER);
+      expect(new Set(offer).size, "a card twice on one table").toBe(offer.length);
+      for (const id of offer) expect(mid.picks).not.toContain(id);
+    }
+  });
+
+  it("offers something affordable while the drafter is short of cheap cards", () => {
+    // The same floor `buildGroup` keeps, and here it has the whole pool to find
+    // one in rather than whatever a single banner happened to hold.
+    let short = 0;
+    for (let seed = 0; seed < 60; seed++) {
+      const greedy: DraftRun = {
+        board: 4,
+        // Twelve cards, none of them cheap — the state the floor exists for.
+        picks: CARDS.filter((c) => !c.boss && c.cost >= 5).slice(0, 12).map((c) => c.id),
+        offer: [],
+      };
+      const offer = rollCardOffer(greedy, seeded(seed));
+      if (!offer.some((id) => getDef(id).cost <= CHEAP_COST)) short++;
+    }
+    expect(short, `${short} of 60 tables had nothing affordable on them`).toBe(0);
+  });
+
+  it("leans toward tribes already taken, without being unable to look elsewhere", () => {
+    // A soft pull, deliberately the weakest term in the weighting: the last six
+    // should look like they belong to the squad and still be able to repair it.
+    const rand = seeded(4);
+    let run = startDraft(4, rand);
+    while (inGroupPhase(run)) run = pickGroup(run, run.offer[0].label, rand);
+    const own = new Set(run.picks.flatMap((id) => {
+      const t = getDef(id).tribe;
+      return t == null ? [] : Array.isArray(t) ? t : [t];
+    }));
+    let inTribe = 0, total = 0;
+    for (let seed = 0; seed < 80; seed++)
+      for (const id of rollCardOffer(run, seeded(seed))) {
+        const t = getDef(id).tribe;
+        const ts = t == null ? [] : Array.isArray(t) ? t : [t];
+        if (ts.some((x) => own.has(x))) inTribe++;
+        total++;
+      }
+    const share = inTribe / total;
+    expect(share, "the pull does nothing at all").toBeGreaterThan(0);
+    expect(share, "the offer is only ever your own tribes").toBeLessThan(0.6);
   });
 });

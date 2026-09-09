@@ -49,14 +49,34 @@ describe("the draft pick screen", () => {
     expect(SCREEN.includes("startDraft"), "screen must not start its own draft").toBe(false);
     expect(SCREEN.includes("rollGroups"), "screen must not roll its own offer").toBe(false);
     expect(SCREEN.includes("rollSpellOffer"), "nor its own spells").toBe(false);
+    expect(SCREEN.includes("rollCardOffer"), "nor its own single cards").toBe(false);
     expect(SCREEN).toContain("props.onPickGroup");
+    expect(SCREEN).toContain("props.onPickCard");
     expect(SCREEN).toContain("props.onPickSpell");
+  });
+
+  it("asks the run which card stage it is in, rather than counting picks", () => {
+    // The boundary between warbands and singles is `groupCards`'s to own. A
+    // screen that worked it out from `picks.length` would be a second copy of
+    // the format, and the two would disagree the day the split moves.
+    expect(SCREEN, "should read inGroupPhase(run)").toContain("inGroupPhase(run)");
+    expect(/picks\.length\s*[<>]=?\s*\d/.test(SCREEN), "a hardcoded phase boundary").toBe(false);
+    expect(/SINGLE_PICKS|of 6/.test(SCREEN), "a hardcoded single count in the copy").toBe(false);
+  });
+
+  it("renders one card the same way in both stages", () => {
+    // The trio inside a banner and the five on a single table are the same
+    // object in two containers. Written out twice, the ⓘ stops opening the
+    // reader in one of them and nobody notices.
+    expect((SCREEN.match(/className="dt-info"/g) ?? []).length, "two copies of the ⓘ").toBe(1);
+    expect((SCREEN.match(/function DraftCard\(/g) ?? []).length).toBe(1);
   });
 
   it("closes the card reader before the offer changes underneath it", () => {
     // Tapping a card's ⓘ and then taking a banner leaves the reader open over
     // three cards it was not opened from. Both stages route through a closer.
     expect(SCREEN).toMatch(/const takeGroup = [\s\S]{0,80}setDetailId\(null\)/);
+    expect(SCREEN).toMatch(/const takeCard = [\s\S]{0,80}setDetailId\(null\)/);
     expect(SCREEN).toMatch(/const takeSpell = [\s\S]{0,80}setDetailId\(null\)/);
   });
 

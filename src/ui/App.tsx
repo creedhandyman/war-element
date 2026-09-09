@@ -70,7 +70,7 @@ import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
   DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
   draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickGroup, pickSpell,
-  settleDraft, startDraft,
+  settleDraft, startDraft, pickCard, SINGLE_PICKS,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DeckBuilder } from "./DeckBuilder";
@@ -95,7 +95,7 @@ import {
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import {
-  customDecksFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
+  customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
 import { SpIcon } from "./icons";
@@ -4793,7 +4793,11 @@ export function App() {
                 <button
                   className="gt-start"
                   disabled={(story.hero?.shards ?? 0) < DRAFT_ENTRY}
-                  title={`Draft eighteen cards you do not own, then run them until three losses`}
+                  // The board's real number, not a hardcoded eighteen: Draft runs
+                  // on the 30-card boards too, and it said "eighteen" on all of
+                  // them. Names the shape as well, because warbands-then-singles
+                  // is the thing a drafter wants to know before paying.
+                  title={`Draft ${deckSizeFor(boardSize)} cards you do not own — warbands first, then ${SINGLE_PICKS} one at a time — then run them until ${DRAFT_LOSSES} losses`}
                   onClick={() => {
                     const next = {
                       ...addShards(story, -DRAFT_ENTRY),
@@ -5460,6 +5464,14 @@ export function App() {
             setStory((prev) => {
               if (!prev.draft) return prev;
               const next = { ...prev, draft: pickGroup(prev.draft, label) };
+              saveStory(next);
+              return next;
+            });
+          }}
+          onPickCard={(id) => {
+            setStory((prev) => {
+              if (!prev.draft) return prev;
+              const next = { ...prev, draft: pickCard(prev.draft, id) };
               saveStory(next);
               return next;
             });

@@ -1,10 +1,30 @@
-/** DRAFT, THE PICKING HALF — three warbands, then a spellbook.
+/** DRAFT, THE PICKING HALF — warbands, then singles, then a spellbook.
  *
- *  A pick is a GROUP OF THREE, not a card, and the three share a tribe: Avian,
- *  Zombie, Pirate, Dragon. Eighteen cards is therefore six decisions rather
- *  than eighteen, and each one is about what KIND of squad you are building
- *  instead of which of three strangers is marginally better. The set is already
- *  shaped for it — 29 tribes, every one of them at least three cards deep.
+ *  THE FIRST PICKS ARE GROUPS OF THREE, and the three share a tribe: Avian,
+ *  Zombie, Pirate, Dragon. Each one is about what KIND of squad you are
+ *  building rather than which of three strangers is marginally better. The set
+ *  is already shaped for it — 29 tribes, every one of them at least three cards
+ *  deep.
+ *
+ *  THE LAST SIX ARE SINGLE CARDS, one of five. A draft made entirely of groups
+ *  is a draft with no fine control in it: a warband arrives whole, so the one
+ *  thing a drafter could never do was answer a specific hole in what they had
+ *  already taken. Three cards at a time also means the curve is only ever
+ *  steered in threes — `buildGroup`'s cheap seat exists precisely because no
+ *  amount of reweighting finds a 1-drop inside a Dragon warband.
+ *
+ *  SIX, on every board, and that is the rule stated once: the warband half
+ *  covers everything except the last six (`groupCards`), so an 18-card draft is
+ *  four warbands and six singles, and a 30-card draft is eight and six. Scaling
+ *  the singles instead would have made a Domination draft eighteen single picks
+ *  — twenty-two decisions where today it is ten — and the long tail of a draft
+ *  is the part that gets skimmed, not savoured. What stays fixed is the part
+ *  worth having: the end, where you know what you are missing.
+ *
+ *  THE SINGLES FILL GAPS, which is the job groups cannot do. Their offers are
+ *  weighted by the same curve deficit and the same cheap floor, with only a
+ *  soft pull toward tribes already taken — enough that the last six still look
+ *  like they belong to the squad, not enough to stop them fixing it.
  *
  *  UNTRIBED CARDS STILL GET DRAFTED. Ninety-nine of the 360 draftable cards
  *  carry no tribe at all, and a purely tribal draft would delete a quarter of
@@ -36,6 +56,16 @@ import type { CardDef, Element, SpellDef } from "../engine";
  *  offers. */
 export const GROUP_SIZE = 3;
 export const OFFER_SIZE = 3;
+
+/** Cards taken ONE AT A TIME, at the end of the card half. Six on every board —
+ *  see the header for why this is the fixed half and the warbands are the half
+ *  that scales. */
+export const SINGLE_PICKS = 6;
+/** Cards on the table for a single pick. Five, where a group pick offers three
+ *  banners: a banner is a whole squad and three of them is already a lot to
+ *  read, while a single card is one line of stats and five of them is a choice
+ *  rather than a coin toss. */
+export const SINGLE_OFFER = 5;
 
 /** THE CURVE A DRAFT AIMS AT — measured off the 30 hand-tuned 18-card premades,
  *  which are the decks the game ships as good. Unchanged by the move to groups:
@@ -111,8 +141,14 @@ export interface DraftRun {
   board: number;
   /** Cards taken, in pick order. Three land at a time. */
   picks: string[];
-  /** The three groups on the table. Empty once the cards are done. */
+  /** The three groups on the table. Empty once the warband half is done. */
   offer: DraftGroup[];
+  /** The five cards on the table for a single pick. Absent until the warbands
+   *  are done, empty once the cards are. Deliberately a second field rather
+   *  than a `DraftGroup` of one: a single is not a banner, and calling it one
+   *  would put a tribe name over a card that was chosen for its cost. Same
+   *  shape as `spellOffer` below, which is the same idea one phase later. */
+  cardOffer?: string[];
   /** Spells taken. Absent until the card half finishes. */
   spells?: string[];
   /** The three spells on the table. Empty once the book is full. */
@@ -300,6 +336,79 @@ export function rollGroups(run: DraftRun, rand: () => number = Math.random): Dra
  *  refuse — one spell at cost 5+, two at 3-4, unlimited below. Checked against
  *  what is ALREADY taken, so the offer never shows a spell that could not be
  *  added if picked. */
+/** Cards the WARBAND half covers: everything except the last `SINGLE_PICKS`.
+ *
+ *  One subtraction, and it is the whole format rule. 18 - 6 = 12 = four groups;
+ *  30 - 6 = 24 = eight. Both divide by three, which is why `pickGroup`'s `room`
+ *  clamp stays a guard rather than a rule — a board whose (size - 6) did not
+ *  divide would hand the last warband a short group instead of breaking. */
+export const groupCards = (run: DraftRun): number =>
+  Math.max(0, draftSize(run) - SINGLE_PICKS);
+
+/** Still taking warbands? */
+export const inGroupPhase = (run: DraftRun): boolean => run.picks.length < groupCards(run);
+/** Taking single cards — the warbands are done and the deck is not full. */
+export const inSinglePhase = (run: DraftRun): boolean =>
+  !inGroupPhase(run) && !cardsComplete(run);
+
+/** The five cards a single pick chooses between.
+ *
+ *  Weighted, not random, and by the same three things `rollGroups` weighs —
+ *  because a single pick is the format's chance to fix what the warbands could
+ *  not, and an unweighted offer would be as likely to deepen the problem.
+ *
+ *    · THE CURVE, through `curveDeficit`, floored at `CURVE_FLOOR` so a drafter
+ *      four cards over on 9-costs finds them scarce rather than banned.
+ *    · THE CHEAP FLOOR. `CHEAP_OFFERS` of the five are held for a 1-cost card
+ *      while the drafter is short, which is the same seat `buildGroup` keeps and
+ *      for the same measured reason — except here it actually has the whole pool
+ *      to find one in, where a banner often had nothing cheap to give.
+ *    · RARITY, per CARD rather than per offer. `buildGroup` rolls one rarity for
+ *      a whole group because a tribe of eight cannot always field three of one;
+ *      five independent cards can, and five mythics on the table would be a
+ *      different game. Weighting each candidate by `PACK_WEIGHT` leaves an offer
+ *      that is mostly Rare with the occasional better thing in it, which is what
+ *      a pack already promises.
+ *
+ *  The tribe pull is deliberately the weakest term: doubling, against the curve's
+ *  multiplier. The last six cards should look like they belong to the squad
+ *  without being unable to repair it. */
+export function rollCardOffer(run: DraftRun, rand: () => number = Math.random): string[] {
+  const taken = new Set(run.picks);
+  const deficit = curveDeficit(run.picks);
+  const own = new Set(run.picks.flatMap((id) => tribesOf(getDef(id))));
+  const cheapHeld = run.picks.filter((id) => getDef(id).cost <= CHEAP_COST).length;
+  const wantCheap = cheapHeld < Math.round(CHEAP_TARGET * draftSize(run));
+  const weightOf = (id: string) => {
+    const d = getDef(id);
+    const curve = Math.max(CURVE_FLOOR, 1 + (deficit[costBucket(d.cost)] ?? 0));
+    const rarity = PACK_WEIGHT[d.rarity ?? ""] ?? 1;
+    const mine = tribesOf(d).some((t) => own.has(t)) ? 2 : 1;
+    return curve * rarity * mine;
+  };
+  const left = POOL.map((d) => d.id).filter((id) => !taken.has(id));
+  const out: string[] = [];
+  // The cheap seats first, so the floor is filled from a pool that still has
+  // every cheap card in it rather than from whatever the open picks left over.
+  if (wantCheap) {
+    for (let i = 0; i < CHEAP_OFFERS && out.length < SINGLE_OFFER; i++) {
+      const cheap = left.filter((id) => getDef(id).cost <= CHEAP_COST);
+      if (!cheap.length) break;
+      const got = weightedPick(cheap, weightOf, rand);
+      if (!got) break;
+      out.push(got);
+      left.splice(left.indexOf(got), 1);
+    }
+  }
+  while (out.length < SINGLE_OFFER && left.length) {
+    const got = weightedPick(left, weightOf, rand);
+    if (!got) break;
+    out.push(got);
+    left.splice(left.indexOf(got), 1);
+  }
+  return out;
+}
+
 export function legalSpellOffer(taken: readonly string[]): SpellDef[] {
   const perCost = new Map<number, number>();
   for (const id of taken) {
@@ -366,14 +475,36 @@ export const spellsComplete = (run: DraftRun): boolean =>
 export const draftComplete = (run: DraftRun): boolean =>
   cardsComplete(run) && spellsComplete(run);
 
-/** How many picks are left, of either kind — for a screen that counts down. */
+/** How many picks are left, of any kind — for a screen that counts down.
+ *
+ *  Three terms now, one per phase, and the middle one is why this could not stay
+ *  a single division: the warband half is counted in threes and the single half
+ *  in ones, so dividing the whole remainder by `GROUP_SIZE` understated a draft
+ *  in its last six picks by four. */
 export const picksLeft = (run: DraftRun): number =>
-  Math.ceil(Math.max(0, draftSize(run) - run.picks.length) / GROUP_SIZE)
+  Math.ceil(Math.max(0, groupCards(run) - run.picks.length) / GROUP_SIZE)
+  + Math.max(0, draftSize(run) - Math.max(run.picks.length, groupCards(run)))
   + Math.max(0, draftSpellCap(run) - (run.spells?.length ?? 0));
 
 export function startDraft(boardSize = 4, rand: () => number = Math.random): DraftRun {
-  const run: DraftRun = { board: boardSize, picks: [], offer: [] };
-  return { ...run, offer: rollGroups(run, rand) };
+  return openNextPhase({ board: boardSize, picks: [], offer: [] }, rand);
+}
+
+/** WHAT COMES NEXT, after a card lands. One function, because three callers ask
+ *  it — the two card picks and the start of the draft — and a format with three
+ *  phases in it is exactly the kind of thing that ends up with two of them
+ *  disagreeing about where the boundary is.
+ *
+ *  Order: warbands, then singles, then the book. Each returns a run carrying the
+ *  offer for the phase it is now in and nothing for the phases it is not. */
+function openNextPhase(run: DraftRun, rand: () => number): DraftRun {
+  if (inGroupPhase(run)) return { ...run, offer: rollGroups(run, rand), cardOffer: undefined };
+  if (inSinglePhase(run)) return { ...run, offer: [], cardOffer: rollCardOffer(run, rand) };
+  // The cards are done, so the book opens in the same breath. No seat is dealt
+  // here — the draft is not finished until the book is full, and `pickSpell`
+  // deals it at the real finish line.
+  const withBook: DraftRun = { ...run, offer: [], cardOffer: [], spells: run.spells ?? [] };
+  return { ...withBook, spellOffer: rollSpellOffer(withBook, rand) };
 }
 
 /** Take a group. Throws on a label that is not on the table, the way `getDef`
@@ -383,17 +514,21 @@ export function pickGroup(run: DraftRun, label: string, rand: () => number = Mat
   const group = run.offer.find((g) => g.label === label);
   if (!group)
     throw new Error(`Draft group ${label} is not on offer (${run.offer.map((g) => g.label).join(", ")})`);
-  // Never past the deck size: the last pick of an 18-card draft is still three
-  // cards, but a board whose size is not a multiple of three would otherwise
-  // overfill. 18 and 30 both divide, so this is a guard rather than a rule.
-  const room = draftSize(run) - run.picks.length;
-  const picks = [...run.picks, ...group.cards.slice(0, room)];
-  const next: DraftRun = { ...run, picks, offer: [] };
-  if (!cardsComplete(next)) return { ...next, offer: rollGroups(next, rand) };
-  // The cards are done, so the book opens in the same breath. No seat is dealt
-  // here any more — the draft is not finished until the book is full, and
-  // `pickSpell` deals it at the real finish line.
-  return { ...next, spells: [], spellOffer: rollSpellOffer({ ...next, spells: [] }, rand) };
+  // Never past the WARBAND half's size. It used to clamp to the deck size; the
+  // single phase moved the line, and without this a last group of three would
+  // eat two of the six picks that are supposed to be one at a time. 12 and 24
+  // both divide by three, so this stays a guard rather than a rule.
+  const room = groupCards(run) - run.picks.length;
+  const picks = [...run.picks, ...group.cards.slice(0, Math.max(0, room))];
+  return openNextPhase({ ...run, picks, offer: [] }, rand);
+}
+
+/** Take a single card. Same contract as `pickGroup` — an id that is not on the
+ *  table throws rather than quietly costing the drafter a pick. */
+export function pickCard(run: DraftRun, id: string, rand: () => number = Math.random): DraftRun {
+  if (!run.cardOffer?.includes(id))
+    throw new Error(`Draft card ${id} is not on offer (${(run.cardOffer ?? []).join(", ")})`);
+  return openNextPhase({ ...run, picks: [...run.picks, id], cardOffer: [] }, rand);
 }
 
 /** Take a spell. Same contract as `pickGroup`. */
@@ -465,7 +600,17 @@ export const DRAFT_ENTRY = 50;
  *  one win better and EV goes 51.4 -> 68.0, i.e. +1.4 -> +18 a run, which WOULD
  *  make this the best earner in the game. Flattening the top rungs is the dial
  *  if that is ever reported; it was left alone here because the measured figure
- *  is right and a hypothetical is not worth churning a good number for. */
+ *  is right and a hypothetical is not worth churning a good number for.
+ *
+ *  AND THAT SENSITIVITY HAS NOW BEEN POKED. Every figure above was measured
+ *  when a draft was groups all the way down. The last six picks are single cards
+ *  off a five-card table since, and more control over the end of a deck is more
+ *  wins by construction — which is the exact direction the paragraph above says
+ *  moves the EV fast. UNMEASURED, deliberately left alone rather than guessed
+ *  at: changing the table on a hunch would replace a number that was measured
+ *  with one that was not. The re-measure is a run of drafted decks played to a
+ *  finish against the premade field; if it comes back a win better per run, the
+ *  dial named above (flatten the top rungs) is the one to turn. */
 export const DRAFT_PAY: readonly number[] = [0, 10, 22, 36, 54, 76, 104, 140];
 
 export const draftWins = (run?: DraftRun): number => run?.won ?? 0;
