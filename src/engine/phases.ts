@@ -680,18 +680,41 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
           // channel refuses BEFORE `heroPowerUsed` would strand it — see the
           // early return below the switch.
           if (!src || src.owner !== intent.player
-              || !canChannel(draft, src.instanceId).ok) { p.heroPowerUsed = false; return draft; }
+              || !canChannel(draft, src.instanceId).ok) {
+            // Same asymmetry as the catch below: refunded for a human, spent for
+            // an AI, because an AI that proposes this twice proposes it forever.
+            p.heroPowerUsed = !(draft.humans ?? ["P1"]).includes(intent.player);
+            return draft;
+          }
+          // BOTH WAIVERS, not just the one. `canChannel` says the summon
+          // lockout does not apply — that is the headline of the power — but
+          // only `freeSpecial` was ever lifted here, so `canFireSpecial` went on
+          // enforcing the lockout and refused the very channel `canChannel` had
+          // just approved. The reducer then returned an UNCHANGED state, and an
+          // AI seat re-proposed it forever: a silent, permanent freeze on the
+          // opponent's prep turn. Saved and restored the same way, so a card
+          // that really did just land is still summon-locked for everything
+          // else this round.
           const wasFree = src.freeSpecial;
+          const wasNew = src.summonedThisRound;
           src.freeSpecial = true;
+          src.summonedThisRound = false;
           try {
             performBattleAction(draft, src.instanceId, "special", intent.targetIds);
           } catch {
             // Nothing legal to point it at. Hand the power back rather than
             // eating a once-per-game ability on a misclick.
             src.freeSpecial = wasFree;
-            p.heroPowerUsed = false;
+            src.summonedThisRound = wasNew;
+            // ...BUT NEVER TO AN AI SEAT. A human gets the refund because a
+            // misclick is a human thing; an AI proposing an illegal channel is a
+            // BUG, and handing the power back leaves the state identical, which
+            // is precisely what let it retry forever. Spending the power turns a
+            // frozen game into one wasted ability — the right way round.
+            p.heroPowerUsed = !(draft.humans ?? ["P1"]).includes(intent.player);
             return draft;
           }
+          src.summonedThisRound = wasNew;
           draft.log.push(`${intent.player} — ${hero.power.name}: channels ${label(draft, src)}.`);
           break;
         }

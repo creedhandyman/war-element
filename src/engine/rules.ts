@@ -1907,6 +1907,24 @@ export function canChannel(
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   if (specialTargets(state, instanceId).length === 0)
     return { ok: false, reason: "No valid target" };
+  // ...AND EVERY OTHER REFUSAL `canFireSpecial` MAKES THAT NOTHING HERE WAIVES.
+  //
+  // This predicate is a hand-copied subset of that one, and the copy had drifted
+  // in three places. Each drift is the same defect: this function says yes, the
+  // resolve path asks `canFireSpecial`, which says no, and the reducer hands the
+  // power back having changed nothing at all — so an AI seat proposes the very
+  // same channel on the next tick, and the next, and the game stops. A player
+  // watching that sees a frozen board on the opponent's prep turn with no idea
+  // why. Reported from a real game: round 6, hearts seat, seven magic.
+  //
+  // The summon lockout above is the one divergence that is DELIBERATE, and it is
+  // paid for at the resolve site by lifting the flag rather than by lying here.
+  const maxStacks = Number(def.special.params?.maxStacks ?? 0);
+  if (maxStacks > 0 && (card.specialCasts ?? 0) >= maxStacks)
+    return { ok: false, reason: `${def.special.name} is fully grown` };
+  const hpCost = Number(def.special.params?.selfHpCost ?? 0);
+  if (hpCost > 0 && card.curHp <= hpCost)
+    return { ok: false, reason: "Not enough HP to pay for it" };
   return { ok: true };
 }
 
