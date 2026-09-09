@@ -31,6 +31,7 @@ export {
   SP_SLOW_MAX,
 } from "./state";
 export {
+  canChannel,
   canSummon,
   effectiveSummonCost,
   homeSlots,

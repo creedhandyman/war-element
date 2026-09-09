@@ -49,7 +49,8 @@ import {
   spellbookFor, summonCard, scaleInstance,
   // The boss clock, made visible.
   bossTelegraphs, telegraphBlast,
-  seatsOf, effectiveSummonCost } from "../engine";
+  seatsOf, effectiveSummonCost,
+  canChannel,} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -2334,6 +2335,25 @@ export function App() {
             out.push({ row: sq.row, col: sq.col } as Pos);
       return out;
     }
+    // ARCANE FOCUS: ring the allies that can actually take the channel.
+    //
+    // Nothing lit up before. The power armed, the board looked exactly as it
+    // had a moment earlier, and the player picked blind — then a card the
+    // engine refuses did NOTHING AT ALL: the selection cleared, the power was
+    // not spent, and no message said why. A once-per-game ability that appears
+    // to do nothing is worse than one that is merely hard to use, because the
+    // player's next move is to press it again.
+    //
+    // Asked of `canChannel` rather than re-derived, which is the same rule
+    // `summonableHandIds` above states for itself: the predicate that decides
+    // what is legal is the one that decides what glows, or the two drift. This
+    // exact family of bug — a UI check and an engine check disagreeing about
+    // one card — is what froze the game for an AI seat.
+    if (sel?.kind === "channel") {
+      return boardCards(game, view)
+        .filter((c) => c.pos && c.curHp > 0 && canChannel(game, c.instanceId).ok)
+        .map((c) => c.pos as Pos);
+    }
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
     if (sel?.kind === "spell") {
       const spell = getSpell(sel.spellId);
@@ -2731,9 +2751,17 @@ export function App() {
         setHint("⚠ Channel one of <b>your own</b> cards — its Special fires now.");
         return;
       }
-      if (!getDef(clicked.defId).special) {
+      // EVERY refusal, in the engine's own words. This used to check exactly
+      // two things — owner, and whether the card has a Special — and dispatch
+      // regardless of the other nine `canChannel` makes. A card that was MUTED,
+      // quarantined, out of targets, already fully grown, or too hurt to pay its
+      // own HP cost simply swallowed the click: nothing happened, nothing was
+      // spent, nothing was said. Reading the predicate means a reason that can
+      // never drift from the rule that produced it.
+      const chk = canChannel(game, clicked.instanceId);
+      if (!chk.ok) {
         setDetailId(clicked.instanceId);
-        setHint("⚠ That card has no Special to channel.");
+        setHint(`⚠ Can't channel <b>${getDef(clicked.defId).name}</b> — ${chk.reason ?? "not right now"}.`);
         return;
       }
       setSel(null);
