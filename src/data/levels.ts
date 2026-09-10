@@ -12,10 +12,23 @@
  *  worse reward than the shards. So the span is claimed whole: 12 -> 15 pays
  *  for 13, 14 and 15 together and says so on one screen.
  *
- *  AND NOTHING IS OWED RETROACTIVELY. A save that predates this arrives with no
- *  `levelSeen`, and reading that as zero would hand a player at level 300 six
- *  hundred shards for a feature that did not exist when they earned them.
- *  Absent means "start from here" — see `seenLevel`.
+ *  AND THE PAST IS PAID, ONCE. This originally owed nothing retroactively —
+ *  a save predating the feature started counting from wherever it stood, on
+ *  the reasoning that a player at level 300 should not be handed six hundred
+ *  shards for a popup that did not exist when they earned them.
+ *
+ *  That reasoning protected the economy and shortchanged the player, and it
+ *  is the player who did the levelling. Every one of those levels was earned:
+ *  a card collected, a boss beaten. `RETRO_LEVEL_FLOOR` is the one-time
+ *  rewind that pays for them, delivered through the `GIFTS` ledger in
+ *  story.ts so it fires exactly once per save and never for a new one.
+ *
+ *  It is smaller than it sounds, and self-limiting: the level IS the
+ *  collection (`collection.size + bossesBeaten.length`), so the players owed
+ *  the most are the ones who already own the most cards, and packs are worth
+ *  least to exactly them. Level 20 pays 48 shards — one pack. Level 100 pays
+ *  248 and two free packs. A full collection at 360 pays 898 and seven, to
+ *  somebody with nothing left to open.
  */
 
 import { playerLevel } from "./player";
@@ -57,6 +70,29 @@ export interface LevelReward {
  *  the starter is a gift, not a level they earned. */
 export const seenLevel = (save: StorySave): number =>
   save.levelSeen ?? playerLevel(save);
+
+/** Where a one-time retroactive rewind starts counting from.
+ *
+ *  ONE, not zero. A new save is level 1 off its single starter card, and
+ *  that card is a gift rather than a level anybody earned — the same line
+ *  `loadStory` draws when it stamps a brand-new save. Paying from 0 would
+ *  hand every player two shards for being given a card.
+ *
+ *  Used by the `retro-levels` gift, which rewinds `levelSeen` to this and
+ *  lets the ordinary popup do the paying. Deliberately NOT a second payment
+ *  path: `claimLevelUp` stays the only thing that ever moves the mark, so
+ *  there is still exactly one place a level can be paid for twice, and it
+ *  is already idempotent. */
+export const RETRO_LEVEL_FLOOR = 1;
+
+/** Rewind the mark so everything since `RETRO_LEVEL_FLOOR` is owed again.
+ *
+ *  A no-op on a save already at or below the floor, so a brand-new player
+ *  cannot be handed a popup that pays nothing. */
+export const rewindLevelSeen = (save: StorySave): StorySave =>
+  seenLevel(save) <= RETRO_LEVEL_FLOOR
+    ? save
+    : { ...save, levelSeen: RETRO_LEVEL_FLOOR };
 
 /** What crossing `from` -> `to` is worth. Pure, and exported on its own so the
  *  popup can price a span without a save in hand. */

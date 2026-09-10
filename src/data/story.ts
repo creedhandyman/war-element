@@ -18,6 +18,7 @@ import { DECK_TIERS } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { DraftGroup, DraftRun } from "./draft";
 import { playerLevel } from "./player";
+import { rewindLevelSeen } from "./levels";
 import type { LadderState } from "./matchmaker";
 
 // ── shape ───────────────────────────────────────────────────────────────────
@@ -2824,6 +2825,23 @@ export const GIFTS: { id: string; apply: (s: StorySave) => StorySave }[] = [
   // a player who already has one is topped back up to full rather than
   // double-credited.
   { id: "tame-continental-1", apply: (s) => tameBoss(s, "boss_continental") },
+  // THE LEVELS THEY ALREADY EARNED. The level-up popup shipped owing nothing
+  // for the past — a save that predated it simply started counting from
+  // wherever it stood, and a save that had loaded ONCE since had its mark
+  // stamped at the level it was on, which locked those players out for good.
+  // Both groups did the levelling; neither was paid for it.
+  //
+  // Rewinding the mark rather than granting shards directly is what keeps
+  // this honest: the ordinary popup does the paying, so the player is SHOWN
+  // what they earned and `claimLevelUp` stays the only thing that ever moves
+  // the mark. A new save carries every gift id from birth, so it can never
+  // claim compensation for a thing it did not miss.
+  //
+  // Called through a lambda, not referenced directly: `levels.ts` imports
+  // FROM this file, so a bare `apply: rewindLevelSeen` would read the binding
+  // while the cycle is still resolving and could capture undefined. Deferring
+  // the lookup to call time — long after both modules are up — costs nothing.
+  { id: "retro-levels-1", apply: (s) => rewindLevelSeen(s) },
 ];
 
 /** Hand over anything in `GIFTS` this save has not had yet. Idempotent by the
