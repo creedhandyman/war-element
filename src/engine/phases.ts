@@ -4083,6 +4083,7 @@ function doCleanupPhase(draft: GameState): void {
     card.attackedThisRound = false;
     card.movedThisRound = false;
     card.critsThisRound = 0; // Jackpot (Highroller) counts crits per round
+    card.platesTakenThisRound = 0; // Exostone (BORE): two plates a round, no more
     card.dmgTakenThisRound = 0; // Vengeance (Bolder) reflects only this round's damage
     card.weaponSwitchedRound = false; // Power Grab (General): one switch per round
     card.kingWildFiredRound = false; // King of the Wild (Leo): one buff per round

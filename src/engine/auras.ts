@@ -116,6 +116,30 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   VOID: { name: "One Eyes", desc: `Takes what it hits: each landed strike steals ${VOID_STEAL_PER_ATTACK} DMG from the target and keeps it (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — every ${VOID_DEFLECT_EVERY}th hit against it is deflected, taking half and returning half to the attacker.` },
 };
 
+/** How many plates one BORE card may take off opponents in a single round.
+ *
+ *  The theft fires per SHIELD BROKEN, and a multi-hit basic breaks one a hit —
+ *  so a four-hit attacker looted four plates from one swing, which is not what
+ *  "gains a shield when its attack breaks one" reads like on the card. Two is a
+ *  trade you can see happening; four is an engine nobody agreed to.
+ *
+ *  Per ROUND rather than per attack, so a Special that also breaks armour cannot
+ *  quietly double it. */
+export const EXOSTONE_STEAL_PER_ROUND = 2;
+
+/** ...and how far above its PRINTED armour a BORE card may stack what it takes.
+ *
+ *  Printed-relative rather than an absolute ceiling, deliberately: a Mythic that
+ *  ships with 4 plates and a Rare that ships with 2 have different jobs, and a
+ *  flat cap would quietly hand the Rare the larger share of the aura. Ten is the
+ *  room; where a card starts is its own business.
+ *
+ *  Arrival plating counts as printed — it is what the card enters play wearing,
+ *  so Exostone's own +2 is the floor this measures from, not part of the theft.
+ *  Only the LOOT is capped; shields from a Special, a spell or an ally aura are
+ *  not this rule's business and pass through untouched. */
+export const EXOSTONE_STEAL_CAP = 10;
+
 /** Exostone's arrival plating, by rarity. It was a flat +2 for every BORE card,
  *  which handed the same slab to a 1-cost Rare and a 10-cost Mythic — most
  *  valuable on the cheapest body, where 2 shields is a large share of what the

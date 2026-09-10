@@ -1963,6 +1963,17 @@ export interface CardInstance {
   autoSpecialFired?: boolean;
   /** Jackpot (Highroller): basic crits landed so far this round. */
   critsThisRound?: number;
+  /** Exostone (BORE): plates taken off opponents so far this round, capped by
+   *  `EXOSTONE_STEAL_PER_ROUND`. Reset at Cleanup with the other round flags. */
+  platesTakenThisRound?: number;
+  /** Exostone (BORE): plates this card is wearing that it TOOK, as opposed to
+   *  the ones it was printed or plated with.
+   *
+   *  Counted separately because the cap is on the LOOT, not on the armour. A
+   *  BORE card shielded by a spell or an ally aura has not stolen anything, and
+   *  reading `curShields` against a ceiling would have those gifts silently stop
+   *  it looting — a rule the card never claimed and the player cannot see. */
+  platesStolen?: number;
   /** HP lost this round (Bolder's Vengeance reflects it). Reset at Cleanup. */
   dmgTakenThisRound?: number;
   /** Diagnosis / Red Shift / Magic Ropes: rounds this card cannot fire Specials.

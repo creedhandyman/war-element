@@ -17,7 +17,7 @@
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
-import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK } from "./auras";
+import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
@@ -1467,8 +1467,26 @@ export function resolveHit(
         // the BORE mirror). Reflect damage isn't an attack, so it doesn't loot.
         if (hadShields > target.curShields && opts.kind !== "reflect" &&
             hasElementAura(aDef, "BORE") && attacker.curHp > 0) {
-          attacker.curShields += 1;
-          draft.log.push(`${aDef.name} tears a plate off ${tDef.name} and wears it.`);
+          // TWO LIMITS, and they answer different runaways.
+          //
+          // PER ROUND, because the theft fires per shield BROKEN and a multi-hit
+          // basic breaks one a hit — a four-hit attacker looted four plates from
+          // a single swing, which is not what "gains a shield when its attack
+          // breaks one" reads like on the card.
+          //
+          // AND A CEILING ON THE LOOT, measured from what the card was printed
+          // and plated with. Against an armoured line the theft compounded with
+          // no upper bound at all: every plate taken is one the target no longer
+          // has, so a BORE mirror or a DAWN wall fed it indefinitely.
+          const taken = attacker.platesStolen ?? 0;
+          const thisRound = attacker.platesTakenThisRound ?? 0;
+          const roof = aDef.shields + EXOSTONE_STEAL_CAP;
+          if (thisRound < EXOSTONE_STEAL_PER_ROUND && attacker.curShields < roof) {
+            attacker.curShields += 1;
+            attacker.platesStolen = taken + 1;
+            attacker.platesTakenThisRound = thisRound + 1;
+            draft.log.push(`${aDef.name} tears a plate off ${tDef.name} and wears it.`);
+          }
         }
         // Gate Keeper (Veil): the first time the shield wall breaks, harden up.
         if (target.curShields === 0 && tDef.onShieldBreak && !target.shieldBroken) {

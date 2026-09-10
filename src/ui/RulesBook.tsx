@@ -209,6 +209,13 @@ export function RulesBook(props: { onClose: () => void }) {
                 plate it breaks), Leaf's Photosynthesis, and many card abilities —
                 they don't refill on their own.
               </li>
+              <li>
+                <b>Looted plates have limits</b> — a Bore card can take at most{" "}
+                <b>2</b> shields off opponents per round, however many plates its
+                attacks break, and can stack at most <b>10</b> looted shields above
+                the armour it was printed with. Shields from Specials, spells and
+                ally auras are not looted and are not capped.
+              </li>
             </ul>
           </section>
 
