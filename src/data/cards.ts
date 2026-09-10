@@ -10021,9 +10021,21 @@ export const CARDS: CardDef[] = [
     // that do arrive than out of another layer of unreachability.
     keywords: { EVASION: true },
     tribe: ["Avian", "Dark Wind"],
-    // Raptor Assault (End of Round): if no Raptor stands, raise one (capped at 1).
-    passiveNames: { roundTick: "Raptor Assault" },
-    roundTick: { spawn: { token: "gale_toxhawk_tok", count: 1 }, spawnMaxAlive: 1 },
+    // Toxhawk Assault (End of Round): if no Toxhawk stands, raise one (capped at 1).
+    //
+    // THE REAL BIRD, not the token copy of it. This raised `gale_toxhawk_tok`
+    // — a body named "Raptor" that wears Toxhawk's art plate, carries
+    // Toxhawk's tribe, keywords and Toxic Talons, and differs from it in
+    // exactly one number: 3 HP against 6. So the board showed a Toxhawk, the
+    // card said Raptor, and the thing that landed was a quietly weaker copy
+    // of a Rare the player can already own.
+    //
+    // Raising the actual card costs +3 points of body on a spawn that is
+    // leashed to one alive at a time, and buys back the card it was always
+    // pretending to be. The token stays in the set — two story nodes add it
+    // to their rosters — it is just no longer what Mesala calls.
+    passiveNames: { roundTick: "Toxhawk Assault" },
+    roundTick: { spawn: { token: "gale_toxhawk", count: 1 }, spawnMaxAlive: 1 },
     // Razor Wind Talon: rake the enemy's far (home) row — 3 DMG + DOT 1.
     special: {
       name: "Razor Wind Talon",
@@ -15341,7 +15353,9 @@ export const TOKENS: CardDef[] = [
     // Renamed off "ToxHawk": it differed from the draftable Rare "Toxhawk" only
     // in the capital H, which is a collision in every case-insensitive lookup
     // and unreadable in a deck list. Named for the passive that raises it
-    // (Masala's Raptor Assault). Borrows Toxhawk's art.
+    // (Mesala's old Raptor Assault, now Toxhawk Assault, which raises the REAL
+    // bird instead). Still fielded by name at The Raptor Roosts, which is named
+    // for it. Borrows Toxhawk's art.
     name: "Raptor",
     rarity: "rare",
     element: "GALE",

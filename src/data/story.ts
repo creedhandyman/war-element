@@ -606,7 +606,7 @@ const GALE: StoryRegion = {
     { id: "G9", name: "The Shrike Line", kind: "warden", tribe: "Avian", at: { x: 72, y: 58 },
       requires: ["G7", "G8"], roster: ["gale_masala", "gale_vvulture", "gale_guan"],
       adds: ["gale_toxhawk_tok"],
-      note: "Mesala's Raptor Assault raises the same bird you fought at the Roosts.",
+      note: "Mesala's Toxhawk Assault raises the real bird; the Roosts fought its Raptor.",
       lore: "Shrikes keep their larder along the thorn line and GALE has never thinned it. A bird that stores more than it can eat is a neighbour this nation understands, and Vulture waits on the surplus."
      },
     { id: "G10", name: "Stormwall Approach", kind: "warden", tribe: "Wolf", at: { x: 73, y: 27 },
