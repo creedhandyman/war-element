@@ -1798,7 +1798,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    hand/deck reach z-index ~62 and were covering them. Higher than the base
    .overlay (which the menu shares and must stay under the deck-builder). */
 .overlay.on-top { z-index: var(--z-modal); }
-.modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: 640px; max-height: 92dvh; overflow-y: auto; text-align: center; }
+/* `max-width` CLAMPED TO THE VIEWPORT, not just to 640px. `.overlay` centres its
+   child in a grid, so a modal is sized to its own content up to this cap — and
+   when the content wants more than the SCREEN has, the overflow hangs off both
+   edges with nothing to scroll it. The draft sheet found it first because its
+   content is the widest in the app (five cards and a six-tag class row), and it
+   lost ~125px a side on a 412px phone: the header's count, the "ELEMENTS" and
+   "CLASSES" labels, and the first tag of each row.
+   Nothing gets narrower on a screen that was already wide enough, so this only
+   ever affects the case that was broken. */
+.modal { background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 26px; max-width: min(640px, 94vw); max-height: 92dvh; overflow-y: auto; text-align: center; }
 .modal h1 { font-size: 22px; margin-bottom: 6px; }
 .modal p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
 .mull-cards { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
@@ -5053,7 +5062,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-tile-num.gold { color: var(--gold-lit); }
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
-.shop-modal { max-width: 640px; text-align: left; }
+.shop-modal { max-width: min(640px, 94vw); text-align: left; }
 .shop-head h2 { font-family: var(--head); font-size: 19px; margin: 0 0 2px; }
 .shop-head p { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; line-height: 1.45; }
 .shop-wallet { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 5px; }
@@ -7530,7 +7539,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    one on a screen that sits still while the player reads three cards would put
    the cost straight back. The hover/active feedback is `transform`, which the
    compositor does for free. */
-.draft-screen { max-width: 660px; text-align: left; }
+/* WIDE ENOUGH FOR THE CONTENT, NEVER WIDER THAN THE SCREEN. `.overlay` centres
+   its child in a grid, so a modal sizes to its content up to its max-width and
+   then hangs off BOTH edges when the viewport is narrower than that — on a
+   ~410px phone a 660px card sheet loses ~125px a side, which is the header's
+   count, the "ELEMENTS" and "CLASSES" labels and the first tag in each row. The
+   same `min(px, vw)` clamp `.modal.acct` already uses, and for the same reason.
+   `max-width: none` because `.modal`'s own 640px would otherwise win the cap. */
+.draft-screen { width: min(660px, 94vw); max-width: none; text-align: left; }
+/* The 26px `.modal` padding is 52px of a phone's width — a seventh of it. Worth
+   it on a desktop sheet, not on one holding five cards side by side. */
+@media (max-width: 700px) {
+  .draft-screen { padding: 16px 12px; }
+}
 .dr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
 .dr-head h1 { text-align: left; margin: 2px 0 0; font-size: 22px; }
 .dr-kind { font-family: var(--head); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); font-weight: 800; }
@@ -7606,16 +7627,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* THE SINGLE TABLE — five cards, and here the CARD is the button. The warband
    half has a banner to press and its trio is read-only; this half has no banner,
    so the tap target is the tile itself and it gets the same lift on hover the
-   banner does. Five across a 430px phone is ~78px a tile, which is why the row
-   scrolls sideways instead of shrinking below legible: a card you cannot read
-   the cost of is not a pick you can make. */
+   banner does.
+
+   IT WRAPS, IT DOES NOT SCROLL. The first cut was a sideways-scrolling row, on
+   the reasoning that five across a phone is ~78px a tile and a card you cannot
+   read the cost of is not a pick you can make. That traded one unreadable thing
+   for a worse one: two of the five options off-screen, on a screen whose whole
+   job is comparing five options — and nothing tells you they are there. An
+   auto-fit grid puts 3 and 2 on a narrow phone and all five in one row the
+   moment there is room, so every option is always on the screen. */
 .dr-singles {
-  display: flex; gap: 6px; margin-bottom: 14px;
-  overflow-x: auto; padding-bottom: 4px;
-  scrollbar-width: thin;
+  /* 100px is the tile the cost pip and a two-word name both stay legible at.
+     It lands 3-and-2 on a 412px phone (387px of modal, 24 of padding, 363 to
+     divide) and all five in one row from ~600px up, which is every desktop. */
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 6px; margin-bottom: 14px;
 }
 .dr-single {
-  flex: 1 0 86px; min-width: 86px; padding: 0;
+  min-width: 0; padding: 0;
   background: none; border: 1px solid transparent; border-radius: 10px;
   cursor: pointer; font: inherit; color: inherit;
   transition: transform .14s ease, border-color .14s ease;
