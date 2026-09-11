@@ -32,7 +32,11 @@ const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "
 const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);
 
-type Scope = "all" | "owned" | "missing";
+/** What slice of the set the grid is showing. "foil" is the owned cards the
+ *  player holds in foil — a SCOPE rather than a separate toggle because it is
+ *  the same kind of question as the other three ("which of these do I have, and
+ *  how"), and a foil is by definition a card you own. */
+type Scope = "all" | "owned" | "missing" | "foil";
 
 /** The collection shows every non-boss card and nothing else, so its tribe
  *  list never changes — a module constant rather than a per-render memo. */
@@ -117,6 +121,7 @@ export function StoryCollection(props: {
       if (rar !== "ALL" && d.rarity !== rar) return false;
       if (!matchesCost(d.cost, cost)) return false;
       if (scope === "owned") return owned.has(d.id);
+      if (scope === "foil") return owned.has(d.id) && isShiny(save, d.id);
       // "Missing" means findable and not yet found. A card in an unbuilt region
       // is not a to-do item — it is a content gap, and listing it as one would
       // send the player looking for a node that does not exist.
@@ -262,7 +267,11 @@ export function StoryCollection(props: {
           <FilterToggle open={filtersOpen} onToggle={toggleFilters} summary={filterSummary} count={shown.length} />
           {filtersOpen && (<>
           <div className="db-filters col-scope">
-            {([["all", "All"], ["owned", "Owned"], ["missing", "Missing"]] as const).map(([k, label]) => (
+            {/* FOIL only once there is a foil to find. Offered to a player who owns
+                none, it is a button that always empties the grid — which reads as
+                a broken filter rather than as "you have no foils yet". */}
+            {([["all", "All"], ["owned", "Owned"], ["missing", "Missing"],
+               ...(foils > 0 ? [["foil", "Foil ✦"] as const] : [])] as const).map(([k, label]) => (
               <button key={k} className={`db-fl ${scope === k ? "on" : ""}`} onClick={() => setScope(k)}>
                 {label}
               </button>

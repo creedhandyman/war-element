@@ -157,6 +157,10 @@ export function DeckBuilder(props: {
   /** Tribe. Free-text on the card and often plural — Klipso is a Dragon AND
    *  a Star — so `cardHasTribe` does the list handling for every grid. */
   const [tribe, setTribe] = useState<TribeFilter>("ALL");
+  /** Show only the cards held in foil. A boolean rather than another pill row:
+   *  there is nothing to choose between, only whether to narrow to them. */
+  const [foilOnly, setFoilOnly] = useState(false);
+  const isFoil = (id: string) => !!foils?.has(id);
   const [rar, setRar] = useState<RarityFilter>("ALL");
   const [cost, setCost] = useState<CostFilter>("ALL");
   const [filtersOpen, toggleFilters] = useFilterFold();
@@ -210,6 +214,7 @@ export function DeckBuilder(props: {
         cardHasTribe(c, tribe) &&
         (rar === "ALL" || c.rarity === rar) &&
         matchesCost(c.cost, cost) &&
+        (!foilOnly || isFoil(c.id)) &&
         (q === "" || c.name.toLowerCase().includes(q)),
     );
     return [...base].sort((a, b) => {
@@ -218,7 +223,7 @@ export function DeckBuilder(props: {
         return rarityRank(a.rarity) - rarityRank(b.rarity) || a.cost - b.cost || a.name.localeCompare(b.name);
       return a.cost - b.cost || rarityRank(a.rarity) - rarityRank(b.rarity) || a.name.localeCompare(b.name);
     });
-  }, [pool, filter, classFilter, kw, tribe, rar, cost, sortBy, query]);
+  }, [pool, filter, classFilter, kw, tribe, rar, cost, sortBy, query, foilOnly, foils]);
 
   /** What is narrowing the grid right now. Sort is NOT a filter and is left out
    *  on purpose: it changes the order, never the contents, so listing it would
@@ -230,16 +235,17 @@ export function DeckBuilder(props: {
     tribe !== "ALL" ? tribe : null,
     rar !== "ALL" ? rar.toUpperCase() : null,
     cost !== "ALL" ? `${cost}◆` : null,
+    foilOnly ? "Foil" : null,
     query.trim() ? `"${query.trim()}"` : null,
   ].filter(Boolean) as string[];
   const anyFilter = filterSummary.length > 0;
   const clearFilters = () => {
     setFilter("ALL"); setClassFilter("ALL"); setKw("ALL"); setTribe("ALL");
-    setRar("ALL"); setCost("ALL"); setQuery("");
+    setRar("ALL"); setCost("ALL"); setQuery(""); setFoilOnly(false);
   };
   /** How many cards a candidate value would leave, given the OTHER filters.
    *  Shared by every row so a dimmed pill means the same thing everywhere. */
-  const countIf = (pred: (c: (typeof pool)[number]) => boolean, skip: "el" | "cls" | "kw" | "tribe" | "rar" | "cost") =>
+  const countIf = (pred: (c: (typeof pool)[number]) => boolean, skip: "el" | "cls" | "kw" | "tribe" | "rar" | "cost" | "foil") =>
     pool.filter((c) =>
       pred(c)
       && (skip === "el" || filter === "ALL" || c.element === filter)
@@ -247,7 +253,10 @@ export function DeckBuilder(props: {
       && (skip === "kw" || kw === "ALL" || cardHasKeyword(c, kw))
       && (skip === "tribe" || cardHasTribe(c, tribe))
       && (skip === "rar" || rar === "ALL" || c.rarity === rar)
-      && (skip === "cost" || matchesCost(c.cost, cost))).length;
+      && (skip === "cost" || matchesCost(c.cost, cost))
+      // The foil toggle narrows the counts on every OTHER row too, or a pill
+      // would promise cards the grid then refuses to show.
+      && (skip === "foil" || !foilOnly || isFoil(c.id))).length;
   const pickedSet = new Set(picked);
   const check = story
     ? picked.length === 0
@@ -1046,6 +1055,28 @@ export function DeckBuilder(props: {
             />
             <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
             <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
+            {/* Only once there is a foil in the pool — see the Collection's scope
+                for why an always-empty filter is worse than no filter. */}
+            {(foils?.size ?? 0) > 0 && (() => {
+              // Built the same way as the shared pill rows in filters.tsx — a
+              // labelled `db-sort` row, the count in the tooltip, dimmed when the
+              // other filters have emptied it — so it reads as one of them.
+              const n = countIf((d) => isFoil(d.id), "foil");
+              return (
+                <div className="db-sort">
+                  <span className="db-sort-lbl">Foil</span>
+                  <button
+                    className={`db-fl ${foilOnly ? "on" : ""}`}
+                    onClick={() => setFoilOnly((v) => !v)}
+                    aria-pressed={foilOnly}
+                    title={`${n} foil card${n === 1 ? "" : "s"}`}
+                    style={n === 0 && !foilOnly ? { opacity: 0.35 } : undefined}
+                  >
+                    ✦ Foil only
+                  </button>
+                </div>
+              );
+            })()}
             <div className="db-sort">
               <span className="db-sort-lbl">Sort</span>
               {SORTS.map(([key, label]) => (
