@@ -63,6 +63,8 @@ const ROUND_TICK_KEYS = [
   "rootedStatus", "pokeAheadAdvance",
   // The Butler's Service.
   "healAlliesInRange",
+  // Gyre's Downdraft.
+  "slowNearest",
 ] as const;
 
 describe("card text covers every mechanic", () => {

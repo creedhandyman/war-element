@@ -6557,8 +6557,17 @@ export const CARDS: CardDef[] = [
     // for — a Storm that survives its first two rounds is a real threat — while
     // arriving at its ceiling a round sooner, so what it grows into is a number
     // an opponent can plan against rather than one that keeps moving.
-    passiveNames: { buffDmgEveryN: "Supercell" },
+    passiveNames: { buffDmgEveryN: "Supercell", onHitStatus: "Static Mark" },
     roundTick: { buffDmgEveryN: { n: 1, amount: 1, sp: 1, hp: 2, maxTicks: 2 } },
+    // STATIC MARK — Storm lights up its own targets. Thunder Strike lands only
+    // on the ELECTRIFIED, and the aura's mark is a ONE-round status that Cleanup
+    // wipes the round it lands. Storm is fast (SP 8) and usually acts BEFORE the
+    // slower allies whose basics would have marked anything, so in a 60-game
+    // BOLT sim the Special was legal on 2 of Storm's 66 turns. Two rounds is
+    // what carries a mark across Cleanup: the summon-turn basic (the one move
+    // Storm is allowed on arrival) now sets up next round's strike. The same
+    // rider several BOLT payoffs already carry, and free under the budget.
+    onHitStatus: { kind: "ELECTRIFIED", duration: 2, power: 0 },
     // Thunder Strike: 5 DMG to every ELECTRIFIED opponent (BOLT lights them up).
     //
     // COST 1 -> 3. Board-wide damage with no target cap for one magic was the
@@ -13063,11 +13072,12 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 0,
     keywords: {},
-    passiveNames: { roundTick: "Wheeling Sky" },
-    // `cycloneSpin` is Skybreaker's — the storm does not push the line back, it
-    // TURNS it, which destroys formation while preserving distance. This is the
-    // first player card to carry it.
-    roundTick: { cycloneSpin: 1 },
+    passiveNames: { roundTick: "Downdraft" },
+    // DOWNDRAFT replaced Wheeling Sky, which was Skybreaker's `cycloneSpin` —
+    // every opponent rotated one slot around Gyre, every round. Downdraft keeps
+    // the kit's speed theme (the Talent already drains SP) and moves nothing:
+    // the closest opponent loses 3 SP for the next round.
+    roundTick: { slowNearest: 3 },
     talent: {
       name: "Eye of the Gyre",
       text: "Once per game, free: drag up to 3 opponents 2 spaces toward you, STUN them 1 round and -3 SP for 2.",

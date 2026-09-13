@@ -3254,6 +3254,21 @@ function doRoundTicks(draft: GameState): void {
       }
       if (spun) draft.log.push(`${label(draft, card)}'s cyclone spins ${spun} opponent(s) off their line.`);
     }
+    // DOWNDRAFT (Gyre). The storm tax on ONE body: the closest opponent loses
+    // SP for the next round. Same timed buff and floor as `slowEnemies`, so it
+    // lapses on its own — and because Cleanup expires last round's buffs before
+    // the round ticks run, re-applying it each round refreshes rather than
+    // stacks. Chosen from the opponents that still HAVE speed to lose: a slow
+    // spent on a card already at zero would do nothing while a live target
+    // stood one square further out.
+    if (rt.slowNearest && card.pos) {
+      const t = closest(card, enemies().filter((e) => effectiveSp(draft, e) > 0));
+      if (t) {
+        const drop = Math.min(rt.slowNearest, effectiveSp(draft, t));
+        applyTimedBuff(t, 0, -drop, 1);
+        draft.log.push(`${label(draft, card)}'s downdraft pins ${label(draft, t)} (−${drop} SP).`);
+      }
+    }
     // A PRODUCTION LINE. Continental's boulders: one every `n` rounds, dropped
     // in the row directly in front of it and left to roll. `spawnMaxAlive` is
     // what keeps it from burying the board — without a ceiling a repeating

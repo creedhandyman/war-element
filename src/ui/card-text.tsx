@@ -489,6 +489,7 @@ export function describePassives(def: CardDef): string[] {
         `every ${t.spawnEveryN.n} rounds, loose a ${getDef(t.spawnEveryN.token).name} into the row ahead`
         + ` (up to ${t.spawnEveryN.spawnMaxAlive ?? 3} at once)`,
       t.cycloneSpin && `spin every opponent one slot around it`,
+      t.slowNearest && `drag ${t.slowNearest} SP off the closest opponent for a round`,
       t.spawnOnRound &&
         `from round ${t.spawnOnRound.round}, keep ${t.spawnOnRound.spawnMaxAlive ?? 1} ${getDef(t.spawnOnRound.token).name} on the field`,
       t.shiftLateral && `shift one slot along its home row (wrapping)`,

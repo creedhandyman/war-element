@@ -470,6 +470,11 @@ export interface RoundTickDef {
    *  turn rebuilding. Cards that cannot rotate (blocked, off-board, pushImmune)
    *  simply stay — the storm is weather, not a guaranteed relocation. */
   cycloneSpin?: number;
+  /** DOWNDRAFT (Gyre): at the end of each round the CLOSEST opponent loses N SP
+   *  for the next round. `slowEnemies` aimed at one body — the same timed −SP
+   *  and the same floor at the target's current SP — picked by the `closest`
+   *  rule the poke ticks use, so a tie breaks by board order and no dice roll. */
+  slowNearest?: number;
   /** A body that arrives on a CLOCK rather than on a cast (Skybreaker's round-6
    *  hurricane): at the end of round `round`, drop `token` on the holder's side.
    *
