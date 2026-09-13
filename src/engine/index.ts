@@ -38,6 +38,8 @@ export {
   summonSquare,
   previewSpecialArea,
   previewSpecialFarRow,
+  previewSpecialWaveRow,
+  specialIsZone,
   specialAreaShape,
   summonLandingRow,
   openHomeSlots,

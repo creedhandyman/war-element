@@ -62,6 +62,7 @@ import {
   corridorDir,
   onSummonTargets,
   effectiveSummonCost,
+  specialIsZone,
 } from "./rules";
 import type {
   EnchantMode,
@@ -2056,6 +2057,13 @@ function performBattleAction(
       targets = lane.some((t) => t.instanceId === aim.instanceId)
         ? [aim, ...lane.filter((t) => t.instanceId !== aim.instanceId)]
         : [aim];
+    } else if (specialIsZone(special)) {
+      // A FIXED ZONE takes its whole list, whatever arrived as picks. The board
+      // fires a zone by sending every lit target on a Confirm, and this used to
+      // read those as a multi-pick checked against `targets` (1 by default) — so
+      // Thunder Strike with two ELECTRIFIED opponents threw "Too many targets"
+      // and never fired for a player. The zone's handler reads none of them.
+      targets = valid;
     } else if (picks && picks.length > 1) {
       // Explicit multi-selection: one strike per entry, in order.
       const maxPicks = Number(special.params?.targets ?? 1);

@@ -33,6 +33,8 @@ import {
   summonSquare,
   previewSpecialArea,
   previewSpecialFarRow,
+  previewSpecialWaveRow,
+  specialIsZone,
   specialAreaShape,
   aoeRowsHit,
   previewOnSummonArea,
@@ -3269,11 +3271,15 @@ export function App() {
   // set glows — so asking the player to choose one of them would be asking for
   // a decision the Special does not have. It is a fixed zone with a Confirm,
   // exactly like the board-wide volleys already treated as one.
-  const smiteZone = activeDef?.special?.handler === "smite";
+  //
+  // Surfs Up is the same shape: the wave takes every opponent in the row
+  // directly ahead and reads no pick, yet it asked the player to choose one.
+  // `specialIsZone` is the one list of zones, shared with the engine.
+  const zoneSpecial = specialIsZone(activeDef?.special);
   const specialAoE =
     !aimedCorridor && !aimedArea &&
     !!activeDef?.special &&
-    (smiteZone || Number(activeDef.special.params?.targets ?? 1) >= specialValid.length);
+    (zoneSpecial || Number(activeDef.special.params?.targets ?? 1) >= specialValid.length);
   /** THE FOOTPRINT UNDER THE ARMED SPECIAL — every square it covers, drawn
    *  before it fires.
    *
@@ -3292,7 +3298,8 @@ export function App() {
    *  disagree with where the blast actually lands. */
   const aimArea: Pos[] = useMemo(() => {
     if (pending !== "special" || !awaitingId) return [];
-    const far = previewSpecialFarRow(game, awaitingId);
+    // A wave's row is fixed by where the caster stands, exactly like a far row.
+    const far = [...previewSpecialFarRow(game, awaitingId), ...previewSpecialWaveRow(game, awaitingId)];
     if (!aimedArea || picks.length === 0) return far;
     const anchor = game.cards[picks[0]];
     if (!anchor?.pos) return far;

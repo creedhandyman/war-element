@@ -1273,6 +1273,17 @@ export function specialAreaShape(
   return null;
 }
 
+/** A Special that strikes a FIXED ZONE: every target it lists, with nothing to
+ *  aim. `smite` takes every opponent carrying the status it names; `surfsUp`
+ *  takes every opponent in the row directly ahead. Neither reads a pick, so the
+ *  board arms them as a zone and fires the whole lit set on a Confirm — and the
+ *  engine takes that whole set rather than counting it against `targets`. One
+ *  predicate for both sides, so they cannot come to disagree about which
+ *  Specials are zones. */
+export function specialIsZone(special: CardDef["special"] | undefined): boolean {
+  return special?.handler === "smite" || special?.handler === "surfsUp";
+}
+
 /** The squares `casterId`'s Special would cover if anchored on `anchor` — drawn
  *  under the player's finger BEFORE they commit, which is the whole point.
  *
@@ -1482,6 +1493,21 @@ export function previewSpecialFarRow(state: GameState, casterId: string): Pos[] 
   return farRowCells(state.boardSize, caster.owner, caster.pos, sp.params);
 }
 
+/** The row a WAVE breaks on — the whole footprint of `surfsUp`: every cell of
+ *  the row directly ahead of the caster, empty ones included, because "the wave
+ *  goes through here" is what the player is deciding on. Fixed by where the
+ *  caster stands, so like the far row it lights up the moment the Special is
+ *  armed. Empty when there is no row ahead: a caster on the enemy's back line. */
+export function previewSpecialWaveRow(state: GameState, casterId: string): Pos[] {
+  const caster = state.cards[casterId];
+  if (!caster?.pos || getDef(caster.defId).special?.handler !== "surfsUp") return [];
+  const row = rowAheadOf(caster.owner, caster.pos.row);
+  if (row < 0 || row >= state.boardSize) return [];
+  const out: Pos[] = [];
+  for (let col = 0; col < state.boardSize; col++) out.push({ row, col } as Pos);
+  return out;
+}
+
 export function previewOnSummonArea(
   state: GameState,
   def: CardDef,
@@ -1614,6 +1640,18 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
     return enemyCards(state, card.owner).filter(
       (e) => e.curHp > 0 && (!need || hasStatus(e, need as StatusKind)),
     );
+  }
+  // THE WAVE IS A ZONE TOO, and its zone is the row directly ahead. `surfsUp`
+  // reads no pick and has no reach: it hits every opponent standing in that row
+  // and nobody else. This list used to be the caster's ordinary reach, so the
+  // Special went out whenever ANY enemy was in range — into an empty row, or
+  // from the enemy's back line where there is no row ahead at all — and spent
+  // its magic and its recharge on a heal. What lights up is what gets hit, so an
+  // empty row is no target at all.
+  if (special.handler === "surfsUp") {
+    if (!card.pos) return [];
+    const row = rowAheadOf(card.owner, card.pos.row);
+    return enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos?.row === row);
   }
   /** A Special whose work is done by OTHER cards is not bound by the caster's
    *  reach — the SWARM does the reaching.
@@ -1991,7 +2029,11 @@ export function canFireSpecial(
   const mayDie = Number(def.special.params?.selfHpLethal ?? 0) > 0;
   if (hpCost > 0 && !mayDie && card.curHp <= hpCost)
     return { ok: false, reason: `Not enough HP (costs ${hpCost})` };
-  if (specialTargets(state, instanceId).length === 0) return { ok: false, reason: "No valid target" };
+  if (specialTargets(state, instanceId).length === 0)
+    // Said plainly for the wave: "no valid target" beside a board full of enemies
+    // reads as a bug, when the rule is simply that nobody is standing in the one
+    // row it breaks on.
+    return { ok: false, reason: def.special.handler === "surfsUp" ? "No opponent in the row ahead" : "No valid target" };
   return { ok: true };
 }
 
