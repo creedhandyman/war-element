@@ -2577,12 +2577,18 @@ export function basicAttack(
       if (hit) draft.log.push(`${label(draft, attacker)} shatters the ice — ${aDef.shatterFrozen} to ${hit} nearby.`);
     }
   }
-  // Mega Push (Megair): a desperation nova while it's nearly dead.
-  if (aDef.lowHpNova && agg.landedHits > 0 && attacker.curHp > 0 && attacker.curHp < aDef.lowHpNova.belowHp) {
+  // Mega Push (Megair): a desperation nova while it's nearly dead — ONCE per
+  // game. Spent only when it actually goes off, so a basic landed at healthy HP
+  // never uses it up.
+  if (aDef.lowHpNova && !attacker.lowHpNovaUsed && agg.landedHits > 0 && attacker.curHp > 0
+      && attacker.curHp < aDef.lowHpNova.belowHp) {
     const foes = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0);
-    for (const e of foes) directDamage(draft, attacker, e, aDef.lowHpNova.dmg, false);
-    for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker);
-    if (foes.length) draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
+    if (foes.length) {
+      attacker.lowHpNovaUsed = true;
+      for (const e of foes) directDamage(draft, attacker, e, aDef.lowHpNova.dmg, false);
+      for (const e of foes) pushBack(draft, e, aDef.lowHpNova.push, attacker);
+      draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
+    }
   }
   // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
   // toward the attacker. Only when something landed and the attacker is still

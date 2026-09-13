@@ -1214,8 +1214,9 @@ export interface CardDef {
   /** Lure (Anglerfish): on summon, attackers have `pct`% reduced accuracy against
    *  this card for `rounds` rounds. */
   lure?: { pct: number; rounds: number };
-  /** Mega Push (Megair): while below `belowHp` HP, a landed basic also deals
-   *  `dmg` to every opponent and pushes them all back `push` spaces. */
+  /** Mega Push (Megair): ONCE PER GAME, the first basic it lands while below
+   *  `belowHp` HP also deals `dmg` to every opponent and pushes them all back
+   *  `push` spaces. Spent through `CardInstance.lowHpNovaUsed`. */
   lowHpNova?: { belowHp: number; dmg: number; push: number };
   /** Ariel's Last Light: whenever an OPPONENT dies — to anything, anywhere —
    *  this card strikes the nearest surviving opponent for `dmg`. Distinct from
@@ -1925,6 +1926,8 @@ export interface CardInstance {
   /** False Head (Thorny Ripper) has been spent. Once per GAME, so this is never
    *  reset — that is the whole difference between a decoy and a dodge. */
   falseHeadUsed?: boolean;
+  /** Mega Push (Megair) has gone off. Once per GAME, so this is never reset. */
+  lowHpNovaUsed?: boolean;
   /** Toxic Contagion (Venomarch): a body carrying the poison bursts when it dies,
    *  splashing its neighbours. `by` is the caster's instanceId so the splash is
    *  credited to whoever infected it, not to the corpse. Only pays out while

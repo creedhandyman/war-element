@@ -781,7 +781,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.lure)
     named("lure", `Lure: on summon, attackers have −${def.lure.pct}% accuracy against it for ${def.lure.rounds} round${def.lure.rounds > 1 ? "s" : ""}.`);
   if (def.lowHpNova)
-    named("lowHpNova", `Mega Push: while below ${def.lowHpNova.belowHp} HP, a landed basic also deals ${def.lowHpNova.dmg} to every opponent and pushes them back ${def.lowHpNova.push}.`);
+    named("lowHpNova", `Mega Push: once per game, the first basic it lands while below ${def.lowHpNova.belowHp} HP also deals ${def.lowHpNova.dmg} to every opponent and pushes them back ${def.lowHpNova.push}.`);
   if (def.salvageOnDeath)
     // THE CAP IS PART OF THE ABILITY. Without it the line reads as an unbounded
     // ramp off every death on the board, either side — which is what it would

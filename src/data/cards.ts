@@ -7514,8 +7514,8 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Mega Push: while below 3 HP, a landed basic also deals 3 to every opponent
-    // and pushes them all back 2.
+    // Mega Push (once per game): the first basic it lands while below 3 HP also
+    // deals 3 to every opponent and pushes them all back 2.
     passiveNames: { lowHpNova: "Mega Push" },
     lowHpNova: { belowHp: 3, dmg: 3, push: 2 },
   },
