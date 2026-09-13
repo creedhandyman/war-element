@@ -3096,6 +3096,46 @@ region.
   mounted all session, so it needs the prop-sync effect — without it the board
   freezes at the first render of the APP.
 
+## Rejoining an online match — `net/resume.ts` + the `sync` handshake
+
+Online has no server copy of a match (Realtime broadcast, "no DB, no auth"), so a
+closed tab or a killed phone app used to end that client's match with no way back
+into the room. Now:
+
+- **Every state of a live online match is saved on this device** under
+  `we_online_match_v1`: room code, role, seat, the host-issued `clientId`, the
+  newest state AND the Lamport clock it came under (`Room.snapshot()`), plus the
+  host's rematch `setup`. Read from the ROOM, not from `game` — only the transport
+  knows the clock. Cleared on game over, on Leave, and when the player opens or
+  joins a different room; expires after `RESUME_TTL_MS` (2h). Device-local on
+  purpose and NOT in `SAVE_KEYS`: a seat at a table is not progress, and synced to
+  another device it would offer a seat still occupied here.
+- **On boot a saved match is offered** by `.rejoin-prompt`, docked above the
+  bottom nav on any menu and never mid-match: Rejoin / Leave. `rejoinOnline`
+  brings the board up on the saved state at once and restores the seat refs.
+- **`joinRoom(code, role, handlers, resume)`** starts the client from that state
+  and clock. On every SUBSCRIBED with a state in hand (a rejoin, or a socket that
+  dropped and came back) it re-pushes its copy at its ORIGINAL clock, then sends
+  `sync` carrying that clock. Everyone holding a state who is NOT behind it
+  answers with its newest under a FRESH tick: a client back on an older save
+  already matches the room's clock, so an answer at that clock would be "not
+  newer" and ignored for good. Everyone who IS behind stays quiet — the asker's
+  copy is the newer one (its last move never went out), and an answer would
+  spend the very tick that copy needs, so an ask that landed before the copy
+  would split the two boards for good. Pinned against an in-memory Realtime in
+  `online-rejoin.test.ts`: guest back, host back, both back in either order, a
+  lost last move, an ask landing before its copy, `fresh` never replayed.
+- **`resend` repeats the NEWEST state, not the last one this client sent.** The
+  old rule went stale the moment the other side moved, so a client that came back
+  behind heard the host repeat a state it already had, forever.
+- **The player left at the table is told** (`.table-quiet`) once nothing has
+  arrived for 10s — `Room.quietFor()`; every live client heartbeats every 2.5s —
+  so they wait rather than leave.
+
+Not handled: the same seat open in two tabs at once (both would drive it), and a
+save from before a deploy that changed the GameState shape (the `sync` answer
+normally replaces it with the other side's copy).
+
 ## Traps found the hard way
 
 - **A rule that names board rows by NUMBER is probably wrong on one of the two

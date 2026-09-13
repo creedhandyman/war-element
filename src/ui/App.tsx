@@ -59,8 +59,11 @@ import {
   afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
 } from "../data/matchmaker";
 import {
-  joinRoom, onlineConfigured, type ChatMsg, type LobbySeat, type Role, type Room,
+  joinRoom, onlineConfigured, type ChatMsg, type LobbySeat, type Role, type Room, type StateMeta,
 } from "../net/online";
+import {
+  clearOnlineMatch, loadOnlineMatch, saveOnlineMatch, savedMatchLabel, type SavedOnlineMatch,
+} from "../net/resume";
 import { ChatPanel } from "./ChatPanel";
 import { Board } from "./Board";
 import { CardView } from "./CardView";
@@ -496,6 +499,16 @@ export function App() {
     cards: string[]; spells?: string[]; name: string; suit?: Suit;
   }>({ cards: [], name: "" });
   const onlineStartedRef = useRef(false);
+  /** A match this device was in when the app last closed, offered back until it
+   *  is taken, left or expired — see `net/resume.ts`. Read once, at boot: the
+   *  save is rewritten all through a live match, and only a fresh load needs to
+   *  ask what the last session left behind. */
+  const [savedOnline, setSavedOnline] = useState<SavedOnlineMatch | null>(
+    () => (onlineConfigured ? loadOnlineMatch() : null),
+  );
+  /** Nothing has arrived from the room for long enough that it is not a slow
+   *  message — the other side has dropped. */
+  const [tableQuiet, setTableQuiet] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const [customDecks, setCustomDecks] = useState<Squad[]>(() => {
     // Fold the two old libraries into the one squad store, once. Runs before the
@@ -1304,6 +1317,35 @@ export function App() {
     return () => clearInterval(t);
   }, [online, started, game.phase]);
 
+  // REJOIN: write down every state of a live online match, so a closed tab or a
+  // killed app can take its seat back (`net/resume.ts`). Read from the ROOM, not
+  // from `game`: a rejoin needs the state together with the clock it came under,
+  // and only the transport knows the clock. A finished match clears the save
+  // instead — there is nothing to come back to.
+  useEffect(() => {
+    if (!online || !started || !onlineStartedRef.current) return;
+    if (game.phase === "gameover") { clearOnlineMatch(); return; }
+    const point = roomRef.current?.snapshot();
+    if (!point) return;
+    saveOnlineMatch({
+      code: online.code, role: online.role, seat: online.myId, clientId: clientIdRef.current,
+      point, setup: online.role === "host" ? setupRef.current ?? undefined : undefined,
+    });
+  }, [game, online, started]);
+
+  // THE TABLE WENT QUIET. Every client in a live match heartbeats every 2.5s, so
+  // four missed beats is a player who has dropped rather than a slow message.
+  // Worth saying out loud: the one thing the player still at the table should
+  // not do is leave while the other one is finding their way back.
+  useEffect(() => {
+    if (!online || !started || game.phase === "gameover") { setTableQuiet(false); return; }
+    const t = setInterval(() => {
+      const quiet = (roomRef.current?.quietFor() ?? 0) > 10_000;
+      setTableQuiet((was) => (was === quiet ? was : quiet));
+    }, 2000);
+    return () => clearInterval(t);
+  }, [online, started, game.phase]);
+
   // Keep the hint fresh on phase/priority flips.
   const phaseKey = `${game.phase}:${game.prep?.priority ?? ""}:${game.battle?.awaitingInput ?? ""}`;
   const prevPhaseKey = useRef(phaseKey);
@@ -1853,6 +1895,8 @@ export function App() {
     }
     const code = (roomCode.trim() || Math.random().toString(36).slice(2, 7)).toUpperCase();
     setRoomCode(code);
+    // Opening a new room is a decision to move on from a match left open.
+    dropSavedOnline();
     // NOT snapshotted any more: the lobby exists so the host can still change
     // deck after opening the room, and `deckNowRef` is read when it deals.
     // Snapshotted like the deck above: onJoin fires much later, and reading
@@ -2029,6 +2073,7 @@ export function App() {
     const guestName = deckLabel(p2DeckId);
     const guestSuit = resolveDeckSuit(p2DeckId);
     setNetStatus(`Joining ${code}…`);
+    dropSavedOnline(); // same as opening one: this is a different table
     onlineStartedRef.current = false;
     // One id per join attempt. It is what lets the host hand this client a seat
     // and recognise it again if the connection blips and it re-subscribes.
@@ -2044,33 +2089,7 @@ export function App() {
           ? `Seated as ${seat} — ${have} of ${need} in the room…`
           : `Seated as ${seat} — waiting for the host…`);
       },
-      onState: (state, meta) => {
-        setGame(state);
-        // Every state carries them, so a missed opening message is not a
-        // permanently nameless versus screen.
-        if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
-        if (meta?.foils) { seatFoilsRef.current = meta.foils; setSeatFoils(meta.foils); }
-        // A rematch the host has dealt: clear the handshake and replay the
-        // versus screen, rather than leaving the guest on a stale result.
-        if (meta?.fresh && onlineStartedRef.current) {
-          setRematchMine(false); setRematchTheirs(false);
-          setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
-          setHint("Mulligan: click cards to send back, then confirm.");
-          setMatchIntro(true);
-        }
-        if (!onlineStartedRef.current) {
-          onlineStartedRef.current = true;
-          // The seat the host gave us, from the ref rather than state: `onSeat`
-          // and this callback both close over the same render, so the state set
-          // there is not visible here yet.
-          setViewSide(mySeatRef.current);
-          setSel(null); setPending(null); setPicks([]); setMullToss([]);
-          setHint("Connected! Mulligan: click cards to send back, then confirm.");
-          setOnline({ role: "guest", code, myId: mySeatRef.current });
-          setStarted(true);
-          setMatchIntro(true);
-        }
-      },
+      onState: guestOnState(code),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
       onSubscribed: () => roomRef.current?.sendJoin(
@@ -2083,6 +2102,8 @@ export function App() {
   function leaveOnline() {
     roomRef.current?.close();
     roomRef.current = null;
+    // Leaving is leaving: the match is not offered back.
+    dropSavedOnline();
     // The log belongs to the room, not to the app. Carrying it into the next
     // match would show a stranger the last table's conversation.
     setChat([]); setChatOpen(false); setChatUnread(0);
@@ -2101,6 +2122,103 @@ export function App() {
   }
   // Tear the channel down if the tab closes / component unmounts.
   useEffect(() => () => roomRef.current?.close(), []);
+
+  /** Forget the match this device could have rejoined: the offer on screen and
+   *  the save behind it. */
+  function dropSavedOnline() {
+    clearOnlineMatch();
+    setSavedOnline(null);
+  }
+
+  /** GUEST: what to do with a state from the table. Shared by a first join and a
+   *  rejoin, so the two cannot drift on how names, foils or a rematch land. */
+  function guestOnState(code: string) {
+    return (state: GameState, meta?: StateMeta) => {
+      setGame(state);
+      // Every state carries them, so a missed opening message is not a
+      // permanently nameless versus screen.
+      if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
+      if (meta?.foils) { seatFoilsRef.current = meta.foils; setSeatFoils(meta.foils); }
+      // A rematch the host has dealt: clear the handshake and replay the
+      // versus screen, rather than leaving the guest on a stale result.
+      if (meta?.fresh && onlineStartedRef.current) {
+        setRematchMine(false); setRematchTheirs(false);
+        setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+        setHint("Mulligan: click cards to send back, then confirm.");
+        setMatchIntro(true);
+      }
+      if (!onlineStartedRef.current) {
+        onlineStartedRef.current = true;
+        // The seat the host gave us, from the ref rather than state: `onSeat`
+        // and this callback both close over the same render, so the state set
+        // there is not visible here yet.
+        setViewSide(mySeatRef.current);
+        setSel(null); setPending(null); setPicks([]); setMullToss([]);
+        setHint("Connected! Mulligan: click cards to send back, then confirm.");
+        setOnline({ role: "guest", code, myId: mySeatRef.current });
+        setStarted(true);
+        setMatchIntro(true);
+      }
+    };
+  }
+
+  /** TAKE THE SEAT BACK after the app closed mid-match.
+   *
+   *  The board comes straight up on the saved state, and `joinRoom` is handed
+   *  that state WITH its clock: on subscribing it puts the copy back on the wire
+   *  and asks the room for anything newer, so whichever side holds the newest
+   *  state wins and neither can rewind the other (`net/online.ts`). A host gets
+   *  its rematch setup back too — it is the dealer, and without it the match
+   *  could be finished but never run back. */
+  function rejoinOnline() {
+    if (!onlineConfigured) {
+      setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
+      return;
+    }
+    // Read AGAIN at the tap rather than trusting the copy loaded at boot. The
+    // prompt can sit on Home for longer than a table waits, and another tab may
+    // have taken the seat, finished the match or left it since — the save on
+    // disk is the only copy that knows.
+    const saved = loadOnlineMatch();
+    if (!saved) { setSavedOnline(null); return; }
+    const { code, role, seat, point } = saved;
+    roomRef.current?.close();
+    setSavedOnline(null);
+    setTab("arena"); // where New Match lands afterwards, as if it started there
+    setArenaMode("online");
+    setOnlineRole(role);
+    setRoomCode(code);
+    clientIdRef.current = saved.clientId;
+    mySeatRef.current = seat;
+    onlineStartedRef.current = true;
+    lobbyRef.current = [];
+    setLobby(null);
+    setIAmReady(false);
+    hostReadyRef.current = false;
+    setupRef.current = role === "host" && saved.setup ? { ...saved.setup } : null;
+    const names = point.meta?.names ?? null;
+    seatNamesRef.current = names;
+    setSeatNames(names);
+    const foils = point.meta?.foils ?? null;
+    seatFoilsRef.current = foils;
+    setSeatFoils(foils);
+    setChat([]); setChatOpen(false); setChatUnread(0);
+    setRematchMine(false); setRematchTheirs(false);
+    setGame(point.state);
+    setViewSide(seat);
+    setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+    setMullHeld(null); setSurrenderArmed(false);
+    setMatchIntro(false); // a catch-up, not a new deal
+    setHint("Rejoined — catching up with the table…");
+    setNetStatus(`Rejoined room ${code}.`);
+    roomRef.current = joinRoom(code, role, {
+      onState: role === "host" ? (state) => setGame(state) : guestOnState(code),
+      onRematch: () => setRematchTheirs(true),
+      onChat: receiveChat,
+    }, point);
+    setOnline({ role, code, myId: seat });
+    setStarted(true);
+  }
 
   // Publish the live height of the bottom control bar as `--bar-h` on :root. The
   // mobile floating hand anchors above it (calc(var(--bar-h) + …)), so it clears
@@ -4314,6 +4432,31 @@ export function App() {
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
+
+      {/* REJOIN. A match this device was in when the app closed, offered on
+          whatever screen the player lands on — an app reopens where it starts,
+          not in the Arena's online panel. Hidden while a match is running:
+          taking the seat back means finishing that one first. */}
+      {savedOnline && !started && (
+        <div className="rejoin-prompt" role="status">
+          <div className="rejoin-text">
+            <b>Your online match is still open</b>
+            <span>{savedMatchLabel(savedOnline)}</span>
+          </div>
+          <div className="rejoin-actions">
+            <button className="lockin sm" onClick={rejoinOnline}>Rejoin</button>
+            <button className="ghost sm" onClick={dropSavedOnline}>Leave</button>
+          </div>
+        </div>
+      )}
+
+      {/* THE TABLE WENT QUIET — see the effect. Takes no input, so it never
+          sits between the player and the board. */}
+      {online && started && tableQuiet && game.phase !== "gameover" && (
+        <div className="table-quiet" role="status">
+          Lost contact with {seatsOf(game).length > 2 ? "a player" : "your opponent"} — waiting for them to rejoin…
+        </div>
+      )}
 
       {/* BATTLE CHAT — online only, and only once there is a match to talk
           about. There is nobody to talk to in a solo game, and an empty chat

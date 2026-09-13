@@ -5,6 +5,10 @@
 // channel, and the other client replaces its state. The host (P1) also owns
 // advancing the non-interactive phase steps. See App.tsx for the sync loop.
 //
+// A client whose app closed mid-match can take its seat back: App keeps a save
+// of the newest state and its clock (`net/resume.ts`), hands it to `joinRoom`,
+// and the `sync` handshake below catches it up with whoever stayed.
+//
 // Requires two env vars (Vite): VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.
 // Get them from any free Supabase project → Settings → API. No tables needed.
 
@@ -61,6 +65,17 @@ export interface StateMeta {
    *  versus screen, rather than having to infer a new match from the shape of
    *  a state it did not ask for. */
   fresh?: boolean;
+}
+
+/** Where a client picks a match back up after its app closed — see
+ *  `net/resume.ts`. The newest state it held, the Lamport clock that state came
+ *  under, and the table dressing that rode along with it. The clock is not
+ *  garnish: a client that came back without it would take any stale heartbeat
+ *  as news and rewind itself. */
+export interface ResumePoint {
+  state: GameState;
+  clock: number;
+  meta?: StateMeta;
 }
 
 /** One line of BATTLE CHAT.
@@ -123,9 +138,22 @@ export interface Room {
   /** Broadcast a freshly-produced game state to the other client. Stamps it
    *  with the next clock tick — see `resend`. */
   sendState: (state: GameState, meta?: StateMeta) => void;
-  /** Re-broadcast the LAST state this client sent, unchanged and with its
-   *  original clock. The reliability heartbeat; a no-op before the first send. */
+  /** Re-broadcast the NEWEST state this client holds — sent or received —
+   *  unchanged and with its original clock. The reliability heartbeat; a no-op
+   *  before the first state.
+   *
+   *  It used to repeat only this client's own last SEND, which goes stale the
+   *  moment the other side moves: a player who came back on an older save would
+   *  hear the host repeat a state it already had, forever. The newest state is
+   *  news to exactly the clients that missed it, and the clock makes it a no-op
+   *  for everyone else. */
   resend: () => void;
+  /** The newest state this client holds and the clock it came under — what a
+   *  save needs to rejoin from (`net/resume.ts`). Null before the first state. */
+  snapshot: () => ResumePoint | null;
+  /** Milliseconds since anything last arrived from the room. Every client in a
+   *  live match heartbeats, so a long silence is a player who has dropped. */
+  quietFor: () => number;
   /** Guest → host: announce arrival with the guest's resolved deck (card ids),
    *  hand-picked spellbook (spell ids; empty = auto-from-elements), the deck's
    *  display name, the card ids it holds in FOIL, and the SUIT its deck pinned
@@ -167,10 +195,24 @@ export interface Room {
   close: () => void;
 }
 
+/** A meta fit to REPEAT. `fresh` is an EVENT, not a property of the state — it
+ *  means "a new match was just dealt" — so a heartbeat or a catch-up that
+ *  re-announced it would be a lie the second time. */
+function durable(meta?: StateMeta): StateMeta | undefined {
+  if (!meta) return undefined;
+  const { fresh: _fresh, ...rest } = meta;
+  return rest;
+}
+
 /**
  * Join (or create) a room channel keyed by `code`. Both players call this with
  * the SAME code; the host also handles `onJoin`. `broadcast.self:false` means we
  * never receive our own messages, so there's no echo loop.
+ *
+ * `resume` is a match this client is taking back up after its app closed. The
+ * client starts from that state and clock instead of from nothing, and on
+ * subscribing puts its copy back on the wire and asks the room for anything
+ * newer — see the `sync` handler below.
  */
 export function joinRoom(
   code: string,
@@ -188,6 +230,7 @@ export function joinRoom(
     onChat?: (msg: ChatMsg) => void;
     onSubscribed?: () => void;
   },
+  resume?: ResumePoint,
 ): Room {
   if (!supabase) throw new Error("Online is not configured (missing Supabase env vars).");
   const channel: RealtimeChannel = supabase.channel(`we-room-${code}`, {
@@ -211,10 +254,21 @@ export function joinRoom(
    *
    *  Ticks are per-send, not per-resend: a heartbeat carries the same clock it
    *  was first sent with, so it can never look newer than it is. */
-  let clock = 0;
-  let last: { state: GameState; clock: number; meta?: StateMeta } | null = null;
+  let clock = resume?.clock ?? 0;
+  /** The newest state this client holds, SENT OR RECEIVED, with the clock it
+   *  came under. What the heartbeat repeats, what a `sync` is answered with, and
+   *  what a save writes down. */
+  let newest: ResumePoint | null = resume
+    ? { state: resume.state, clock: resume.clock, meta: durable(resume.meta) }
+    : null;
+  /** When anything last arrived from the room — the liveness read. Starts at the
+   *  join, so a room nobody answers goes quiet from then rather than from 1970. */
+  let heard = Date.now();
 
   channel.on("broadcast", { event: "state" }, ({ payload }) => {
+    // Heard even when it is a repeat: a heartbeat of a state this client already
+    // holds is still the other side saying it is there.
+    heard = Date.now();
     const theirs = typeof payload.clock === "number" ? payload.clock : clock + 1;
     // STRICTLY newer, for both roles. The first cut let an EQUAL clock through
     // on the guest (it only skipped ties on the host, meaning to give the host
@@ -228,6 +282,11 @@ export function joinRoom(
     // so two states never share a parent.
     if (theirs <= clock) return;
     clock = theirs;
+    newest = {
+      state: payload.state as GameState,
+      clock: theirs,
+      meta: durable(payload.meta as StateMeta | undefined),
+    };
     handlers.onState(payload.state as GameState, payload.meta as StateMeta | undefined);
   });
   if (role === "host") {
@@ -256,31 +315,68 @@ export function joinRoom(
       ),
     );
   }
-  channel.on("broadcast", { event: "rematch" }, () => handlers.onRematch?.());
+  channel.on("broadcast", { event: "rematch" }, () => {
+    heard = Date.now();
+    handlers.onRematch?.();
+  });
   channel.on("broadcast", { event: "chat" }, ({ payload }) => {
+    heard = Date.now();
     const msg = sanitizeChat(payload);
     if (msg) handlers.onChat?.(msg);
-  });
-  channel.subscribe((status) => {
-    if (status === "SUBSCRIBED") handlers.onSubscribed?.();
   });
 
   const push = (state: GameState, at: number, meta?: StateMeta) =>
     void channel.send({ type: "broadcast", event: "state", payload: { state, clock: at, meta } });
+  /** Tick the clock and send. Every state that is NEWS goes out through here. */
+  const stamp = (state: GameState, meta?: StateMeta) => {
+    clock += 1;
+    newest = { state, clock, meta: durable(meta) };
+    push(state, clock, meta);
+  };
+
+  // THE REJOIN HANDSHAKE. A client that subscribes WITH a match in hand — back
+  // after its app closed, or after its socket dropped — puts its copy back on the
+  // wire and asks the room for the newest state, saying which clock it holds.
+  //
+  // A client that is NOT behind the asker answers by sending its newest state
+  // again under a FRESH tick. Fresh rather than the state's original clock,
+  // because the asker may have come back on an older save whose clock already
+  // matches: a repeat at that clock is "not newer", so it would be ignored and
+  // the asker would sit on its stale board for good.
+  //
+  // A client that IS behind the asker stays quiet. The asker holds the newer copy
+  // (its last move never made it out) and has already sent it, and an answer
+  // would spend the very tick that copy needs: if the ask landed first, the copy
+  // would then arrive "not newer" and the two boards would split for good.
+  // Quiet is right in either order — the copy lands, or its next heartbeat does,
+  // and is simply taken.
+  //
+  // Answered with the meta minus `fresh`: a catch-up is not a new deal.
+  channel.on("broadcast", { event: "sync" }, ({ payload }) => {
+    heard = Date.now();
+    const theirs = typeof payload?.clock === "number" ? payload.clock : 0;
+    if (newest && theirs <= clock) stamp(newest.state, newest.meta);
+  });
+  channel.subscribe((status) => {
+    if (status !== "SUBSCRIBED") return;
+    handlers.onSubscribed?.();
+    // No match in hand (a player walking into a lobby) means nothing to resume
+    // and nobody to wake.
+    if (newest) {
+      push(newest.state, newest.clock, newest.meta);
+      void channel.send({ type: "broadcast", event: "sync", payload: { clock: newest.clock } });
+    }
+  });
 
   return {
-    sendState: (state, meta) => {
-      clock += 1;
-      // `fresh` is an EVENT, not a property of the state — it means "a new match
-      // was just dealt". A heartbeat re-announcing it would be a lie the tenth
-      // time, so it is sent once and dropped from what gets resent.
-      const { fresh: _fresh, ...durable } = meta ?? {};
-      last = { state, clock, meta: durable };
-      push(state, clock, meta);
-    },
+    // `fresh` goes out once, with the send itself, and is dropped from what gets
+    // repeated — see `durable`.
+    sendState: (state, meta) => stamp(state, meta),
     resend: () => {
-      if (last) push(last.state, last.clock, last.meta);
+      if (newest) push(newest.state, newest.clock, newest.meta);
     },
+    snapshot: () => (newest ? { ...newest } : null),
+    quietFor: () => Date.now() - heard,
     sendJoin: (clientId, cards, spells, name, foils, ready, suit) =>
       void channel.send({
         type: "broadcast", event: "join",
