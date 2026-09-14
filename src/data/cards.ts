@@ -4657,7 +4657,17 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 2,
     hits: 1,
-    hp: 7,
+    // 5, not 7: two under the cost-1 budget, carried by the free fog below.
+    //
+    // The pre-beta audit's strongest confirmed card, and NOT because of the fog.
+    // Played on the confirmation seeds after the AI fix (672 matches a line,
+    // same games throughout), Misty ran 59.2% against 53.1% for SubCool, its
+    // same-cost AQUA peer. Taking the fog away entirely only cost it 2.1 points,
+    // and thinning it to 15% or 10% cost 1.3 and 1.5. The body was the card: a
+    // ranged 1-drop with the most HP of any AQUA 1-drop outlasts what the
+    // opponent spends to remove it. HP 5 lands it at 54.6% (+1.5 over SubCool),
+    // and the fog it is named for stays exactly as it was.
+    hp: 5,
     sp: 6,
     shields: 0,
     keywords: {},

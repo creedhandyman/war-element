@@ -103,7 +103,7 @@ export const AQUA_LORE: Record<string, string> = {
     "Cheap, cold, and even odds you lose the round.",
 
   aqua_misty:
-    "It rolls in once and takes half of everything aimed at your side. Nothing to cleanse — it is only weather.",
+    "It rolls in once and takes a quarter of everything aimed at your side. Nothing to cleanse — it is only weather.",
 
   aqua_piranha:
     "One is nothing. They do not arrive as one, and the water is already red.",
