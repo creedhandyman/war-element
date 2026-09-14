@@ -507,12 +507,33 @@ which matters at 5,600 matches.
 
 ### Where balance stands
 
-Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%:
+Harness above, verbatim. 5,600 matches, n=1,400 per element, ±2.6 at 95%, read
+at `54b95b4` (the AI rider fix) and before Misty went to 5 HP:
 
 ```
-dawn 56.1 · bore 54.3 · bolt 54.2 · dusk 53.1
-aqua 50.3 · gale 46.0 · leaf 43.0 · pyro 43.0     spread 13.1
+dawn 55.0 · bolt 53.7 · dusk 53.2 · bore 52.0
+aqua 49.2 · gale 48.6 · leaf 46.6 · pyro 41.7     spread 13.3
 ```
+
+**The AI rider fix did not move the table.** On the same HEAD with the pre-fix
+`ai.ts` swapped in, the harness read `dawn 55.2 · bolt 53.8 · dusk 52.9 · bore
+50.4 · gale 49.6 · aqua 49.2 · leaf 46.8 · pyro 42.1`, **spread 13.1**. Every
+element moved less than the ±2.6 band (BORE the most, +1.6): firing more
+Specials and casting seven more spells helped both seats about equally, which is
+what a whole-game AI rule should do. The swap cost nothing on the shared
+worktree — copy the old module into `__tests__` with its imports re-pointed,
+`vi.mock("../ai", …)` it, and the engine's own `advance` plays the old AI while
+the real file never changes. Assert inside the runner that the mock took.
+
+The table this replaced (`dawn 56.1 · bore 54.3 · bolt 54.2 · dusk 53.1 / aqua
+50.3 · gale 46.0 · leaf 43.0 · pyro 43.0`, spread 13.1) was read before the card
+changes that have landed since. Against the pre-fix reading at this HEAD, BORE
+fell 3.9 and LEAF and GALE rose 3.8 and 3.6 over that stretch: card work, not
+the AI.
+
+Misty's HP 7 -> 5 is newer than both readings. It is one cost-1 card, measured
+on its own confirmation seeds (see its entry in cards.ts), and not re-read on
+this table.
 
 Read immediately before the opening-hand guarantee went in, the same harness
 on the same HEAD said `dawn 57.6 · bolt 56.7 · dusk 53.6 · aqua 50.6 / gale
