@@ -4,6 +4,7 @@
 
 import { styleOf } from "./suits";
 import { skillOf } from "./skill";
+import { WEAKEN_PCT_PER_STACK } from "./auras";
 import { getDef } from "../data/cards";
 import { getSpell, spellPickKind } from "./spells";
 import {
@@ -16,7 +17,9 @@ import {
   moveReachFor, enemyCards } from "./state";
 import { hasEvasion, TARGETLESS_HANDLERS } from "./combat";
 import {
+  aoeRowsHit,
   canCastSpell,
+  effectiveSpecialCost,
   spellAllyTargets,
   canFireSpecial,
   canFireTalent,
@@ -413,13 +416,42 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
   //    rather than on a headcount; a kill counts double.
   for (const slot of of("aoe")) {
     const spell = getSpell(slot.defId);
+    // A ROW HEAL borrows the area kind for its row pick (Sprout) and carries none
+    // of what this loop reads, no damage and no opponent to count, so it scored
+    // zero on every row and was never cast. Scored on the HP it would mend
+    // instead, against the same bar the heal branch uses.
+    if (spell.allyHealInArea) {
+      const heal = spell.allyHealInArea;
+      let healRow = -1;
+      let mostMended = Math.max(4, heal) - 1;
+      for (let r = 0; r < state.boardSize; r++) {
+        if (!canCastSpell(state, player, spell.id, { row: r }).ok) continue;
+        const rows = aoeRowsHit(spell, r);
+        const mended = mine
+          .filter((a) => a.pos && rows.includes(a.pos.row) && getDef(a.defId).element === spell.element
+            && !a.statuses.some((st) => st.kind === "SEAL"))
+          .reduce((sum, a) => sum + Math.min(heal, Math.max(0, effectiveMaxHp(state, a) - a.curHp)), 0);
+        if (mended > mostMended) {
+          mostMended = mended;
+          healRow = r;
+        }
+      }
+      if (healRow >= 0) return { type: "CAST_SPELL", player, spellId: spell.id, row: healRow };
+      continue;
+    }
     const dmg = spell.dmg ?? 0;
     const pen = Boolean(spell.pen);
     const score = (hit: CardInstance[]) =>
       hit.reduce((a, t) => {
         const raw = spell.doubleIf && matchesDoubleIf(t, spell.doubleIf) ? dmg * 2 : dmg;
         const dealt = estimateVolley(raw, 1, pen, t);
-        return a + Math.min(dealt, t.curHp) + (dealt >= t.curHp ? t.curHp : 0);
+        // What it LEAVES on a survivor counts too. FREEZE, WEAKEN and SLEEP deal no
+        // damage, so a damage-only score rated every row zero and a status sweep
+        // was never cast (Frost Patch, Downdraft, Sand Trap, Gale Force).
+        const rider = dealt < t.curHp && spell.status
+          ? statusValue(state, t, spell.status.kind, spell.status.power, spell.status.duration) + (spell.push ? 1 : 0)
+          : 0;
+        return a + Math.min(dealt, t.curHp) + (dealt >= t.curHp ? t.curHp : 0) + rider;
       }, 0);
     if (spell.area === "board") {
       // No pick to make. Worth a one-shot once it lands on two or more bodies.
@@ -428,7 +460,10 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       continue;
     }
     let bestRow = -1;
-    let best = 0;
+    // Damage has always cleared a bar of zero. A sweep that deals none has to buy
+    // back its magic, about three points of prevented damage for every two it
+    // costs, or it gets spent on two bodies that were never going to hurt anyone.
+    let best = dmg > 0 ? 0 : spell.cost * 1.5;
     for (let r = 0; r < state.boardSize; r++) {
       if (!canCastSpell(state, player, spell.id, { row: r }).ok) continue;
       const hit = foes.filter(
@@ -614,6 +649,33 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
       cheapest !== Infinity && p.gold < cheapest && p.gold + gain >= cheapest;
     if (!stuck) continue;
     if (canCastSpell(state, player, spell.id).ok)
+      return { type: "CAST_SPELL", player, spellId: spell.id };
+  }
+
+  // 8b. Special discounts (Recon Ping, System Override) -> when the magic they
+  //     save this round is more than they cost. Both are filed as `convert`
+  //     because neither aims at anything, and neither converts: the two branches
+  //     above look for a swap, a reroute or gold, so the AI never cast either.
+  for (const slot of of("convert")) {
+    const spell = getSpell(slot.defId);
+    const cut = spell.specialDiscountRound ?? 0;
+    if (cut <= 0 || p.magicPool - spell.cost < 1) continue;
+    let saved = 0;
+    for (const c of mine) {
+      const d = getDef(c.defId);
+      if (!d.special || d.special.talent) continue;
+      const why = canFireSpecial(state, c.instanceId);
+      const recharging = !why.ok && (why.reason ?? "").startsWith("Special is recharging");
+      if (!why.ok && why.reason !== "Not enough magic" && !(spell.clearCooldowns && recharging)) continue;
+      // A Special refused on magic or cooldown never reached its target check.
+      if (!why.ok && d.special.targetSide !== "self" && !TARGETLESS_HANDLERS.has(d.special.handler)
+          && specialTargets(state, c.instanceId).length === 0) continue;
+      const now = c.freeSpecial ? 0 : effectiveSpecialCost(state, c, d.special.cost);
+      saved += now - Math.max(Math.min(now, 1), now - cut);
+      // A Special that System Override readies is a whole extra cast.
+      if (recharging) saved += now;
+    }
+    if (saved > spell.cost && canCastSpell(state, player, spell.id).ok)
       return { type: "CAST_SPELL", player, spellId: spell.id };
   }
 
@@ -1280,6 +1342,96 @@ function willKill(target: CardInstance, volley: number, boardSize: number): bool
   return volley >= target.curHp * (isEvasive(target, boardSize) ? 2 : 1);
 }
 
+/** Damaging Specials aimed at a body: the ones worth firing instead of standing
+ *  still when the basic has nothing in reach. Conditional handlers (igniter,
+ *  smite and the like) are left out, because they decline for reasons of their own. */
+const REACH_SPECIALS = new Set(["strike", "barrage", "combo", "spiral", "rockslide", "battleCharge"]);
+
+/** What a status is worth landing on `victim`, in HP: damage it takes, or damage
+ *  it will not get to deal, over the rounds that matter. Capped at two, because
+ *  past that the board has moved and the victim may not be there to suffer it.
+ *
+ *  THE RIDER IS OFTEN THE WHOLE POINT OF THE SPECIAL. Weighed on damage alone, a
+ *  strike that hits no harder than the card's own basic is never worth the pool,
+ *  and 17 of the 43 strike Specials in the set were exactly that: priced at or
+ *  under the basic, carrying a SLEEP, a BLIND or a burst that no rule read. Over
+ *  the pre-beta card audit they fired on 2.4% of the boards they reached, against
+ *  21.8% for strikes priced above the basic. The same weights price an area
+ *  spell's status, so a FREEZE sweep is judged on what it does rather than on the
+ *  damage it does not deal.
+ *
+ *  The weights follow what each status does to its victim (rules.ts
+ *  `isActionBlocked`, state.ts `effectiveDmg`): STUN costs the whole turn; SLEEP,
+ *  FREEZE, PARALYZE and BLIND each cost about half of it; WEAKEN is
+ *  `WEAKEN_PCT_PER_STACK`; a damage-over-time status is its own damage. The rest
+ *  (ROOT, MUTED, SEAL, FRIGHTEN, ELECTRIFIED) are real but small. */
+function statusValue(
+  state: GameState,
+  victim: CardInstance,
+  kind: string,
+  power: number,
+  duration: number,
+): number {
+  if (!kind || victim.curHp <= 0) return 0;
+  const had = victim.statuses.find((st) => st.kind === kind);
+  // Re-laying what it already carries is worth only the upgrade.
+  if (had && power <= had.power && duration <= had.duration) return 0;
+  const rounds = Math.min(Math.max(duration, 1), 2);
+  const output = effectiveDmg(state, victim) * getDef(victim.defId).hits;
+  switch (kind) {
+    case "BURN": case "BLEED": case "SCALD": case "DOT":
+      return Math.max(power, 1) * rounds;
+    case "STUN":
+      return output * rounds;
+    case "SLEEP": case "FREEZE": case "PARALYZE": case "BLIND":
+      return output * 0.5 * rounds;
+    case "WEAKEN":
+      return output * (WEAKEN_PCT_PER_STACK / 100) * rounds;
+    default:
+      return rounds;
+  }
+}
+
+/** A strike's riders on `aim`, in the same HP terms as its damage: the status it
+ *  leaves, the burst it spreads, the shields its PEN walks through and the HP it
+ *  drinks back, less what it costs the caster. */
+function strikeRiderValue(
+  state: GameState,
+  card: CardInstance,
+  params: Record<string, number | string>,
+  aim: CardInstance,
+  dmg: number,
+  hits: number,
+  pen: boolean,
+): number {
+  const n = (k: string) => Number(params[k] ?? 0);
+  const near = (a: Pos, b: Pos) => Math.max(Math.abs(a.row - b.row), Math.abs(a.col - b.col)) === 1;
+  const foes = enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos);
+  const statusKind = String(params.statusKind ?? "");
+  let v = statusValue(state, aim, statusKind, n("statusPower"), n("statusDuration"));
+  if (params.debuffStatus)
+    v += statusValue(state, aim, String(params.debuffStatus), 0, n("debuffStatusRounds"));
+  // splashAll (Valcana): every other opponent on the board.
+  if (n("splashAll") > 0)
+    v += n("splashAll") * foes.filter((e) => e.instanceId !== aim.instanceId).length;
+  // splash (Thunder, Supernova): the opponents around the struck square.
+  if (n("splash") > 0 && aim.pos)
+    for (const e of foes) {
+      if (e.instanceId === aim.instanceId || !near(e.pos!, aim.pos)) continue;
+      v += n("splash");
+      if (n("splashStatus") > 0) v += statusValue(state, e, statusKind, n("statusPower"), n("statusDuration"));
+    }
+  // adjStatusKind (Squanch): a status on everything standing next to the caster.
+  if (params.adjStatusKind && card.pos)
+    for (const e of foes)
+      if (near(e.pos!, card.pos)) v += statusValue(state, e, String(params.adjStatusKind), 0, n("adjStatusDuration"));
+  if (pen && !getDef(card.defId).keywords.PEN)
+    v += estimateVolley(dmg, hits, true, aim) - estimateVolley(dmg, hits, false, aim);
+  if (n("lifesteal") > 0)
+    v += Math.min(estimateVolley(dmg, hits, pen, aim), Math.max(0, effectiveMaxHp(state, card) - card.curHp));
+  return v - n("selfDamage");
+}
+
 /**
  * Battle policy (used for the AI's cards AND for P1 cards on full-auto):
  * Special only when it's clearly worth the pool (a kill, a multi-target hit,
@@ -1298,6 +1450,7 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
   const est = (t: CardInstance) =>
     estimateVolley(effectiveDmg(state, card), def.hits, Boolean(def.keywords.PEN), t);
   const basicCanKill = targets.some((t) => willKill(t, est(t), state.boardSize));
+  let reachOnlyTarget: string | undefined;
 
   if (specCheck.ok && def.special) {
     const sp = def.special;
@@ -1314,13 +1467,26 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     // does not consult `rich`, and no personality should decline a kill.
     // ...and whether it spends magic on VALUE at all. A `learning` opponent
     // only ever fires a Special that kills something. See skill.ts.
+    //
+    // At what it costs NOW rather than its printed price: a discount this round
+    // (Recon Ping, System Override, Power Grid, King Me) is magic this side does
+    // not have to hold back, and a free Special costs nothing at all.
     const rich = skillOf(state, card.owner).readsMagic
       && state.players[card.owner].magicPool
-        >= sp.cost + styleOf(state.seatSuits, card.owner).specialSurplus;
+        >= (card.freeSpecial ? 0 : effectiveSpecialCost(state, card, sp.cost))
+          + styleOf(state.seatSuits, card.owner).specialSurplus;
     // Don't fire a self-damaging Special (Kraken's Black Wave Crash, or Skyrend's
     // 10% Dive Bomb recoil) if it would kill the caster.
     const recoilCost = Math.round((Number(params.dmg ?? 0) * Number(params.recoilPct ?? 0)) / 100);
     const selfKills = Number(params.selfDamage ?? 0) + recoilCost >= card.curHp;
+    // Held for the skip at the bottom: if the basic turns out to have nothing in
+    // reach, this is the body the Special lands on instead.
+    if (!selfKills && REACH_SPECIALS.has(sp.handler) && specTargets.length > 0
+        && skillOf(state, card.owner).readsMagic) {
+      const worth = (t: CardInstance) =>
+        estimateVolley(dmg, hits, pen, t) + strikeRiderValue(state, card, params, t, dmg, hits, pen);
+      reachOnlyTarget = [...specTargets].sort((a, b) => worth(b) - worth(a))[0].instanceId;
+    }
     if (selfKills) {
       // fall through to the basic-attack policy below
     } else if (sp.handler === "strike" || sp.handler === "barrage" || sp.handler === "combo") {
@@ -1334,6 +1500,20 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         effectiveDmg(state, card) * def.hits;
       if ((kill && !basicKillsIt) || wide || (rich && outDamagesBasic)) {
         return { action: "special", targetId: kill?.instanceId ?? specTargets[0]?.instanceId };
+      }
+      // ...AND WHAT IT CARRIES. Raw damage undersells every Special that trades
+      // some of it for a status or a burst (see `statusValue`). This only adds a
+      // reason to fire: everything the rule above takes, it still takes, and a
+      // basic that finishes something still comes first.
+      if (rich && !basicCanKill && specTargets.length > 0) {
+        const volleys = sp.handler === "barrage" ? Math.min(specTargets.length, Number(params.targets ?? 1)) : 1;
+        const scored = specTargets
+          .map((t) => ({ t, v: strikeRiderValue(state, card, params, t, dmg, hits, pen) }))
+          .sort((a, b) => b.v - a.v);
+        // A barrage leaves its rider on every body it lands on.
+        const rider = scored.slice(0, volleys).reduce((sum, x) => sum + x.v, 0);
+        if (dmg * hits * volleys + rider > effectiveDmg(state, card) * def.hits)
+          return { action: "special", targetId: scored[0].t.instanceId };
       }
     } else if (sp.handler === "empower" || sp.handler === "powerGauntlets") {
       // Self-buff (Heir's Crowned / Velvolt's gauntlets): strong standing value —
@@ -1539,7 +1719,16 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
     return { action: "talent" };
   }
 
-  if (targets.length === 0) return { action: "skip" };
+  if (targets.length === 0) {
+    // NOTHING FOR THE BASIC TO HIT IS NOT NOTHING TO DO. A charge or a longer
+    // reach lands where the basic cannot, and a card that skips instead gives up
+    // the whole turn. Over the pre-beta card audit, 45 of 1,071 castable turns
+    // across six cards went that way: Dandelion 18 of 51, and it has 0 SP, so its
+    // charge IS how it reaches anything. Sharp only; the gentler rungs hoard their
+    // magic by design.
+    if (reachOnlyTarget) return { action: "special", targetId: reachOnlyTarget };
+    return { action: "skip" };
+  }
 
   // WHO TO SWING AT — and the three questions below are exactly the three a new
   // player has not learned to ask yet, so each one is a switch. See skill.ts.

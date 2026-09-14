@@ -344,6 +344,45 @@ twenty points because its own formation is AI-piloted too and gained more from
 the fix than the player's cores did. Both now sit above the 80-90 band they were
 tuned into. **Treat pre-fix readings as measurements of a different game.**
 
+## The AI weighed a Special on its damage number alone
+
+Found by the pre-beta card audit (every card forced into its own core's opening
+hand, 280 AI-vs-AI matches each, outliers re-played on fresh seeds). Three rules
+could see a Special or a spell only through its damage:
+
+1. **A strike that matches the basic never fired.** The strike branch took a
+   kill the basic could not make, a wide barrage, or strictly more RAW damage
+   than the basic. 17 of the 43 strike Specials hit no harder than their own
+   card's basic, and they are the ones carrying a SLEEP, a BLIND or a burst the
+   rule never read: they fired on 2.4% of the boards they reached, against 21.8%
+   for strikes priced above the basic. Valcana, whose Special also hits every
+   other opponent for 2, fired 0 times in 171 games.
+2. **A card with nothing in basic reach skipped its turn** even when its Special
+   (a charge, a longer reach) could land: 45 of 1,071 castable turns across six
+   cards. Dandelion has 0 SP, so its charge IS its movement: 18 of 51.
+3. **Seven spells were never cast.** `findSpellCast` scored area spells on
+   damage (Frost Patch, Downdraft, Sand Trap and Gale Force deal none), read
+   Sprout's row heal as a sweep with nobody to hit, and looked for gold or a swap
+   in Recon Ping and System Override. A player can cast all seven.
+
+THE FIX IS A PRICE FOR THE RIDER, not more named cases. `statusValue` (ai.ts)
+converts a status into HP from what it does to its victim — STUN a whole turn of
+the victim's damage; SLEEP, FREEZE, PARALYZE and BLIND half of it; WEAKEN its
+25%; a damage-over-time status its own damage; capped at two rounds — and
+`strikeRiderValue` adds splash, splash-all, PEN through shields and lifesteal.
+The strike branch fires when damage plus rider beats the basic, ADDED to the old
+rule rather than replacing it, so nothing that fired before stops and a basic
+kill still comes first. The same weights score a status sweep (which must clear
+1.5x its cost in value); Sprout is scored on the HP it would mend and the
+discounts on the magic they save this round. `rich` reads a Special's EFFECTIVE
+cost, so a discount changes what the AI thinks it can afford. The skip fallback
+fires only for skill profiles that read magic: `learning` and `steady` still
+hoard, which is their handicap.
+
+`ai-riders.test.ts` pairs every case that should fire with the nearest case that
+should not. Run against the pre-fix ai.ts, all six "should fire" cases fail and
+all seven "should not" cases pass.
+
 ## Measuring balance
 
 There's no committed balance harness — build a disposable one, read it, delete
