@@ -2,7 +2,6 @@
 // computing rule outcomes themselves.
 
 import { getDef } from "../data/cards";
-import { MUSTER_MAX_COST, MUSTER_OPENING_MAX } from "./heroes";
 import {
   boardCards,
   cardAt,
@@ -87,18 +86,9 @@ export function canSummon(
     // Free placement: slots are the currency, not gold — but the card still has
     // to be something you could plausibly lead with.
     if ((state.opening[player] ?? 0) <= 0) return { ok: false, reason: "No deployment slots left" };
-    // Muster (Warlord) beats the opening cap too. The cap and the gold price are
-    // the same rule wearing two hats — both say "not this early" — and a power
-    // that answered one of them and not the other would be a free summon that
-    // could not summon the thing you saved it for. The SLOT is still spent:
-    // Muster pays a card's cost, not a seat's deployment.
-    if (!(state.players[player].freeSummon && def.cost <= MUSTER_OPENING_MAX)
-        && def.cost > OPENING_COST_CAP)
+    if (def.cost > OPENING_COST_CAP)
       return { ok: false, reason: `Opening placement is cost ${OPENING_COST_CAP} or less` };
-  } else if (!(state.players[player].freeSummon && def.cost <= MUSTER_MAX_COST)
-      && effectiveSummonCost(state, player, hand.defId) > state.players[player].gold) {
-    // Muster (Warlord): an armed free summon ignores the price entirely, so a
-    // card you could never afford is exactly what it is for.
+  } else if (effectiveSummonCost(state, player, hand.defId) > state.players[player].gold) {
     return { ok: false, reason: "Not enough Gold" };
   }
   // A NAMED SQUARE rather than a column landing on your own Home row: a shrine,
@@ -1904,66 +1894,6 @@ export function effectiveSpecialCost(state: GameState, card: CardInstance, cost:
   const roundWide = state.players[card.owner].specialDiscountRound ?? 0;
   const total = permBolt + roundWide + fieldBonus(state, card, "specialDiscount");
   return total > 0 ? Math.max(1, base - total) : base;
-}
-
-/** Can Arcane Focus CHANNEL this card — fire its Special out of turn, free?
- *
- *  `canFireSpecial` minus the two things the power pays for: the cooldown and
- *  the magic. Everything else still applies — a dismounted body has no Special,
- *  a quarantined one is locked out, MUTED is MUTED, a boss clock owns its own
- *  Special, and a Special with nothing to point at cannot be aimed.
- *
- *  SHARED WITH THE AI ON PURPOSE, and the reason is a livelock this exact
- *  function was written to end. The engine hands the power BACK when a channel
- *  is illegal, so a misclick cannot eat a once-per-game ability — which means
- *  an AI that proposes an illegal channel proposes it again next turn, forever.
- *  Measured: a third of all matches stopped finishing. One predicate, asked by
- *  the seat choosing and by the engine resolving, is what makes that
- *  impossible rather than merely unlikely. */
-export function canChannel(
-  state: GameState,
-  instanceId: string,
-): { ok: boolean; reason?: string } {
-  const card = state.cards[instanceId];
-  if (!card) return { ok: false, reason: "No such card" };
-  const def = getDef(card.defId);
-  if (!def.special) return { ok: false, reason: "No Special" };
-  if (card.curHp <= 0) return { ok: false, reason: "Defeated" };
-  if (card.transformed) return { ok: false, reason: "Dismounted — Special lost" };
-  if ((card.specialLockedRounds ?? 0) > 0) return { ok: false, reason: "Specials locked (quarantined)" };
-  // THE SUMMON LOCKOUT DOES NOT APPLY. A body that just landed cannot fire its
-  // own Special this round, and reaching past that is the most distinctive
-  // thing this power does: play the piece and set it off in the same prep.
-  // It is also where the fire rate was going — the power sat unusable in 22% of
-  // games, and a once-per-game ability that often has nothing to point at is
-  // not a power, it is a coin flip.
-  if (def.special.talent && card.talentUsed)
-    return { ok: false, reason: "Talent already used this game" };
-  if (def.roundTick?.fireSpecialEveryN)
-    return { ok: false, reason: "Fires on its own clock" };
-  if (hasStatus(card, "MUTED")) return { ok: false, reason: "MUTED" };
-  if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
-  if (specialTargets(state, instanceId).length === 0)
-    return { ok: false, reason: "No valid target" };
-  // ...AND EVERY OTHER REFUSAL `canFireSpecial` MAKES THAT NOTHING HERE WAIVES.
-  //
-  // This predicate is a hand-copied subset of that one, and the copy had drifted
-  // in three places. Each drift is the same defect: this function says yes, the
-  // resolve path asks `canFireSpecial`, which says no, and the reducer hands the
-  // power back having changed nothing at all — so an AI seat proposes the very
-  // same channel on the next tick, and the next, and the game stops. A player
-  // watching that sees a frozen board on the opponent's prep turn with no idea
-  // why. Reported from a real game: round 6, hearts seat, seven magic.
-  //
-  // The summon lockout above is the one divergence that is DELIBERATE, and it is
-  // paid for at the resolve site by lifting the flag rather than by lying here.
-  const maxStacks = Number(def.special.params?.maxStacks ?? 0);
-  if (maxStacks > 0 && (card.specialCasts ?? 0) >= maxStacks)
-    return { ok: false, reason: `${def.special.name} is fully grown` };
-  const hpCost = Number(def.special.params?.selfHpCost ?? 0);
-  if (hpCost > 0 && card.curHp <= hpCost)
-    return { ok: false, reason: "Not enough HP to pay for it" };
-  return { ok: true };
 }
 
 export function canFireSpecial(

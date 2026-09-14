@@ -2536,35 +2536,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-warn { font-size: 11px; color: var(--threat); font-weight: 700; }
 /* Tool pills — Composition / Spellbook / Saved condensed into one row; the
    active one opens its panel below. Replaces three stacked full-width bars. */
-/* THE HERO PICKER, in the squad builder. A curve shift is invisible by nature —
-   the player never watches their hero act — so each card has to say what it
-   actually does or the choice is a coin toss with a nice name on it. Four
-   lines: who it is, what it wants, the CURVE in rounds, and the power. */
-.db-heroes { display: grid; gap: 6px; margin: 6px 0; }
-.db-hero {
-  display: flex; flex-direction: column; gap: 2px; text-align: left;
-  padding: 7px 9px; border-radius: 8px; cursor: pointer;
-  background: rgba(6, 8, 14, 0.5); border: 1px solid var(--panel-line);
-  color: var(--ink-dim); transition: 0.12s;
-}
-.db-hero:hover { border-color: var(--gold-lit); }
-.db-hero.on { border-color: var(--gold-hi); background: rgba(232, 200, 119, 0.10); }
-.db-hero b { font-family: var(--head); font-size: 12px; letter-spacing: 0.06em; color: #efe9d8; }
-.db-hero span { font-size: 11px; line-height: 1.35; }
-/* The numbers, and the once-per-game power. Distinct from the prose above so
-   the thing you actually compare between heroes is the thing that stands out. */
-.db-hero em { font-size: 10.5px; font-style: normal; color: var(--gold-hi); letter-spacing: 0.03em; }
-.db-hero i { font-size: 10.5px; font-style: normal; color: var(--ink-faint); line-height: 1.3; }
-.db-hero.suit-spade b   { color: var(--suit-spade); }
-.db-hero.suit-club b    { color: var(--suit-club); }
-.db-hero.suit-diamond b { color: var(--suit-diamond); }
-.db-hero.suit-heart b   { color: var(--suit-heart); }
-/* The suit a saved squad carries, on its row in the list. */
-.sq-suit { margin-left: 4px; font-size: 11px; }
-.sq-suit.suit-spade   { color: var(--suit-spade); }
-.sq-suit.suit-club    { color: var(--suit-club); }
-.sq-suit.suit-diamond { color: var(--suit-diamond); }
-.sq-suit.suit-heart   { color: var(--suit-heart); }
 
 .db-tools { display: flex; gap: 6px; flex-wrap: wrap; }
 .db-tool { flex: 1 1 auto; min-width: 0; padding: 8px 10px; border-radius: 9px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink-dim); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; transition: 0.12s; white-space: nowrap; }
@@ -7694,23 +7665,3 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .dr-banner { transition: border-color .14s ease; }
   .dr-banner:hover, .dr-banner:focus-visible { transform: none; }
 }
-
-/* The hero power, wearing the spellbook's chip. Gold rather than an element
-   colour, because it belongs to the player and not to a school of magic — and
-   because it is the one thing in the book that can only ever be used once. */
-.spellchip.hero-chip { border-color: var(--gold-line); }
-.spellchip.hero-chip .spellchip-cost { color: var(--gold-hi); border-color: var(--gold-line); }
-.spellchip.hero-chip .spellchip-name { color: var(--gold-hi); }
-
-/* The hero a lobby seat is bringing, beside its deck name. Tinted by its own
-   suit — the same colour that seat's glyph and tokens already wear — so the
-   pairing reads without a second label saying which is which. */
-.lob-hero {
-  font-style: normal; font-size: 11px; letter-spacing: 0.04em;
-  padding: 1px 6px; margin-left: 6px; border-radius: 999px;
-  border: 1px solid currentColor; opacity: 0.9; white-space: nowrap;
-}
-.lob-hero.suit-spade   { color: var(--suit-spade); }
-.lob-hero.suit-club    { color: var(--suit-club); }
-.lob-hero.suit-heart   { color: var(--suit-heart); }
-.lob-hero.suit-diamond { color: var(--suit-diamond); }

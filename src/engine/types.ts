@@ -2517,15 +2517,6 @@ export interface SpellSlot {
 export interface PlayerState {
   deck: string[]; // defIds, top of deck = index 0
   hand: HandCard[];
-  /** HERO POWERS — one free use per game, and the visible half of a hero (the
-   *  curve shift is the invisible half). See `heroes.ts`.
-   *
-   *  `heroPowerUsed` is the once-per-game latch. The other two are ARMED
-   *  states: Muster and Arcane Focus do not act on their own, they make the
-   *  NEXT summon or Special free, so the player still chooses which one —
-   *  which is the whole value of a free cast. */
-  heroPowerUsed?: boolean;
-  freeSummon?: boolean;
   /** SEEK'S VOUCHERS — what each found card has already had paid toward it,
    *  keyed by card id.
    *
@@ -2788,18 +2779,6 @@ export interface GameState {
    *  hand-built fixture) has none; `styleOf` falls back to the seat's
    *  traditional suit so no reader has to check. */
   seatSuits?: Record<PlayerId, Suit>;
-  /** Are HERO curves live in this match?
-   *
-   *  Separate from `seatSuits` on purpose, and the separation is the whole
-   *  point. A suit is dealt to every match — it is the seat's identity and, for
-   *  an AI, its playstyle — but a hero MOVES THE ECONOMY, and an ordinary
-   *  skirmish must not quietly acquire one because a glyph was dealt. Tying the
-   *  shift straight to the suit broke three resource tests on the first run,
-   *  which is the same fact arriving as a failure.
-   *
-   *  Absent/false = the printed curve for everyone, which is every mode that
-   *  shipped before heroes. Story Mode and the Void Tower turn it on. */
-  heroes?: boolean;
   /** How much of the game the AI seats know this match — see `skill.ts`.
    *
    *  A HANDICAP, and the only knob in the engine that exists to make the game
@@ -2909,19 +2888,6 @@ export type Intent =
   | { type: "PASS"; player: PlayerId }
   | { type: "SET_AUTO"; player: PlayerId; instanceId: string; mode: AutoMode }
   | { type: "SURRENDER"; player: PlayerId }
-  /** Fire this seat's hero power. Free, once per game, and it takes no target:
-   *  two of the four ARM a free cast rather than acting, so the player still
-   *  picks what to spend it on. See `heroes.ts`. */
-  | {
-      type: "HERO_POWER";
-      player: PlayerId;
-      /** ARCANE FOCUS only: the ally to channel — its Special fires now, in
-       *  prep. Absent for the other three, which have nothing to aim. */
-      instanceId?: string;
-      /** The channelled Special's own targets, same shape a BATTLE_ACTION
-       *  passes: first pick aims a corridor, several picks spread. */
-      targetIds?: string[];
-    }
   | { type: "FLOW_CHANGE"; player: PlayerId; instanceId: string; mode: "water" | "ice" | "steam" }
   | {
       type: "BATTLE_ACTION";

@@ -4,7 +4,6 @@
 
 import { styleOf } from "./suits";
 import { skillOf } from "./skill";
-import { HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { getSpell, spellPickKind } from "./spells";
 import {
@@ -19,7 +18,6 @@ import { hasEvasion, TARGETLESS_HANDLERS } from "./combat";
 import {
   canCastSpell,
   spellAllyTargets,
-  canChannel,
   canFireSpecial,
   canFireTalent,
   canPlummet,
@@ -36,7 +34,6 @@ import {
   homeSlots,
 
   domMap,
-  effectiveSummonCost,
 } from "./rules";
 import type {
   CardInstance,
@@ -109,93 +106,6 @@ function deploySlots(state: GameState, player: PlayerId): Pos[] {
 }
 
 /** One intent per call: summon > move > pass. */
-/** Should this seat spend its hero power now?
- *
- *  The AI never fired one, which mattered more than it sounds: heroes are live
- *  in the Arena, so every match handed the player a free once-per-game effect
- *  and gave the opponent nothing. A power nobody on the other side uses is a
- *  handicap wearing a feature's name.
- *
- *  One condition each, and each is "the moment this is worth more than holding
- *  it". None of them fire on round one: a free summon is worth most when there
- *  is something expensive to summon, and a shield wall is worth nothing before
- *  there is a wall.
- *
- *  Returns the intent, or null to keep holding it. */
-function aiHeroPower(state: GameState, player: PlayerId): Intent | null {
-  const p = state.players[player];
-  const suit = state.seatSuits?.[player];
-  if (!state.heroes || !suit || p.heroPowerUsed) return null;
-  if (state.round < HERO_MIN_ROUND) return null;
-  const board = boardCards(state, player).filter((c) => c.curHp > 0);
-  switch (suit) {
-    case "spade": {
-      // Muster: the moment the hand holds something the purse does not.
-      // Deliberately the DEAREST unaffordable card — spending a free summon on
-      // a card you could have bought next round is spending it on nothing.
-      // THROUGH `effectiveSummonCost`, not the printed price. A card a Seek has
-      // already part-paid for may be affordable when its cost says otherwise,
-      // and burning a once-per-game power on a turn that was never actually
-      // stuck is the worst way to spend it.
-      const price = (h: HandCard) => effectiveSummonCost(state, player, h.defId);
-      const dearest = p.hand.reduce((best, h) =>
-        price(h) > (best ? price(best) : 0) ? h : best,
-        undefined as HandCard | undefined);
-      return dearest && price(dearest) > p.gold
-        ? { type: "HERO_POWER", player } : null;
-    }
-    case "heart": {
-      // ARCANE FOCUS: channel the ally whose Special is worth the most right
-      // now and fire it in prep.
-      //
-      // The power used to refund magic on the next few Specials, and the
-      // trigger asked whether there was a Special the seat could not afford
-      // — dead, 0% true in every round, because the Mage's own curve made it
-      // rich. Both are gone. This one cannot be dead: it fires whenever
-      // there is anything to channel, and the only judgement is WHICH.
-      //
-      // Ranked by the Special's own COST, which is the set's own statement of
-      // how much a Special is worth — the stat budget prices them, so an
-      // expensive one is a bigger effect. A body that could fire it THIS
-      // battle anyway is discounted: the power buys an extra activation, not
-      // an earlier one, so spending it on something already available wastes
-      // most of what it is for.
-      let best: { id: string; picks?: string[]; score: number } | null = null;
-      for (const c of board) {
-        const def = getDef(c.defId);
-        // `canChannel` is the ENGINE's own predicate, and asking it here is
-        // what keeps this from deadlocking: an illegal channel is handed
-        // back rather than spent, so a seat that proposes one proposes it
-        // again next turn and the match never ends. It did — a third of all
-        // games stopped finishing until both sides asked the same question.
-        if (!canChannel(state, c.instanceId).ok) continue;
-        const aim = specialTargets(state, c.instanceId);
-        if (aim.length === 0) continue;
-        const score = def.special!.cost * (canFireSpecial(state, c.instanceId).ok ? 0.6 : 1);
-        if (score > 0 && (!best || score > best.score))
-          best = { id: c.instanceId, picks: [aim[0].instanceId], score };
-      }
-      return best
-        ? { type: "HERO_POWER", player, instanceId: best.id, targetIds: best.picks }
-        : null;
-    }
-    case "club":
-      // Hold the Line: once there is a line to hold and someone to hold it
-      // against. Two bodies is the smallest thing worth shielding.
-      return board.length >= 2 && enemyCards(state, player).some((e) => e.curHp > 0)
-        ? { type: "HERO_POWER", player } : null;
-    case "diamond":
-      // Requisition: a hand it cannot spend — a full hand and not enough gold
-      // for the cheapest thing in it. The trigger did not move when the power
-      // started taking the WEAKEST cards instead of the dearest, and it did not
-      // need to: this is still the moment it is worth most, and it reads better
-      // now. It used to clear the bombs it was locked out of; it now sells the
-      // chaff to buy its way back in. Fires in 92% of measured games.
-      return p.hand.length >= 4 && p.gold < Math.min(...p.hand.map((h) => getDef(h.defId).cost))
-        ? { type: "HERO_POWER", player } : null;
-  }
-}
-
 export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent {
   // THE SEAT'S SUIT DECIDES ITS TASTE. Every branch below is the same ladder
   // the AI always walked; the style only changes what it reaches for first and
@@ -204,11 +114,6 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
   // ...and how much of the game it knows. The style says what it WANTS; this
   // says what it can see coming. See skill.ts.
   const skill = skillOf(state, player);
-  // The hero power, before anything else it might pay for. It does not end the
-  // turn — the two arming powers exist to be spent by the very next action —
-  // and `heroPowerUsed` is what stops this returning forever.
-  const power = aiHeroPower(state, player);
-  if (power) return power;
   // 1. Summon into an open Home slot. WHICH card is the personality:
   //    biggest (the original), cheapest, toughest, or the casters first.
   const byCost = (a: HandCard, b: HandCard) => getDef(b.defId).cost - getDef(a.defId).cost;

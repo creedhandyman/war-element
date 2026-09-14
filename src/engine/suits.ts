@@ -38,6 +38,8 @@
 //     ♦ Hoard        44%     53%     53%      —          49.6%
 //
 // Spread 4.2 points across the four, WITH the hero powers live and used.
+// (Heroes have since been removed — see CLAUDE.md. These tables are the record
+// of how the styles were tuned, not a description of the current game.)
 //
 // THE CYCLE IS THE POINT: Attack beats Control, Control beats Defense, Defense
 // beats Attack. Three of the four counter each other, which is what keeps a
@@ -183,21 +185,17 @@ export function dealSuits(seed: number): Record<PlayerId, Suit> {
   return { P1: order[0], P2: order[1], P3: order[2], P4: order[3] };
 }
 
-/** Pin one seat to a chosen suit.
+/** Pin one seat to a chosen suit; the other seats keep whatever they were dealt.
  *
- *  A player who picks a hero is choosing their suit (see `heroes.ts`), and the
- *  other seats keep whatever they were dealt.
+ *  Nothing in play pins a suit any more — every match deals them — but tests
+ *  and balance runs pin suits to measure one style against another, which is
+ *  what this is still for.
  *
- *  IT ASSIGNS, IT DOES NOT SWAP, and that was a bug worth its own paragraph.
- *  The first cut swapped — hand the seat what it wants, give its old suit to
- *  whoever was holding it — to keep the deal a permutation. That is right for a
- *  DEAL and wrong for a CHOICE: with both seats pinned from their own decks,
- *  two players who picked the same hero had the second pin quietly steal it
- *  back off the first, and one of them played a hero they never chose. A choice
- *  the game silently overrides is worse than a duplicate.
- *
- *  So two seats CAN share a suit now. `suitVariantOf` is what keeps the board
- *  readable when they do.
+ *  IT ASSIGNS, IT DOES NOT SWAP. Swapping (hand the seat what it wants, give its
+ *  old suit to whoever held it) keeps a deal a permutation, which is right for a
+ *  DEAL and wrong for a CHOICE: with two seats pinned, the second pin quietly
+ *  stole the suit back off the first. So two seats CAN share a suit, and
+ *  `suitVariantOf` is what keeps the board readable when they do.
  *
  *  Returns a new record; the caller owns when to apply it. */
 export function pinSuit(

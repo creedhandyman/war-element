@@ -52,7 +52,7 @@ import {
   // The boss clock, made visible.
   bossTelegraphs, telegraphBlast,
   seatsOf, effectiveSummonCost,
-  canChannel,} from "../engine";
+} from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
@@ -114,12 +114,9 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
-import { pinSuit, SUIT_STYLES } from "../engine/suits";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
 import { aiSkillIsAuto, clearAiSkill, loadAiSkill, loadAiTrack, recordAiMatch, saveAiSkill } from "../data/prefs";
-import { HEROES } from "../engine/heroes";
-import type { Suit } from "../engine/types";
 import { StoryCollection } from "./StoryCollection";
 import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
@@ -419,15 +416,8 @@ export function App() {
   const setupRef = useRef<{
     p1: string[]; p1s?: string[]; p2: string[]; p2s?: string[];
     board: number; humans: PlayerId[];
-    /** THE RULES IT WAS DEALT UNDER, not only the lists. Carrying the decks and
-     *  dropping these meant Rematch ran the same two squads under a different
-     *  game — heroes live for Start Match, silently off for the rematch, with
-     *  nothing on screen to explain where the powers had gone.
-     *
-     *  `suits` holds only what each deck PINNED. The rest are re-dealt on
-     *  purpose: a fresh suit every match is the design (see suits.ts), and only
-     *  a chosen one belongs to the deck rather than to the match. */
-    heroes?: boolean; suits?: Partial<Record<PlayerId, Suit>>; skill?: AiSkill;
+    /** The AI skill it was dealt under, so a rematch faces the same opponent. */
+    skill?: AiSkill;
   } | null>(null);
   /** Rematch handshake. BOTH sides must ask before the host re-deals, so a
    *  rematch can't yank someone off a result screen they are still reading. */
@@ -476,7 +466,7 @@ export function App() {
    *  arrival and the third player would overwrite the second. */
   const lobbyRef = useRef<{
     clientId: string; seat: PlayerId; cards: string[];
-    spells?: string[]; name?: string; foils: string[]; ready: boolean; suit?: Suit;
+    spells?: string[]; name?: string; foils: string[]; ready: boolean;
   }[]>([]);
   /** GUEST: this client's id, and the seat the host gave it. A two-seat room
    *  never needed either — the guest WAS P2 — and with four the host is the
@@ -498,7 +488,7 @@ export function App() {
    *  picked at that moment — which is the whole thing a lobby exists to let you
    *  change. Refreshed every render, so it is never stale. */
   const deckNowRef = useRef<{
-    cards: string[]; spells?: string[]; name: string; suit?: Suit;
+    cards: string[]; spells?: string[]; name: string;
   }>({ cards: [], name: "" });
   const onlineStartedRef = useRef(false);
   /** A match this device was in when the app last closed, offered back until it
@@ -881,11 +871,6 @@ export function App() {
   // gave a spell-less deck the whole elemental set in battle.
   const resolveDeckSpells = (deckId: string): string[] | undefined =>
     (deckPool.find((d) => d.id === deckId) ?? modePremades[0]).spells;
-  /** The HERO a deck was built under, if its builder pinned one. Absent = take
-   *  whatever the match deals, which is what every deck saved before the picker
-   *  existed still does. */
-  const resolveDeckSuit = (deckId: string): Suit | undefined =>
-    deckPool.find((d) => d.id === deckId)?.suit;
 
   // MOVED DOWN from the top of the component, because the Arena's battle
   // playlist is built from the decks in the seats and those are declared here.
@@ -922,9 +907,6 @@ export function App() {
     cards: resolveDeckCards(mySeatDeckId),
     spells: resolveDeckSpells(mySeatDeckId),
     name: deckLabel(mySeatDeckId),
-    // The hero this deck was built under. Read here with everything else so
-    // the two send sites cannot disagree about which one is current.
-    suit: resolveDeckSuit(mySeatDeckId),
   };
 
   /** The battlefield is the RUN's while one is live — it was dealt for a board
@@ -1437,14 +1419,9 @@ export function App() {
     const s = setupRef.current;
     if (!s) return;
     const g = createInitialState(newSeed(), s.p1, s.p2, s.humans, s.p1s, s.p2s, s.board);
-    // SAME RULES, NEW DEAL. See `setupRef` — the hero flag and the decks' own
-    // pinned suits are part of the match's setup and have to come with it.
-    // Everything else about the deal is fresh, the unpinned suits included.
-    g.heroes = s.heroes ?? false;
+    // SAME OPPONENT, NEW DEAL: the AI skill carries over, and everything else
+    // about the deal is fresh — the suits included.
     g.aiSkill = s.skill;
-    for (const [seat, want] of Object.entries(s.suits ?? {}) as [PlayerId, Suit][]) {
-      if (g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, seat, want);
-    }
     setGame(g);
     setViewSide(online?.myId ?? "P1");
     setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
@@ -1534,22 +1511,13 @@ export function App() {
       ? seatCount : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
-    // WHICH SUITS THE DECKS CHOSE, resolved here rather than at the pin site
-    // below, because the rematch needs the same answer and two lookups of the
-    // same thing are two chances to disagree.
-    const pinnedSuits = ([["P1", p1DeckId], ["P2", p2DeckId]] as const)
-      .reduce<Partial<Record<PlayerId, Suit>>>((acc, [seat, id]) => {
-        const want = resolveDeckSuit(id);
-        if (want) acc[seat] = want;
-        return acc;
-      }, {});
     // Remembered so Rematch can run the same two decks back — under the same
     // rules, which is the part it used to lose.
     setupRef.current = {
       p1: p1Cards, p1s: resolveDeckSpells(p1DeckId),
       p2: p2Cards, p2s: resolveDeckSpells(p2DeckId),
       board: boardSize, humans,
-      heroes: !eventRun, suits: pinnedSuits, skill: matchSkill,
+      skill: matchSkill,
     };
     // EXTRA SEATS (Domination free-for-all), now the PLAYER's choice rather
     // than the lobby's. They resolve through the same two helpers the first two
@@ -1581,35 +1549,11 @@ export function App() {
       // of the owner, not of the deck. An AI seat has none.
       seatFoilsFor(),
     );
-    // HEROES ARE LIVE IN THE ARENA. The curve shift and the once-per-game power
-    // both hang off this flag, and it stays OFF for anything that predates them
-    // — a dealt suit alone must never move an economy. The Arena is where a
-    // player brings a squad they built, so it is where the hero they built it
-    // under should count.
-    //
-    // The four styles were balanced with this on (see suits.ts): every suit
-    // against every other, spread 4.2 points.
-    //
-    // NOT IN AN EVENT RUN, though it starts from this same function. An event
-    // and a Void Trial are TUNED encounters — a scripted opening measured at
-    // its own depth, a boss seated outside the economy — and handing their P2
-    // seat a dealt hero's curve would retune the fight without anyone deciding
-    // to. Ordinary Arena matches are where a player brings a squad they built,
-    // so that is where the hero they built it under counts.
-    fresh.heroes = !eventRun;
     // THE HANDICAP, on every Arena match including the tuned ones. An event or a
     // Void Trial is a designed encounter, but it is designed around the same
     // opponent everything else faces — and a player who needs the handicap needs
     // it most against the fight built to be hard.
     fresh.aiSkill = matchSkill;
-    // EACH SEAT WEARS ITS OWN DECK'S HERO. A suit is pinned per DECK in the
-    // builder, so both sides of a hot-seat match can have chosen one, and the
-    // deal fills in for anyone who did not. `pinSuit` ASSIGNS — two seats may
-    // land on the same suit if both decks chose it, and `suitVariantOf` gives
-    // the second one its own shade so the board still reads.
-    for (const [seat, want] of Object.entries(pinnedSuits) as [PlayerId, Suit][]) {
-      if (fresh.seatSuits) fresh.seatSuits = pinSuit(fresh.seatSuits, seat, want);
-    }
     // DOMINATION: the 7x7 is the map, so picking that battlefield IS picking
     // the mode. Stamped here rather than plumbed through createInitialState
     // because it is a scoring rule, not a board dimension — everything else
@@ -1872,7 +1816,7 @@ export function App() {
     } else {
       roomRef.current.sendJoin(
         clientIdRef.current, deckNowRef.current.cards, deckNowRef.current.spells,
-        deckNowRef.current.name, [...foilIds], ready, deckNowRef.current.suit);
+        deckNowRef.current.name, [...foilIds], ready);
     }
   }
 
@@ -1922,7 +1866,7 @@ export function App() {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
-      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady, guestSuit) => {
+      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         const lobby = lobbyRef.current;
         // A REJOIN keeps its seat. `sendJoin` fires on every subscribe, and a
@@ -1941,13 +1885,11 @@ export function App() {
           already.name = guestName;
           already.foils = guestFoils ?? [];
           already.ready = !!guestReady;
-          already.suit = guestSuit;
         } else {
           if (lobby.length >= hostSeatCount - 1) return; // room is full
           lobby.push({
             clientId, seat, cards: guestCards, spells: guestSpells,
             name: guestName, foils: guestFoils ?? [], ready: !!guestReady,
-            suit: guestSuit,
           });
         }
         // Tell them which seat they are in, and how full the room is. Sent on a
@@ -1965,10 +1907,10 @@ export function App() {
     const seats: LobbySeat[] = [
       {
         seat: "P1", name: deckNowRef.current.name, ready: hostReadyRef.current,
-        host: true, suit: deckNowRef.current.suit,
+        host: true,
       },
       ...lobbyRef.current.map((e) => ({
-        seat: e.seat, name: e.name?.trim() || "Their deck", ready: e.ready, suit: e.suit,
+        seat: e.seat, name: e.name?.trim() || "Their deck", ready: e.ready,
       })),
     ];
     setLobby({ seats, need: hostSeatCountRef.current });
@@ -1998,30 +1940,6 @@ export function App() {
       lobby.slice(1).map((e) => ({ id: e.seat, deck: e.cards, spells: e.spells })),
     );
     if (hostBoardSize === DOMINATION_7X7.boardSize) g.domination = newDomination(DOMINATION_7X7);
-    // HEROES ARE ON, AND EVERY SEAT WEARS THE ONE ITS OWN DECK CHOSE.
-    //
-    // Both halves of that were missing and the second is why the first went
-    // unnoticed. `createInitialState` deals `seatSuits` from the seed but never
-    // sets `heroes`, and this path never set it either — so an online match ran
-    // with the flag off: no curve shift, no once-per-game power, and the suit
-    // on the board pure decoration. Offline the same line reads
-    // `fresh.heroes = !eventRun`, so the mode you play against a stranger was
-    // the one mode missing the thing you built the deck around.
-    //
-    // The pins then come from BOTH sides. The host can only read its own
-    // (`resolveDeckSuit` looks in the local deck pool), so a guest's chosen
-    // hero was discarded even once the flag was on — it now rides in on the
-    // join message. A seat whose deck pinned nothing keeps its dealt suit,
-    // which is the same fallback hot-seat has.
-    g.heroes = true;
-    const hostSuit = deckNowRef.current.suit;
-    if (hostSuit && g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, "P1", hostSuit);
-    const pinned: Partial<Record<PlayerId, Suit>> = hostSuit ? { P1: hostSuit } : {};
-    for (const e of lobby) {
-      if (!e.suit) continue;
-      pinned[e.seat] = e.suit;
-      if (g.seatSuits) g.seatSuits = pinSuit(g.seatSuits, e.seat, e.suit);
-    }
     // The host is the only side that knows EVERY name, so it names the seats
     // and relays them; the others read them off the state message.
     const names: Partial<Record<PlayerId, string>> = { P1: hostName };
@@ -2044,11 +1962,6 @@ export function App() {
     setupRef.current = {
       p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
       board: hostBoardSize, humans: seats,
-      // A REMATCH RUNS THE SAME HEROES. Without these two, `dealRematch` reads
-      // `s.heroes ?? false` and an empty pin map — so the second game of a set
-      // silently dropped both players' choices and turned the heroes off, which
-      // is exactly the bug the offline rematch already had and fixed.
-      heroes: true, suits: pinned,
     };
     setRematchMine(false); setRematchTheirs(false);
     setGame(g);
@@ -2073,7 +1986,6 @@ export function App() {
     const guestCards = resolveDeckCards(p2DeckId);
     const guestSpells = resolveDeckSpells(p2DeckId);
     const guestName = deckLabel(p2DeckId);
-    const guestSuit = resolveDeckSuit(p2DeckId);
     setNetStatus(`Joining ${code}…`);
     dropSavedOnline(); // same as opening one: this is a different table
     onlineStartedRef.current = false;
@@ -2095,8 +2007,7 @@ export function App() {
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
       onSubscribed: () => roomRef.current?.sendJoin(
-        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false,
-        guestSuit),
+        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -2454,25 +2365,6 @@ export function App() {
           if (canSummon(game, view, sel.handId, sq.col, sq.row).ok)
             out.push({ row: sq.row, col: sq.col } as Pos);
       return out;
-    }
-    // ARCANE FOCUS: ring the allies that can actually take the channel.
-    //
-    // Nothing lit up before. The power armed, the board looked exactly as it
-    // had a moment earlier, and the player picked blind — then a card the
-    // engine refuses did NOTHING AT ALL: the selection cleared, the power was
-    // not spent, and no message said why. A once-per-game ability that appears
-    // to do nothing is worse than one that is merely hard to use, because the
-    // player's next move is to press it again.
-    //
-    // Asked of `canChannel` rather than re-derived, which is the same rule
-    // `summonableHandIds` above states for itself: the predicate that decides
-    // what is legal is the one that decides what glows, or the two drift. This
-    // exact family of bug — a UI check and an engine check disagreeing about
-    // one card — is what froze the game for an AI seat.
-    if (sel?.kind === "channel") {
-      return boardCards(game, view)
-        .filter((c) => c.pos && c.curHp > 0 && canChannel(game, c.instanceId).ok)
-        .map((c) => c.pos as Pos);
     }
     if (sel?.kind === "card") return legalMoves(game, view, sel.instanceId);
     if (sel?.kind === "spell") {
@@ -2859,35 +2751,6 @@ export function App() {
 
   function onSlotClick(row: number, col: number) {
     const clicked = cardAt(game, row, col);
-
-    // ARCANE FOCUS ARMED: the next ally tapped fires its Special, here in
-    // prep. Checked FIRST, above every other armed state, because the chip
-    // that armed it is the only thing that can have armed it — nothing else
-    // can be pending at the same time (arming it clears `pending`).
-    if (sel?.kind === "channel") {
-      if (!clicked || me === null) return;
-      if (clicked.owner !== me) {
-        setDetailId(clicked.instanceId);
-        setHint("⚠ Channel one of <b>your own</b> cards — its Special fires now.");
-        return;
-      }
-      // EVERY refusal, in the engine's own words. This used to check exactly
-      // two things — owner, and whether the card has a Special — and dispatch
-      // regardless of the other nine `canChannel` makes. A card that was MUTED,
-      // quarantined, out of targets, already fully grown, or too hurt to pay its
-      // own HP cost simply swallowed the click: nothing happened, nothing was
-      // spent, nothing was said. Reading the predicate means a reason that can
-      // never drift from the rule that produced it.
-      const chk = canChannel(game, clicked.instanceId);
-      if (!chk.ok) {
-        setDetailId(clicked.instanceId);
-        setHint(`⚠ Can't channel <b>${getDef(clicked.defId).name}</b> — ${chk.reason ?? "not right now"}.`);
-        return;
-      }
-      setSel(null);
-      dispatch({ type: "HERO_POWER", player: me, instanceId: clicked.instanceId });
-      return;
-    }
 
     // Battle-phase target pick — click up to maxPicks targets (repeat a
     // target to stack hits on it); fires automatically at the cap. A click on a
@@ -3460,41 +3323,6 @@ export function App() {
 
 
   const myPrep = me !== null && game.phase === "prep" && game.prep?.priority === me;
-  /** THE HERO POWER, for the spell tray.
-   *
-   *  It used to be a full-width `lockin` button beside Pass — the busiest strip
-   *  on the screen, shared with the two controls you press every single turn —
-   *  for an ability used ONCE in a whole match. It is free and once per game,
-   *  which is the shape of a spell, so it lives with the spells now.
-   *
-   *  Null when the mode has no heroes (a suit is dealt to every match and a
-   *  skirmish must not grow a hero power because a glyph was dealt) or once it
-   *  is spent, because a permanently dead chip is worse than no chip. */
-  const heroChip = (() => {
-    if (!game.heroes || me === null) return undefined;
-    const suit = game.seatSuits?.[me];
-    if (!suit || game.players[me].heroPowerUsed) return undefined;
-    const hero = HEROES[suit];
-    const armed = Boolean(game.players[me].freeSummon);
-    // ARCANE FOCUS AIMS, so its chip ARMS a selection instead of resolving.
-    // The other three have nothing to point at and fire where they stand.
-    const aims = suit === "heart";
-    const channelling = sel?.kind === "channel";
-    return {
-      name: hero.power.name,
-      text: hero.power.text,
-      ready: armed || channelling,
-      disabled: !myPrep || staged !== null || armed,
-      onUse: () => {
-        if (!aims) { dispatch({ type: "HERO_POWER", player: me }); return; }
-        // A second press disarms — the same escape every other armed
-        // control here gives you, and this one spends a once-per-game
-        // ability so it needs the way out more than they do.
-        setSel(channelling ? null : { kind: "channel" });
-        setPending(null);
-      },
-    };
-  })();
   // Gentle nudge: on your prep turn, before you've spent your one move and while
   // nothing else is armed, softly ring the cards that can actually move so a new
   // player can see there's a move to make (and which pieces it's open to). It
@@ -3820,7 +3648,6 @@ export function App() {
               armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
               myTurn={myPrep}
               onPick={onPickSpell}
-              hero={heroChip}
               vertical
             />
           )}
@@ -3835,7 +3662,6 @@ export function App() {
             armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
             myTurn={myPrep}
             onPick={(id) => { onPickSpell(id); setMobilePanel(null); }}
-            hero={heroChip}
             vertical
           />
         ) : (
@@ -3982,7 +3808,6 @@ export function App() {
                   armedSpellId={sel?.kind === "spell" ? sel.spellId : null}
                   myTurn={myPrep}
                   onPick={onPickSpell}
-                  hero={heroChip}
                   collapsible
                 />
               </div>
@@ -5282,18 +5107,6 @@ export function App() {
                             {row ? row.name : "waiting for a player…"}
                             {row?.host && <i className="lob-tag">host</i>}
                             {isMe && <i className="lob-tag you">you</i>}
-                            {/* THE HERO, BEFORE THE DEAL. It shifts its owner's
-                                economy and carries a once-per-game power, so
-                                "who am I facing" is a real question — and the
-                                answer used to arrive only with the board. A
-                                seat whose deck pinned nothing shows nothing and
-                                takes a dealt suit. */}
-                            {row?.suit && (
-                              <i className={`lob-hero suit-${row.suit}`}
-                                 title={`${HEROES[row.suit].name} — ${HEROES[row.suit].power.name}: ${HEROES[row.suit].power.text}`}>
-                                {SUIT_STYLES[row.suit].glyph} {HEROES[row.suit].name}
-                              </i>
-                            )}
                           </span>
                           {row
                             ? <span className={`lob-ready${row.ready ? " on" : ""}`}>

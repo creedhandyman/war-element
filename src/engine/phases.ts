@@ -1,7 +1,6 @@
 // Phase reducers + the intent reducer + the advance() driver.
 // All reducers clone the incoming state once and mutate only the clone.
 
-import { cardPower, HEROES, HERO_SHIELDS, HERO_HEAL, HERO_DISCARD, HERO_GOLD, MUSTER_MAX_COST, MUSTER_OPENING_MAX, HERO_MIN_ROUND } from "./heroes";
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
@@ -38,7 +37,6 @@ import {
   aoeRowsHit,
   basicIsInert,
   canCastSpell,
-  canChannel,
   canFireSpecial,
   effectiveSpecialCost,
   canFireTalent,
@@ -123,21 +121,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const def = getDef(hand.defId);
       p.hand = p.hand.filter((h) => h.handId !== intent.handId);
       // The opening placement is free — that is the whole of the head start.
-      // ...and so is a Mustered one, which spends the arming instead of gold.
-      //
-      // IT IS ONLY SPENT WHEN IT WAS NEEDED. During the opening, placement is
-      // already free, so the only thing Muster buys there is a card OVER the
-      // cost cap — and burning a once-per-game power on a 1-drop the player
-      // could have placed anyway would be the game quietly robbing them.
-      // CAPPED. Muster pays for a card up to `MUSTER_MAX_COST` — uncapped it was
-      // a free Mythic, and measured as one. Over the cap it simply does not
-      // apply, so the arming survives for a card it can actually pay for.
-      const musterNeeded = draft.opening ? def.cost > OPENING_COST_CAP : true;
-      const musterCovers = def.cost <= (draft.opening ? MUSTER_OPENING_MAX : MUSTER_MAX_COST);
-      if (p.freeSummon && musterNeeded && musterCovers) {
-        p.freeSummon = false;
-        draft.log.push(`${intent.player} musters ${def.name} — cost ignored.`);
-      } else if (!draft.opening) {
+      if (!draft.opening) {
         // The Seek voucher is spent HERE and only here, so a card that was found
         // but never summoned keeps its discount until it is — and a card summoned
         // twice (it cannot be, decks are singleton, but the rule should not
@@ -639,131 +623,6 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       const card = draft.cards[intent.instanceId];
       if (!card || card.owner !== intent.player) throw new Error("Not your card");
       card.autoMode = intent.mode;
-      return draft;
-    }
-    case "HERO_POWER": {
-      // The VISIBLE half of a hero. The curve shift wins games quietly; this is
-      // the thing the player remembers doing, which is why every hero has one.
-      const p = draft.players[intent.player];
-      const suit = draft.seatSuits?.[intent.player];
-      // Gated on heroes being live for the mode, so a plain skirmish cannot
-      // fire one just because a suit was dealt — the same rule the curve obeys.
-      if (!draft.heroes || !suit || p.heroPowerUsed) return draft;
-      if (draft.round < HERO_MIN_ROUND) return draft;
-      const hero = HEROES[suit];
-      p.heroPowerUsed = true;
-      switch (suit) {
-        case "spade":   // Muster: the next summon is free.
-          p.freeSummon = true;
-          break;
-        case "heart": {
-          // ARCANE FOCUS: reach into an ally and fire its Special NOW, in
-          // prep, for nothing — off cooldown, out of turn, in the phase
-          // where a spell would be cast.
-          //
-          // It used to refund the magic on the next few Specials, which was
-          // worth +1.3 points against the same seat with its power disabled
-          // — where the other three heroes' powers are worth 10 to 14. (It
-          // was worse than that, −11.4, back when the Mage also carried a
-          // magic curve: a refund on a currency the hero already had in
-          // surplus only ever talked it into casting more. See heroes.ts.)
-          // A discount is also not a decision: nothing about it is chosen
-          // except when to press it.
-          //
-          // This is a decision twice over — which body, and what it aims at
-          // — and it takes an action the game does not otherwise sell: a
-          // Special in the prep phase. Cooldown and magic are both waived
-          // through `card.freeSpecial`, the same flag Volcanon's on-kill
-          // recast already uses, so this rides machinery that is proven
-          // rather than inventing a second way to fire a Special.
-          const src = intent.instanceId ? draft.cards[intent.instanceId] : undefined;
-          // A power spent on nothing is the worst outcome, so an illegal
-          // channel refuses BEFORE `heroPowerUsed` would strand it — see the
-          // early return below the switch.
-          if (!src || src.owner !== intent.player
-              || !canChannel(draft, src.instanceId).ok) {
-            // Same asymmetry as the catch below: refunded for a human, spent for
-            // an AI, because an AI that proposes this twice proposes it forever.
-            p.heroPowerUsed = !(draft.humans ?? ["P1"]).includes(intent.player);
-            return draft;
-          }
-          // BOTH WAIVERS, not just the one. `canChannel` says the summon
-          // lockout does not apply — that is the headline of the power — but
-          // only `freeSpecial` was ever lifted here, so `canFireSpecial` went on
-          // enforcing the lockout and refused the very channel `canChannel` had
-          // just approved. The reducer then returned an UNCHANGED state, and an
-          // AI seat re-proposed it forever: a silent, permanent freeze on the
-          // opponent's prep turn. Saved and restored the same way, so a card
-          // that really did just land is still summon-locked for everything
-          // else this round.
-          const wasFree = src.freeSpecial;
-          const wasNew = src.summonedThisRound;
-          src.freeSpecial = true;
-          src.summonedThisRound = false;
-          try {
-            performBattleAction(draft, src.instanceId, "special", intent.targetIds);
-          } catch {
-            // Nothing legal to point it at. Hand the power back rather than
-            // eating a once-per-game ability on a misclick.
-            src.freeSpecial = wasFree;
-            src.summonedThisRound = wasNew;
-            // ...BUT NEVER TO AN AI SEAT. A human gets the refund because a
-            // misclick is a human thing; an AI proposing an illegal channel is a
-            // BUG, and handing the power back leaves the state identical, which
-            // is precisely what let it retry forever. Spending the power turns a
-            // frozen game into one wasted ability — the right way round.
-            p.heroPowerUsed = !(draft.humans ?? ["P1"]).includes(intent.player);
-            return draft;
-          }
-          src.summonedThisRound = wasNew;
-          draft.log.push(`${intent.player} — ${hero.power.name}: channels ${label(draft, src)}.`);
-          break;
-        }
-        case "club": {  // Hold the Line: the whole line digs in, and patches up.
-          let n = 0;
-          for (const c of boardCards(draft, intent.player)) {
-            if (c.curHp <= 0) continue;
-            c.curShields += HERO_SHIELDS;
-            healCard(draft, c, HERO_HEAL, intent.player);
-            n++;
-          }
-          draft.log.push(`${intent.player} — ${hero.power.name}: ${n} ally(ies) gain ${HERO_SHIELDS} shields and heal ${HERO_HEAL}.`);
-          break;
-        }
-        case "diamond": {
-          // Requisition: turn the cards you do not need into the gold for the
-          // ones you do. Takes the WEAKEST in hand by `cardPower` — the same
-          // stat budget the whole set is costed against — with ties going to
-          // the dearer card, since the same stats at a higher price is the
-          // worse card twice over.
-          //
-          // It used to take the two DEAREST, which is on-theme and miserable to
-          // press: it asked you to burn the Mythic you were saving for, so the
-          // honest play was often not to fire it. Choosing FOR the player is
-          // kept either way — a free once-per-game power should be one tap.
-          const doomed = [...p.hand]
-            .sort((a, b) => {
-              const da = getDef(a.defId), db = getDef(b.defId);
-              return cardPower(da) - cardPower(db) || db.cost - da.cost;
-            })
-            .slice(0, HERO_DISCARD);
-          const names = doomed.map((h) => getDef(h.defId).name);
-          const ids = doomed.map((h) => h.handId);
-          p.hand = p.hand.filter((h) => !ids.includes(h.handId));
-          p.gold += HERO_GOLD;
-          // NAMED, unlike the old line's bare count. "Discards 2" was legible
-          // enough when the rule was "the dearest" and the player could see
-          // which two those were; "the weakest" is a stat-budget comparison
-          // nobody does in their head, so the log has to say what went.
-          draft.log.push(
-            `${intent.player} — ${hero.power.name}: discards `
-            + `${names.join(" and ") || "nothing"} for ${HERO_GOLD} gold.`,
-          );
-          break;
-        }
-      }
-      if (suit === "spade" || suit === "heart")
-        draft.log.push(`${intent.player} — ${hero.power.name} is ready.`);
       return draft;
     }
     case "SURRENDER": {
@@ -4423,12 +4282,12 @@ export function advance(state: GameState): GameState {
       // is null while an AI holds priority. Reloading the page is the only way
       // out, and that has happened to a player mid-match.
       //
-      // Arcane Focus was one such intent (see the heart branch of HERO_POWER —
-      // `canChannel` promised a waiver the resolve path did not deliver) and it
-      // stalled 30% of hero matches. That one is fixed at the source, where it
-      // belongs. This is the backstop for the NEXT disagreement between a
-      // predicate and the path that honours it: one wasted turn instead of a
-      // dead match. It fires on nothing that works.
+      // A since-removed hero power was one such intent: its predicate promised a
+      // waiver the resolve path did not deliver, and it stalled 30% of the
+      // matches it appeared in until it was fixed at the source. This is the
+      // backstop for the NEXT disagreement between a predicate and the path that
+      // honours it: one wasted turn instead of a dead match. It fires on nothing
+      // that works.
       const before = progressKey(draft, seat);
       const next = applyIntent(draft, intent);
       if (progressKey(next, seat) !== before) return next;
@@ -4459,7 +4318,6 @@ function progressKey(s: GameState, seat: PlayerId): string {
     s.phase, s.round, s.prep?.priority ?? "-", s.prep?.consecutivePasses ?? -1,
     s.prep?.movedThisTurn ? 1 : 0, s.log.length,
     p.gold, p.magicPool, p.hand.length, p.deck.length,
-    p.heroPowerUsed ? 1 : 0, p.freeSummon ? 1 : 0,
     Object.keys(s.cards).length,
     p.spellbook.filter((e) => e.used).length,
   ].join("|");

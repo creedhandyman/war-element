@@ -206,10 +206,6 @@ export type Selection =
   | { kind: "hand"; handId: string }
   | { kind: "card"; instanceId: string }
   | { kind: "spell"; spellId: string; mode?: "attack" | "shield" }
-  /** ARCANE FOCUS armed: the next ally tapped has its Special fired, in prep.
-   *  A hero power that AIMS is the only one of the four that needs a selection
-   *  state at all — the other three resolve where they stand. */
-  | { kind: "channel" }
   | null;
 
 /** What the action bar is currently ARMED for, waiting on a confirming second
@@ -237,12 +233,11 @@ export type PendingBattle = "basic" | "special" | "talent" | "plummet" | null;
  *  the deal existed still has. */
 export function suitFor(seatSuits: Partial<Record<PlayerId, Suit>> | undefined, seat: PlayerId) {
   const style = styleOf(seatSuits, seat);
-  // TWO SEATS CAN NOW SHARE A SUIT — a hero is chosen per squad, and two decks
-  // may choose the same one (see `pinSuit`). The glyph stops being unique when
-  // they do, so the COLOUR separates them: the first seat holding a suit keeps
-  // its familiar shade, anyone after wears the alternate. `key` carries the
-  // variant so every consumer tints from one string and none of them has to
-  // know the rule.
+  // TWO SEATS CAN SHARE A SUIT when `pinSuit` puts one on a suit already
+  // dealt. The glyph stops being unique when they do, so the COLOUR separates
+  // them: the first seat holding a suit keeps its familiar shade, anyone after
+  // wears the alternate. `key` carries the variant so every consumer tints from
+  // one string and none of them has to know the rule.
   const alt = suitVariantOf(seatSuits, seat) === 1;
   return {
     glyph: style.glyph,

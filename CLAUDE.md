@@ -3136,6 +3136,30 @@ Not handled: the same seat open in two tabs at once (both would drive it), and a
 save from before a deploy that changed the GameState shape (the `sync` answer
 normally replaces it with the other side's copy).
 
+## Heroes are gone; suits stay
+
+Heroes — one per suit (Warlord/Muster, Sentinel/Hold the Line, Mage/Arcane
+Focus, Scholar/Requisition), a free once-per-game power chosen per deck in the
+builder — were REMOVED in September 2026. The case, from replaying 160 AI-vs-AI
+matches with heroes off and on (same seeds, decks and dealt suits): the power
+fired in 94% of seat-games, yet seats that used it won 51% both ways (26 games
+flipped to a win, 25 to a loss); first-player win rate 43% vs 44%; 11.8 vs 12.2
+rounds. A rule, a button and a builder choice that did not change who wins.
+
+What went: `heroes.ts`, `GameState.heroes`, `PlayerState.heroPowerUsed` and
+`freeSummon`, the `HERO_POWER` intent, the AI's `aiHeroPower`, `canChannel`
+(Arcane Focus was its only user), the spellbook's hero chip, the Deck Builder's
+hero panel, and the per-deck `suit` pin with its online relay. Old saves' pins
+are dropped on load (`clean` in squads.ts, the loader in custom-decks.ts).
+
+What STAYS: suits. `dealSuits` deals one per seat every match; `SUIT_STYLES` /
+`styleOf` decide how an AI seat plays — in the same replay the dealt style moved
+results more than the powers did; the glyph and colour are the seat's identity on
+the board and the versus screen. `pinSuit` is kept for tests and balance runs.
+Don't bring back a per-deck suit pin without a reason for a player to want one:
+it only ever existed to choose a hero. (The campaign's `save.hero` and
+`heroBookFor` are the player's campaign character — unrelated, untouched.)
+
 ## Traps found the hard way
 
 - **A rule that names board rows by NUMBER is probably wrong on one of the two

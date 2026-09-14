@@ -15,53 +15,18 @@ export function SpellTray(props: {
   myTurn: boolean;
   onPick: (spellId: string) => void;
   vertical?: boolean; // stack the chips in a column (right-of-field rail)
-  /** THE HERO POWER, which lives here rather than in the action bar.
-   *
-   *  It is free and once per game — the same shape as a spell — and it was a
-   *  full-width `lockin` button beside Pass, competing for the busiest strip on
-   *  the screen with the two things you press every single turn. One use in a
-   *  whole match does not earn that. Absent when the mode has no heroes, or
-   *  once it has been spent. */
-  hero?: { name: string; text: string; ready: boolean; disabled: boolean; onUse: () => void };
   collapsible?: boolean; // render as a tap-to-open book instead of an open row
 }) {
   const { game, player } = props;
   const [open, setOpen] = useState(false);
   const book = game.players[player].spellbook;
-  // The hero power alone is reason enough to show the tray: a deck with no
-  // spellbook still has one, and hiding the tray would hide the power with it.
-  if ((!book || book.length === 0) && !props.hero) return null;
-  // Bound ONCE, so no later read has to remember that the book can be absent —
-  // the empty-book case now reaches the render instead of returning above it,
-  // and a `book.map` further down would throw on exactly the deck this change
-  // exists to serve.
-  const spells = book ?? [];
+  if (!book || book.length === 0) return null;
+  const spells = book;
   const magic = game.players[player].magicPool;
   const remaining = spells.filter((s) => !s.used).length; // spells not yet cast
 
-  const heroChip = props.hero && (
-    <button
-      className={`spellchip hero-chip ${props.hero.ready ? "armed" : ""}`}
-      disabled={props.hero.disabled}
-      title={`${props.hero.name} — ${props.hero.text}`}
-      onClick={props.hero.onUse}
-    >
-      <span className="spellchip-cost">★</span>
-      <span className="spellchip-body">
-        <span className="spellchip-head">
-          <span className="spellchip-name">{props.hero.name}</span>
-          <span className="spellchip-note">
-            {props.hero.ready ? "READY — SPEND IT" : "ONCE PER GAME"}
-          </span>
-        </span>
-        <span className="spellchip-text">{props.hero.text}</span>
-      </span>
-    </button>
-  );
-
   const chips = (
     <div className="spelltray-row">
-      {heroChip}
       {spells.map((slot, i) => {
         const spell = getSpell(slot.defId);
         const afford = magic >= spell.cost;
@@ -134,8 +99,7 @@ export function SpellTray(props: {
 
   // Any spell castable right now — used to nudge the collapsed book so you know
   // there's something worth opening it for.
-  const anyCastable = (props.myTurn && spells.some((s) => !s.used && magic >= getSpell(s.defId).cost))
-    || Boolean(props.hero && !props.hero.disabled);
+  const anyCastable = props.myTurn && spells.some((s) => !s.used && magic >= getSpell(s.defId).cost);
 
   // Collapsed book: a centered toggle that opens the chips in a small popover.
   if (props.collapsible) {
@@ -162,8 +126,8 @@ export function SpellTray(props: {
         >
           <span className="sb-ico">📖</span>
           <span className="sb-label">Spells</span>
-          <span className={`sb-count ${remaining === 0 && !props.hero ? "spent" : ""}`}>
-            {remaining + (props.hero ? 1 : 0)}
+          <span className={`sb-count ${remaining === 0 ? "spent" : ""}`}>
+            {remaining}
           </span>
         </button>
       </div>

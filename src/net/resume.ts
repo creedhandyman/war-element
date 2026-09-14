@@ -18,7 +18,7 @@
 // progress is a fact about this browser's seat at a table, not progress: synced
 // to another device it would offer a rejoin into a seat still occupied here.
 
-import type { GameState, PlayerId, Suit } from "../engine";
+import type { GameState, PlayerId } from "../engine";
 import { seatsOf } from "../engine/types";
 import type { ResumePoint, Role } from "./online";
 
@@ -40,8 +40,6 @@ export interface SavedSetup {
   p2s?: string[];
   board: number;
   humans: PlayerId[];
-  heroes?: boolean;
-  suits?: Partial<Record<PlayerId, Suit>>;
 }
 
 export interface SavedOnlineMatch {

@@ -346,7 +346,7 @@ describe("the save a closed match leaves behind", () => {
 
   it("keeps the host's rematch setup, so a returning dealer can still deal", () => {
     const store = memStore();
-    const setup = { p1: ["a"], p2: ["b"], board: 4, humans: ["P1", "P2"] as ("P1" | "P2")[], heroes: true };
+    const setup = { p1: ["a"], p2: ["b"], board: 4, humans: ["P1", "P2"] as ("P1" | "P2")[] };
     saveOnlineMatch({ ...match(), role: "host", seat: "P1", clientId: "", setup }, NOW, store);
     expect(loadOnlineMatch(NOW, store)?.setup).toEqual(setup);
   });
