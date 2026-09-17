@@ -1332,9 +1332,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 2,
-    dmg: 12,
+    // 6 DMG on 7 HP, not 12 on 1: a 1-HP card died before it swung (-7.0 against
+    // same-cost AQUA peers after the AI fix). Same 20 points, -2.1.
+    dmg: 6,
     hits: 1,
-    hp: 1,
+    hp: 7,
     sp: 7,
     shields: 0,
     keywords: {},
@@ -8012,18 +8014,20 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 7,
     sp: 0,
-    shields: 4,
+    // 3 shields and no Arc poke (13 of a cost-1's 15, the aura carries the rest).
+    // After the AI fix Rodd still ran +14.0 over same-cost BOLT peers — the
+    // strongest card in the set. Dropping the 2-DMG round poke alone left +6.2;
+    // with one shield less it lands at +4.5 (672 matches a line, paired seeds).
+    shields: 3,
     keywords: {},
     // Conduction: adjacent BOLT allies (of the 8 surrounding slots) gain +1 DMG.
-    // Arc (End of Round): 2 DMG to the closest opponent. A fixed pylon — SP 0,
-    // never moves.
+    // A fixed pylon — SP 0, never moves.
     //
     // BOLT only. A conduit powers the grid it belongs to; buffing whatever
     // happened to stand next to it made Rodd a colourless +1 for any deck that
     // could afford a 1-cost body, which is not what a pylon is for.
-    passiveNames: { aura: "Conduction", roundTick: "Arc" },
+    passiveNames: { aura: "Conduction" },
     aura: { scope: "adjacent", dmg: 1, element: "BOLT" },
-    roundTick: { pokeDmg: 2 },
   },
   {
     id: "bolt_zipp",
