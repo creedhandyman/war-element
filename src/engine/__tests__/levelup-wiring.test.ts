@@ -73,12 +73,20 @@ describe("the wiring", () => {
 
   it("pays on close — skipping is not forfeiting", () => {
     // The button closes a message, not an envelope. Whatever dismisses it, the
-    // same claim runs.
+    // same claim runs — and there are two ways now: the modal's own button, and
+    // the phone's back button. Both go through ONE named claim, so the test
+    // follows the name rather than expecting the claim spelled out inline.
     const at = APP.indexOf("<LevelUpModal");
     expect(at, "the modal is never mounted").toBeGreaterThan(-1);
-    const block = APP.slice(at, at + 700);
-    expect(block).toContain("claimLevelUp(prev)");
-    expect(block, "a claim that is not persisted").toContain("saveStory(next)");
+    const handler = APP.slice(at, at + 700).match(/onClose=\{(\w+)\}/)?.[1];
+    expect(handler, "the modal's close is not a named claim").toBeDefined();
+    const def = APP.indexOf(`const ${handler} = `);
+    expect(def, `${handler} is never defined`).toBeGreaterThan(-1);
+    const body = APP.slice(def, def + 400);
+    expect(body).toContain("claimLevelUp(prev)");
+    expect(body, "a claim that is not persisted").toContain("saveStory(next)");
+    // Back dismisses it too, and has to pay through the very same claim.
+    expect(APP).toContain(`useBackLayer(Boolean(levelUp && !packBusy), ${handler})`);
   });
 
   it("waits for a pack to finish opening", () => {

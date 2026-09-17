@@ -13,6 +13,7 @@
  *  so this screen doubles as the campaign's to-do list.
  */
 import { useMemo, useState } from "react";
+import { useBackLayer } from "./use-back-layer";
 import type { CardClass, Element, Keyword } from "../engine";
 import { CARDS } from "../data/cards";
 import {
@@ -85,6 +86,8 @@ export function StoryCollection(props: {
    *  twice. */
   const [filtersOpen, toggleFilters] = useFilterFold();
   const [detailId, setDetailId] = useState<string | null>(null);
+  // Back closes a card's detail before the collection under it.
+  useBackLayer(detailId !== null, () => setDetailId(null));
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
   const inDeck = useMemo(() => new Set(save.deck), [save.deck]);
   const cap = deckCapFor(save.cleared);

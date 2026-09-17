@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBackLayer } from "./use-back-layer";
 import type { CardClass, Element, Keyword } from "../engine";
 import { getDef, getSpell, SPELLS, spellCostCap } from "../engine";
 import {
@@ -421,6 +422,9 @@ export function DeckBuilder(props: {
   useEffect(() => {
     if (props.open) setSquads(loadSquads());
   }, [props.open]);
+
+  // Back closes a card's detail before the builder under it.
+  useBackLayer(props.open && detailId !== null, () => setDetailId(null));
 
   if (!props.open) return null;
 

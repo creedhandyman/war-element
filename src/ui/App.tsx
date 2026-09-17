@@ -132,6 +132,8 @@ import { currentUser, onAuthChange } from "../net/account";
 import { VersusIntro } from "./VersusIntro";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
 import { Shop } from "./Shop";
+import { browserBackStack } from "./back-stack";
+import { useBackLayer } from "./use-back-layer";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
@@ -3522,6 +3524,86 @@ export function App() {
     }
   };
 
+  // ── THE PHONE'S BACK BUTTON ─────────────────────────────────────────────────
+  // Android's back gesture used to close the installed app from anywhere, because
+  // every screen here is state and the browser only ever held one entry. Now it
+  // closes whatever is on top, then retraces tabs, and only leaves the app from the
+  // screen it opened on. The machinery and its rules are in back-stack.ts; this is
+  // the list of what counts as "on top".
+  const goTab = (t: Tab) => {
+    setTab(t);
+    // Home's collection is a sub-screen of the tab, not a destination
+    // of its own: tapping Home from anywhere has to land on Home.
+    setHomeCollection(false);
+    // Likewise the Shop opens on Packs unless Home had a reason to
+    // send you to the Crafter. Reaching it from the nav is not one.
+    setShopTab("packs");
+    // Story owns the whole screen when it is up, so entering and leaving
+    // it is a real transition rather than just a tab swap.
+    navDo({ t: t === "story" ? "open" : "close" });
+  };
+  const finishStoryResult = () => {
+    setStarted(false);
+    navDo({ t: "closeResult" });
+  };
+  const claimLevel = () => {
+    setStory((prev) => {
+      const next = claimLevelUp(prev);
+      if (next === prev) return prev;
+      saveStory(next);
+      return next;
+    });
+  };
+  const shownTab: Tab = storyOpen ? "story" : tab;
+  const shownTabRef = useRef(shownTab);
+  const goTabRef = useRef(goTab);
+  // LAYOUT effects, so the tab is recorded before any child opens a layer in the
+  // same commit. A child's plain effects run before this component's, and a Tower
+  // opening straight onto a just-tamed boss would otherwise stamp its entry with
+  // the tab the player came from.
+  useLayoutEffect(() => {
+    shownTabRef.current = shownTab;
+    goTabRef.current = goTab;
+  });
+  useLayoutEffect(() => {
+    browserBackStack().attach({
+      currentTab: () => shownTabRef.current,
+      restoreTab: (t) => goTabRef.current(t as Tab),
+    });
+  }, []);
+  useLayoutEffect(() => {
+    browserBackStack().tab(shownTab);
+  }, [shownTab]);
+
+  // A MATCH is sticky: back never walks out of one. Mid-match it opens the match
+  // menu, where Surrender sits behind its own confirm. Once the result screen is
+  // up it does nothing, because that screen's buttons (a rematch offer, leaving an
+  // online room) are the only honest ways out.
+  useBackLayer(started, () => { if (game.phase !== "gameover") setBarMenu(true); }, true);
+  // A DRAFT is sticky too: its only exit discards a run the entry fee already paid for.
+  useBackLayer(Boolean(draftRun && !draftComplete(draftRun)), () => {}, true);
+  // Story's result screen only ever moves on: what it pays was settled before it showed.
+  useBackLayer(Boolean(storyResult), finishStoryResult);
+  useBackLayer(Boolean(levelUp && !packBusy), claimLevel);
+  // In a match, what is drawn over the board.
+  useBackLayer(barMenu, () => { setBarMenu(false); setSurrenderArmed(false); });
+  useBackLayer(mobilePanel !== null, () => setMobilePanel(null));
+  useBackLayer(Boolean(detailId && game.cards[detailId]), () => setDetailId(null));
+  useBackLayer(chatOpen, () => setChatOpen(false));
+  useBackLayer(wheelAt !== null, () => setWheelAt(null));
+  // Story's screens over its map.
+  useBackLayer(storyOpen && !started && nav.view !== "map", () => navDo({ t: "view", view: "map" }));
+  useBackLayer(storyOpen && !started && nav.view !== "collection" && !!prepNode, () => navDo({ t: "prep", node: null }));
+  useBackLayer(nav.builder, () => navDo({ t: "builder", open: false }));
+  // The menus' sheets and full-screen tools.
+  useBackLayer(!started && !storyOpen && tab === "arena" && pickSeat !== null, () => setPickSeat(null));
+  useBackLayer(!started && !storyOpen && tab === "home" && homeCollection, () => setHomeCollection(false));
+  useBackLayer(builderOpen, () => { setBuilderOpen(false); setLinkedDeck(null); });
+  useBackLayer(profileOpen, () => setProfileOpen(false));
+  useBackLayer(accountOpen, () => setAccountOpen(false));
+  useBackLayer(rulesOpen, () => setRulesOpen(false));
+  useBackLayer(galleryOpen, () => setGalleryOpen(false));
+
   return (
     // `pre-match`: the battle chrome renders unconditionally — it always has —
     // so before a match there was an empty board, an empty log and an idle
@@ -4356,10 +4438,7 @@ export function App() {
           firstClear={!story.cleared.includes(storyResult.node.id)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           foils={foilIds}
-          onDone={() => {
-            setStarted(false);
-            navDo({ t: "closeResult" });
-          }}
+          onDone={finishStoryResult}
         />
       )}
 
@@ -5432,14 +5511,7 @@ export function App() {
       {levelUp && !packBusy && (
         <LevelUpModal
           reward={levelUp}
-          onClose={() => {
-            setStory((prev) => {
-              const next = claimLevelUp(prev);
-              if (next === prev) return prev;
-              saveStory(next);
-              return next;
-            });
-          }}
+          onClose={claimLevel}
         />
       )}
 
@@ -5567,18 +5639,7 @@ export function App() {
         <BottomNav
           tab={storyOpen ? "story" : tab}
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}
-          onTab={(t) => {
-            setTab(t);
-            // Home's collection is a sub-screen of the tab, not a destination
-            // of its own: tapping Home from anywhere has to land on Home.
-            setHomeCollection(false);
-            // Likewise the Shop opens on Packs unless Home had a reason to
-            // send you to the Crafter. Reaching it from the nav is not one.
-            setShopTab("packs");
-            // Story owns the whole screen when it is up, so entering and leaving
-            // it is a real transition rather than just a tab swap.
-            navDo({ t: t === "story" ? "open" : "close" });
-          }}
+          onTab={goTab}
         />
       )}
 

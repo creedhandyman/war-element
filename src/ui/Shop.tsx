@@ -22,6 +22,7 @@
  *  how they drift the first time someone retunes the table.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useBackLayer } from "./use-back-layer";
 import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
@@ -125,6 +126,9 @@ export function Shop(props: {
   const [previewId, setPreviewId] = useState<string | null>(null);
   /** The pack just torn open, held so the player can actually read it. */
   const [opened, setOpened] = useState<PackResult | null>(null);
+  // Back dismisses a pack's reveal (a tap outside it already does) and a card preview.
+  useBackLayer(opened !== null, () => setOpened(null));
+  useBackLayer(previewId !== null, () => setPreviewId(null));
   /** What the last pack refunded, kept after the sheet closes — it is the
    *  evidence for the claim the Packs tab makes about duplicates. */
   const [lastRefund, setLastRefund] = useState<number | null>(null);

@@ -29,6 +29,7 @@
  *  written; the floor ladder is the half the boss doc does specify.
  */
 import { useEffect, useState } from "react";
+import { useBackLayer } from "./use-back-layer";
 import { Check, Flame, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
@@ -66,6 +67,8 @@ export function VoidTower(props: {
   // separately from `openBoss` so closing the reveal and opening the same boss
   // again shows the ordinary page rather than replaying the celebration.
   const [revealing, setRevealing] = useState(false);
+  // Back closes a boss's panel before leaving the Tower.
+  useBackLayer(openBoss !== null, () => { setOpenBoss(null); setRevealing(false); });
   const mountOpen = props.openOnMount;
   const consume = props.onOpenConsumed;
   useEffect(() => {

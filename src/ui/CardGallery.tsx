@@ -27,6 +27,7 @@
  *  reached from three screens.
  */
 import { useEffect, useMemo, useState } from "react";
+import { useBackLayer } from "./use-back-layer";
 import type { CardClass, CardDef, Element, Keyword } from "../engine";
 import { CARDS, TOKENS } from "../data/cards";
 import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
@@ -183,6 +184,8 @@ export function CardGallery(props: { onClose: () => void }) {
    *  card the player has not looked at yet. */
   const open = (id: string) => { setDetailId(id); setShowInfo(false); setZoom(false); };
   const close = () => { setDetailId(null); setShowInfo(false); setZoom(false); };
+  // Back closes a card's detail before the gallery under it.
+  useBackLayer(detailId !== null, close);
 
   /** Step to the next/previous card WITHIN THE CURRENT FILTER.
    *

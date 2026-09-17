@@ -3010,6 +3010,36 @@ on Packs and "Conjure" lands on the Crafter. Same reason the collected count is
 screen is one tap away and two screens disagreeing about how much you own reads
 as a bug in both.
 
+## The phone's back button — `ui/back-stack.ts`
+
+Android's back gesture used to close the installed app from anywhere: every
+screen here is state, and the browser only ever held one history entry. Now
+every open layer owns an entry and every tab change records one, so back closes
+whatever is on top, then retraces tabs, and leaves the app only from the screen
+it opened on.
+
+- **Anything drawn over something else registers itself** with
+  `useBackLayer(isOpen, close)` (`ui/use-back-layer.ts`). App.tsx lists its own
+  (sheets, full-screen tools, Story's sub-screens, the in-match overlays) in one
+  block above its JSX; a component with a detail view of its own registers inside
+  the component (DeckBuilder, CardGallery, StoryCollection, Shop, VoidTower). An
+  overlay that skips this still works — back just closes whatever sat under it.
+- **`isOpen` must be the same condition that draws it.** A layer registered while
+  nothing shows eats a press that visibly does nothing.
+- **Sticky layers keep the press**: a match (back opens the match menu, and does
+  nothing once the result screen is up) and a draft (its exit discards a paid-for
+  run). Surrender is never one back press away.
+- A layer that closes itself rewinds its own entry, and anything recorded during
+  that rewind waits for it to land — `history.back()` is asynchronous, and a tab
+  switch in the same tap would otherwise be the entry that got rewound. Entries
+  whose layer closed underneath another are skipped by back automatically.
+- Tabs are recorded in a LAYOUT effect, so a child opening a layer in the same
+  commit (Tower opening straight onto a just-tamed boss) stamps the right tab.
+- The logic has no React in it and is tested against a fake history whose
+  `back()` lands in a later task (`back-stack.test.ts`). Verified in the browser:
+  tab back, overlay back, ✕-close without a wasted press, and back mid-match
+  opening and closing the menu without leaving the match.
+
 ## Earning against the AI
 
 Three pieces, all in `src/data/`:
