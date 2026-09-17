@@ -21,17 +21,21 @@ function battleFor(s: GameState, active: string): GameState {
 }
 
 describe("added cards: every ability fires", () => {
-  it("Piranha's Chomp bites everything in reach on arrival, with BLEED", () => {
+  it("Piranha's Chomp bites the two nearest enemies on arrival, wherever they stand, with BLEED", () => {
+    // It used to bite what was in MELEE reach of the square it landed on — its
+    // Home row — which is almost never anyone: 0.9 damage a game in the pre-beta
+    // audit. Now the shoal finds the two nearest enemies on the whole board.
     const s = prepState();
     s.players.P1.gold = 6;
-    // Melee reach 1 from P1's home row, so row 2 is in range.
     const near = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
-    const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, maxHp: 20 });
+    const next2 = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const far = place(s, "dusk_vamp", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 });
     const handId = giveHand(s, "P1", "aqua_piranha");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     expect(next.cards[near.instanceId].curHp).toBe(18); // two 1-DMG bites
     expect(statusOf(next.cards[near.instanceId], "BLEED")?.power).toBe(2);
-    expect(next.cards[far.instanceId].curHp).toBe(20); // out of reach
+    expect(next.cards[next2.instanceId].curHp, "out of melee reach, and bitten anyway").toBe(18);
+    expect(next.cards[far.instanceId].curHp, "only the two nearest").toBe(20);
   });
 
   it("Jellyfish's Storm Conduit talent lands damage AND the PARALYZE", () => {

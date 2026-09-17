@@ -1212,7 +1212,9 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 2,
     hits: 1,
-    hp: 2,
+    // 3, not 2: at 2 HP it died before its Bird Bomb found anyone (-5.3 against same-cost
+    // DUSK peers after the AI fix). 3 lands at -3.4; 4 overshot to +5.0.
+    hp: 3,
     sp: 11,
     shields: 0,
     keywords: { FLYING: true },
@@ -3360,7 +3362,7 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Swinging Sweep (On Summon): 2 DMG to every opponent in king's-move reach
     // (the adjacent tiles) and push each back 1.
-    onSummon: { handler: "barrage", params: { dmg: 2, targets: 99, push: 1 } },
+    onSummon: { handler: "barrage", params: { dmg: 2, targets: 1, reachNearest: 1, push: 1 } },
   },
   {
     id: "bore_cavedweller",
@@ -5297,7 +5299,7 @@ export const CARDS: CardDef[] = [
     // everything in reach, each leaving BLEED 2 for 2 rounds.
     onSummon: {
       handler: "barrage",
-      params: { dmg: 1, hits: 2, targets: 8, statusKind: "BLEED", statusDuration: 2, statusPower: 2 },
+      params: { dmg: 1, hits: 2, targets: 2, reachNearest: 1, statusKind: "BLEED", statusDuration: 2, statusPower: 2 },
     },
   },
   {
@@ -6202,7 +6204,9 @@ export const CARDS: CardDef[] = [
     cost: 1,
     dmg: 1,
     hits: 1,
-    hp: 12,
+    // 10, not 12 (13 of a cost-1's 15): re-measured after the AI fix it ran +5.2 over
+    // same-cost DAWN peers; 10 HP brings it to +2.1 (672 matches a line, paired seeds).
+    hp: 10,
     sp: 2,
     shields: 0,
     keywords: {},
