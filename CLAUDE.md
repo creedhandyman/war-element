@@ -2880,6 +2880,43 @@ so a wrong aspect does not error — it just quietly looks wrong. Nothing catche
 it: `art.test.ts` checks the FILE EXISTS and that the name is lowercase, not its
 shape.
 
+## Art is drawn from a SMALL COPY — `tools/make-thumbs.py`
+
+A browser decodes an image at its **natural** size however small it is drawn.
+Every surface used to point at the 1000px plate, so, measured in the running
+game with a `PerformanceObserver` and a walk over `document.images`:
+
+| screen | images | decoded bitmap |
+| --- | --- | --- |
+| gallery, scrolled two screens | 237 | **694 MB** |
+| a match in progress | 12 | 25 MB |
+
+For tiles 78-96px wide, a 96px hand card, a 26px revealed card and a 20-26px
+spell chip. That, not the engine, is what made phones stutter: the same walk
+during a turn found ZERO long tasks and sub-millisecond clicks, and 5,600-match
+harness runs put a whole AI game at ~0.2s.
+
+`tools/make-thumbs.py` writes `public/cards/thumb` at 500px tall (103 -> 20.5
+MB) and `public/spells/thumb` at 240px (12.2 -> 1.2 MB). `cardThumbSrc` /
+`spellThumbSrc` in `shared.ts` are what every surface calls; `cardArtSrc` /
+`spellArtSrc` remain for the three that genuinely show the art big — the card
+detail view, the gallery lightbox, the cast flash. Same screens after: 165 MB
+and 6.1 MB, both -76%.
+
+**Run the script after dropping art in**, and commit the copy: `art.test.ts`
+fails without one, because a missing copy is the same silent nothing as missing
+art — an empty tile, no error. `.deck-thumb` also carries `content-visibility:
+auto`, so the ~400 offscreen tiles are never laid out.
+
+The narrowest plate aspect (667x1000) gives a 334px-wide copy, which is exactly
+a 111px gallery tile at 3x — the tile size measured at a 375px viewport. If art
+ever reads soft on a high-DPI tablet, raise `SIZES["cards"]` and re-run with
+`--force`; that is the number to move, not the call sites.
+
+Still on the table, none of it measured as a problem yet: the JS bundle is
+390 KB gzipped with no code splitting, and `public/battlefield.png` is 3.4 MB
+tracked but referenced only in a comment.
+
 ## Card Gallery — the screen that shows what the other grids hide
 
 `src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —
