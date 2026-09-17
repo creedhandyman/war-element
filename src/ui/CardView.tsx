@@ -35,7 +35,7 @@ import {
   effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, effectiveSpecialCost,
   getDef, getSpell,
 } from "../engine";
-import { EL_COLOR, EL_ICON, RARITY_STYLE, STATUS_STYLE, KEYWORD_STYLE} from "./shared";
+import { cardArtSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, RARITY_STYLE, STATUS_STYLE } from "./shared";
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
@@ -179,7 +179,7 @@ export function CardView(props: CardViewProps) {
           <div className={`cd-art ${props.mode === "browse" && props.foil ? "foil" : ""}`}
             style={{ borderColor: EL_COLOR[d.element] }}>
             <img
-              src={`/cards/${d.art ?? d.id}.webp`}
+              src={cardArtSrc(d)}
               alt=""
               onError={(e) => {
                 (e.currentTarget.parentElement as HTMLElement).classList.add("no-art");

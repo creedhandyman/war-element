@@ -24,6 +24,7 @@ import {
   deleteSquad, preferredSquad, saveSquad, squadNamed, squadsFor, type Squad,
 } from "../data/squads";
 import { CardView } from "./CardView";
+import { cardThumbSrc } from "./shared";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -346,7 +347,7 @@ export function StoryPrep(props: {
                 >
                   <img
                     className="sp-card-art"
-                    src={`/cards/${d.art ?? d.id}.webp`}
+                    src={cardThumbSrc(d)}
                     alt=""
                     loading="lazy"
                     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }}
@@ -481,7 +482,7 @@ export function StoryPrep(props: {
             >
               <img
                 className="sp-foe-art"
-                src={`/cards/${d.art ?? d.id}.webp`}
+                src={cardThumbSrc(d)}
                 alt=""
                 loading="lazy"
                 onError={(e) => { e.currentTarget.style.display = "none"; }}

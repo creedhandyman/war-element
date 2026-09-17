@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getDef, effectiveSummonCost } from "../engine";
-import { EL_ICON } from "./shared";
+import { cardThumbSrc, EL_ICON } from "./shared";
 import { SpIcon } from "./icons";
 
 /** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
@@ -139,7 +139,7 @@ export function Hand(props: {
             >
               <img
                 className="card-art"
-                src={`/cards/${def.art ?? def.id}.webp`}
+                src={cardThumbSrc(def)}
                 alt=""
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />

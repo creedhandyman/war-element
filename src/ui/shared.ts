@@ -65,11 +65,15 @@ export const EL_COLOR: Record<Element, string> = {
   BORE: "#a1887f",
   GALE: "#ffa040",
   BOLT: "#9575ff",
-  // Was #2c1547. That reads as "the dark element" when it fills something, and
-  // as nothing at all when it is a 1.5px rim on a near-black board — DUSK was
-  // the one element you could not identify by its border. Mirrored in the
+  // Was #2c1547, then #7b4fb0, now a step back toward the dark. #2c1547 reads as
+  // "the dark element" when it fills something and as NOTHING AT ALL as a 1.5px
+  // rim on a near-black board — DUSK was the one element you could not identify
+  // by its border, which is why it was lightened in the first place. This is the
+  // same hue ~12% darker: it holds 2.9:1 against the #040406 board where #2c1547
+  // held 1.27:1, so the rim is still a rim. Anything darker than this should be
+  // checked as a BORDER before it is judged as a fill. Mirrored in the
   // [data-el="DUSK"] rule in styles.css; change both or neither.
-  DUSK: "#7b4fb0",
+  DUSK: "#6c469b",
   DAWN: "#ffd54f",
   // VOID IS THE BLACK ELEMENT, and the RIM is the one part of it that cannot be
   // black. This is DUSK's lesson applied before it costs anything: the note
@@ -125,6 +129,34 @@ export function spellArtSrc(spellId: string): string {
   const art = SPELLS.find((s) => s.id === spellId)?.art;
   return `/spells/${art ?? spellId}.webp`;
 }
+
+/** The 240px copy of a spell picture, for the tray and the builder/draft chips.
+ *
+ *  Same reason as `cardThumbSrc`: a tray chip is 20-26px while the original is
+ *  720x720, which the browser decodes in full (about 2 MB of bitmap each)
+ *  however small it is drawn. The cast flash shows the art up to 300px across
+ *  and keeps the original. */
+export function spellThumbSrc(spellId: string): string {
+  const art = SPELLS.find((s) => s.id === spellId)?.art;
+  return `/spells/thumb/${art ?? spellId}.webp`;
+}
+
+/** Card art, in the two sizes that exist on disk.
+ *
+ *  `cardArtSrc` is the 1000px-tall plate. `cardThumbSrc` is the 500px copy
+ *  `tools/make-thumbs.py` builds beside it, and it is what nearly every
+ *  surface wants: a grid tile is 78-96px wide, a hand card 96px, an
+ *  opponent's revealed card 26px. A browser decodes an image at its NATURAL
+ *  size however small it is drawn, so the gallery was carrying ~700 MB of
+ *  decoded bitmap (measured) for pictures nothing could see the detail of.
+ *
+ *  The plate is for the two places that really show it full size: the card
+ *  detail view and the gallery lightbox. Everything else takes the thumb.
+ *  art.test.ts holds every plate to having one, since a missing thumb renders
+ *  an empty tile and says nothing. */
+type ArtOf = { id: string; art?: string };
+export const cardArtSrc = (d: ArtOf): string => `/cards/${d.art ?? d.id}.webp`;
+export const cardThumbSrc = (d: ArtOf): string => `/cards/thumb/${d.art ?? d.id}.webp`;
 
 // Painted element badges (public/elements/*.png) — used for the on-card element
 // mark and the card-detail chip in place of the plain glyph.

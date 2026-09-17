@@ -113,7 +113,7 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { WinScreen, type NextUp } from "./WinScreen";
-import { EL_COLOR, EL_ICON, type PendingBattle, type Selection, SEAT_SUIT } from "./shared";
+import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
 import { aiSkillIsAuto, clearAiSkill, loadAiSkill, loadAiTrack, recordAiMatch, saveAiSkill } from "../data/prefs";
@@ -4128,7 +4128,7 @@ export function App() {
                   >
                     <img
                       className="card-art"
-                      src={`/cards/${def.art ?? def.id}.webp`}
+                      src={cardThumbSrc(def)}
                       alt=""
                       onError={(e) => {
                         e.currentTarget.style.display = "none";
@@ -5243,7 +5243,7 @@ export function App() {
                      what it brings. */
                   flag={eventRun?.bossId ? "VOID TOWER · BOSS" : eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
                   label={eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId)}
-                  artOverride={eventRun?.bossId ? `/cards/${getDef(eventRun.bossId).art ?? eventRun.bossId}.webp` : undefined}
+                  artOverride={eventRun?.bossId ? cardArtSrc(getDef(eventRun.bossId)) : undefined}
                   /* The DUEL, not the brood. A boss fight is pitched as two
                      elements — the tribe's and the mechanic's — and that pair
                      is what the puzzle is built on; counting the summons in the

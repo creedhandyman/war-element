@@ -11,7 +11,7 @@ import {
 import { STANDARD_CAP, autoDeck } from "../data/story";
 import { deleteSquad, loadSquads, saveSquad, squadNamed, squadUsableIn, type Squad } from "../data/squads";
 import { deckLinkFor, decodeDeck, encodeDeck } from "../data/deck-code";
-import { BUILDABLE_ELEMENTS, EL_COLOR, EL_ICON, RARITY_STYLE, spellArtSrc } from "./shared";
+import { BUILDABLE_ELEMENTS, cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
 import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter, type TribeFilter,
@@ -627,7 +627,7 @@ export function DeckBuilder(props: {
                       onClick={() => toggleSpell(s.id)}
                     >
                       <span className="db-spell-art">
-                        <img src={spellArtSrc(s.id)} alt="" draggable={false}
+                        <img src={spellThumbSrc(s.id)} alt="" draggable={false}
                           onError={(e) => { e.currentTarget.style.display = "none"; }} />
                       </span>
                       <span className="db-spell-body">
@@ -1072,8 +1072,10 @@ export function DeckBuilder(props: {
                   >
                     <img
                       className="card-art"
-                      src={`/cards/${d.art ?? d.id}.webp`}
+                      src={cardThumbSrc(d)}
                       alt=""
+                      loading="lazy"
+                      decoding="async"
                       onError={(e) => { e.currentTarget.style.display = "none"; }}
                     />
                     <div className="dt-top">

@@ -14,7 +14,7 @@ import {
   recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
-import { EL_COLOR } from "./shared";
+import { cardThumbSrc, EL_COLOR } from "./shared";
 import { finisherOf } from "./DeckPickerSheet";
 import { CardView } from "./CardView";
 import { StorySquad } from "./StorySquad";
@@ -249,7 +249,7 @@ function NodePanel(props: {
         {face && (
           <button
             className="np-face"
-            style={{ backgroundImage: `url(/cards/${face.art ?? face.id}.webp)` }}
+            style={{ backgroundImage: `url(${cardThumbSrc(face)})` }}
             title={`${face.name} — the toughest card here. Tap for the full card.`}
             aria-label={`${face.name} — see the card`}
             onClick={() => setPreviewId(face.id)}
@@ -312,7 +312,7 @@ function NodePanel(props: {
                 onClick={() => setPreviewId(id)}
               >
                 <img
-                  src={`/cards/${d.art ?? d.id}.webp`}
+                  src={cardThumbSrc(d)}
                   alt=""
                   loading="lazy"
                   onError={(e) => { e.currentTarget.style.display = "none"; }}

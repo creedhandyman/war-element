@@ -21,6 +21,20 @@ w = round(im.width * 1000 / im.height)          # every art here is 1000px tall
 im.resize((w, 1000), Image.LANCZOS).save("dawn_sphere.webp", "WEBP", quality=86, method=6)
 ```
 
+Then run the thumbnailer, which is NOT optional:
+
+```
+python tools/make-thumbs.py
+```
+
+It writes a 500px-tall copy to `public/cards/thumb/`, and that copy is what
+board tokens, the hand, and every grid actually draw. A browser decodes an
+image at its natural size no matter how small it is shown, so 419 full plates
+in the gallery came to ~700 MB of bitmap and phones stuttered on it. Only the
+card detail view and the gallery lightbox load the full plate now.
+`art.test.ts` fails if a plate has no copy, because a missing one is the same
+silent nothing as missing art. Commit the thumb alongside the plate.
+
 Then delete the `.png`. `public/` ships verbatim, so a 3 MB source left
 behind is 3 MB served to every visitor for a file nothing reads.
 

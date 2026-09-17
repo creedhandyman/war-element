@@ -34,7 +34,7 @@ import { Check, Flame, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
 import { EVENTS, type GameEvent } from "../data/events";
 import { getDef } from "../data/cards";
-import { EL_COLOR } from "./shared";
+import { cardThumbSrc, EL_COLOR } from "./shared";
 import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   type VoidBoss,
@@ -155,7 +155,7 @@ export function VoidTower(props: {
                     >
                       <img
                         className="vt-boss-art"
-                        src={`/cards/${def.art ?? def.id}.webp`}
+                        src={cardThumbSrc(def)}
                         alt=""
                         loading="lazy"
                       />

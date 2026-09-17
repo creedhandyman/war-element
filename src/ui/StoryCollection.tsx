@@ -20,7 +20,7 @@ import {
   PLACED_CARDS, bestSource, deckCapFor, isShiny, markSeen, recruitChance, sourcesOf,
   type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
+import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
   ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   type TribeFilter,
@@ -316,7 +316,7 @@ export function StoryCollection(props: {
                     onClick={() => pick(d.id)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(d.id); } }}
                   >
-                    <img className="card-art" src={`/cards/${d.art ?? d.id}.webp`} alt=""
+                    <img className="card-art" src={cardThumbSrc(d)} alt="" loading="lazy" decoding="async"
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
                     <div className="dt-top">
                       <span

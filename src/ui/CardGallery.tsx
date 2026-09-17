@@ -30,7 +30,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useBackLayer } from "./use-back-layer";
 import type { CardClass, CardDef, Element, Keyword } from "../engine";
 import { CARDS, TOKENS } from "../data/cards";
-import { EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
+import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe,
   type TribeFilter,
@@ -326,7 +326,7 @@ export function CardGallery(props: { onClose: () => void }) {
                       and the browser only fetches the dozen actually on screen. */}
                   <img
                     className="card-art"
-                    src={`/cards/${d.art ?? d.id}.webp`}
+                    src={cardThumbSrc(d)}
                     alt=""
                     loading="lazy"
                     decoding="async"
@@ -394,7 +394,7 @@ export function CardGallery(props: { onClose: () => void }) {
         >
           <img
             className="gal-plate"
-            src={`/cards/${detail.art ?? detail.id}.webp`}
+            src={cardArtSrc(detail)}
             alt={detail.name}
             // Tap the ART to fill the screen with it; tap the backdrop to
             // leave. Two different targets for two different intentions, so

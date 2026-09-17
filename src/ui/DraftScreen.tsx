@@ -22,13 +22,15 @@ import { getDef, getSpell } from "../engine";
 import { composition, DeckStats } from "./DeckStats";
 import { CardView } from "./CardView";
 import { SpIcon } from "./icons";
-import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
+import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
 import {
   cardsComplete, draftComplete, draftSize, draftSpellCap, inGroupPhase, picksLeft,
   type DraftRun,
 } from "../data/draft";
 
-const spellArt = (id: string) => `/spells/${id}.webp`;
+// Spell art comes from the shared helper: a spell may borrow another's
+// picture (`SpellDef.art`), and the local copy this replaced did not know
+// that, so a borrowing spell showed nothing here.
 
 /** One card on a table — inside a banner's trio, or on its own in the single
  *  half. `onInfo` opens the reader; the card itself is not the button, because
@@ -41,8 +43,9 @@ function DraftCard(props: { id: string; onInfo: (id: string) => void }) {
     <div className="deck-thumb carded db-card dr-card">
       <img
         className="card-art"
-        src={`/cards/${d.art ?? d.id}.webp`}
+        src={cardThumbSrc(d)}
         alt=""
+        decoding="async"
         onError={(e) => { e.currentTarget.style.display = "none"; }}
       />
       <div className="dt-top">
@@ -205,7 +208,7 @@ export function DraftScreen(props: {
                     <span className="spellchip-cost">{sp.cost}</span>
                     <span className="spellchip-art">
                       <img
-                        src={spellArt(sp.id)}
+                        src={spellThumbSrc(sp.id)}
                         alt=""
                         draggable={false}
                         onError={(e) => { e.currentTarget.style.display = "none"; }}

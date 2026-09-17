@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
-import { KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
+import { cardThumbSrc, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -395,7 +395,7 @@ export function Token(props: {
     >
       <img
         className="card-art"
-        src={`/cards/${def.art ?? def.id}.webp`}
+        src={cardThumbSrc(def)}
         alt=""
         onError={(e) => {
           e.currentTarget.style.display = "none";

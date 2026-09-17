@@ -44,6 +44,31 @@ describe("every card and spell has its art on disk", () => {
     expect(missing, `cards with no art file:\n  ${missing.join("\n  ")}`).toEqual([]);
   });
 
+  it("every spell picture has its small copy in spells/thumb", () => {
+    // The tray and the builder/draft chips draw this one; only the cast flash
+    // still loads the 720x720 original. Run `python tools/make-thumbs.py`.
+    const thumbs = basenames(import.meta.glob("../../../public/spells/thumb/*.webp"));
+    expect(thumbs.size).toBeGreaterThan(50);
+    const missing = [...spellArt].filter((f) => !thumbs.has(f));
+    expect(missing, `spell art with no thumb (run tools/make-thumbs.py):\n  ${missing.join("\n  ")}`)
+      .toEqual([]);
+  });
+
+  it("every plate has its small copy in cards/thumb", () => {
+    // Nearly every surface — board tokens, hand, all the grids — draws the
+    // 500px copy from `tools/make-thumbs.py`, because the browser decodes an
+    // image at its natural size however small it is shown, and 419 full plates
+    // in the gallery came to ~700 MB of bitmap. A missing copy fails the same
+    // silent way missing art does: an empty tile and no error, so it is caught
+    // here. Fix by running `python tools/make-thumbs.py`.
+    const thumbs = basenames(import.meta.glob("../../../public/cards/thumb/*.webp"));
+    // Same guard-the-guard as above: an empty glob would pass every check.
+    expect(thumbs.size).toBeGreaterThan(100);
+    const missing = [...cardArt].filter((f) => !thumbs.has(f));
+    expect(missing, `plates with no thumb (run tools/make-thumbs.py):\n  ${missing.join("\n  ")}`)
+      .toEqual([]);
+  });
+
   it("no art filename relies on case-insensitive lookup", () => {
     // A capitalised file works locally and 404s on the deploy.
     const odd = [...spellArt, ...cardArt].filter((f) => /[A-Z]/.test(f));

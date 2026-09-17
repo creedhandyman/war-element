@@ -27,7 +27,7 @@ import {
   autoSquad, localCards, packSquad, packableFor, squadCapInRegion, squadFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
+import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
 import { loadSquads, packFromSquad } from "../data/squads";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
@@ -337,7 +337,7 @@ export function StorySquad(props: {
                   title={on ? `${d.name} — carried` : full ? "Squad is full" : `${d.name} — carry`}
                   onClick={() => toggle(id)}
                 >
-                  <img src={`/cards/${d.art ?? d.id}.webp`} alt="" loading="lazy"
+                  <img src={cardThumbSrc(d)} alt="" loading="lazy"
                     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                   <span className="sq-pick-name">{d.name}</span>
                   {on && <i className="sq-tick" aria-hidden="true">✓</i>}
@@ -367,7 +367,7 @@ function SquadCard(props: { id: string; local?: boolean; onPreview: (id: string)
       title={`${d.name}${props.local ? " — fights here for free" : " — carried"}`}
       onClick={() => props.onPreview(props.id)}
     >
-      <img src={`/cards/${d.art ?? d.id}.webp`} alt="" loading="lazy"
+      <img src={cardThumbSrc(d)} alt="" loading="lazy"
         onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
       <span className="sq-card-name">{d.name}</span>
     </button>

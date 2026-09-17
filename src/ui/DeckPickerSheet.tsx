@@ -13,7 +13,7 @@
 import { useState } from "react";
 import { getDef } from "../data/cards";
 import { deckLimits, type CustomDeck, type PremadeDeck } from "../data/custom-decks";
-import { EL_COLOR } from "./shared";
+import { cardThumbSrc, EL_COLOR } from "./shared";
 import type { Element } from "../engine";
 
 /** The element split, biggest first — the shape of a deck in one glance. */
@@ -42,7 +42,7 @@ export const deckArtUrl = (cards: readonly string[]): string | null => {
   const id = finisherOf(cards);
   if (!id) return null;
   const d = getDef(id);
-  return `/cards/${d.art ?? d.id}.webp`;
+  return cardThumbSrc(d);
 };
 
 export function ElChips(props: {

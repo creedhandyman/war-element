@@ -30,7 +30,7 @@ import {
   applyPack, buyBox, canBuyBox, canCraft, canOpenPack, craftCard, craftCostOf,
   dupeEssenceFor, freePacks, openPack, packIsFree, type PackResult, type StorySave,
 } from "../data/story";
-import { EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
+import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
@@ -459,7 +459,7 @@ export function Shop(props: {
                 return (
                   <div key={c.id} className="craft-row">
                     <button className="craft-art" onClick={() => setPreviewId(c.id)} title={`${c.name} — see the card`}>
-                      <img src={`/cards/${c.art ?? c.id}.webp`} alt="" loading="lazy"
+                      <img src={cardThumbSrc(c)} alt="" loading="lazy"
                         onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     </button>
                     <div className="craft-meta">
@@ -601,7 +601,7 @@ export function Shop(props: {
                     onPointerCancel={isTop ? onDragEnd : undefined}
                     onClick={isTop ? () => { if (dragFrom.current === null && dragPx.current === 0) nextCard(); } : undefined}
                   >
-                    <img src={`/cards/${d.art ?? d.id}.webp`} alt="" loading="lazy"
+                    <img src={cardThumbSrc(d)} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     {rar && <span className="pack-rar" style={{ color: rar.color, borderColor: rar.color }}>{rar.label}</span>}
                     {foil && <i className="foil-tag" title="Foil">✦</i>}
@@ -654,7 +654,7 @@ export function Shop(props: {
                   return (
                     <span key={i} className={`pack-chip r-${d.rarity ?? "rare"} ${isNew ? "new" : ""} ${foil ? "foil" : ""}`}
                       title={`${d.name}${isNew ? " — new" : ""}${foil ? " — foil" : ""}`}>
-                      <img src={`/cards/${d.art ?? d.id}.webp`} alt=""
+                      <img src={cardThumbSrc(d)} alt=""
                         onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     </span>
                   );

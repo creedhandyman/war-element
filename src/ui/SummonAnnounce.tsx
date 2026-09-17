@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { getDef } from "../engine";
 import { CARDS, TOKENS } from "../data/cards";
-import { EL_COLOR, EL_SIGIL, RARITY_STYLE } from "./shared";
+import { cardArtSrc, EL_COLOR, EL_SIGIL, RARITY_STYLE } from "./shared";
 import { SpIcon } from "./icons";
 
 /** Rarities that get an entrance. Anything below legendary lands quietly —
@@ -59,7 +59,7 @@ export function SummonAnnounce({ defId, mine }: { defId: string; mine: boolean }
           {artOk ? (
             <img
               className="announce-art"
-              src={`/cards/${def.art ?? def.id}.webp`}
+              src={cardArtSrc(def)}
               alt={def.name}
               draggable={false}
               onError={() => setArtOk(false)}

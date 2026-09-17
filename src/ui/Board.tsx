@@ -2,7 +2,7 @@ import type { BossTelegraph, FieldBuff, FieldState, GameState, PlayerId, Pos } f
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
-import { EL_COLOR } from "./shared";
+import { cardThumbSrc, EL_COLOR } from "./shared";
 import { dominationMap, isImpassable, isRoad, isShrine, isWell, poiAt, poiRing } from "../data/domination";
 
 /** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
@@ -205,7 +205,7 @@ export function Board(props: {
                   title={getDef(h.defId).name}
                   style={{
                     ["--i" as string]: i - Math.min(opp.hand.length, 8) / 2,
-                    backgroundImage: `url(/cards/${getDef(h.defId).art ?? getDef(h.defId).id}.webp)`,
+                    backgroundImage: `url(${cardThumbSrc(getDef(h.defId))})`,
                   }}
                 />
               )

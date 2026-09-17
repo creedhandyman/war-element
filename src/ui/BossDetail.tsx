@@ -24,7 +24,7 @@ import { Check, Flame, Lock, Swords, X } from "lucide-react";
 import type { StorySave } from "../data/story";
 import type { GameEvent } from "../data/events";
 import { getDef } from "../data/cards";
-import { EL_COLOR } from "./shared";
+import { cardArtSrc, cardThumbSrc, EL_COLOR } from "./shared";
 import { VOID_TOWER_ROUNDS } from "../engine/types";
 import { describeOwnPassives } from "./card-text";
 import {
@@ -85,7 +85,7 @@ export function BossDetail(props: {
             page rather than ending on a line, so the text below reads as the
             same object rather than a caption under a picture. */}
         <div className="bd-hero">
-          <img src={`/cards/${def.art ?? def.id}.webp`} alt="" className="bd-art" />
+          <img src={cardArtSrc(def)} alt="" className="bd-art" />
           <div className="bd-hero-fade" />
           <div className="bd-hero-text">
             <span className="bd-pair">
@@ -219,7 +219,7 @@ export function BossDetail(props: {
                     onClick={() => setAlly(ally === t.cardId ? null : t.cardId)}
                     title={`${tDef.name} — ${uses} battle(s) left`}
                   >
-                    <img src={`/cards/${tDef.art ?? tDef.id}.webp`} alt="" />
+                    <img src={cardThumbSrc(tDef)} alt="" />
                     <span className="bd-tame-name">{tDef.name}</span>
                     <span className="bd-tame-uses">{uses}</span>
                   </button>
