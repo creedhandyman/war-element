@@ -110,9 +110,20 @@ function describeOnSummon(os: {
     if (p.enemyHomeRow != null) return "every opponent in their Home row";
     if (p.spread != null) return "enemies in the area ahead";
     const t = Number(p.targets ?? 1);
+    // Board-wide, nearest first (Sticks' Boon Striker): the count is the promise.
+    if (p.reachNearest != null) return t === 1 ? "the nearest enemy" : `the ${t} nearest enemies`;
+    // A LINE sourced from the board rather than from the card's reach.
+    const count = t >= 99 ? "every enemy" : t === 1 ? "one enemy" : `up to ${t} enemies`;
+    if (p.sameColumn != null) return `${count} in its column`;
+    if (p.rowAhead != null) return `${count} in the row ahead`;
+    // Everything else aims with the card's own reach from the square it lands on.
+    // This used to print a bare count, "8 enemies", on cards that hit nothing of
+    // the kind: a MELEE card lands on its Home row and reaches the one square in
+    // front of it, so Piranha's "deal 2×1 DMG to 8 enemies" almost never touched
+    // anyone. "In range" is what the engine does, so it is what the card says.
     if (t >= 99) return "all enemies in range";
-    if (t === 1) return "one enemy";
-    return `${t} enemies`;
+    if (t === 1) return "one enemy in range";
+    return `up to ${t} enemies in range`;
   };
   // Every status this on-summon applies — the primary (statusKind, may carry a
   // DoT power) plus the secondary (debuffStatus, e.g. Krakler's FREEZE).
