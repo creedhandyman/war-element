@@ -124,7 +124,7 @@ export const BORE_LORE: Record<string, string> = {
     "It guards the entrance. Anything arriving is given four points of welcome.",
 
   bore_old_timer: // Old Timer
-    "Slow, and mending faster than most things can open it. It has outlasted several people who found that funny.",
+    "Slow, and not about to be moved by anything in a hurry. It has outlasted several people who found that funny.",
 
   bore_sling:
     "Plate is not cover, only a delay. It has been putting stones through gaps its whole life.",

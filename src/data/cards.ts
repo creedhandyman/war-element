@@ -5896,14 +5896,17 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 2,
-    dmg: 4,
+    // 3, not 4, and no REGEN (18 of a cost-2's 20; REGEN 2 was never priced by the
+    // formula). It ran +7.7 over same-cost BORE peers after the AI fix; 3 DMG with
+    // REGEN 1 was still +5.0, putting the HP back was +5.6, this lands at +2.9.
+    dmg: 3,
     hits: 2,
     hp: 7,
     sp: 3,
     shields: 1,
     // Rocking Chair: patches itself up each round from that porch rocker (REGEN).
     // (Doc's self-cleanse omitted — kept as the plain heal it reads as.)
-    keywords: { REGEN: 2 },
+    keywords: {},
     // He is not going anywhere, and that is the joke and the mechanic. REGEN 2
     // on a body nothing can shove is a rock that quietly refills — and at SP 3
     // being immovable is worth more than being fast.
@@ -5986,8 +5989,11 @@ export const CARDS: CardDef[] = [
     // at 1 and did nothing to it before.)
     dmg: 2,
     hits: 3,
-    hp: 1,
-    sp: 8,
+    // 4 HP and SP 5, not 1 and 8 (still 15): at 1 HP it ran -12.8 against same-cost
+    // LEAF peers after the AI fix, 3/6 was still -11.0, 5/4 overshot to +7.9, and
+    // 4/5 lands at +0.9 (672 matches a line, paired seeds).
+    hp: 4,
+    sp: 5,
     shields: 0,
     keywords: { EVASION: true },
     // A thorn-legged forest spider, and now tagged as one. At cost 1 it is the
