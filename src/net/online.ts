@@ -18,10 +18,13 @@ import type { GameState, PlayerId } from "../engine";
 const URL = import.meta.env.VITE_SUPABASE_URL as string | undefined;
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
 
-/** True when the Supabase env vars are present (online play is available). */
-export const onlineConfigured = Boolean(URL && ANON);
+// Defined in net-config.ts so a caller can ask whether online play EXISTS
+// without dragging the 204 KB SDK into the first-load bundle; re-exported here
+// because this is where callers already look for it.
+export { onlineConfigured } from "./net-config";
+const configured = Boolean(URL && ANON);
 
-const supabase = onlineConfigured ? createClient(URL!, ANON!) : null;
+const supabase = configured ? createClient(URL!, ANON!) : null;
 
 export type Role = "host" | "guest";
 

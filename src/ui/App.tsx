@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import type { ComponentProps, ReactNode } from "react";
 import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
@@ -60,17 +61,91 @@ import {
 import {
   afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
 } from "../data/matchmaker";
-import {
-  joinRoom, onlineConfigured, type ChatMsg, type LobbySeat, type Role, type Room, type StateMeta,
-} from "../net/online";
+import type { ChatMsg, LobbySeat, Role, Room, StateMeta } from "../net/online";
+// The flag, not the module: see net-config.ts. `joinRoom` is fetched at the
+// moment a room is hosted or joined, which keeps the Supabase SDK — 204 KB of
+// the first-load bundle — out of the menu.
+import { onlineConfigured } from "../net/net-config";
 import {
   clearOnlineMatch, loadOnlineMatch, saveOnlineMatch, savedMatchLabel, type SavedOnlineMatch,
 } from "../net/resume";
-import { ChatPanel } from "./ChatPanel";
 import { Board } from "./Board";
+/** SCREENS THAT SHIP IN THEIR OWN CHUNK.
+ *
+ *  Everything below is a whole screen you reach by tapping something — the
+ *  shop, the gallery, the rules, the campaign map, the builder. None of it is
+ *  needed to draw the menu or play a match, and together they were about a
+ *  third of a single 390 KB bundle that every visitor downloaded before the
+ *  first frame. `lazy` fetches each one the first time it actually renders.
+ *
+ *  `fallback={null}` and not a spinner: these are already gated behind their
+ *  own `open` state, the chunk is tens of KB off the same origin, and a
+ *  flashed loading card would be on screen for less time than it takes to
+ *  read. The screen appears a frame later than it used to, on first open only.
+ *
+ *  The names are unchanged, so every render site below reads exactly as it did
+ *  when these were plain imports.
+ *
+ *  The loaders are `async`, not `import(...).then(...)`: `then`'s second type
+ *  parameter is the REJECTION result, and against a generic target it infers
+ *  from the target instead of defaulting to never, so every call came out as a
+ *  union with `(props: never)` in it and failed to type. */
+function deferred<P extends object>(load: () => Promise<{ default: (props: P) => ReactNode }>) {
+  const Inner = lazy(load);
+  return (props: P) => (
+    <Suspense fallback={null}>
+      <Inner {...props} />
+    </Suspense>
+  );
+}
+
+const ChatPanel = deferred(async () => ({ default: (await import("./ChatPanel")).ChatPanel }));
+const DraftScreen = deferred(async () => ({ default: (await import("./DraftScreen")).DraftScreen }));
+const ProfilePanel = deferred(async () => ({ default: (await import("./ProfilePanel")).ProfilePanel }));
+const VoidTower = deferred(async () => ({ default: (await import("./VoidTower")).VoidTower }));
+const RulesBook = deferred(async () => ({ default: (await import("./RulesBook")).RulesBook }));
+const CardGallery = deferred(async () => ({ default: (await import("./CardGallery")).CardGallery }));
+const StoryCollection = deferred(async () => ({ default: (await import("./StoryCollection")).StoryCollection }));
+const StoryMap = deferred(async () => ({ default: (await import("./StoryMap")).StoryMap }));
+const StoryPrep = deferred(async () => ({ default: (await import("./StoryPrep")).StoryPrep }));
+const AccountPanel = deferred(async () => ({ default: (await import("./AccountPanel")).AccountPanel }));
+const Shop = deferred(async () => ({ default: (await import("./Shop")).Shop }));
+
+const LoadedDeckBuilder = deferred(async () => ({ default: (await import("./DeckBuilder")).DeckBuilder }));
+/** `net/online` — and with it the Supabase SDK — fetched when a room is
+ *  actually hosted, joined or rejoined.
+ *
+ *  Returns a null `joinRoom` when a fetch is ALREADY in flight, and the caller
+ *  gives up: hosting is now a network hop later than the tap, so without this
+ *  an impatient second tap on Host would open a second room. Once the module
+ *  is cached the import resolves in a microtask and the guard never bites. */
+let roomApiLoading = false;
+async function loadRoomApi(): Promise<{ joinRoom: typeof import("../net/online").joinRoom | null }> {
+  if (roomApiLoading) return { joinRoom: null };
+  roomApiLoading = true;
+  try {
+    return { joinRoom: (await import("../net/online")).joinRoom };
+  } finally {
+    roomApiLoading = false;
+  }
+}
+
+
+/** The builder is the one screen that is RENDERED ALWAYS and hides itself on
+ *  `open={false}`, so a plain `lazy` would fetch it on the first frame like a
+ *  static import and save nothing. This mounts it the first time it opens and
+ *  then leaves it mounted, which is what it was before: closing it returns
+ *  null from inside, and whatever it is holding survives until reload. */
+function DeckBuilder(props: ComponentProps<typeof LoadedDeckBuilder>) {
+  const [everOpened, setEverOpened] = useState(props.open);
+  useEffect(() => {
+    if (props.open) setEverOpened(true);
+  }, [props.open]);
+  return everOpened ? <LoadedDeckBuilder {...props} /> : null;
+}
+
 import { CardView } from "./CardView";
 import { talentEffect } from "./card-text";
-import { DraftScreen } from "./DraftScreen";
 import { LevelUpModal } from "./LevelUpModal";
 import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
@@ -79,8 +154,6 @@ import {
   settleDraft, startDraft, pickCard, SINGLE_PICKS,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
-import { DeckBuilder } from "./DeckBuilder";
-import { ProfilePanel } from "./ProfilePanel";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
@@ -90,10 +163,7 @@ import {
   ENRAGE_SCALE, TAME_SCALE, VOID_GATE, bossWallSeats, voidBossById, voidBossElements,
   voidBossSeat, voidGateSeats,
 } from "../data/void-tower";
-import { VoidTower } from "./VoidTower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
-import { RulesBook } from "./RulesBook";
-import { CardGallery } from "./CardGallery";
 import {
   FIRST_NODE, ONBOARDING_COUNT, ONBOARDING_SKIP,
   canSkipGuide, onboardingIndex, onboardingStep, skipLockedNote,
@@ -117,21 +187,15 @@ import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBat
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
 import { aiSkillIsAuto, clearAiSkill, loadAiSkill, loadAiTrack, recordAiMatch, saveAiSkill } from "../data/prefs";
-import { StoryCollection } from "./StoryCollection";
-import { StoryMap } from "./StoryMap";
 import { StoryRegions } from "./StoryRegions";
 import { DeckPickerSheet, DeckSeat } from "./DeckPickerSheet";
 import { MatchLayout } from "./MatchLayout";
 import { initialStoryNav, storyNav } from "./story-nav";
 import { StoryResult } from "./StoryResult";
-import { StoryPrep } from "./StoryPrep";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
-import { AccountPanel } from "./AccountPanel";
-import { currentUser, onAuthChange } from "../net/account";
 import { VersusIntro } from "./VersusIntro";
 import { ActionWheel, type WheelVerb } from "./ActionWheel";
-import { Shop } from "./Shop";
 import { browserBackStack } from "./back-stack";
 import { useBackLayer } from "./use-back-layer";
 import {
@@ -840,8 +904,37 @@ export function App() {
   const [accountOpen, setAccountOpen] = useState(false);
   const [accountEmail, setAccountEmail] = useState<string | null>(null);
   useEffect(() => {
-    void currentUser().then((u) => setAccountEmail(u?.email ?? null));
-    return onAuthChange((u) => setAccountEmail(u?.email ?? null));
+    // Imported here rather than at the top of the file: `net/account` builds a
+    // Supabase client on load, and whether someone is signed in is not needed
+    // to draw the first frame — the email appears a moment after it.
+    //
+    // And usually NOT AT ALL: supabase-js keeps its session in localStorage
+    // under `sb-<project>-auth-token`, so no such key means there is nobody to
+    // look up and the 204 KB SDK is never fetched. The hash/search test is the
+    // other way a session can exist — a just-clicked email link carries its
+    // tokens in the URL, and the same shapes `arrivedFromEmailLink` matches,
+    // so a failed link still loads the module and reports itself.
+    const hasSession = (() => {
+      try {
+        return Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
+      } catch {
+        return true; // storage blocked: fall back to asking properly
+      }
+    })();
+    const fromLink = /access_token=|refresh_token=|type=(magiclink|signup|recovery)|error_code=|error_description=/
+      .test(window.location.hash + window.location.search);
+    if (!hasSession && !fromLink) return;
+    let stop: (() => void) | undefined;
+    let dead = false;
+    void import("../net/account").then((account) => {
+      if (dead) return;
+      void account.currentUser().then((u) => setAccountEmail(u?.email ?? null));
+      stop = account.onAuthChange((u) => setAccountEmail(u?.email ?? null));
+    });
+    return () => {
+      dead = true;
+      stop?.();
+    };
   }, []);
 
   /** Which seat the deck sheet is filling, or null when it is shut. */
@@ -1836,7 +1929,7 @@ export function App() {
   }, [lobbyDeckId]);
 
   // ── online rooms ──────────────────────────────────────────────────────────
-  function hostCreateRoom() {
+  async function hostCreateRoom() {
     if (!onlineConfigured) {
       setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
       return;
@@ -1864,6 +1957,8 @@ export function App() {
       ? `Room ${code} open — share this code. 1 of ${hostSeatCount} seated…`
       : `Room ${code} open — share this code. Waiting for your buddy…`);
     onlineStartedRef.current = false;
+    const { joinRoom } = await loadRoomApi();
+    if (!joinRoom) return;
     roomRef.current = joinRoom(code, "host", {
       onState: (state) => setGame(state),
       onRematch: () => setRematchTheirs(true),
@@ -1978,7 +2073,7 @@ export function App() {
     roomRef.current?.sendState(g, { names, foils }); // deal the opening state
   }
 
-  function guestJoinRoom() {
+  async function guestJoinRoom() {
     if (!onlineConfigured) {
       setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
       return;
@@ -1995,6 +2090,8 @@ export function App() {
     // and recognise it again if the connection blips and it re-subscribes.
     clientIdRef.current = Math.random().toString(36).slice(2) + Date.now().toString(36);
     mySeatRef.current = "P2";
+    const { joinRoom } = await loadRoomApi();
+    if (!joinRoom) return;
     roomRef.current = joinRoom(code, "guest", {
       onLobby: (seats, need) => setLobby({ seats, need }),
       onSeat: (clientId, seat, have, need) => {
@@ -2085,7 +2182,7 @@ export function App() {
    *  state wins and neither can rewind the other (`net/online.ts`). A host gets
    *  its rematch setup back too — it is the dealer, and without it the match
    *  could be finished but never run back. */
-  function rejoinOnline() {
+  async function rejoinOnline() {
     if (!onlineConfigured) {
       setNetStatus("⚠ Online isn't configured — set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY.");
       return;
@@ -2126,6 +2223,8 @@ export function App() {
     setMatchIntro(false); // a catch-up, not a new deal
     setHint("Rejoined — catching up with the table…");
     setNetStatus(`Rejoined room ${code}.`);
+    const { joinRoom } = await loadRoomApi();
+    if (!joinRoom) return;
     roomRef.current = joinRoom(code, role, {
       onState: role === "host" ? (state) => setGame(state) : guestOnState(code),
       onRematch: () => setRematchTheirs(true),
