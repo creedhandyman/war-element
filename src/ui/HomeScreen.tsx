@@ -451,10 +451,11 @@ function buildLive(
         + ` One loss ends the run — ${runReward(run.tier, boardOfRun(run))} shards if it does not.`,
       cta: "Fight", onGo: go.onArena,
       // The face of the deck in the next seat, not a generic backdrop. The
-      // first cut pointed at `/battlefield.png` — 3.5 MB, the only PNG art
-      // reference left in src/, and an asset the match screen itself retired
-      // (`.battlefield-bg { display: none }`) — fetched on the LANDING screen
-      // for a 118px strip masked to transparency at its left edge.
+      // first cut pointed at `/battlefield.png` — 3.5 MB, and an asset the
+      // match screen itself had retired (`.battlefield-bg { display: none }`)
+      // — fetched on the LANDING screen for a 118px strip masked to
+      // transparency at its left edge. The file is deleted now; nothing in
+      // src/ had referenced it since.
       art: seatArt(run) ?? undefined, rim: "rgba(201,162,75,.55)",
     });
   }
