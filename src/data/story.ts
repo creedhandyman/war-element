@@ -1422,15 +1422,16 @@ export function awardEssence(save: StorySave, region: StoryRegion, node: StoryNo
  *  Priced against what the campaign actually pays. A full clear of a region
  *  banks roughly 29-38 essence of its element (LEAF's 18 nodes are worth 37,
  *  DUSK's 13 are worth 29), and every element has 39 cards. So one complete
- *  walk buys about eight Rares, or four Epics, or two Legendaries, or a single
- *  Mythic — nowhere near a set.
+ *  walk buys about eight Rares, or four Epics, or two Legendaries — nowhere near
+ *  a set. A Mythic (50, raised from 30 on 2026-09-25) is out of reach of any
+ *  single walk: it takes a region and a half of clears to conjure one.
  *
  *  That ratio is the whole design. Essence is not a second way to collect; it is
  *  the guarantee that the ONE card the dice never gave you is still reachable,
  *  and repeat clears keep paying it, so "eventually" is always true. A cheaper
  *  table would let a player skip the recruitment game entirely. */
 export const CRAFT_COST: Record<string, number> = {
-  rare: 4, epic: 8, legendary: 16, mythic: 30,
+  rare: 4, epic: 8, legendary: 16, mythic: 50,
 };
 
 export const craftCostOf = (defId: string): number =>
