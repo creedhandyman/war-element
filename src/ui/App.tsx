@@ -183,6 +183,7 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { useSpellImpacts } from "./vfx/use-spell-impacts";
+import { strikeZone, type StrikeZone } from "./attack-zone";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
@@ -268,6 +269,11 @@ function usePortraitPhone(): boolean {
 /** Turn-taking noise ("P1 passes.", "Battle! Queue: 4 card(s).") that floods the
  *  rail and buries the events players actually care about. Matched lines are
  *  dimmed; everything else (summons, kills, damage, statuses) reads as an event. */
+/** How long a row/column attack's line stays lit before the attack lands.
+ *  Long enough to read which line, short enough that a battle with three of
+ *  them in it does not drag: the ordinary battle step is 480ms. */
+const STRIKE_HOLD_MS = 750;
+
 const LOG_CHATTER = /\bpasses\b|priority|^Battle! Queue|preps first|Opening hands|draws \d|mulligans/i;
 
 /** Collapse CONSECUTIVE identical log lines into one row with a ×N counter, so a
@@ -358,6 +364,9 @@ export function App() {
   // full-screen for ~2s, then dispatch so the effect resolves. `castTimerRef`
   // guards against a second cast landing mid-flash + clears on unmount.
   const [castFlash, setCastFlash] = useState<{ spellId: string } | null>(null);
+  /** A row/column attack about to land — lit on the board while its step is
+   *  held. See `strikeZone` and the auto-advance effect. */
+  const [strike, setStrike] = useState<StrikeZone | null>(null);
   const castTimerRef = useRef<number | null>(null);
   // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
   // a newly-used spell in their book and flash its art too — with its own timer
@@ -1370,12 +1379,35 @@ export function App() {
     // mid-flight. Waiting the full overlay out lets each entrance actually show.
     const showing = announce !== null || castFlash !== null;
     const delay = showing ? 2200 : game.phase === "battle" ? 480 : 260;
+    let held: number | undefined;
     const t = setTimeout(() => {
       const next = advance(game);
-      setGame(next);
-      if (online) broadcast(next);
+      const commit = () => {
+        setStrike(null);
+        setGame(next);
+        if (online) broadcast(next);
+      };
+      // A ROW OR COLUMN ATTACK IS SHOWN BEFORE IT LANDS. The step is computed
+      // first; if it fired a line attack, its line is lit and THIS computed
+      // result is held and then applied — so what lights up is what actually
+      // happened, never a guess (see ui/attack-zone.ts).
+      const zone = strikeZone(game, next);
+      if (zone) {
+        setStrike(zone);
+        held = window.setTimeout(commit, STRIKE_HOLD_MS);
+      } else {
+        commit();
+      }
     }, delay);
-    return () => clearTimeout(t);
+    return () => {
+      clearTimeout(t);
+      if (held !== undefined) {
+        // Interrupted mid-hold (an announce or flash started): drop the
+        // highlight; the re-run computes the same step again and re-lights it.
+        clearTimeout(held);
+        setStrike(null);
+      }
+    };
   }, [game, started, online, announce, castFlash]);
 
   // Reliability heartbeat: BOTH sides re-broadcast their last-sent state every
@@ -3748,6 +3780,7 @@ export function App() {
             previewArea={previewArea}
             aimArea={[...aimArea, ...aimSpellCells]}
             blast={blast}
+            strike={strike}
             telegraphs={telegraphs}
             stagedSlot={stagedSlot}
             // An aim anchor is a crosshair, not a hit count: "x1 · 1 hit(s)

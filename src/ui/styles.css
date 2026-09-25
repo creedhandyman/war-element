@@ -890,6 +890,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   0%, 100% { box-shadow: inset 0 0 0 2px rgba(180, 92, 255, 0.75), inset 0 0 22px rgba(180, 92, 255, 0.32), 0 0 12px var(--blast-soft); }
   50% { box-shadow: inset 0 0 0 2px var(--blast), inset 0 0 34px rgba(180, 92, 255, 0.52), 0 0 22px rgba(180, 92, 255, 0.42); }
 }
+/* A ROW OR COLUMN ATTACK ABOUT TO LAND — lit for STRIKE_HOLD_MS (App.tsx)
+   before the step that fires it is applied (ui/attack-zone.ts). The line
+   SWEEPS: each square lights --strike-i steps after the attacker's end of it,
+   so the shape and the direction read before the damage does. Threat-red when
+   it is coming at you, gold when it is your own card's — the split `.preview`
+   and `.aim` already make. Drawn OVER the token (z 8: above the lunge at 7,
+   under the damage numbers at 9-11), because the cards standing in the line
+   are the ones it is about. */
+.slot.strike { z-index: 3; }
+.slot-strike {
+  position: absolute; inset: 0; z-index: 8; border-radius: inherit; pointer-events: none;
+  border: 2px solid var(--strike-rim);
+  background: linear-gradient(var(--strike-wash), var(--strike-wash));
+  box-shadow: inset 0 0 18px var(--strike-rim), 0 0 14px var(--strike-rim);
+  opacity: 0;
+  animation: strikesweep 0.75s ease-out both;
+  animation-delay: calc(var(--strike-i, 0) * 70ms);
+}
+.slot.strike-foe { --strike-rim: rgba(229, 83, 61, 0.95); --strike-wash: rgba(229, 83, 61, 0.26); }
+.slot.strike-mine { --strike-rim: rgba(232, 200, 119, 0.95); --strike-wash: rgba(232, 200, 119, 0.24); }
+@keyframes strikesweep {
+  0% { opacity: 0; transform: scale(0.9); }
+  30% { opacity: 1; transform: scale(1.02); }
+  60% { opacity: 0.7; transform: scale(1); }
+  100% { opacity: 1; transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  /* Still shown — which line is about to be hit is information, not motion. */
+  .slot-strike { animation: none; opacity: 1; }
+}
 /* THE BOSS CLOCK — rounds until the Special lands, on the boss's own tile.
    Sits top-LEFT so it never collides with the capture lock (top-right). */
 .boss-clock {

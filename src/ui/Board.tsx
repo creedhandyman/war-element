@@ -1,4 +1,5 @@
 import type { BossTelegraph, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
+import type { StrikeZone } from "./attack-zone";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
@@ -151,6 +152,9 @@ export function Board(props: {
    *  one per boss, hung on the square the boss is standing on. Both are empty
    *  outside a Void Tower fight, so ordinary matches render exactly as before. */
   blast: Pos[];
+  /** A row/column attack about to land (ui/attack-zone.ts): lit for a beat
+   *  before the step that fires it is applied. */
+  strike?: StrikeZone | null;
   telegraphs: BossTelegraph[];
   stagedSlot: Pos | null; // the home slot a summon is staged into (awaiting confirm)
   pickCounts: Record<string, number>; // hits assigned per target so far
@@ -314,6 +318,10 @@ export function Board(props: {
               // is deciding against, so it stays lit for that.
               const aiming = props.legalTargetIds.length > 0;
               const blast = !aiming && props.blast.some((p) => p.row === row && p.col === col);
+              const strikeSq = props.strike?.squares.find((q) => q.row === row && q.col === col) ?? null;
+              const strike = strikeSq
+                ? { order: strikeSq.order, mine: props.strike!.owner === props.viewPlayer }
+                : null;
               const clock = props.telegraphs.find((t) => t.pos.row === row && t.pos.col === col) ?? null;
               const staged = props.stagedSlot != null && props.stagedSlot.row === row && props.stagedSlot.col === col;
               const dimmed =
@@ -343,6 +351,7 @@ export function Board(props: {
                   preview={preview}
                   aim={aim}
                   blast={blast}
+                  strike={strike}
                   clock={clock}
                   staged={staged}
                   dimmed={dimmed}

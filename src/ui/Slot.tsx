@@ -39,6 +39,9 @@ export function Slot(props: {
   aim: boolean; // inside the footprint of an armed area Special → gold wash
   /** This square is inside a boss Special that lands at the end of this round. */
   blast: boolean;
+  /** Inside a row/column attack about to land: its step along the line (the
+   *  sweep's stagger) and whether the attack is the viewer's own. */
+  strike?: { order: number; mine: boolean } | null;
   /** A boss stands here — its countdown badge hangs on this tile. */
   clock: BossTelegraph | null;
   staged: boolean; // the home slot a summon is staged into → green ring
@@ -81,6 +84,7 @@ export function Slot(props: {
     props.preview ? "preview" : "",
     props.aim ? "aim" : "",
     props.blast ? "blast" : "",
+    props.strike ? `strike ${props.strike.mine ? "strike-mine" : "strike-foe"}` : "",
     props.staged ? "staged" : "",
     props.dimmed ? "dimmed" : "",
     props.grayed ? "grayed" : "",
@@ -109,6 +113,7 @@ export function Slot(props: {
       // screen — the effects layer aims spell impacts by it. Logical, so it
       // stays right on a P2 viewer's flipped board.
       data-pos={`${props.row},${props.col}`}
+      style={props.strike ? ({ ["--strike-i" as string]: props.strike.order } as React.CSSProperties) : undefined}
       onClick={() => props.onClick(props.row, props.col)}
       onDragOver={(e) => {
         if (!props.canDrop) return;
@@ -127,6 +132,10 @@ export function Slot(props: {
           first: it costs nothing while transparent, and one stable element is
           cheaper than mounting and unmounting one on every state change. */}
       <i className="slot-glow" aria-hidden="true" />
+      {/* A row/column attack about to land. Its own element, not a pseudo:
+          ::after already belongs to traps and closed squares, and this must
+          sit OVER the card standing here — that card is the point. */}
+      {props.strike && <i className="slot-strike" aria-hidden="true" />}
       {props.poiLetter && <span className="poi-letter" aria-hidden="true">{props.poiLetter}</span>}
       {props.captured && (
         <span
