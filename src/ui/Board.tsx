@@ -320,7 +320,7 @@ export function Board(props: {
               const blast = !aiming && props.blast.some((p) => p.row === row && p.col === col);
               const strikeSq = props.strike?.squares.find((q) => q.row === row && q.col === col) ?? null;
               const strike = strikeSq
-                ? { order: strikeSq.order, mine: props.strike!.owner === props.viewPlayer }
+                ? { order: strikeSq.order, mine: strikeSq.owner === props.viewPlayer }
                 : null;
               const clock = props.telegraphs.find((t) => t.pos.row === row && t.pos.col === col) ?? null;
               const staged = props.stagedSlot != null && props.stagedSlot.row === row && props.stagedSlot.col === col;

@@ -107,19 +107,6 @@ describe("where anything else is aimed — the cards the step reached", () => {
     expect(spellCast(s, after)).toEqual({ spellId: "pyro_spark", seat: "P2" });
   });
 
-  it("a battle attack lights only the opposing side — not a thorn biting the attacker", () => {
-    const s = prepState(1);
-    const attacker = place(s, "aqua_blackice", "P2", 1, 1);
-    const victim = place(s, "leaf_greegon", "P1", 2, 1);
-    s.phase = "battle";
-    s.battle = { queue: [attacker.instanceId], index: 0, awaitingInput: null };
-    const after = structuredClone(s);
-    after.battle!.index = 1;
-    after.cards[victim.instanceId].curHp -= 3;
-    after.cards[attacker.instanceId].curHp -= 1; // retaliation
-    expect(squaresOf(strikeZone(s, after))).toEqual(["2,1"]);
-  });
-
   it("a dodged, statused or shoved card was still aimed at", () => {
     const s = prepState(1);
     const attacker = place(s, "aqua_blackice", "P2", 1, 1);
@@ -170,5 +157,84 @@ describe("where anything else is aimed — the cards the step reached", () => {
     const z = strikeZone(s, after)!;
     const order = Object.fromEntries(z.squares.map((q) => [`${q.row},${q.col}`, q.order]));
     expect(order).toEqual({ "1,0": 0, "3,3": 1 });
+  });
+  it("a battle attack lights its target, and a thorn biting back lights the attacker as the defender's doing", () => {
+    const s = prepState(1);
+    const attacker = place(s, "aqua_blackice", "P2", 1, 1);
+    const victim = place(s, "leaf_greegon", "P1", 2, 1);
+    s.phase = "battle";
+    s.battle = { queue: [attacker.instanceId], index: 0, awaitingInput: null };
+    const after = structuredClone(s);
+    after.battle!.index = 1;
+    after.cards[victim.instanceId].curHp -= 3;
+    after.cards[attacker.instanceId].curHp -= 1; // retaliation
+    const z = strikeZone(s, after)!;
+    const owners = Object.fromEntries(z.squares.map((q) => [`${q.row},${q.col}`, q.owner]));
+    expect(owners).toEqual({ "2,1": "P2", "1,1": "P1" });
+  });
+});
+
+describe("the end of the round, death blasts and row spells", () => {
+  it("the end of a round lights every card it is about to hurt, on both sides", () => {
+    let s = prepState(2);
+    const mine = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 9, status: { kind: "BURN", duration: 2, power: 2 } as never });
+    const theirs = place(s, "leaf_greegon", "P2", 1, 3, { curHp: 9, status: { kind: "DOT", duration: 2, power: 2 } as never });
+    place(s, "leaf_greegon", "P2", 0, 0, { curHp: 9 }); // untouched: must not light
+    s = atBattle(s);
+    s.battle!.index = s.battle!.queue.length; // every card has acted
+    const after = advance(s);
+    // Greegon REGENERATES: it takes 2 BURN and heals 2 in this same step, ending
+    // on the HP it started with. It was still burned — the damage number was
+    // recorded — and that is the case an HP-only diff would miss.
+    expect(after.cards[mine.instanceId].curHp).toBe(9);
+    expect(after.cards[mine.instanceId].fxDmgSeq ?? 0).toBeGreaterThan(s.cards[mine.instanceId].fxDmgSeq ?? 0);
+    const z = strikeZone(s, after)!;
+    expect(z.kind).toBe("round");
+    expect(z.owner).toBeNull();
+    const owners = Object.fromEntries(z.squares.map((q) => [`${q.row},${q.col}`, q.owner]));
+    // Your burning card is lit as the opponent's doing (red); theirs as yours (gold).
+    expect(owners).toEqual({ "2,0": "P2", "1,3": "P1" });
+    expect(theirs.instanceId in after.cards).toBe(true);
+  });
+
+  it("a card dying with a parting blast lights the whole row ahead of it", () => {
+    const s = prepState(1);
+    const attacker = place(s, "aqua_blackice", "P1", 2, 1);
+    const bird = place(s, "pyro_firebird", "P2", 1, 1); // onDeath: 4 to the row ahead
+    s.phase = "battle";
+    s.battle = { queue: [attacker.instanceId], index: 0, awaitingInput: null };
+    const after = structuredClone(s);
+    after.battle!.index = 1;
+    delete after.cards[bird.instanceId];
+    after.cards[attacker.instanceId].curHp -= 4; // caught in the blast
+    const z = strikeZone(s, after)!;
+    expect(squaresOf(z)).toEqual(["1,1", "2,0", "2,1", "2,2", "2,3"]);
+    // The blast's row is the dead bird's doing, and it sweeps after the kill.
+    const blast = z.squares.filter((q) => q.row === 2);
+    expect(blast.every((q) => q.owner === "P2")).toBe(true);
+    const kill = z.squares.find((q) => q.row === 1)!;
+    expect(Math.min(...blast.map((q) => q.order))).toBeGreaterThanOrEqual(kill.order);
+  });
+
+  it("a row-wide spell lights its whole row, empty squares included", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 9;
+    s.players.P2.spellbook = [{ defId: "aqua_frost_patch", used: false }];
+    place(s, "leaf_greegon", "P1", 2, 0);
+    place(s, "leaf_greegon", "P1", 2, 2);
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_frost_patch", row: 2 });
+    const z = strikeZone(s, after)!;
+    expect(z).toMatchObject({ owner: "P2", kind: "line" });
+    expect(squaresOf(z)).toEqual(["2,0", "2,1", "2,2", "2,3"]);
+  });
+
+  it("a single-target spell still lights only its target", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 5;
+    s.players.P2.spellbook = [{ defId: "pyro_spark", used: false }];
+    const t = place(s, "leaf_greegon", "P1", 2, 0, { curHp: 9 });
+    place(s, "leaf_greegon", "P1", 2, 2, { curHp: 9 });
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "pyro_spark", targetId: t.instanceId });
+    expect(squaresOf(strikeZone(s, after))).toEqual(["2,0"]);
   });
 });

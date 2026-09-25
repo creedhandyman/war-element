@@ -184,6 +184,7 @@ import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { useSpellImpacts } from "./vfx/use-spell-impacts";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
+import { createRemoteQueue } from "./remote-queue";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
@@ -281,6 +282,9 @@ const TARGET_HOLD_MS = 600;
 /** The spell cast-flash's length. The AI's spells now play theirs BEFORE they
  *  land (see `stagedCast`), the same order a human cast has always had. */
 const CAST_FLASH_MS = 2000;
+/** A zone's hold: a line or the end of a round is a shape to read, a target
+ *  is a card to spot. */
+const holdFor = (zone: StrikeZone) => (zone.kind === "target" ? TARGET_HOLD_MS : STRIKE_HOLD_MS);
 
 const LOG_CHATTER = /\bpasses\b|priority|^Battle! Queue|preps first|Opening hands|draws \d|mulligans/i;
 
@@ -379,7 +383,45 @@ export function App() {
    *  targets light, then it lands. The AI's state used to land first and the
    *  flash played on top of it — so its damage numbers ran underneath the
    *  near-opaque scrim, where nobody saw them. */
-  const [stagedCast, setStagedCast] = useState<{ from: GameState; next: GameState; zone: StrikeZone | null; spellId: string } | null>(null);
+  const [stagedCast, setStagedCast] = useState<{
+    /** The game it was computed from — it lands only onto that one. Null for a
+     *  state that arrived over the wire, which is authoritative and lands. */
+    from: GameState | null;
+    next: GameState;
+    zone: StrikeZone | null;
+    spellId: string;
+    /** Called once it has landed (the online queue waits on it). */
+    onLand?: () => void;
+  } | null>(null);
+  /** A zone lit by a state arriving over the wire. Its own slot, so the local
+   *  auto-advance clearing ITS highlight cannot blank the remote one. */
+  const [remoteStrike, setRemoteStrike] = useState<StrikeZone | null>(null);
+  /** The game on screen, for code that runs outside a render (the net
+   *  callbacks are created once, when the room is joined). */
+  const shownGameRef = useRef<GameState | null>(null);
+  /** STATES FROM THE OTHER PLAYER, shown before they land (ui/remote-queue.ts).
+   *  Built once from stable setters and refs, because the net callbacks that
+   *  feed it are created when the room is joined and never refreshed. */
+  const remoteQueue = useMemo(() => createRemoteQueue({
+    shown: () => shownGameRef.current,
+    land: (next) => {
+      shownGameRef.current = next;
+      setGame(next);
+    },
+    light: setRemoteStrike,
+    stageSpell: (next, zone, spellId, landed) => setStagedCast({
+      from: null, next, zone, spellId,
+      onLand: () => {
+        shownGameRef.current = next;
+        landed();
+      },
+    }),
+    wait: (ms, fn) => {
+      const t = window.setTimeout(fn, ms);
+      return () => clearTimeout(t);
+    },
+    holdFor,
+  }), []);
   /** The spell `staged` already flashed. The opponent-flash effect diffs
    *  spent spells after the fact, and would otherwise flash it a second time
    *  the moment the staged state lands. */
@@ -1424,7 +1466,7 @@ export function App() {
     } else if (zone) {
       setStrike(zone);
       t = window.setTimeout(() => commitNow(next),
-        Math.max(delay, zone.kind === "line" ? STRIKE_HOLD_MS : TARGET_HOLD_MS));
+        Math.max(delay, holdFor(zone)));
     } else {
       t = window.setTimeout(() => commitNow(next), delay);
     }
@@ -1452,9 +1494,11 @@ export function App() {
         setStrike(null);
         // Only onto the game it was computed from: a player who quit or
         // restarted during the flash must not get this match's state back.
-        setGame((cur) => (cur === stagedCast.from ? stagedCast.next : cur));
+        const { from, next } = stagedCast;
+        setGame((cur) => (from === null || cur === from ? next : cur));
         setStagedCast(null);
-      }, stagedCast.zone ? TARGET_HOLD_MS : 0));
+        stagedCast.onLand?.();
+      }, stagedCast.zone ? holdFor(stagedCast.zone) : 0));
     }, CAST_FLASH_MS));
     return () => timers.forEach((id) => clearTimeout(id));
   }, [stagedCast]);
@@ -1465,7 +1509,12 @@ export function App() {
     setStagedCast(null);
     setCastFlash(null); // a staged spell's timers died with it, including the one that clears this
     setStrike(null);
-  }, [started]);
+    setRemoteStrike(null);
+    remoteQueue.clear();
+  }, [started, remoteQueue]);
+  useEffect(() => {
+    shownGameRef.current = game;
+  }, [game]);
 
   // Reliability heartbeat: BOTH sides re-broadcast their last-sent state every
   // few seconds, so a dropped or slow Realtime message self-heals.
@@ -2057,7 +2106,7 @@ export function App() {
     const { joinRoom } = await loadRoomApi();
     if (!joinRoom) return;
     roomRef.current = joinRoom(code, "host", {
-      onState: (state) => setGame(state),
+      onState: (state) => remoteQueue.receive(state),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
       onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
@@ -2243,7 +2292,7 @@ export function App() {
    *  rejoin, so the two cannot drift on how names, foils or a rematch land. */
   function guestOnState(code: string) {
     return (state: GameState, meta?: StateMeta) => {
-      setGame(state);
+      remoteQueue.receive(state);
       // Every state carries them, so a missed opening message is not a
       // permanently nameless versus screen.
       if (meta?.names) { seatNamesRef.current = meta.names; setSeatNames(meta.names); }
@@ -2323,7 +2372,7 @@ export function App() {
     const { joinRoom } = await loadRoomApi();
     if (!joinRoom) return;
     roomRef.current = joinRoom(code, role, {
-      onState: role === "host" ? (state) => setGame(state) : guestOnState(code),
+      onState: role === "host" ? (state) => remoteQueue.receive(state) : guestOnState(code),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
     }, point);
@@ -3841,7 +3890,7 @@ export function App() {
             previewArea={previewArea}
             aimArea={[...aimArea, ...aimSpellCells]}
             blast={blast}
-            strike={strike}
+            strike={remoteStrike ?? strike}
             telegraphs={telegraphs}
             stagedSlot={stagedSlot}
             // An aim anchor is a crosshair, not a hit count: "x1 · 1 hit(s)
