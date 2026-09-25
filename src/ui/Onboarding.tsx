@@ -233,6 +233,40 @@ export function onboardingStep(save: StorySave): OnboardStep | null {
   return ONBOARDING_STEPS.find((s) => !s.core && !taught.includes(s.id)) ?? null;
 }
 
+/** A tour tip's button while the player is NOT on the tab it describes. */
+export const TOUR_SHOW_CTA = "Show me";
+
+/** What a TOUR tip's button does, from where the player is standing.
+ *
+ *  A tour tip describes a tab, so it has to be read ON that tab. The button used
+ *  to go to the tip's own tab and mark it taught in the same tap — and marking
+ *  it taught brings the next tip up on the same render, so every tip arrived one
+ *  page early: "The Arena" was read on Home, "The Void Tower" on the Arena, and
+ *  the player reached each place just as its card moved on.
+ *
+ *  So the tab changes when a tip ARRIVES, not when it is dismissed:
+ *    · away from its tab (the tour opens wherever the first battle left the
+ *      player, and nothing stops them wandering off mid-tour) the button is
+ *      "Show me": go there, teach nothing;
+ *    · on its tab it is the tip's own "Next": mark it taught and go to the NEXT
+ *      tip's tab, so that one is read where it points too. The last goes
+ *      nowhere — the tour ends on the page its final tip was about. */
+export function tourPress(
+  save: StorySave,
+  step: OnboardStep,
+  onTab: boolean,
+): { teach: string | null; goTo: GuideTab | null } {
+  if (!onTab) return { teach: null, goTo: step.tab };
+  const taught = [...new Set([...(save.taught ?? []), step.id])];
+  const next = onboardingStep({ ...save, taught });
+  return { teach: step.id, goTo: next && !next.core ? next.tab : null };
+}
+
+/** The words on `step`'s button. The core arc keeps its own: those already go
+ *  where they point ("Take me to it") and complete by doing the deed. */
+export const guideCta = (step: OnboardStep, onTab: boolean): string =>
+  step.core || onTab ? step.cta : TOUR_SHOW_CTA;
+
 /** How far along, for the pips. Returns -1 when nothing is due.
  *
  *  Counted over the WHOLE curriculum rather than per-arc: the pips are a "how

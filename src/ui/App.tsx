@@ -166,7 +166,7 @@ import {
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import {
   FIRST_NODE, ONBOARDING_COUNT, ONBOARDING_SKIP,
-  canSkipGuide, onboardingIndex, onboardingStep, skipLockedNote,
+  canSkipGuide, guideCta, onboardingIndex, onboardingStep, skipLockedNote, tourPress,
 } from "./Onboarding";
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
@@ -3968,15 +3968,21 @@ export function App() {
         navDo({ t: "goToNode", nodeId: FIRST_NODE, regionId: regionOfNode(FIRST_NODE)?.id });
         navDo({ t: "open" });
         break;
-      default:
-        // Tour steps: show me the tab this is about, then mark it taught. Both,
-        // in that order, so the last thing the player sees is the place rather
-        // than the card that described it.
-        setHomeCollection(false);
-        navDo({ t: guideStep.tab === "story" ? "open" : "close" });
-        setTab(guideStep.tab as Tab);
-        teach(guideStep.id);
+      default: {
+        // Tour steps: a tip is read ON the tab it describes (`tourPress`).
+        // Away from it the button is "Show me" and only goes there; on it,
+        // "Next" teaches the tip and goes to the NEXT tip's tab. It used to
+        // go to the tip's own tab and teach it in one tap, which brought the
+        // next tip up just as the player arrived — every tip a page early.
+        const press = tourPress(story, guideStep, guideOnTab);
+        if (press.teach) teach(press.teach);
+        if (press.goTo) {
+          setHomeCollection(false);
+          navDo({ t: press.goTo === "story" ? "open" : "close" });
+          setTab(press.goTo as Tab);
+        }
         break;
+      }
     }
   };
 
@@ -5995,7 +6001,7 @@ export function App() {
           anchor={guideOnTab ? guideStep.anchor : null}
           title={guideStep.title}
           body={guideStep.body}
-          cta={guideStep.cta}
+          cta={guideCta(guideStep, guideOnTab)}
           onCta={runGuideStep}
           onSkip={canSkipGuide(story) ? skipGuide : undefined}
           skipLockedNote={skipLockedNote(story)}

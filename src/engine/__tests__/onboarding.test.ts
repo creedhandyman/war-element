@@ -7,11 +7,13 @@
 // The component is React and belongs to the browser pass (this repo runs
 // `environment: "node"` and has no component tests); the machine underneath it
 // is where a regression would hide.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  FIRST_NODE, ONBOARDING_CORE_COUNT, ONBOARDING_SKIP, ONBOARDING_STEPS,
-  canSkipGuide, firstFightWon, onboardingIndex, onboardingStep,
-  packOpened as packIsOpened, skipLockedNote,
+  FIRST_NODE, ONBOARDING_CORE_COUNT, ONBOARDING_SKIP, ONBOARDING_STEPS, TOUR_SHOW_CTA,
+  canSkipGuide, firstFightWon, guideCta, onboardingIndex, onboardingStep,
+  packOpened as packIsOpened, skipLockedNote, tourPress, type GuideTab,
 } from "../../ui/Onboarding";
 import { CARDS } from "../../data/cards";
 import { REGIONS, STARTER_DECK, deckCapFor, isFirstBattle, newSave, type StorySave } from "../../data/story";
@@ -212,5 +214,92 @@ describe("it points at a node that really is the tutorial", () => {
     const node = REGIONS.flatMap((r) => r.nodes).find((n) => n.id === FIRST_NODE);
     expect(node, `${FIRST_NODE} is missing from the world`).toBeTruthy();
     expect(node!.requires, "the first battle cannot have a gate").toEqual([]);
+  });
+});
+
+// THE TOUR IS READ WHERE IT POINTS. Its button used to go to the tip's own tab
+// and mark it taught in one tap, and marking it taught brings the next tip up on
+// the same render — so every tip arrived one page early: "The Arena" was read on
+// Home, "The Void Tower" on the Arena. `tourPress` is the decision App runs on
+// the button; these press it until the tour ends.
+describe("each tour tip is shown on the tab it describes", () => {
+  const justWon = (): StorySave => ({ ...packOpened(newSave()), cleared: [FIRST_NODE] });
+  const TOUR = ONBOARDING_STEPS.filter((s) => !s.core);
+
+  /** Press the guide's button from `at` until the tour ends, recording where
+   *  each tip was READ — shown on its own tab, with its own button. */
+  function walk(save: StorySave, at: GuideTab) {
+    const read: { id: string; on: GuideTab }[] = [];
+    for (let guard = 0; guard < 20; guard++) {
+      const step = onboardingStep(save);
+      if (!step) return { read, at };
+      const onTab = step.tab === at;
+      if (onTab) read.push({ id: step.id, on: at });
+      const press = tourPress(save, step, onTab);
+      if (press.teach) save = { ...save, taught: [...(save.taught ?? []), press.teach] };
+      if (press.goTo) at = press.goTo;
+    }
+    throw new Error("the tour never ended");
+  }
+
+  it("from the map after the first battle, every tip is read on its own tab", () => {
+    const { read } = walk(justWon(), "story");
+    expect(read.map((r) => r.id), "every tip, in order, none skipped").toEqual(TOUR.map((s) => s.id));
+    for (const r of read) expect(r.on, r.id).toBe(TOUR.find((s) => s.id === r.id)!.tab);
+  });
+
+  it("...and from every other tab it could open on", () => {
+    for (const from of ["home", "shop", "arena", "tower"] as GuideTab[]) {
+      expect(walk(justWon(), from).read.map((r) => `${r.id}@${r.on}`), from)
+        .toEqual(TOUR.map((s) => `${s.id}@${s.tab}`));
+    }
+  });
+
+  it("away from its tab it says Show me, goes there, and teaches nothing", () => {
+    const save = justWon();
+    const step = onboardingStep(save)!;
+    expect(step.core).toBe(false);
+    expect(guideCta(step, false)).toBe(TOUR_SHOW_CTA);
+    expect(tourPress(save, step, false)).toEqual({ teach: null, goTo: step.tab });
+  });
+
+  it("Next goes on to the NEXT tip's tab, never back to its own", () => {
+    // The bug, stated: the tab a tip describes is the page it is already being
+    // read on, so Next landing there shows the following tip one page early.
+    let save = justWon();
+    for (let step = onboardingStep(save); step; step = onboardingStep(save)) {
+      expect(guideCta(step, true), step.id).toBe(step.cta);
+      const press = tourPress(save, step, true);
+      expect(press.teach).toBe(step.id);
+      save = { ...save, taught: [...(save.taught ?? []), step.id] };
+      const next = onboardingStep(save);
+      expect(press.goTo, `${step.id} -> ${next?.id ?? "the end"}`).toBe(next ? next.tab : null);
+    }
+  });
+
+  it("the tour ends on the page its last tip was about", () => {
+    expect(walk(justWon(), "story").at).toBe(TOUR[TOUR.length - 1].tab);
+  });
+
+  it("the core arc keeps its own buttons, which already go where they point", () => {
+    for (const s of ONBOARDING_STEPS.filter((x) => x.core)) {
+      expect(guideCta(s, false), s.id).toBe(s.cta);
+      expect(guideCta(s, true), s.id).toBe(s.cta);
+    }
+  });
+
+  it("App runs the tour's button through tourPress, and words it with guideCta", () => {
+    // Normalised: on a CRLF checkout the "\n  };\n" slice finds nothing, runs
+    // to the end of the file, and would pass against the whole of App.tsx.
+    const APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
+    const at = APP.indexOf("const runGuideStep = ");
+    const end = APP.indexOf("\n  };\n", at);
+    expect(at).toBeGreaterThan(-1);
+    expect(end).toBeGreaterThan(at);
+    const body = APP.slice(at, end);
+    expect(body).toContain("tourPress(story, guideStep, guideOnTab)");
+    // The old shape: straight to the tip's OWN tab, taught in the same tap.
+    expect(body).not.toMatch(/setTab\(guideStep\.tab/);
+    expect(APP).toContain("cta={guideCta(guideStep, guideOnTab)}");
   });
 });
