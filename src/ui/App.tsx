@@ -183,7 +183,7 @@ import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { useSpellImpacts } from "./vfx/use-spell-impacts";
-import { strikeZone, type StrikeZone } from "./attack-zone";
+import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
@@ -273,6 +273,14 @@ function usePortraitPhone(): boolean {
  *  Long enough to read which line, short enough that a battle with three of
  *  them in it does not drag: the ordinary battle step is 480ms. */
 const STRIKE_HOLD_MS = 750;
+/** ...and how long any OTHER aimed action's targets stay lit: a basic attack,
+ *  a single-target or splash Special, a spell, a pounce on arrival. Just over
+ *  the ordinary 480ms battle step, which it replaces rather than adds to — the
+ *  target is lit during the wait that step already had. */
+const TARGET_HOLD_MS = 600;
+/** The spell cast-flash's length. The AI's spells now play theirs BEFORE they
+ *  land (see `stagedCast`), the same order a human cast has always had. */
+const CAST_FLASH_MS = 2000;
 
 const LOG_CHATTER = /\bpasses\b|priority|^Battle! Queue|preps first|Opening hands|draws \d|mulligans/i;
 
@@ -367,6 +375,15 @@ export function App() {
   /** A row/column attack about to land — lit on the board while its step is
    *  held. See `strikeZone` and the auto-advance effect. */
   const [strike, setStrike] = useState<StrikeZone | null>(null);
+  /** An AI spell computed but NOT YET APPLIED: its art flashes, then its
+   *  targets light, then it lands. The AI's state used to land first and the
+   *  flash played on top of it — so its damage numbers ran underneath the
+   *  near-opaque scrim, where nobody saw them. */
+  const [stagedCast, setStagedCast] = useState<{ from: GameState; next: GameState; zone: StrikeZone | null; spellId: string } | null>(null);
+  /** The spell `staged` already flashed. The opponent-flash effect diffs
+   *  spent spells after the fact, and would otherwise flash it a second time
+   *  the moment the staged state lands. */
+  const preFlashedRef = useRef<string | null>(null);
   const castTimerRef = useRef<number | null>(null);
   // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
   // a newly-used spell in their book and flash its art too — with its own timer
@@ -1367,6 +1384,7 @@ export function App() {
   // no-input steps (and broadcasts) so the two clients never double-apply.
   useEffect(() => {
     if (!started || game.phase === "gameover") return;
+    if (stagedCast) return; // an AI spell is being shown before it lands
     if (online) {
       if (online.role !== "host" || needsInput(game) !== null) return;
     } else if (needsP1Input(game)) {
@@ -1379,36 +1397,75 @@ export function App() {
     // mid-flight. Waiting the full overlay out lets each entrance actually show.
     const showing = announce !== null || castFlash !== null;
     const delay = showing ? 2200 : game.phase === "battle" ? 480 : 260;
-    let held: number | undefined;
-    const t = setTimeout(() => {
-      const next = advance(game);
-      const commit = () => {
-        setStrike(null);
-        setGame(next);
-        if (online) broadcast(next);
-      };
-      // A ROW OR COLUMN ATTACK IS SHOWN BEFORE IT LANDS. The step is computed
-      // first; if it fired a line attack, its line is lit and THIS computed
-      // result is held and then applied — so what lights up is what actually
-      // happened, never a guess (see ui/attack-zone.ts).
-      const zone = strikeZone(game, next);
-      if (zone) {
-        setStrike(zone);
-        held = window.setTimeout(commit, STRIKE_HOLD_MS);
-      } else {
-        commit();
-      }
-    }, delay);
+    const commitNow = (next: GameState) => {
+      setStrike(null);
+      setGame(next);
+      if (online) broadcast(next);
+    };
+    if (showing) {
+      // An overlay is up. The deps re-run this the moment it clears, and that
+      // run shows the step properly; this timer is only the old fallback in
+      // case one ever outstays its welcome.
+      const t = setTimeout(() => commitNow(advance(game)), delay);
+      return () => clearTimeout(t);
+    }
+    // LOOK AHEAD, THEN SHOW, THEN LAND. The step is computed NOW with the pure
+    // `advance()`, and what it was aimed at is lit during the wait the step
+    // had anyway; the computed state is then applied as-is. What lights up is
+    // therefore what actually happens (ui/attack-zone.ts), and an ordinary
+    // targeted step costs ~120ms, not a second pause.
+    const next = advance(game);
+    const zone = strikeZone(game, next);
+    const cast = spellCast(game, next);
+    let t: number;
+    if (cast && !game.humans.includes(cast.seat)) {
+      // An AI spell: flash, then targets, then land — the staged-step effect.
+      t = window.setTimeout(() => setStagedCast({ from: game, next, zone, spellId: cast.spellId }), delay);
+    } else if (zone) {
+      setStrike(zone);
+      t = window.setTimeout(() => commitNow(next),
+        Math.max(delay, zone.kind === "line" ? STRIKE_HOLD_MS : TARGET_HOLD_MS));
+    } else {
+      t = window.setTimeout(() => commitNow(next), delay);
+    }
     return () => {
       clearTimeout(t);
-      if (held !== undefined) {
-        // Interrupted mid-hold (an announce or flash started): drop the
-        // highlight; the re-run computes the same step again and re-lights it.
-        clearTimeout(held);
-        setStrike(null);
-      }
+      // Interrupted (an announce or flash started): drop the highlight; the
+      // re-run computes the same step and lights it again.
+      setStrike(null);
     };
-  }, [game, started, online, announce, castFlash]);
+  }, [game, started, online, announce, castFlash, stagedCast]);
+
+  // THE AI'S SPELL, SHOWN BEFORE IT LANDS: its art flashes (the board is under
+  // a near-opaque scrim while it does), then the flash clears onto its targets
+  // lit, then the computed state lands — damage numbers, burst and all, on a
+  // screen the player can see. The auto-advance effect stands down meanwhile.
+  useEffect(() => {
+    if (!stagedCast) return;
+    const timers: number[] = [];
+    preFlashedRef.current = stagedCast.spellId;
+    setCastFlash({ spellId: stagedCast.spellId });
+    timers.push(window.setTimeout(() => {
+      setCastFlash(null);
+      if (stagedCast.zone) setStrike(stagedCast.zone);
+      timers.push(window.setTimeout(() => {
+        setStrike(null);
+        // Only onto the game it was computed from: a player who quit or
+        // restarted during the flash must not get this match's state back.
+        setGame((cur) => (cur === stagedCast.from ? stagedCast.next : cur));
+        setStagedCast(null);
+      }, stagedCast.zone ? TARGET_HOLD_MS : 0));
+    }, CAST_FLASH_MS));
+    return () => timers.forEach((id) => clearTimeout(id));
+  }, [stagedCast]);
+  // Leaving the match drops anything still being shown, so the next match
+  // cannot start with its auto-advance parked behind a stale staged spell.
+  useEffect(() => {
+    if (started) return;
+    setStagedCast(null);
+    setCastFlash(null); // a staged spell's timers died with it, including the one that clears this
+    setStrike(null);
+  }, [started]);
 
   // Reliability heartbeat: BOTH sides re-broadcast their last-sent state every
   // few seconds, so a dropped or slow Realtime message self-heals.
@@ -1887,6 +1944,10 @@ export function App() {
     for (const [id, n] of nowUsed)
       if (n > (prevOppUsedRef.current.get(id) ?? 0)) { fresh = id; break; }
     prevOppUsedRef.current = nowUsed;
+    if (fresh !== null && fresh === preFlashedRef.current) {
+      preFlashedRef.current = null; // shown BEFORE it landed — see `stagedCast`
+      return;
+    }
     if (fresh && castTimerRef.current === null) {
       setCastFlash({ spellId: fresh });
       if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);

@@ -18,9 +18,9 @@
  */
 import { useEffect, useRef } from "react";
 import type { Element, GameState } from "../../engine";
-import { seatsOf } from "../../engine/types";
 import { getSpell } from "../../engine/spells";
 import type { ImpactLayer } from "./impact-layer";
+import { spellCast } from "../attack-zone";
 
 export interface Hit { row: number; col: number; element: Element; strength: number }
 
@@ -38,27 +38,11 @@ function effectsOn(): boolean {
   return !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** A spell id whose used-count rose between the two states, if any. Counted,
- *  not a set, for the same reason the opponent flash counts: a book can hold
- *  two of one spell, and the second cast must still register. */
-function freshSpell(before: GameState, after: GameState): string | null {
-  const count = (g: GameState) => {
-    const m = new Map<string, number>();
-    for (const p of seatsOf(g))
-      for (const sl of g.players[p]?.spellbook ?? [])
-        if (sl.used) m.set(sl.defId, (m.get(sl.defId) ?? 0) + 1);
-    return m;
-  };
-  const was = count(before);
-  for (const [id, n] of count(after)) if (n > (was.get(id) ?? 0)) return id;
-  return null;
-}
-
 /** The squares a spell hit between two states — none unless a spell was
  *  spent in that transition. Pure, and exported for spell-impacts.test.ts. */
 export function spellHits(before: GameState, after: GameState): Hit[] {
-  const spellId = freshSpell(before, after);
-  return spellId ? hitsOf(before, after, getSpell(spellId).element) : [];
+  const cast = spellCast(before, after);
+  return cast ? hitsOf(before, after, getSpell(cast.spellId).element) : [];
 }
 
 function hitsOf(before: GameState, after: GameState, element: Element): Hit[] {
