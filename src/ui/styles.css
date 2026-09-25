@@ -155,6 +155,8 @@
   --z-frame: 50;    /* the gold filigree screen border */
   --z-drawer: 60;   /* log rail, spell row, spellbook popover, music toggle   */
   --z-sheet: 62;    /* the portrait spells bottom sheet, over its own drawer  */
+  --z-vfx: 70;      /* the effects canvas (spell impacts): over the board and
+                       its drawers, under every control and full-screen surface */
 
   /* BAND 2 — full-screen surfaces, where the bugs actually happen. Wide gaps,
      and the order below is the whole point:
@@ -7673,3 +7675,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .dr-banner { transition: border-color .14s ease; }
   .dr-banner:hover, .dr-banner:focus-visible { transform: none; }
 }
+
+/* The WebGL effects layer (ui/vfx/impact-layer.ts). Draws only; never takes a
+   tap, so the board underneath works exactly as if it were not there. */
+.vfx-layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: var(--z-vfx); }

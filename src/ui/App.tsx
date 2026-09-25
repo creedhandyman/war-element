@@ -182,6 +182,7 @@ import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
+import { useSpellImpacts } from "./vfx/use-spell-impacts";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
@@ -406,6 +407,9 @@ export function App() {
   const [aimedSpellRow, setAimedSpellRow] = useState<number | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
+  // Spell impacts on the WebGL effects layer, held while any flash covers the
+  // board (see use-spell-impacts.ts for why the AI's cast needs the hold).
+  useSpellImpacts(game, started, castFlash !== null);
   /** WHO IS PLAYING — one value, not two booleans.
    *
    *  This was `twoPlayer` and `onlineMode`, which is a three-way choice encoded

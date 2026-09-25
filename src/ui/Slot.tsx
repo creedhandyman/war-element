@@ -105,6 +105,10 @@ export function Slot(props: {
   return (
     <div
       className={cls}
+      // The logical square, for anything outside React that must find it on
+      // screen — the effects layer aims spell impacts by it. Logical, so it
+      // stays right on a P2 viewer's flipped board.
+      data-pos={`${props.row},${props.col}`}
       onClick={() => props.onClick(props.row, props.col)}
       onDragOver={(e) => {
         if (!props.canDrop) return;
