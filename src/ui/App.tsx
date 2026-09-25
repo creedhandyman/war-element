@@ -1429,14 +1429,15 @@ export function App() {
       // TAMING. Beating a boss while it is ENRAGED brings it over to your side
       // for the next three battles. Folded into the event settle rather than
       // bolted beside it so it rides the same `settledMatch` guard — one
-      // settlement per match, so a re-render cannot re-tame.
+      // settlement per match, so a re-render cannot re-tame. Read through
+      // `bossFight`, so the boss tamed is the one in the seat.
       const tamedSave = (sv: StorySave) => {
-        if (!won || !bossRun?.enraged) return sv;
+        if (!won || !bossFight?.enraged) return sv;
         // Queue the reveal for the tower. Set here rather than in the win
         // screen because this is the only place that knows both that the match
         // was won and which boss it was against.
-        setTowerOpenOn({ cardId: bossRun.cardId, justTamed: true });
-        return tameBoss(sv, bossRun.cardId);
+        setTowerOpenOn({ cardId: bossFight.cardId, justTamed: true });
+        return tameBoss(sv, bossFight.cardId);
       };
       const settled = event
         ? (won ? tamedSave(completeEvent(prev, event.id)) : prev)
@@ -1796,6 +1797,17 @@ export function App() {
     enraged: boolean;
     ally: string | null;
   } | null>(null);
+  /** ...AND IT ONLY COUNTS WHILE ITS BOSS IS IN THE CHAIR. Both readers go
+   *  through this, never through `bossRun` itself.
+   *
+   *  Being stored is what let it outlive its fight. Picking another opponent on
+   *  Quick match is how you back out of an event, and `eventRun` followed the
+   *  seat to null while the run stayed — so the next match, against an ordinary
+   *  deck, spent the tamed ally's use without ever placing it. Checked against
+   *  the seat here rather than cleared by each writer of `p2DeckId`, for the
+   *  reason `eventRun` is derived: the deck in the chair already says which
+   *  fight this is, and a run for any other boss is not this fight's. */
+  const bossFight = bossRun && eventRun?.bossId === bossRun.cardId ? bossRun : null;
   /** The boss the tower should open on next time it is shown, and whether the
    *  player has just tamed it. The win screen has no idea which boss the match
    *  was against — it is handed a GameState, not a trial — so the moment a boss
@@ -2004,7 +2016,7 @@ export function App() {
       // ENRAGED: the taming trial. The same boss, angrier — scaled through the
       // one multiplier the whole feature runs on, so its Special is stronger
       // too and not just its body.
-      if (bossRun?.enraged) scaleInstance(inst, ENRAGE_SCALE);
+      if (bossFight?.enraged) scaleInstance(inst, ENRAGE_SCALE);
       // ...and SOME BOSSES HAVE A WALL OF THEIR OWN. Kheiringer opens behind
       // three Lava Gates: placed here, at setup, because a summon lands on the
       // summoner's home row and she would otherwise have played her gates
@@ -2034,10 +2046,10 @@ export function App() {
       //
       // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
       // The gates stand in the row IN FRONT of home, so this square is free.
-      if (bossRun?.ally) {
+      if (bossFight?.ally) {
         const mySeat = centreHomeSeat("P1", fresh.boardSize);
         if (!cardAt(fresh, mySeat.row, mySeat.col)) {
-          const ally = summonCard(fresh, "P1", bossRun.ally, mySeat as never);
+          const ally = summonCard(fresh, "P1", bossFight.ally, mySeat as never);
           ally.summonedThisRound = false;
           ally.tamed = true;
           scaleInstance(ally, TAME_SCALE);
@@ -2048,8 +2060,13 @@ export function App() {
     // deliberately: settling only runs when a match reaches gameover, so paying
     // there would make backing out of a fight free and a taming farmable by
     // conceding at round one.
-    if (bossRun?.ally) {
-      const spendId = bossRun.ally;
+    //
+    // ...and only on entering the fight the ally was brought to. This sits
+    // outside the boss block above, so it is the one read with nothing else
+    // guarding it: a trial seated with an ally and then swapped for an ordinary
+    // deck spent a use here on a match the ally never appeared in.
+    if (bossFight?.ally) {
+      const spendId = bossFight.ally;
       setStory((prev) => {
         const next = spendTame(prev, spendId);
         if (next !== prev) saveStory(next);

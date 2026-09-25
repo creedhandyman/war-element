@@ -229,4 +229,29 @@ describe("the wiring in App.tsx", () => {
     expect(enter).toContain('if (v !== "quick" && eventRun)');
     expect(enter).toContain("setBossRun(null)");
   });
+
+  it("...and one swapped for another opponent ON Quick match takes its ally and rage with it", () => {
+    // `eventRun` is derived from the seat and `bossRun` is stored, so changing
+    // the AI's deck nulled the event and kept the run — and the next ordinary
+    // match spent a tamed ally's use without placing it. Every read now goes
+    // through a gate that checks the run against the boss actually seated.
+    expect(APP).toContain("const bossFight = bossRun && eventRun?.bossId === bossRun.cardId ? bossRun : null;");
+    const start = fn("startArenaMatch");
+    for (const read of [
+      "if (bossFight?.enraged) scaleInstance(inst, ENRAGE_SCALE)",
+      'summonCard(fresh, "P1", bossFight.ally,',
+      "if (bossFight?.ally) {\n      const spendId = bossFight.ally;",
+    ]) expect(start, read).toContain(read);
+    const at = APP.indexOf("const tamedSave = ");
+    expect(at, "tamedSave exists").toBeGreaterThan(-1);
+    const end = APP.indexOf("\n      };", at);
+    expect(end, "tamedSave ends").toBeGreaterThan(at);
+    const tame = APP.slice(at, end);
+    expect(tame).toContain("!bossFight?.enraged");
+    expect(tame).toContain("tameBoss(sv, bossFight.cardId)");
+    // Nothing reads the stored run around the gate: comments aside, the gate's
+    // own `bossRun.cardId` is the only field read off it anywhere in App.tsx.
+    const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
+    expect(code.match(/\bbossRun\??\.\w+/g), "every read goes through bossFight").toEqual(["bossRun.cardId"]);
+  });
 });
