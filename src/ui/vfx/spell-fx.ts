@@ -36,7 +36,16 @@ export type SpellFx =
   /** A spell that changed nothing on the board (Power Rebate, Recon Ping,
    *  System Override): a ripple from the caster's own Home row, so a cast is
    *  never silent. */
-  | { kind: "pulse"; row: number; element: Element };
+  | { kind: "pulse"; row: number; element: Element }
+  /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
+   *  the set piece that sweeps the board, over and above each card's own
+   *  effect. `targets` are the opposing cards it reached, which the set piece
+   *  aims at — meteors land on them, bolts strike them, roots reach them.
+   *  `strength` comes from the spell's cost, so a cost-5 Ashfall is a flurry
+   *  and a cost-10 Volcanic Eruption is the sky falling. */
+  | { kind: "board"; element: Element; strength: number; targets: At[]; caster: PlayerId; casterRow: number };
+
+export type BoardFx = Extract<SpellFx, { kind: "board" }>;
 
 /** Scaled from the amount and clamped: a chip and a nuke should look
  *  different, but a 30-point hit must not fill the screen. */
@@ -48,8 +57,11 @@ const strengthOf = (n: number) => Math.max(0.7, Math.min(2.2, n / 5));
 export function spellEffects(before: GameState, after: GameState, viewer: PlayerId): SpellFx[] {
   const cast = spellCast(before, after);
   if (!cast) return [];
-  const element = getSpell(cast.spellId).element;
+  const spell = getSpell(cast.spellId);
+  const element = spell.element;
   const out: SpellFx[] = [];
+  /** Opposing cards the spell did something to — a whole-board spell's aim. */
+  const reached: At[] = [];
 
   for (const [id, was] of Object.entries(before.cards)) {
     if (!was.pos) continue;
@@ -62,9 +74,11 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
     // noted even though a heal in the same spell put the HP back.
     const lost = was.curHp + was.curShields - (now?.pos ? now.curHp + now.curShields : 0);
     const noted = !!now && (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
+    const opposing = was.owner !== cast.seat;
     if (lost > 0 || noted) {
       const dmg = lost > 0 ? lost : (now?.fxDmgHits?.at(-1) ?? 1);
       out.push({ kind: "impact", at: was.pos, element, strength: strengthOf(dmg) });
+      if (opposing) reached.push(was.pos);
     }
     if (!now?.pos) continue;
 
@@ -84,8 +98,13 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
     // Not when a new status is what moved them — a FREEZE drops the card's
     // speed, and the ice already says so; a debuff streak on top is noise.
     const sp0 = effectiveSp(before, was), sp1 = effectiveSp(after, now);
+    const weakened = !statused && (sp1 < sp0 || now.maxHp < was.maxHp);
     if (!statused && (sp1 > sp0 || now.maxHp > was.maxHp)) out.push({ kind: "buff", at, element });
-    else if (!statused && (sp1 < sp0 || now.maxHp < was.maxHp)) out.push({ kind: "debuff", at, element });
+    else if (weakened) out.push({ kind: "debuff", at, element });
+    // Hurt already counted it; a status or a drain with no damage (Heart of
+    // the Forest's roots, Bloodroot's bleed) still makes it a target.
+    if (opposing && (statused || weakened) && !reached.some((r) => r.row === was.pos!.row && r.col === was.pos!.col))
+      reached.push(at);
 
     if (now.pos.row !== was.pos.row || now.pos.col !== was.pos.col)
       out.push({ kind: "move", from: was.pos, to: now.pos, element });
@@ -104,8 +123,26 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
     if (isNew && t.owner === viewer) out.push({ kind: "trapSet", at: t.pos, element: t.element });
   }
 
+  if (spell.kind === "aoe" && spell.area === "board")
+    out.unshift({
+      kind: "board", element, strength: boardStrength(spell.cost), targets: reached,
+      caster: cast.seat, casterRow: homeRow(cast.seat, after.boardSize),
+    });
+
   if (out.length === 0) out.push({ kind: "pulse", row: homeRow(cast.seat, after.boardSize), element });
   return out;
+}
+
+/** A whole-board spell's weight, from its cost: the book's board spells cost
+ *  5 (a 3-damage flurry), 7-9 (8 damage) or 10 (the 15-damage ultimates). */
+export const boardStrength = (cost: number) => Math.max(0.6, Math.min(1.4, (cost - 3) / 5));
+
+/** The whole-board set piece a cast between two states calls for, if any. */
+export function boardSpell(before: GameState, after: GameState): BoardFx | null {
+  const cast = spellCast(before, after);
+  if (!cast) return null;
+  const fx = spellEffects(before, after, cast.seat).find((f): f is BoardFx => f.kind === "board");
+  return fx ?? null;
 }
 
 /** A trap that went off between two states: it is gone from the board, and

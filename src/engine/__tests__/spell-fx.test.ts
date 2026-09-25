@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
 import type { GameState, PlayerId } from "../types";
-import { spellEffects, trapsSprung, type SpellFx } from "../../ui/vfx/spell-fx";
+import { boardSpell, boardStrength, spellEffects, trapsSprung, type SpellFx } from "../../ui/vfx/spell-fx";
 import { place, prepState } from "./helpers";
 
 // What a spell LOOKS like is read off what it DID: the engine applies the cast,
@@ -151,5 +151,52 @@ describe("traps going off", () => {
     const after = structuredClone(s);
     after.traps = [];
     expect(trapsSprung(s, after)).toEqual([]);
+  });
+});
+
+describe("whole-board spells get a set piece of their own", () => {
+  it("Ashfall: a board effect aimed at every card it reached, weighted by its cost", () => {
+    const s = armed("pyro_ashfall");
+    place(s, "leaf_greegon", "P2", 0, 1, { curHp: 9 });
+    place(s, "leaf_greegon", "P2", 1, 3, { curHp: 9 });
+    place(s, "leaf_greegon", "P1", 3, 0, { curHp: 9 }); // the caster's own: not a target
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "pyro_ashfall" });
+    const board = boardSpell(s, after)!;
+    expect(board).toMatchObject({ kind: "board", element: "PYRO", caster: "P1", casterRow: 3, strength: boardStrength(5) });
+    expect(board.targets.map((t) => `${t.row},${t.col}`).sort()).toEqual(["0,1", "1,3"]);
+    // ...alongside, not instead of, each card's own impact.
+    expect(spellEffects(s, after, "P1").filter((f) => f.kind === "impact")).toHaveLength(2);
+  });
+
+  it("the weight runs from a cost-5 flurry to a cost-10 ultimate", () => {
+    expect(boardStrength(5)).toBe(0.6);
+    expect(boardStrength(9)).toBeCloseTo(1.2);
+    expect(boardStrength(10)).toBe(1.4);
+    const s = armed("aqua_tsunami");
+    place(s, "leaf_greegon", "P2", 0, 0, { curHp: 30 });
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "aqua_tsunami" });
+    expect(boardSpell(s, after)).toMatchObject({ element: "AQUA", strength: 1.4 });
+  });
+
+  it("a board spell that only roots still aims at the cards it rooted", () => {
+    const s = armed("leaf_heart_of_the_forest");
+    place(s, "aqua_blackice", "P2", 0, 2);
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
+    expect(boardSpell(s, after)?.targets).toEqual([{ row: 0, col: 2 }]);
+  });
+
+  it("an AI's board spell is aimed at YOUR cards, from ITS home row", () => {
+    const s = armed("pyro_ashfall", "P2");
+    place(s, "leaf_greegon", "P1", 3, 2, { curHp: 9 });
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "pyro_ashfall" });
+    expect(boardSpell(s, after)).toMatchObject({ caster: "P2", casterRow: 0, targets: [{ row: 3, col: 2 }] });
+  });
+
+  it("a row spell is not a board spell", () => {
+    const s = armed("aqua_frost_patch", "P2");
+    place(s, "leaf_greegon", "P1", 2, 0);
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_frost_patch", row: 2 });
+    expect(boardSpell(s, after)).toBeNull();
+    expect(spellEffects(s, after, "P1").some((f) => f.kind === "board")).toBe(false);
   });
 });

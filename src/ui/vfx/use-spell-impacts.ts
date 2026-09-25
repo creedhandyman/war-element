@@ -20,7 +20,7 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
-import { spellEffects, trapsSprung, type At, type SpellFx } from "./spell-fx";
+import { boardSpell, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -33,6 +33,7 @@ function loadLayer(): Promise<ImpactLayer> {
 function effectsOn(): boolean {
   // prefers-reduced-motion switches the whole layer off, not down: a softer
   // burst is still a flash at the edge of someone's vision.
+  if (typeof window === "undefined") return false;
   return !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
@@ -59,17 +60,76 @@ function boardRect(): Rect | null {
   return el ? toRect(el.getBoundingClientRect()) : null;
 }
 
+/** A whole-board spell's screen geometry: the board, the cards it reaches,
+ *  and which edge the caster's side is drawn on (it flips for a P2 viewer). */
+function boardGeometry(fx: BoardFx) {
+  const rect = boardRect();
+  if (!rect) return null;
+  const home = rowRect(fx.casterRow);
+  return {
+    rect,
+    targets: fx.targets.map(squareRect).filter((r): r is Rect => r !== null),
+    fromTop: home ? home.y + home.h / 2 < rect.y + rect.h / 2 : false,
+  };
+}
+
+/** How long a whole-board spell's INCOMING half runs before it lands: the
+ *  meteors are in the air, the wave is rolling, the sun is gathering. The AI's
+ *  and an online opponent's casts already pause here with their targets lit;
+ *  a player's own cast gets this pause for board-wide spells only. */
+export const BOARD_INCOMING_MS = 700;
+
+/** The pause a cast between these two states wants before it lands — 0 for
+ *  anything but a whole-board spell, or with effects off. */
+export function boardIncomingMs(before: GameState, after: GameState): number {
+  return effectsOn() && boardSpell(before, after) ? BOARD_INCOMING_MS : 0;
+}
+
+/** Play a whole-board spell's INCOMING half, timed to arrive in `ms` — call it
+ *  as the pause before the landing begins, with the pause's full length. */
+export function playBoardIncoming(before: GameState, after: GameState, ms: number) {
+  if (!effectsOn() || ms <= 0) return;
+  const fx = boardSpell(before, after);
+  if (!fx) return;
+  void loadLayer().then((l) => {
+    const g = boardGeometry(fx);
+    if (g) l.play({ kind: "boardIncoming", ...g, element: fx.element, seconds: ms / 1000, strength: fx.strength });
+  });
+  // The ground gives warning before the mountain falls: a low rumble through
+  // the board for as long as the rocks are in the air.
+  const board = document.querySelector<HTMLElement>(".board");
+  if (board && fx.element === "BORE") {
+    const a = 1.5 * fx.strength;
+    const frames = Array.from({ length: 12 }, (_, i) =>
+      ({ transform: i === 0 || i === 11 ? "translate(0,0)" : `translate(${rand(-a, a)}px,${rand(-a, a)}px)` }));
+    board.animate(frames, { duration: ms, easing: "linear" });
+  }
+}
+
+const rand = (a: number, b: number) => a + Math.random() * (b - a);
+
 function fire(fx: SpellFx[]) {
   if (fx.length === 0) return;
   void loadLayer().then((l) => {
     let hardest = 0;
+    // With a whole-board spell the set piece carries the spectacle: each card's
+    // own impact is played at half weight, or three 15-damage hits stack into
+    // one white-out that hides the very cards and numbers the player is
+    // reading (seen: Volcanic Eruption on three Greegons).
+    const boardWide = fx.some((f) => f.kind === "board");
     for (const f of fx) {
       switch (f.kind) {
+        case "board": {
+          const g = boardGeometry(f);
+          if (g) l.play({ kind: "boardFinale", ...g, element: f.element, strength: f.strength });
+          hardest = Math.max(hardest, 1 + f.strength);
+          break;
+        }
         case "impact":
         case "trapSprung": {
           const r = squareRect(f.at);
           if (!r) break;
-          const k = f.kind === "impact" ? f.strength : 1.2;
+          const k = f.kind === "impact" ? f.strength * (boardWide ? 0.5 : 1) : 1.2;
           l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k);
           hardest = Math.max(hardest, k);
           break;
@@ -105,7 +165,8 @@ function fire(fx: SpellFx[]) {
     // transform and cannot fight the board's own styles.
     const board = document.querySelector<HTMLElement>(".board");
     if (board && hardest >= 1) {
-      const a = 3 + hardest * 2;
+      // A whole-board spell shakes the whole board harder and for longer.
+      const a = 3 + hardest * (boardWide ? 3 : 2);
       board.animate(
         [
           { transform: "translate(0,0)" },
@@ -114,7 +175,7 @@ function fire(fx: SpellFx[]) {
           { transform: `translate(${-a * 0.4}px,${a * 0.2}px)` },
           { transform: "translate(0,0)" },
         ],
-        { duration: 260, easing: "ease-out" },
+        { duration: boardWide ? 420 : 260, easing: "ease-out" },
       );
     }
   });

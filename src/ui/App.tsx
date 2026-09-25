@@ -187,7 +187,7 @@ import {
 } from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
-import { useSpellImpacts } from "./vfx/use-spell-impacts";
+import { boardIncomingMs, playBoardIncoming, useSpellImpacts } from "./vfx/use-spell-impacts";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 import { createRemoteQueue } from "./remote-queue";
 import { WinScreen, type NextUp } from "./WinScreen";
@@ -392,6 +392,10 @@ export function App() {
     /** The game it was computed from — it lands only onto that one. Null for a
      *  state that arrived over the wire, which is authoritative and lands. */
     from: GameState | null;
+    /** The state the spell is read against — what was on screen when it was
+     *  staged. For the AI's cast that is `from`; for a state off the wire it
+     *  is the shown one. */
+    before: GameState;
     next: GameState;
     zone: StrikeZone | null;
     spellId: string;
@@ -414,8 +418,8 @@ export function App() {
       setGame(next);
     },
     light: setRemoteStrike,
-    stageSpell: (next, zone, spellId, landed) => setStagedCast({
-      from: null, next, zone, spellId,
+    stageSpell: (before, next, zone, spellId, landed) => setStagedCast({
+      from: null, before, next, zone, spellId,
       onLand: () => {
         shownGameRef.current = next;
         landed();
@@ -1553,7 +1557,7 @@ export function App() {
     let t: number;
     if (cast && !game.humans.includes(cast.seat)) {
       // An AI spell: flash, then targets, then land — the staged-step effect.
-      t = window.setTimeout(() => setStagedCast({ from: game, next, zone, spellId: cast.spellId }), delay);
+      t = window.setTimeout(() => setStagedCast({ from: game, before: game, next, zone, spellId: cast.spellId }), delay);
     } else if (zone) {
       setStrike(zone);
       t = window.setTimeout(() => commitNow(next),
@@ -1581,6 +1585,14 @@ export function App() {
     timers.push(window.setTimeout(() => {
       setCastFlash(null);
       if (stagedCast.zone) setStrike(stagedCast.zone);
+      // The pause before it lands: long enough to read the targets, and for a
+      // whole-board spell long enough for its incoming half, which is told the
+      // pause's exact length so what it throws lands with the state.
+      const hold = Math.max(
+        stagedCast.zone ? holdFor(stagedCast.zone) : 0,
+        boardIncomingMs(stagedCast.before, stagedCast.next),
+      );
+      playBoardIncoming(stagedCast.before, stagedCast.next, hold);
       timers.push(window.setTimeout(() => {
         setStrike(null);
         // Only onto the game it was computed from: a player who quit or
@@ -1589,7 +1601,7 @@ export function App() {
         setGame((cur) => (from === null || cur === from ? next : cur));
         setStagedCast(null);
         stagedCast.onLand?.();
-      }, stagedCast.zone ? holdFor(stagedCast.zone) : 0));
+      }, hold));
     }, CAST_FLASH_MS));
     return () => timers.forEach((id) => clearTimeout(id));
   }, [stagedCast]);
@@ -2145,10 +2157,30 @@ export function App() {
     setCastFlash({ spellId: spell.id });
     setHint(`Casting <b>${spell.name}</b>…`);
     castTimerRef.current = window.setTimeout(() => {
-      castTimerRef.current = null;
       setCastFlash(null);
-      dispatch(intent);
-      setHint(doneHint);
+      const land = () => {
+        castTimerRef.current = null;
+        dispatch(intent);
+        setHint(doneHint);
+      };
+      // A WHOLE-BOARD spell rolls in before it lands — the meteors fall, the
+      // wave comes across — so it gets the same short pause the AI's casts
+      // have, and its incoming half is timed to it. `dispatch` applies the
+      // same intent to the same state, so what lands is what was thrown.
+      // `castTimerRef` stays set through the pause: still one cast at a time.
+      let next: GameState | null = null;
+      try {
+        next = applyIntent(game, intent);
+      } catch {
+        next = null; // dispatch reports it
+      }
+      const incoming = next ? boardIncomingMs(game, next) : 0;
+      if (next && incoming > 0) {
+        playBoardIncoming(game, next, incoming);
+        castTimerRef.current = window.setTimeout(land, incoming);
+      } else {
+        land();
+      }
     }, 2000);
   }
   // Clear pending flash timers if the app unmounts mid-cast.

@@ -39,7 +39,13 @@ export type LayerFx =
   | { kind: "wall"; rect: Rect; element: Element }
   | { kind: "field"; rect: Rect; element: Element }
   | { kind: "trapSet"; rect: Rect; element: Element }
-  | { kind: "pulse"; rect: Rect; element: Element };
+  | { kind: "pulse"; rect: Rect; element: Element }
+  /** A whole-board spell's set piece, in two halves: INCOMING plays for
+   *  exactly `seconds` before the spell lands, FINALE with the landing. The
+   *  targets are the cards it reaches; `fromTop` is which edge the caster's
+   *  side is on, for anything that should come from them. */
+  | { kind: "boardIncoming"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; seconds: number; strength: number }
+  | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number };
 
 export interface ImpactLayer {
   /** A spell's damage landing at a screen point (CSS px). `strength` ~0.7-2.2,
@@ -136,6 +142,22 @@ function dotTexture(): Texture {
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
+/** Clear in the middle, near-black at the edges: night closing in. Drawn with
+ *  NORMAL blending, because additive light can brighten the board but never
+ *  darken it. */
+function vignetteTexture(): Texture {
+  const c = document.createElement("canvas");
+  c.width = c.height = 128;
+  const g = c.getContext("2d")!;
+  const grad = g.createRadialGradient(64, 64, 18, 64, 64, 64);
+  grad.addColorStop(0, "rgba(6,0,16,0)");
+  grad.addColorStop(0.55, "rgba(6,0,16,0.35)");
+  grad.addColorStop(1, "rgba(6,0,16,0.95)");
+  g.fillStyle = grad;
+  g.fillRect(0, 0, 128, 128);
+  return Texture.from(c);
+}
+
 /** Resolves to a working layer, or to a no-op one when WebGL is unavailable
  *  (an old phone, a blocked context, a crashed GPU process). An effects layer
  *  that fails must fail SILENT: the game underneath is complete without it. */
@@ -163,13 +185,15 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   document.body.appendChild(canvas);
 
   const tex = dotTexture();
+  const vignette = vignetteTexture();
+  const shade = new Container(); // normal blend: darkness goes here
   const bursts = new Container({ blendMode: "add" });
   const sparks = new ParticleContainer({
     texture: tex,
     blendMode: "add",
     dynamicProperties: { position: true, vertex: true, rotation: true, color: true },
   });
-  app.stage.addChild(bursts, sparks);
+  app.stage.addChild(shade, bursts, sparks);
 
   const live: Spark[] = [];
   const pool: Spark[] = [];
@@ -311,10 +335,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   interface Emit {
     count: number;
     palette: number[];
-    /** Where sparks are born: anywhere in the rect, along its bottom edge, or
-     *  on a ring around its centre moving INWARD (a gathering). */
+    /** Where sparks are born: anywhere in the rect, along its bottom edge, on
+     *  a ring around its centre moving INWARD (a gathering), or on its edges
+     *  moving inward (something closing in). */
     from: Rect;
-    at?: "area" | "bottom" | "ring";
+    at?: "area" | "bottom" | "ring" | "edge";
     /** Direction band in degrees (0 = right, -90 = up). Default: all round. */
     dir?: [number, number];
     speed: [number, number];
@@ -340,6 +365,15 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         const speed = rand(e.speed[0], e.speed[1]);
         spawnRaw(cx + Math.cos(a) * r, cy + Math.sin(a) * r, -Math.cos(a) * speed, -Math.sin(a) * speed,
           (r / speed) * 0.9, st, cx, cy);
+        continue;
+      }
+      if (e.at === "edge") {
+        const side = Math.floor(rand(0, 4));
+        const ex = side < 2 ? e.from.x + rand(0, e.from.w) : side === 2 ? e.from.x : e.from.x + e.from.w;
+        const ey = side === 0 ? e.from.y : side === 1 ? e.from.y + e.from.h : e.from.y + rand(0, e.from.h);
+        const dx = cx - ex, dy = cy - ey, d = Math.hypot(dx, dy) || 1;
+        const speed = rand(e.speed[0], e.speed[1]);
+        spawnRaw(ex, ey, (dx / d) * speed, (dy / d) * speed, Math.min((d / speed) * 0.85, e.life[1]), st, cx, cy);
         continue;
       }
       const x = e.from.x + rand(0, e.from.w);
@@ -494,6 +528,389 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     }
   }
 
+  // ── WHOLE-BOARD SPELLS ────────────────────────────────────────────────────
+  // Two halves. INCOMING plays in the pause before the spell lands and lasts
+  // exactly that long, so whatever it throws arrives on the frame the damage
+  // numbers do. The FINALE plays with the landing, over each card's own
+  // impact. One set piece per element; the spell's cost sets the weight.
+
+  type Pt = { x: number; y: number };
+  const centre = (r: Rect): Pt => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
+
+  interface Shot {
+    from: Pt;
+    to: Pt;
+    seconds: number;
+    delay?: number;
+    /** "in" accelerates (a meteor, a rock), "out" slows (a root creeping). */
+    ease?: "in" | "out" | "linear";
+    head: number;
+    headSize: number;
+    /** Stretch the head along its motion — a streaking meteor. */
+    stretch?: boolean;
+    trail: { palette: number[]; rate: number; size: [number, number]; life: [number, number]; drift: number; gravity?: number };
+    onArrive?: () => void;
+  }
+
+  /** A projectile: a glowing head from `from` to `to` in exactly `seconds`,
+   *  shedding a trail as it goes. */
+  function shot(p: Shot) {
+    const head = new Sprite(tex);
+    head.anchor.set(0.5);
+    head.tint = p.head;
+    head.alpha = 0;
+    bursts.addChild(head);
+    const trail: Style = {
+      palette: p.trail.palette, sparks: 0, speed: [0, 0], gravity: p.trail.gravity ?? 0, drag: 0.3,
+      life: p.trail.life, size: p.trail.size, streak: false,
+    };
+    const ease = (t: number) => (p.ease === "in" ? t * t : p.ease === "out" ? 1 - (1 - t) * (1 - t) : t);
+    let px = p.from.x, py = p.from.y, acc = 0;
+    effects.push({
+      node: head, age: 0, delay: p.delay ?? 0, tick: (age, dt) => {
+        const t = Math.min(1, age / p.seconds);
+        const e = ease(t);
+        const x = p.from.x + (p.to.x - p.from.x) * e;
+        const y = p.from.y + (p.to.y - p.from.y) * e;
+        const vx = (x - px) / Math.max(dt, 1e-3), vy = (y - py) / Math.max(dt, 1e-3);
+        px = x; py = y;
+        const v = Math.hypot(vx, vy);
+        head.position.set(x, y);
+        head.alpha = Math.min(1, t * 6);
+        head.rotation = Math.atan2(vy, vx);
+        head.scale.set((p.headSize * (p.stretch ? 1 + v * 0.004 : 1)) / TEX, (p.headSize * (p.stretch ? 0.7 : 1)) / TEX);
+        acc += p.trail.rate * dt;
+        while (acc >= 1) {
+          acc -= 1;
+          const a = rand(0, Math.PI * 2), d = rand(0, p.trail.drift);
+          spawnRaw(x + rand(-3, 3), y + rand(-3, 3), Math.cos(a) * d - vx * 0.05, Math.sin(a) * d - vy * 0.05,
+            rand(p.trail.life[0], p.trail.life[1]), trail, x, y);
+        }
+        if (t >= 1) {
+          p.onArrive?.();
+          return false;
+        }
+        return true;
+      },
+    });
+  }
+
+  /** Forked lightning from `a` to `b`, re-rolled every other frame. */
+  function bolt(a: Pt, b: Pt, core: number, halo: number, seconds: number) {
+    const g = new Graphics();
+    bursts.addChild(g);
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
+    let frame = 0;
+    effects.push({
+      node: g, age: 0, delay: 0, tick: wrap((t) => {
+        if (frame++ % 2 === 0) {
+          const pts: number[] = [a.x, a.y];
+          const steps = 9;
+          for (let i = 1; i < steps; i++) {
+            const f = i / steps, j = rand(-1, 1) * len * 0.07 * Math.sin(Math.PI * f);
+            pts.push(a.x + (b.x - a.x) * f + nx * j, a.y + (b.y - a.y) * f + ny * j);
+          }
+          pts.push(b.x, b.y);
+          const fade = 1 - t;
+          g.clear();
+          g.poly(pts, false).stroke({ width: 12, color: halo, alpha: 0.32 * fade });
+          g.poly(pts, false).stroke({ width: 3, color: core, alpha: fade });
+          const i = 2 * (2 + Math.floor(Math.random() * 5));
+          const fa = Math.atan2(b.y - a.y, b.x - a.x) + rand(-0.9, 0.9), fl = len * rand(0.12, 0.25);
+          g.moveTo(pts[i], pts[i + 1]).lineTo(pts[i] + Math.cos(fa) * fl, pts[i + 1] + Math.sin(fa) * fl)
+            .stroke({ width: 2, color: core, alpha: 0.7 * fade });
+        }
+        return t < 1;
+      }, seconds),
+    });
+  }
+
+  /** A pillar of light from `topY` down onto a card. */
+  function pillar(target: Rect, topY: number, color: number, seconds: number) {
+    const c = centre(target);
+    const g = new Graphics();
+    bursts.addChild(g);
+    const w = target.w * 0.62, h = Math.max(20, c.y - topY);
+    effects.push({
+      node: g, age: 0, delay: 0, tick: wrap((t) => {
+        const k = t < 0.12 ? t / 0.12 : 1 - (t - 0.12) / 0.88;
+        g.clear()
+          .rect(c.x - w / 2, topY, w, h).fill({ color, alpha: 0.22 * k })
+          .rect(c.x - w * 0.14, topY, w * 0.28, h).fill({ color: 0xffffff, alpha: 0.55 * k });
+        return t < 1;
+      }, seconds),
+    });
+    glow(target, color, 0.8, seconds, 1.1);
+  }
+
+  /** A band of water rolling from the caster's edge to the far one, throwing
+   *  spray off its front. */
+  function sweep(R: Rect, fromTop: boolean, seconds: number, color: number, spray: Style) {
+    const g = new Graphics();
+    bursts.addChild(g);
+    const band = R.h * 0.22;
+    let acc = 0;
+    effects.push({
+      node: g, age: 0, delay: 0, tick: (age, dt) => {
+        const t = Math.min(1, age / seconds);
+        const front = fromTop ? R.y + R.h * t : R.y + R.h * (1 - t);
+        const y0 = Math.max(R.y, fromTop ? front - band : front);
+        const y1 = Math.min(R.y + R.h, fromTop ? front : front + band);
+        g.clear();
+        if (y1 > y0) {
+          // Brightest at the front, fading back into the body behind it.
+          const depth = y1 - y0;
+          for (let i = 0; i < 3; i++) {
+            const d = (depth * (i + 1)) / 3;
+            const top = fromTop ? y1 - d : y0;
+            g.rect(R.x, top, R.w, d).fill({ color, alpha: 0.12 });
+          }
+          g.rect(R.x, fromTop ? y1 - 3 : y0, R.w, 3).fill({ color: 0xdff4ff, alpha: 0.85 });
+        }
+        acc += 300 * dt;
+        while (acc >= 1) {
+          acc -= 1;
+          spawnRaw(R.x + rand(0, R.w), front, rand(-50, 50), (fromTop ? 1 : -1) * rand(60, 240) - rand(40, 140),
+            rand(0.3, 0.6), spray, R.x + R.w / 2, front);
+        }
+        return t < 1;
+      },
+    });
+  }
+
+  /** Wind spinning round the middle of the board. */
+  function vortex(R: Rect, seconds: number, st: Style) {
+    const c = centre(R);
+    const reach = Math.max(R.w, R.h) * 0.55;
+    const spin: Style = { ...st, gravity: 0, drag: 0.6, swirl: 1400, streak: true, size: [11, 3], life: [0.35, 0.6] };
+    let acc = 0;
+    effects.push({
+      age: 0, delay: 0, tick: (age, dt) => {
+        acc += 320 * dt;
+        while (acc >= 1) {
+          acc -= 1;
+          const a = rand(0, Math.PI * 2), r = rand(0.35, 1) * reach, v = rand(150, 320);
+          spawnRaw(c.x + Math.cos(a) * r, c.y + Math.sin(a) * r,
+            -Math.sin(a) * v - Math.cos(a) * v * 0.35, Math.cos(a) * v - Math.sin(a) * v * 0.35,
+            rand(0.35, 0.6), spin, c.x, c.y);
+        }
+        return age < seconds;
+      },
+    });
+  }
+
+  /** A glow that BUILDS toward the landing rather than flashing and fading. */
+  function charge(at: Pt, size: number, color: number, peak: number, seconds: number) {
+    const sp = new Sprite(tex);
+    sp.anchor.set(0.5);
+    sp.position.set(at.x, at.y);
+    sp.tint = color;
+    sp.alpha = 0;
+    bursts.addChild(sp);
+    effects.push({
+      node: sp, age: 0, delay: 0, tick: wrap((t) => {
+        sp.alpha = peak * t;
+        sp.scale.set((size * (0.6 + 0.4 * t)) / TEX);
+        return t < 1;
+      }, seconds),
+    });
+  }
+
+  function boardIncoming(fx: Extract<LayerFx, { kind: "boardIncoming" }>) {
+    const R = fx.rect, T = fx.seconds, k = fx.strength;
+    const el = STYLES[fx.element] ?? STYLES.VOID;
+    const mid = centre(R);
+    const sky = R.y - R.h * 0.5;
+    const casterY = fx.fromTop ? R.y : R.y + R.h;
+    const big = Math.max(R.w, R.h) * 1.15;
+    // Aimed at the cards it will reach; with none, at a few points on the far
+    // half, so an empty board still sees the spell arrive.
+    const aims: Rect[] = fx.targets.length ? fx.targets : Array.from({ length: 3 }, () => {
+      const w = R.w / 4, h = R.h / 4;
+      return { x: R.x + rand(0, R.w - w), y: (fx.fromTop ? mid.y : R.y) + rand(0, R.h / 2 - h), w, h };
+    });
+    switch (fx.element) {
+      case "PYRO": {
+        // Meteors, each timed to strike its card on the landing frame...
+        for (const a of aims)
+          shot({
+            from: { x: centre(a).x + rand(-0.4, 0.4) * R.w, y: sky - rand(0, R.h * 0.25) }, to: centre(a),
+            seconds: T, ease: "in", head: 0xffa050, headSize: 34 * k, stretch: true,
+            trail: { palette: el.palette, rate: 150 * k, size: [15, 4], life: [0.35, 0.7], drift: 40, gravity: -120 },
+          });
+        // ...and a few that fall wide, for the sky's sake.
+        for (let i = 0; i < Math.round(3 * k); i++) {
+          const to = { x: R.x + rand(0.1, 0.9) * R.w, y: R.y + rand(0.1, 0.9) * R.h };
+          shot({
+            from: { x: to.x + rand(-0.3, 0.3) * R.w, y: sky }, to, seconds: T * rand(0.55, 0.9), ease: "in",
+            head: 0xffc080, headSize: 18 * k, stretch: true,
+            trail: { palette: el.palette, rate: 40, size: [9, 2], life: [0.25, 0.5], drift: 30, gravity: -100 },
+            onArrive: () => emit({ count: 26, palette: el.palette, from: { x: to.x - 10, y: to.y - 10, w: 20, h: 20 },
+              speed: [80, 220], gravity: -150, drag: 0.3, life: [0.3, 0.6], size: [10, 3] }),
+          });
+        }
+        charge(mid, big, 0xff6a2a, 0.32 * k, T);
+        return;
+      }
+      case "AQUA":
+        // The wave, from the caster's side of the board to the far edge.
+        sweep(R, fx.fromTop, T, 0x4d94e8, { ...el, drag: 0.4, gravity: 600, life: [0.3, 0.6], size: [10, 3], streak: false });
+        charge(mid, big, 0x4d94e8, 0.22 * k, T);
+        return;
+      case "BOLT": {
+        // The storm gathers: crackle along the board's edges, quickening.
+        const n = Math.round(12 * k);
+        const onEdge = (): Pt => {
+          const side = Math.floor(rand(0, 4));
+          return side < 2
+            ? { x: R.x + rand(0, R.w), y: side === 0 ? R.y : R.y + R.h }
+            : { x: side === 2 ? R.x : R.x + R.w, y: R.y + rand(0, R.h) };
+        };
+        for (let i = 0; i < n; i++)
+          later(T * Math.sqrt(i / n), () => {
+            const p = onEdge();
+            addArcs(p.x, p.y, el, 0.8, 3);
+          });
+        for (let i = 1; i <= 3; i++) later(T * (0.3 + 0.2 * i) - 0.05, () => glow(R, 0xb9a6ff, 0.22, 0.12, 1.25));
+        charge(mid, big, 0x9575ff, 0.28 * k, T);
+        return;
+      }
+      case "GALE":
+        vortex(R, T, el);
+        charge(mid, big, 0xffa040, 0.18 * k, T);
+        return;
+      case "BORE":
+        // Rocks, heavy and accelerating, onto each card.
+        for (const a of aims)
+          shot({
+            from: { x: centre(a).x + rand(-0.1, 0.1) * R.w, y: R.y - R.h * rand(0.12, 0.22) }, to: centre(a),
+            seconds: T, ease: "in", head: 0xd9b48a, headSize: 34 * k,
+            trail: { palette: [0xfff1dc, 0xd9b48a, 0xa1887f], rate: 45 * k, size: [14, 6], life: [0.3, 0.7], drift: 25, gravity: 200 },
+          });
+        // Dust shaken loose above the board.
+        emit({ count: Math.round(50 * k), palette: [0xfff1dc, 0xd9b48a, 0xa1887f], from: { x: R.x, y: R.y, w: R.w, h: R.h * 0.35 },
+          dir: [80, 100], speed: [40, 120], gravity: 500, drag: 0.4, life: [0.4, 0.8], size: [9, 3] });
+        return;
+      case "DAWN": {
+        // A sun gathering above the board, drawing the light in.
+        const sun = { x: mid.x, y: R.y + R.h * 0.06 };
+        charge(sun, R.w * 0.9 * k, 0xffd54f, 0.9, T);
+        const s = R.w * 0.8;
+        emit({ count: Math.round(70 * k), palette: [0xffffff, 0xfff1b3, 0xffd54f], from: { x: sun.x - s / 2, y: sun.y - s / 2, w: s, h: s },
+          at: "ring", speed: [160, 260], gravity: 0, drag: 1, life: [0.4, T], size: [10, 3] });
+        return;
+      }
+      case "DUSK": {
+        // Night closing in from every edge of the board — real darkness, on
+        // the normal-blend layer, deepening until the spell lands.
+        const dark = new Sprite(vignette);
+        dark.anchor.set(0.5);
+        dark.position.set(mid.x, mid.y);
+        dark.alpha = 0;
+        shade.addChild(dark);
+        effects.push({
+          node: dark, age: 0, delay: 0, tick: wrap((t) => {
+            dark.alpha = 0.9 * t;
+            dark.scale.set((R.w * (1.6 - 0.45 * t)) / 128, (R.h * (1.6 - 0.45 * t)) / 128);
+            return t < 1;
+          }, T),
+        });
+        for (let i = 0; i < 3; i++)
+          later((T * i) / 3, () => emit({ count: Math.round(60 * k), palette: el.palette.slice(1), from: R, at: "edge",
+            speed: [120, 240], gravity: 0, drag: 1, life: [0.3, T], size: [14, 5] }));
+        return;
+      }
+      case "LEAF":
+        // Roots, from the caster's side of the board to each card they take.
+        for (const a of aims) {
+          const c = centre(a);
+          shot({
+            from: { x: c.x + rand(-0.15, 0.15) * R.w, y: casterY }, to: c, seconds: T, ease: "out",
+            head: 0xb6f27a, headSize: 14,
+            trail: { palette: [0xd8ffb0, 0x8fd66a, 0x3f8a3a], rate: 170, size: [12, 5], life: [0.5, 0.9], drift: 12 },
+          });
+        }
+        emit({ count: Math.round(40 * k), palette: [0xd8ffb0, 0x8fd66a, 0x4caf6d], from: R, speed: [30, 90],
+          gravity: 40, drag: 0.5, life: [0.8, 1.2], size: [12, 5], swirl: 200 });
+        return;
+      default:
+        charge(mid, big, el.palette[2], 0.3 * k, T);
+    }
+  }
+
+  function boardFinale(fx: Extract<LayerFx, { kind: "boardFinale" }>) {
+    const R = fx.rect, k = fx.strength;
+    const el = STYLES[fx.element] ?? STYLES.VOID;
+    const mid = centre(R);
+    const sky = R.y - R.h * 0.5;
+    const casterY = fx.fromTop ? R.y : R.y + R.h;
+    switch (fx.element) {
+      case "PYRO":
+        // The board left burning: embers lifting off all of it.
+        glow(R, 0xff8a3a, 0.5 * k, 0.7, 1.3);
+        emit({ count: Math.round(110 * k), palette: el.palette, from: R, dir: [-120, -60], speed: [40, 160],
+          gravity: -120, drag: 0.4, life: [0.7, 1.4], size: [9, 2] });
+        return;
+      case "AQUA":
+        // The wave breaks: a ripple out from the middle, spray thrown up.
+        glow(R, 0x4d94e8, 0.45 * k, 0.7, 1.3);
+        ring(R, 0x9fe3ff, 0.2, 1.25, 0.8, 6);
+        emit({ count: Math.round(140 * k), palette: el.palette, from: R, dir: [-150, -30], speed: [120, 320],
+          gravity: 900, drag: 0.5, life: [0.5, 1.0], size: [10, 4] });
+        return;
+      case "BOLT":
+        // The strike: every card it reaches hit from the sky at once, in a flash.
+        glow(R, 0xe8e0ff, 0.75, 0.28, 1.6);
+        for (const a of fx.targets) {
+          const c = centre(a);
+          bolt({ x: c.x + rand(-0.15, 0.15) * R.w, y: sky }, c, 0xffffff, 0x9575ff, 0.4);
+        }
+        return;
+      case "GALE":
+        // The gust bursts outward from the eye.
+        glow(R, 0xffd9a0, 0.3 * k, 0.6, 1.3);
+        emit({ count: Math.round(120 * k), palette: el.palette, from: { x: mid.x - 12, y: mid.y - 12, w: 24, h: 24 },
+          speed: [300, 700], gravity: 0, drag: 0.2, life: [0.4, 0.8], size: [12, 3], streak: true, swirl: 700 });
+        return;
+      case "BORE":
+        // Dust rolling up off the whole board.
+        glow(R, 0xa1887f, 0.35 * k, 0.8, 1.3);
+        emit({ count: Math.round(70 * k), palette: [0xfff1dc, 0xd9b48a, 0xa1887f], from: R,
+          dir: [-110, -70], speed: [20, 70], gravity: -20, drag: 0.5, life: [0.9, 1.5], size: [16, 7] });
+        return;
+      case "DAWN": {
+        // The sun breaks: rays from it, a pillar of light onto every card.
+        const sun = { x: mid.x, y: R.y + R.h * 0.06 };
+        glow(R, 0xfff1b3, 0.6 * k, 0.8, 1.4);
+        addRays(sun.x, sun.y, { ...el, palette: [0xffffff, 0xfff1b3, 0xffd54f] }, 1.4 * k, 16);
+        for (const a of fx.targets) pillar(a, sun.y, 0xffe38a, 0.7);
+        return;
+      }
+      case "DUSK":
+        // What it takes rises off every card it struck, toward whoever cast it.
+        glow(R, 0x7b4fb0, 0.45 * k, 0.8, 1.3);
+        for (const a of fx.targets) {
+          const c = centre(a);
+          for (let i = 0; i < 3; i++)
+            shot({
+              from: c, to: { x: c.x + rand(-40, 40), y: casterY }, seconds: rand(0.6, 0.9), delay: rand(0, 0.2), ease: "in",
+              head: 0xc9a6ff, headSize: 12,
+              trail: { palette: [0xf3e8ff, 0xc9a6ff, 0x7b4fb0], rate: 50, size: [8, 2], life: [0.2, 0.45], drift: 10 },
+            });
+        }
+        return;
+      case "LEAF":
+        // Leaves whirling over the whole board.
+        glow(R, 0x4caf6d, 0.4 * k, 0.8, 1.3);
+        emit({ count: Math.round(100 * k), palette: [0xd8ffb0, 0x8fd66a, 0x4caf6d], from: R, speed: [60, 180],
+          gravity: 60, drag: 0.5, life: [0.8, 1.4], size: [12, 5], swirl: 260 });
+        return;
+      default:
+        glow(R, el.palette[2], 0.4 * k, 0.7, 1.3);
+    }
+  }
+
   function play(fx: LayerFx) {
     const el = STYLES[fx.element] ?? STYLES.VOID;
     switch (fx.kind) {
@@ -571,6 +988,12 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         emit({ count: 22, palette: [0xffffff, el.palette[1], el.palette[2]], from: fx.rect, at: "ring",
           speed: [100, 170], gravity: 0, drag: 0.9, life: [0.3, 0.5], size: [9, 3] });
         later(0.3, () => ring(fx.rect, el.palette[2], 0.9, 0.2, 0.4, 3));
+        break;
+      case "boardIncoming":
+        boardIncoming(fx);
+        break;
+      case "boardFinale":
+        boardFinale(fx);
         break;
       case "pulse":
         band(fx.rect, el.palette[1], 0.8);

@@ -19,7 +19,7 @@ function fakeScreen(start: GameState) {
     shown: () => shown,
     land: (next) => { shown = next; log.push(`land r${next.round}#${next.nextId}`); },
     light: (zone: StrikeZone | null) => log.push(zone ? `light ${zone.kind} ${zone.squares.map((q) => `${q.row},${q.col}`).join(" ")}` : "unlight"),
-    stageSpell: (next, zone, spellId, landed) => {
+    stageSpell: (_before, next, zone, spellId, landed) => {
       log.push(`stage ${spellId} ${zone?.squares.map((q) => `${q.row},${q.col}`).join(" ")}`);
       staged = () => { shown = next; log.push("staged landed"); landed(); };
     },

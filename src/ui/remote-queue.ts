@@ -20,8 +20,10 @@ export interface RemoteScreen {
   land(next: GameState): void;
   /** Light a zone, or clear it with null. */
   light(zone: StrikeZone | null): void;
-  /** Play a spell's flash, light its zone, land `next`, then call `landed`. */
-  stageSpell(next: GameState, zone: StrikeZone | null, spellId: string, landed: () => void): void;
+  /** Play a spell's flash, light its zone, land `next`, then call `landed`.
+   *  `before` is the state on screen — what the spell's effects are read
+   *  against. */
+  stageSpell(before: GameState, next: GameState, zone: StrikeZone | null, spellId: string, landed: () => void): void;
   /** Run `fn` after `ms`; returns a cancel. */
   wait(ms: number, fn: () => void): () => void;
   /** How long a zone stays lit. */
@@ -69,7 +71,7 @@ export function createRemoteQueue(screen: RemoteScreen): RemoteQueue {
     };
     if (cast) {
       busy = true;
-      screen.stageSpell(next, zone, cast.spellId, done);
+      screen.stageSpell(before, next, zone, cast.spellId, done);
       return;
     }
     if (!zone) {
