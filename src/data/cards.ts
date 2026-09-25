@@ -987,7 +987,16 @@ export const CARDS: CardDef[] = [
     // grudge only reaches a killer that came within a slot of it, so a ranged
     // pick-off is now clean. NOTE a card-specific onDeath REPLACES DUSK's
     // Midnight Shade retaliation, so it trades that instant hit for the venom.
-    passiveNames: { onDeath: "Lingering Venom" },
+    //
+    // Widow's Kiss (the bite): every landed basic leaves 5 DOT for one round,
+    // so it lands once, at the end of the round it was dealt — 5 straight to HP,
+    // shields or not — and is gone. The same one-round charge as Wick's Wax
+    // Bomb. A straight buff (owner's call): passives are not on the stat budget,
+    // so nothing came off the body. The two venoms agree — a killer already
+    // carrying the bite has its DOT lengthened to Lingering Venom's 3 rounds by
+    // the ordinary same-kind refresh, not stacked on top.
+    passiveNames: { onDeath: "Lingering Venom", onHitStatus: "Widow's Kiss" },
+    onHitStatus: { kind: "DOT", duration: 1, power: 5 },
     onDeath: { dmg: 0, inRangeOnly: true, killerStatus: { kind: "DOT", duration: 3, power: 5 } },
   },
   {
