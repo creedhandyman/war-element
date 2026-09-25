@@ -92,15 +92,23 @@ describe("the draft wiring", () => {
     // `draftRun` exists — and a run that is over is still a run — so after the
     // third loss there was no draft to play, no deck in your chair, and no
     // button to start another. The mode was unusable until the save was wiped.
-    expect(APP).toContain("draftRunOver(draftRun) ? \"Draft again\"");
-    // ...and "Draft again" is the CLEAR, which is what brings the start button
-    // back. A panel that only reports the run would still be a dead end.
-    // Anchored on the BUTTON's expression, not the words: "Draft again" also
-    // appears in the start-gate message, and matching that one proved nothing.
-    const at = APP.indexOf("draftRunOver(draftRun) ? \"Draft again\"");
-    expect(at, "no Draft again button").toBeGreaterThan(-1);
-    expect(APP.slice(Math.max(0, at - 400), at), "the button must clear the run")
-      .toContain("draft: undefined");
+    //
+    // The way out is the Arena's one primary button now (`arenaPrimary`). A
+    // finished run offers "Draft again", which REPLACES the run in the same write
+    // that pays for the next one — or, for a player short of the entry, "Close
+    // the run", which clears it. Either way the button acts; it never points at
+    // a panel. Anchored on the button's own block, not the words: "Draft again"
+    // also appears in the start-gate message, and matching that proved nothing.
+    const at = APP.indexOf("const arenaPrimary");
+    expect(at, "no primary action on the Arena").toBeGreaterThan(-1);
+    const primary = APP.slice(at, APP.indexOf("})();", at));
+    expect(primary, "a finished run is handled by the button").toMatch(/draftRunOver\(draftRun\)/);
+    expect(primary, "...which can start the next one").toContain("onClick: beginDraft");
+    expect(primary, "...or close this one").toContain("onClick: clearDraft");
+    const clear = APP.slice(APP.indexOf("function clearDraft("), APP.indexOf("function clearDraft(") + 300);
+    expect(clear, "closing must clear the run").toContain("draft: undefined");
+    const begin = APP.slice(APP.indexOf("function beginDraft("), APP.indexOf("function beginDraft(") + 400);
+    expect(begin, "going again must replace the run").toContain("draft: startDraft(boardSize)");
   });
 
   it("locks the battlefield to the one the run was drafted for", () => {

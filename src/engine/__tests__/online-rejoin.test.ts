@@ -424,7 +424,9 @@ describe("the app around a rejoin", () => {
   beforeAll(async () => {
     const { readFileSync } = await import("node:fs");
     const { join } = await import("node:path");
-    APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8");
+    // Normalised: on a CRLF checkout the "\n  }\n" slices below find nothing,
+    // run to the end of the file, and pass against the whole of App.tsx.
+    APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
     ACCOUNT = readFileSync(join(__dirname, "..", "..", "net", "account.ts"), "utf8");
   });
   /** One top-level function of the component, up to its closing brace. */

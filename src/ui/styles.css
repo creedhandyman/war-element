@@ -2391,6 +2391,96 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .ar-seat.locked { cursor: default; }
 .ar-seat.locked:hover { filter: none; }
 
+/* ── the Arena's two levels ─────────────────────────────────────────────── */
+/* THE LIST. The Arena used to ask four or five rows of questions before it
+   showed an opponent; the first level now asks none. Each row is a door, with
+   the one fact about that mode that matters right now (a run in progress, what
+   it costs) on its face rather than behind it. */
+.ah { flex: none; display: flex; flex-direction: column; gap: 10px; padding: 0 16px; }
+.ah-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.ah-card {
+  width: 100%; min-height: 62px; display: flex; align-items: center; gap: 12px;
+  padding: 11px 12px 11px 13px; border-radius: 12px; cursor: pointer; text-align: left;
+  background: rgba(10, 10, 17, .55); border: 1px solid var(--panel-line);
+  color: var(--ink); font: inherit;
+}
+.ah-card:hover { border-color: var(--gold-line); }
+/* Quick match leads, in gold, because it is the one that asks nothing: a new
+   player's first tap should start a fight rather than open a decision. */
+.ah-card.primary { border-color: var(--gold-line); background: linear-gradient(150deg, rgba(201, 162, 75, .14), rgba(10, 10, 17, .6)); }
+.ah-ico {
+  flex: none; width: 38px; height: 38px; border-radius: 10px; display: grid; place-items: center;
+  background: var(--void-2); border: 1px solid var(--panel-line); color: var(--gold-lit);
+}
+.ah-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ah-title { font-family: var(--head); font-size: 15px; font-weight: 700; letter-spacing: .02em; color: var(--ink); }
+.ah-sub { font-size: 12px; color: var(--ink-faint); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ah-badge {
+  flex: none; display: inline-flex; align-items: center; gap: 4px; padding: 3px 8px; border-radius: 999px;
+  border: 1px solid var(--panel-line); font-size: 10.5px; font-weight: 700; color: var(--ink-dim); white-space: nowrap;
+}
+/* Tones are PREFIXED: `.lock` and `.cost` are already global rules — `.lock`
+   pinned the badge to the corner of the screen. */
+.ah-badge.ah-live { color: var(--gold-lit); border-color: var(--gold-line); background: rgba(201, 162, 75, .12); }
+/* The shard gradient's own top stop, as on every signed amount in the shop. */
+.ah-badge.ah-cost { color: #bfe6ff; }
+.ah-badge.ah-lock { color: var(--ink-faint); }
+.ah-chev { flex: none; color: var(--ink-faint); }
+.ah-foot { margin-top: 0; }
+
+/* THE MODE SCREEN'S HEADER: the way back, the mode, and one line on how it
+   works — said once, at the top, instead of as a note under a row. No title
+   art here: on a phone that height is the matchup's. */
+.am-head { flex: none; padding: 12px 16px 2px; display: flex; flex-direction: column; gap: 4px; }
+.am-back {
+  align-self: flex-start; display: inline-flex; align-items: center; gap: 3px; cursor: pointer;
+  padding: 6px 11px 6px 7px; border-radius: 999px; background: rgba(6, 7, 12, .6);
+  border: 1px solid var(--panel-line); color: var(--ink-dim); font: inherit; font-size: 12px; font-weight: 600;
+}
+.am-back:hover { color: var(--ink); border-color: var(--gold-line); }
+.am-title { margin: 6px 0 0; font-family: var(--head); font-size: 24px; line-height: 1.1; color: var(--ink); }
+.am-blurb { margin: 0; font-size: 12px; line-height: 1.45; color: var(--ink-faint); }
+/* ...and on a phone the column starts hard against the left edge, which is where
+   the mute button floats (6,6 and 28px square) — the collision the story header
+   clears with its 44px. The back pill and the list's ribbon step past it. */
+@media (max-width: 480px) {
+  .am-back { margin-left: 30px; }
+  .ar-ribbon { left: 44px; }
+}
+
+/* THE SETTINGS ROW: battlefield and opponent skill, behind one summary line.
+   Opens in place rather than as a sheet — nothing to stack over the nav and
+   nothing for the back button to close. */
+.as { flex: none; margin: 0 16px; border: 1px solid var(--panel-line); border-radius: 12px; background: rgba(10, 10, 17, .45); }
+.as.open { border-color: var(--gold-line); }
+.as-row {
+  width: 100%; display: flex; align-items: center; gap: 10px; padding: 11px 12px; cursor: pointer;
+  background: transparent; border: 0; color: var(--ink-dim); font: inherit; text-align: left;
+}
+.as-sum { flex: 1; min-width: 0; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.as-act { flex: none; font-size: 12px; font-weight: 700; color: var(--gold-lit); }
+.as-panel { display: flex; flex-direction: column; gap: 12px; padding: 12px; border-top: 1px solid var(--panel-line); }
+.as-field { display: flex; flex-direction: column; gap: 6px; }
+.as-field .ar-mode-note { margin: 0; }
+/* Two lines per battlefield — the size, then its name — so a phone stacks them
+   instead of cutting "Standard" to "Stand…". */
+.as-seg button { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 7px 4px; line-height: 1.15; }
+.as-seg button b { font-size: 13px; }
+.as-seg button span { font-size: 10px; }
+
+/* A chair the run has not dealt yet: the online seat's empty shape, in the
+   gauntlet's gold rather than online's blue, so it does not read as a room. */
+.ar-seat.empty.pending {
+  border-color: var(--gold-line);
+  background: linear-gradient(180deg, rgba(201, 162, 75, .08), rgba(10, 10, 17, .45));
+}
+
+/* Read by screen readers, drawn for nobody — a badge whose number needs a word. */
+.sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
 /* ── the deck sheet ──────────────────────────────────────────────────────── */
 .dp-scrim {
   position: fixed; inset: 0; z-index: var(--z-modal);

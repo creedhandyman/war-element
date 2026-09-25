@@ -3318,7 +3318,67 @@ Don't bring back a per-deck suit pin without a reason for a player to want one:
 it only ever existed to choose a hero. (The campaign's `save.hero` and
 `heroBookFor` are the player's campaign character — unrelated, untouched.)
 
+## The Arena is two levels — `ui/arena-nav.ts`, `ui/ArenaScreens.tsx`
+
+The Arena used to be one screen that asked everything at once: who you play (vs
+AI / 2 Players / Online), the battlefield, the mode (Casual / Streak / Gauntlet /
+Draft) and the AI's skill, as four or five stacked segmented rows above the
+matchup — rows that came and went as you picked. Gauntlet, Draft and Online put
+their real action mid-screen and left a DISABLED bottom button telling you to go
+and press it. Rebuilt in September 2026 as:
+
+- **The list** (`ArenaHub`): Quick match, Streak, Gauntlet, Draft, Domination,
+  Play a friend — each a door with at most one badge (`hubBadge`: a live run, the
+  rung, a price, or a lock when the player cannot afford it). Nothing is asked
+  there. Build a squad / How to play live on the list, not on mode screens.
+- **A screen per way to play**: `ArenaHeader` (back pill, title, one-line blurb),
+  then only that mode's own question — Gauntlet's difficulty, Domination's
+  opponent count, Play a friend's Same device / Online then Host / Join then the
+  host's battlefield and players — then the matchup, then ONE bottom button
+  (`arenaPrimary`) that is always the next action: Line up the … gauntlet, Begin
+  a draft · 50 shards, Create room, Join room, Start … . Null on the list and in
+  an online lobby, whose own buttons are the actions.
+- **The settings row** (`ArenaSettings`): battlefield and AI skill behind one
+  summary line ("4×4 · AI adapts to you"), AI screens only. It opens IN PLACE,
+  not as a sheet: nothing to stack over the nav, nothing for back to close. In
+  scored modes and events the AI's level is shown read-only.
+
+What holds it together (all pinned in `arena-flow.test.ts`):
+
+- **Every way into a mode screen goes through `enterArenaView`**, which applies
+  `VIEW_SETUP[view]` — mode, match kind and the boards on offer. Both friend
+  screens are `game: "casual"`, and that is load-bearing: the run settlements
+  read only `arenaGame`, so a hot-seat match played while the mode still said
+  "gauntlet" was scored against the run.
+- **The 7x7 is Domination's.** Quick match and the scored modes offer 4x4 and 5x5
+  only, and `boardForView` leaves the 7x7 behind on the way out of Domination
+  (it carries only between the two friend screens). Scored runs on the 7x7 are
+  no longer OFFERED; one begun there before still plays, with the board lock
+  showing it.
+- **An event belongs to Quick match.** `seatEventFight` lands there; entering
+  any other screen with an event seated gives the P2 seat back and clears
+  `bossRun`, so an event can never park a run.
+- **Remembered per device** under `we_arena_v1` — the screen, the last duel
+  board, the last friend screen — and NOT in `SAVE_KEYS`. Restored at boot by
+  re-running `enterArenaView`, so what is stored is the screen and everything it
+  implies is derived.
+- **Back**: a mode screen is a `useBackLayer` over the list — the
+  `homeCollection` pattern. Re-tapping the Arena tab returns to the list, wired
+  in BottomNav's `onTab` and deliberately NOT in `goTab`: the back stack restores
+  tabs through `goTab`, and a restore must land where it left.
+- Home's gauntlet "Fight" card opens the Gauntlet SCREEN. It used to set vs-AI
+  and nothing else, so from Casual or Streak the run stayed parked and hidden.
+- On a phone the header's back pill and the list's ribbon step past the floating
+  mute button — the collision `.story-head` clears with its 44px.
+
 ## Traps found the hard way
+
+- **A source-level test that slices App.tsx to `"\n  }\n"` is vacuous on a
+  Windows checkout.** A fresh worktree checks files out with CRLF, the search
+  finds nothing, `slice(at, -1)` runs to the end of the file, and every
+  `toContain` after it passes against the whole of App.tsx. Normalise first:
+  `readFileSync(...).replace(/\r\n/g, "\n")`. `arena-flow.test.ts` does, and a
+  mutation run proved its slices bite.
 
 - **A rule that names board rows by NUMBER is probably wrong on one of the two
   board sizes.** The Home Slot rule's "is the attacker in a mid row" test was

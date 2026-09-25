@@ -151,7 +151,7 @@ import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
   DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
   draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickGroup, pickSpell,
-  settleDraft, startDraft, pickCard, SINGLE_PICKS,
+  settleDraft, startDraft, pickCard, picksLeft, SINGLE_PICKS,
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
@@ -180,6 +180,11 @@ import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
+import { ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
+import {
+  BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
+  type ArenaPrefs, type ArenaView, type Board as ArenaBoard, type HubStatus, type ModeView,
+} from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { useSpellImpacts } from "./vfx/use-spell-impacts";
@@ -823,6 +828,14 @@ export function App() {
   // four seats. A run now survives you playing the other two, which is the
   // reported bug: with a run armed, ANY match advanced it and a loss ENDED it.
   const [arenaGame, setArenaGame] = useState<"casual" | "streak" | "gauntlet" | "draft">("casual");
+  /** WHICH SCREEN of the Arena is up — the list, or one way to play — and the
+   *  two choices worth carrying between visits. See `arena-nav.ts`. Remembered
+   *  on this device, so a returning player lands where they last played. */
+  const [arenaPrefs, setArenaPrefs] = useState<ArenaPrefs>(() => loadArenaPrefs());
+  const arenaView: ArenaView = arenaPrefs.view;
+  /** The settings row, open or shut. Shut again on every screen change: it is
+   *  a place you visit, not a state a screen stays in. */
+  const [arenaSettingsOpen, setArenaSettingsOpen] = useState(false);
   const gauntletRun = story.gauntlet?.run;
   const draftRun = story.draft;
   /** THE DRAFTED DECK, as a pool entry.
@@ -1133,6 +1146,82 @@ export function App() {
       return { ok: false, why: "That run is over. Draft again above." };
     return { ok: true, warn: myDeckCheck.ok ? undefined : myDeckCheck.reason };
   })();
+
+  /** THE ONE THING A MODE SCREEN ASKS YOU TO DO NEXT, and where it always is.
+   *
+   *  Gauntlet, Draft and Online each used to put their real action mid-screen —
+   *  "Line up", "Draft a squad", "Create room" — and leave a disabled button at
+   *  the bottom saying to go and press it. The bottom button IS that action now,
+   *  whatever it is, so the next step is always in the same place and never
+   *  greyed out for a reason written somewhere else. Null where a screen's
+   *  actions live on it: the list, and an online lobby. */
+  const shards = story.hero?.shards ?? 0;
+  const arenaPrimary: {
+    label: string; onClick?: () => void; disabled?: boolean; gold?: boolean; start?: boolean;
+  } | null = (() => {
+    if (arenaView === "hub") return null;
+    if (onlineMode) {
+      if (online) return null;
+      return {
+        label: onlineRole === "host" ? "Create room" : "Join room",
+        onClick: onlineRole === "host" ? hostCreateRoom : guestJoinRoom,
+        disabled: !onlineConfigured,
+      };
+    }
+    if (arenaView === "gauntlet" && !eventRun && (!gauntletRun || runOver(gauntletRun)))
+      return { label: `Line up the ${TIER_LABEL[runTier]} gauntlet`, onClick: lineUpGauntlet, gold: true };
+    // A FINISHED DRAFT is not a dead end: "Draft again" replaces it in the same
+    // write that pays for the next one, and a player short of the entry can
+    // still close it — the button never points at a panel instead of acting.
+    if (arenaView === "draft" && !eventRun && (!draftRun || draftRunOver(draftRun))) {
+      if (shards >= DRAFT_ENTRY)
+        return { label: `${draftRun ? "Draft again" : "Begin a draft"} · ${DRAFT_ENTRY} shards`, onClick: beginDraft, gold: true };
+      return draftRun
+        ? { label: "Close the run", onClick: clearDraft }
+        : { label: `Needs ${DRAFT_ENTRY} shards — you have ${shards}`, disabled: true };
+    }
+    // One button, very different commitments: with a run armed this begins a
+    // GAUNTLET SEAT, and a loss ends four matches' progress — so the label
+    // names which fight you are agreeing to, and where you are in it.
+    const gauntletLive = arenaGame === "gauntlet" && !!gauntletRun && !runOver(gauntletRun) && !eventRun;
+    return {
+      label: !startGate.ok
+        ? startGate.why ?? "Not ready"
+        : gauntletLive
+          ? `Start Gauntlet · Seat ${gauntletRun!.won + 1} of ${gauntletRun!.seats.length}`
+          : arenaGame === "streak"
+            ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`
+            : arenaGame === "draft" && draftSeat
+              ? "Start Draft Match"
+              : "Start Match",
+      onClick: startArenaMatch,
+      disabled: !startGate.ok,
+      gold: gauntletLive,
+      start: true,
+    };
+  })();
+  /** What the Arena's list says about each mode right now — see `hubBadge`. */
+  const hubStatus: HubStatus = {
+    streak: story.ladder?.streak ?? 0,
+    rung: TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, arenaPrefs.duel)],
+    gauntlet: !gauntletRun ? null
+      : runOver(gauntletRun) ? "over"
+        : { seat: gauntletRun.won + 1, of: gauntletRun.seats.length },
+    draft: !draftRun ? null
+      : !draftComplete(draftRun) ? { picksLeft: picksLeft(draftRun) }
+        : draftRunOver(draftRun) ? "over"
+          : { wins: draftWins(draftRun), livesLeft: DRAFT_LOSSES - draftLosses(draftRun) },
+    shards,
+    draftCost: DRAFT_ENTRY,
+    roomOpen: !!online,
+  };
+  /** The settings row's one line: the battlefield, and who decides the AI. */
+  const arenaSettingsSummary = [
+    arenaView === "domination" ? null : BOARD_LABEL[boardSize as ArenaBoard]?.size,
+    pinApplies
+      ? (skillAuto ? "AI adapts to you" : `AI: ${SKILL_PROFILES[aiSkill].name}`)
+      : eventRun ? "Difficulty set by this encounter" : `AI: ${SKILL_PROFILES[matchSkill].name}, earned`,
+  ].filter(Boolean).join(" · ");
 
   /** THE FIGHT ALREADY LINED UP, for the win screen.
    *
@@ -1713,6 +1802,107 @@ export function App() {
    *  result screen. */
   const [towerOpenOn, setTowerOpenOn] = useState<{ cardId: string; justTamed: boolean } | null>(null);
 
+  /** Note which screen of the Arena is up, and remember it on this device. The
+   *  settings row shuts on every change. Used alone where the caller sets the
+   *  match up itself (an event, a rejoin); `enterArenaView` pairs it with the
+   *  setup the screen implies. */
+  function markArenaView(v: ArenaView) {
+    setArenaSettingsOpen(false);
+    setArenaPrefs((p) => {
+      const next: ArenaPrefs = { ...p, view: v, friend: v === "local" || v === "online" ? v : p.friend };
+      saveArenaPrefs(next);
+      return next;
+    });
+  }
+
+  /** GO TO A SCREEN OF THE ARENA, and set up what that screen implies: who is in
+   *  the other seat, the kind of match, and a battlefield it offers. Every way
+   *  into a mode screen comes through here — the list, the back button, the
+   *  friend toggle, Home's run card, the restore at boot — so the screen and the
+   *  match settings under it cannot disagree. */
+  function enterArenaView(v: ArenaView) {
+    markArenaView(v);
+    if (v === "hub") return;
+    const setup = VIEW_SETUP[v];
+    setArenaMode(setup.mode);
+    setArenaGame(setup.game);
+    const duel: 4 | 5 = boardSize === 4 || boardSize === 5 ? boardSize : arenaPrefs.duel;
+    const board = boardForView(v, boardSize, duel, arenaView);
+    if (board !== boardSize) setBoardSize(board);
+    // AN EVENT BELONGS TO QUICK MATCH. It is seated from Home or the Tower onto
+    // that screen, and carried anywhere else it parks a run behind a fight the
+    // run can never score — so any other screen gives the seat back, and the
+    // boss's ally and rage go with it.
+    let seat = p2DeckId;
+    if (v !== "quick" && eventRun) {
+      seat = premadeDecksFor(board)[1].id;
+      setP2DeckId(seat);
+      setBossRun(null);
+    }
+    if (v === "streak") reseatStreak(board, seat);
+  }
+
+  /** STREAK DEALS ITS OWN OPPONENT, from the rung the streak is on and the board
+   *  it is played on. Re-dealt when the seat is off the rung — so "Start Streak
+   *  Match · Even" is not sitting over whatever the last fight left behind — and
+   *  when it holds a deck from the other board's shelf, which would resolve to a
+   *  different army entirely. */
+  function reseatStreak(board: number, seat: string) {
+    const tier = tierForStreak(story.ladder?.streak ?? 0, board);
+    const onShelf = premadeDecksFor(board).some((d) => d.id === seat);
+    if (tierOf(seat) !== tier || !onShelf) {
+      const pick = rollOpponent(tier, board, seat);
+      if (pick) setP2DeckId(pick.id);
+    }
+  }
+
+  /** A battlefield picked on an Arena screen. Remembered as the duel board when
+   *  it is one, and in Streak the seat is re-dealt for the new board. */
+  function pickArenaBoard(b: ArenaBoard) {
+    setBoardSize(b);
+    if (b === 4 || b === 5) {
+      setArenaPrefs((p) => {
+        const next: ArenaPrefs = { ...p, duel: b };
+        saveArenaPrefs(next);
+        return next;
+      });
+    }
+    if (arenaView === "streak") reseatStreak(b, p2DeckId);
+  }
+
+  /** LINE UP A GAUNTLET: the run is dealt and its first seat takes the chair —
+   *  the seat-sync effect does that, so there is one writer. A finished run is
+   *  replaced in the same write, so going again is one tap. */
+  function lineUpGauntlet() {
+    const run = startRun(runTier, boardSize);
+    const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
+    setStory(next); saveStory(next);
+  }
+
+  /** BEGIN A DRAFT. The entry is charged in the same write that creates the run,
+   *  so a draft can never exist unpaid — the pattern the money path uses
+   *  everywhere else. A finished run is replaced the same way. */
+  function beginDraft() {
+    if ((story.hero?.shards ?? 0) < DRAFT_ENTRY) return;
+    const next = { ...addShards(story, -DRAFT_ENTRY), draft: startDraft(boardSize) };
+    setStory(next); saveStory(next);
+  }
+
+  /** Give up a draft, or close one that is over. */
+  function clearDraft() {
+    const next = { ...story, draft: undefined };
+    setStory(next); saveStory(next);
+  }
+
+  // The remembered screen's match settings, applied once at boot. The SCREEN is
+  // what is stored; the mode, match and board it implies are derived from it, so
+  // the two cannot drift apart in storage.
+  useEffect(() => {
+    if (arenaPrefs.view !== "hub") enterArenaView(arenaPrefs.view);
+    // Mount only: this restores a choice, it does not follow one.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function seatEventFight(e: GameEvent, opts?: { enraged?: boolean; ally?: string | null }) {
     setBossRun(e.bossId
       ? { cardId: e.bossId, enraged: !!opts?.enraged, ally: opts?.ally ?? null }
@@ -1729,6 +1919,8 @@ export function App() {
     setArenaGame("casual");
     setBoardSize(e.boardSize);
     setP2DeckId(e.deck.id);
+    // ...onto the Quick match screen, which is where a fight you chose is shown.
+    markArenaView("quick");
     setTab("arena");
   }
 
@@ -2344,6 +2536,7 @@ export function App() {
     setSavedOnline(null);
     setTab("arena"); // where New Match lands afterwards, as if it started there
     setArenaMode("online");
+    markArenaView("online");
     setOnlineRole(role);
     setRoomCode(code);
     clientIdRef.current = saved.clientId;
@@ -3842,6 +4035,9 @@ export function App() {
   useBackLayer(nav.builder, () => navDo({ t: "builder", open: false }));
   // The menus' sheets and full-screen tools.
   useBackLayer(!started && !storyOpen && tab === "arena" && pickSeat !== null, () => setPickSeat(null));
+  // A mode screen is a layer over the Arena's list, the way Home's collection
+  // is over Home: back returns to the list instead of leaving the tab.
+  useBackLayer(!started && !storyOpen && tab === "arena" && arenaView !== "hub", () => enterArenaView("hub"));
   useBackLayer(!started && !storyOpen && tab === "home" && homeCollection, () => setHomeCollection(false));
   useBackLayer(builderOpen, () => { setBuilderOpen(false); setLinkedDeck(null); });
   useBackLayer(profileOpen, () => setProfileOpen(false));
@@ -4848,390 +5044,197 @@ export function App() {
       {!started && !storyOpen && tab === "arena" && (
         <div className="overlay arena-wrap">
           <div className="arena">
-            {/* The title art carries the screen instead of a logo floating over
-                a form. The ribbon names the mode so the art can be art. */}
-            <div className="ar-hero">
-              <picture>
-                <source srcSet="/title.webp" type="image/webp" />
-                <img src="/title.jpg" alt="War Element" />
-              </picture>
-              <span className="ar-fade" aria-hidden="true" />
-              <span className="ar-ribbon">
-                <i aria-hidden="true" />
-                {onlineMode ? "ARENA · ONLINE" : "ARENA"}
-              </span>
-            </div>
-
-            <div className="ar-modes">
-              <div className="seg">
-                <button
-                  className={!twoPlayer && !onlineMode ? "on" : ""}
-                  onClick={() => setArenaMode("ai")}
-                >vs AI</button>
-                <button
-                  className={twoPlayer && !onlineMode ? "on" : ""}
-                  onClick={() => setArenaMode("local")}
-                >2 Players</button>
-                <button
-                  className={onlineMode ? "on blue" : ""}
-                  onClick={() => setArenaMode("online")}
-                >Online</button>
-              </div>
-              {/* One sentence, not a paragraph. */}
-              <p className="ar-mode-note">
-                {onlineMode
-                  ? onlineRole === "host"
-                    ? "You host and play P1. Share the code to fill the other seat."
-                    : "Enter your buddy's code, then pick your deck. You play P2."
-                  : twoPlayer
-                    ? "Two players share this device — hand it back each turn."
-                    : "You play P1. The AI draws its own hand from its deck."}
-              </p>
-            </div>
-
-            {/* Hidden for an online GUEST: the host deals the whole state,
-                board size included, so the guest has no say. */}
-            {(!onlineMode || onlineRole === "host") && (
-              <div className="ar-field">
-                <span className="ar-flabel">BATTLEFIELD</span>
-                <div className="seg">
-                  {/* LOCKED while a run is live. A run is dealt for a board — it
-                      stores which one, and it pays that board's rate — so
-                      switching underneath it would leave four 4x4 opponents
-                      waiting on a 5x5 field, and your squad the wrong size for
-                      both. The run owns this until it ends. */}
-                  {([4, 5, 7] as const).map((sz) => (
-                    <button
-                      key={sz}
-                      className={boardSize === sz ? "on" : ""}
-                      disabled={boardLocked && boardSize !== sz}
-                      title={boardLocked && boardSize !== sz
-                        ? "The gauntlet run was dealt for this battlefield"
-                        : undefined}
-                      onClick={() => setBoardSize(sz)}
-                    >
-                      {sz}×{sz} · {sz === 4 ? "Standard" : sz === 5 ? "Large" : "Domination"}
-                    </button>
-                  ))}
+            {arenaView === "hub" ? (
+              <>
+                {/* The title art carries the screen instead of a logo floating over
+                    a form. The ribbon names the mode so the art can be art. On the
+                    list only: on a mode screen that height belongs to the matchup. */}
+                <div className="ar-hero">
+                  <picture>
+                    <source srcSet="/title.webp" type="image/webp" />
+                    <img src="/title.jpg" alt="War Element" />
+                  </picture>
+                  <span className="ar-fade" aria-hidden="true" />
+                  <span className="ar-ribbon">
+                    <i aria-hidden="true" />
+                    ARENA
+                  </span>
                 </div>
-              </div>
-            )}
+                {/* THE FIRST LEVEL: every way to play, and nothing asked yet. The
+                    Arena used to stack four or five rows of choices above the
+                    matchup — who you play, the battlefield, the mode, the AI's
+                    skill — rows that came and went as you picked. Each way to play
+                    has its own screen now; see arena-nav.ts. */}
+                <ArenaHub
+                  status={hubStatus}
+                  onPick={(id) => enterArenaView(viewForEntry(id, arenaPrefs.friend))}
+                  onBuild={() => setBuilderOpen(true)}
+                  onRules={() => setRulesOpen(true)}
+                />
+              </>
+            ) : (
+              <>
+                <ArenaHeader
+                  title={VIEW_HEAD[arenaView as ModeView].title}
+                  blurb={VIEW_HEAD[arenaView as ModeView].blurb}
+                  onBack={() => enterArenaView("hub")}
+                />
 
-            {/* PLAYERS. Domination only, and that is a rule rather than a
-                restriction of the picker: the other battlefields seat two
-                because they are won by taking the opponent's Home row, and a
-                square board has exactly two of those to hand out. This map is
-                won by holding Points, has four of them and four shrines in
-                rotational symmetry, and so has somewhere for everyone to come
-                in from. */}
-            {boardSize === DOMINATION_7X7.boardSize
-              && arenaGame !== "gauntlet" && arenaGame !== "streak"
-              && (!onlineMode || onlineRole === "host") && (
-              <div className="ar-field">
-                <span className="ar-flabel">{onlineMode || twoPlayer ? "PLAYERS" : "OPPONENTS"}</span>
-                <div className="seg">
-                  {([2, 3, 4] as const).map((n) => (
-                    <button
-                      key={n}
-                      className={seatCount === n ? "on" : ""}
-                      disabled={twoPlayer && n > 2}
-                      title={twoPlayer && n > 2
-                        ? "Hot-seat shares one device — a free-for-all is vs AI or online"
-                        : undefined}
-                      onClick={() => setSeatCount(n)}
-                    >
-                      {/* vs AI you are choosing how many OPPONENTS to face, and
-                          saying "4 players" for three of them is a counting
-                          puzzle in the middle of a lobby. Online and hot-seat
-                          really are seat counts, so those keep "players". */}
-                      {onlineMode || twoPlayer
-                        ? `${n} players`
-                        : `${n - 1} opponent${n - 1 === 1 ? "" : "s"}`}
-                    </button>
-                  ))}
-                </div>
-                {seatCount > 2 && (
-                  <p className="ar-mode-note">
-                    Free-for-all — every seat for itself, and everyone deploys at the
-                    four shrines.{onlineMode ? "" : ` You against ${seatCount - 1} AI.`}
-                  </p>
+                {/* PLAY A FRIEND is one door with two rooms behind it, and which
+                    room is the first thing that screen asks — before the
+                    battlefield, because a player JOINING a game chooses no
+                    battlefield at all. Asked the other way round, a joiner set a
+                    battlefield the join then threw away. */}
+                {(arenaView === "local" || arenaView === "online") && (
+                  <div className="ar-field">
+                    <div className="seg">
+                      <button
+                        className={arenaView === "local" ? "on" : ""}
+                        disabled={!!online}
+                        title={online ? "Leave the room first" : undefined}
+                        onClick={() => enterArenaView("local")}
+                      >Same device</button>
+                      <button
+                        className={arenaView === "online" ? "on blue" : ""}
+                        onClick={() => enterArenaView("online")}
+                      >Online</button>
+                    </div>
+                  </div>
                 )}
-              </div>
-            )}
 
-            {/* THE MODE. Gauntlet and Streak used to be things you could stumble
-                into from the same lobby as a casual fight, which is how a run
-                got ended by a match that was never part of it. They are modes
-                now: exactly one is live, each owns the seat while it is, and
-                switching away LEAVES a run standing rather than scoring it. */}
-            {!onlineMode && !twoPlayer && (
-              <div className="ar-field">
-                <span className="ar-flabel">MODE</span>
-                <div className="seg">
-                  {([
-                    ["casual", "Casual", "Pick your own fight. Nothing is scored."],
-                    ["streak", "Streak", "Climb the rungs. Wins pay more the longer you hold it."],
-                    ["gauntlet", "Gauntlet", "Four dealt opponents. One loss ends the run."],
-                    ["draft", "Draft", "Build a squad from cards you do not own, three at a time. Three losses end the run."],
-                  ] as const).map(([id, label, why]) => (
-                    <button
-                      key={id}
-                      className={arenaGame === id ? "on" : ""}
-                      title={why}
-                      onClick={() => {
-                        setArenaGame(id);
-                        // Entering STREAK seats a rung-appropriate opponent at
-                        // once, so "Start Streak Match · Even" is not sitting
-                        // over whatever deck the last casual fight left behind.
-                        if (id === "streak") {
-                          const tier = tierForStreak(story.ladder?.streak ?? 0, boardSize);
-                          if (tierOf(p2DeckId) !== tier) {
-                            const pick = rollOpponent(tier, boardSize, p2DeckId);
-                            if (pick) setP2DeckId(pick.id);
-                          }
-                        }
-                      }}
-                    >
-                      {label}
-                      {id === "gauntlet" && gauntletRun && !runOver(gauntletRun) && (
-                        <i className="mode-live" title="A run is waiting" aria-hidden="true">•</i>
-                      )}
-                      {id === "draft" && draftRun && (
-                        <i
-                          className="mode-live"
-                          title={draftComplete(draftRun) ? "A drafted squad is waiting" : "A draft is half-picked"}
-                          aria-hidden="true"
-                        >•</i>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
+                {onlineMode && (
+                  <div className="ar-field roles">
+                    <div className="seg">
+                      <button
+                        className={onlineRole === "host" ? "on blue" : ""}
+                        disabled={!!online}
+                        onClick={() => setOnlineRole("host")}
+                      >Host game</button>
+                      <button
+                        className={onlineRole === "guest" ? "on blue" : ""}
+                        disabled={!!online}
+                        onClick={() => setOnlineRole("guest")}
+                      >Join game</button>
+                    </div>
+                  </div>
+                )}
 
-            {/* THE OPPONENT. One block, because there were two: a rung segment
-                whose own comment called it "the matchmaker", and the streak
-                matchmaker underneath it doing the same job one step further.
-                Two controls that both fill the same seat, stacked, each
-                claiming the same name.
+                {/* A FRIEND'S TABLE IS THEIRS TO SET, so its battlefield is asked
+                    outright rather than tucked into settings — for the hot-seat pair
+                    and for the host. Hidden for an online GUEST: the host deals the
+                    whole state, board size included, so the guest has no say. */}
+                {(twoPlayer || (onlineMode && onlineRole === "host" && !online)) && (
+                  <div className="ar-field">
+                    <span className="ar-flabel">BATTLEFIELD</span>
+                    <div className="seg as-seg">
+                      {([4, 5, 7] as const).map((sz) => (
+                        <button
+                          key={sz}
+                          className={boardSize === sz ? "on" : ""}
+                          onClick={() => pickArenaBoard(sz)}
+                        >
+                          <b>{BOARD_LABEL[sz].size}</b>
+                          <span>{BOARD_LABEL[sz].name}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                So they are one control with a hierarchy now — the automatic
-                answer first, the manual override under it. The rungs still
-                roll a random deck at a difficulty you name; the button above
-                names the difficulty for you and climbs.
+                {/* HOW MANY SEATS. Domination only, and that is a rule rather than
+                    a restriction of the picker: the other battlefields seat two
+                    because they are won by taking the opponent's Home row, and a
+                    square board has exactly two of those to hand out. This map is
+                    won by holding Points, has four of them and four shrines in
+                    rotational symmetry, and so has somewhere for everyone to come
+                    in from. Hot-seat never shows it: one device, two players. */}
+                {(arenaView === "domination"
+                  || (onlineMode && onlineRole === "host" && !online && boardSize === DOMINATION_7X7.boardSize)) && (
+                  <div className="ar-field">
+                    <span className="ar-flabel">{onlineMode ? "PLAYERS" : "OPPONENTS"}</span>
+                    <div className="seg">
+                      {([2, 3, 4] as const).map((n) => (
+                        <button
+                          key={n}
+                          className={seatCount === n ? "on" : ""}
+                          onClick={() => setSeatCount(n)}
+                        >
+                          {/* vs AI you are choosing how many OPPONENTS to face, and
+                              saying "4 players" for three of them is a counting
+                              puzzle in the middle of a lobby. Online really is a
+                              seat count, so it keeps "players". */}
+                          {onlineMode
+                            ? `${n} players`
+                            : `${n - 1} opponent${n - 1 === 1 ? "" : "s"}`}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {(arenaView === "domination" || (onlineMode && onlineRole === "host" && !online))
+                  && boardSize === DOMINATION_7X7.boardSize && seatCount > 2 && (
+                  <div className="ar-modes">
+                    <p className="ar-mode-note">
+                      Free-for-all — every seat for itself, and everyone deploys at the
+                      four shrines.{onlineMode ? "" : ` You against ${seatCount - 1} AI.`}
+                    </p>
+                  </div>
+                )}
 
-                Hidden while a Gauntlet run is live, because that run owns the
-                seat and reseating it would end the run on a match you never
-                agreed to fight. Hidden in 2-player too, where the other seat is
-                a person choosing their own deck rather than a difficulty — the
-                old rung segment showed there and never made sense. */}
-            {!onlineMode && !twoPlayer && arenaGame === "streak" && (() => {
-              const streak = story.ladder?.streak ?? 0;
-              const tier = tierForStreak(streak, boardSize);
-              const owed = winsToNextRung(streak, boardSize);
-              const onRung = tierOf(p2DeckId) === tier;
-              // "a Easy match". Three of the four rung names open on a vowel
-              // (Easy, Even, Elite) and only Hard does not, so the article has
-              // to be derived rather than written.
-              const a = /^[AEIOU]/i.test(TIER_LABEL[tier]) ? "an" : "a";
-              // What the NEXT win is worth, stated before you agree to the
-              // fight. The ladder pays by rung and streak, so "wins pay 12" is
-              // the whole reason to be up here rather than farming Easy — and
-              // it is invisible unless the lobby says it.
-              const winPay = SHARDS_PER_WIN.arena
-                + recordLadderMatch({ streak, best: streak },
-                    { won: true, tier, boardSize }).bonus;
-              return (
-                <div className="ar-gauntlet mm">
-                  <button
-                    className="gt-start"
-                    onClick={() => {
-                      const pick = rollOpponent(tier, boardSize, p2DeckId);
-                      if (pick) setP2DeckId(pick.id);
-                    }}
-                  >
-                    <span className="gt-start-main">
-                      {/* Names the rung, because the whole point is that the
-                          matchmaker chose it and the player should be able to
-                          see what it chose before agreeing to the fight. */}
-                      {onRung ? "Reroll" : "Find"} {a} {TIER_LABEL[tier]} match
-                      <em className="gt-pay mm-streak">{streak}<i aria-hidden="true">&#9650;</i></em>
-                    </span>
-                    <span className="gt-sub">
-                      {streak === 0
-                        ? `A random ${TIER_LABEL[tier]} deck · wins pay ${winPay}. Win ${WINS_PER_RUNG} in a row to move up a rung.`
-                        : owed > 0
-                          ? `${streak} in a row · wins pay ${winPay} · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
-                          : `${streak} in a row · wins pay ${winPay} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
-                      {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
-                    </span>
-                  </button>
-                  {/* THE "OR PICK" RUNG ROW IS GONE. It let you hand yourself
-                      any difficulty you liked and then climb on it, which is
-                      the one thing a ladder may not allow — and it was dead
-                      weight besides, since an off-rung match already scored
-                      nothing (`recordLadderMatch` returns the ladder
-                      unchanged). The rung is the streak's to decide; choosing
-                      your own fight is what Casual is for. */}
-                </div>
-              );
-            })()}
+                {/* THE STREAK'S MATCHMAKER. One control with a hierarchy: the
+                    automatic answer first, the reroll under it. The rung is the
+                    streak's to decide — choosing your own fight is what Quick match
+                    is for — so the seat is dealt, and this names what it dealt
+                    before you agree to the fight. */}
+                {arenaView === "streak" && (() => {
+                  const streak = story.ladder?.streak ?? 0;
+                  const tier = tierForStreak(streak, boardSize);
+                  const owed = winsToNextRung(streak, boardSize);
+                  const onRung = tierOf(p2DeckId) === tier;
+                  // "a Easy match". Three of the four rung names open on a vowel
+                  // (Easy, Even, Elite) and only Hard does not, so the article has
+                  // to be derived rather than written.
+                  const a = /^[AEIOU]/i.test(TIER_LABEL[tier]) ? "an" : "a";
+                  // What the NEXT win is worth, stated before you agree to the
+                  // fight. The ladder pays by rung and streak, so "wins pay 12" is
+                  // the whole reason to be up here rather than farming Easy — and
+                  // it is invisible unless the lobby says it.
+                  const winPay = SHARDS_PER_WIN.arena
+                    + recordLadderMatch({ streak, best: streak },
+                        { won: true, tier, boardSize }).bonus;
+                  return (
+                    <div className="ar-gauntlet mm">
+                      <button
+                        className="gt-start"
+                        onClick={() => {
+                          const pick = rollOpponent(tier, boardSize, p2DeckId);
+                          if (pick) setP2DeckId(pick.id);
+                        }}
+                      >
+                        <span className="gt-start-main">
+                          {onRung ? "Reroll" : "Find"} {a} {TIER_LABEL[tier]} match
+                          <em className="gt-pay mm-streak">{streak}<i aria-hidden="true">&#9650;</i></em>
+                        </span>
+                        <span className="gt-sub">
+                          {streak === 0
+                            ? `A random ${TIER_LABEL[tier]} deck · wins pay ${winPay}. Win ${WINS_PER_RUNG} in a row to move up a rung.`
+                            : owed > 0
+                              ? `${streak} in a row · wins pay ${winPay} · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
+                              : `${streak} in a row · wins pay ${winPay} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
+                          {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
+                        </span>
+                      </button>
+                    </div>
+                  );
+                })()}
 
-            {/* THE GAUNTLET. Four opponents from one rung, dealt rather than
-                chosen, and a single loss ends it. This is the earn path: a win
-                against a deck you built yourself pays nothing, because
-                eighteen of your worst cards in the other seat was two shards a
-                match for as long as you cared to click.
-
-                Its own MODE now, so an armed run cannot be spent by a match
-                that was never part of it — see `settleArena`'s `gauntletSeat`.
-                A run left standing here is still standing when you come back. */}
-            {/* DIFFICULTY, asked outright. The rung used to be read off whichever
-                deck was sitting in the opponent chair — oblique even then, and
-                unusable now the chair is dealt rather than chosen. Shown only
-                while there is no run: mid-run the rung is settled, and a live
-                control that cannot change anything is a lie. */}
-            {!onlineMode && !twoPlayer && arenaGame === "gauntlet"
-              && (!gauntletRun || runOver(gauntletRun)) && (
-              <div className="ar-field">
-                <span className="ar-flabel">DIFFICULTY</span>
-                <div className="seg">
-                  {tiersFor(boardSize).map((rung) => (
-                    <button
-                      key={rung}
-                      className={runTier === rung ? "on" : ""}
-                      title={`Four ${TIER_LABEL[rung]} decks · clears for ${runReward(rung, boardSize)} shards`}
-                      onClick={() => setRunTierPick(rung)}
-                    >
-                      {TIER_LABEL[rung]}
-                      {(story.gauntlet?.cleared ?? []).includes(rung) && (
-                        <i className="rung-done" title="Cleared before" aria-hidden="true">✓</i>
-                      )}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* DRAFT. The entry is charged at the moment the run is created, in
-                the same write that creates it, so a draft can never exist
-                unpaid — the pattern the money path uses everywhere else. */}
-            {!onlineMode && !twoPlayer && arenaGame === "draft" && !draftRun && (
-              <div className="ar-gauntlet">
-                <button
-                  className="gt-start"
-                  disabled={(story.hero?.shards ?? 0) < DRAFT_ENTRY}
-                  // The board's real number, not a hardcoded eighteen: Draft runs
-                  // on the 30-card boards too, and it said "eighteen" on all of
-                  // them. Names the shape as well, because warbands-then-singles
-                  // is the thing a drafter wants to know before paying.
-                  title={`Draft ${deckSizeFor(boardSize)} cards you do not own — warbands first, then ${SINGLE_PICKS} one at a time — then run them until ${DRAFT_LOSSES} losses`}
-                  onClick={() => {
-                    const next = {
-                      ...addShards(story, -DRAFT_ENTRY),
-                      draft: startDraft(boardSize),
-                    };
-                    setStory(next); saveStory(next);
-                  }}
-                >
-                  <span className="gt-start-main">
-                    Draft a squad
-                    <em className="gt-pay">
-                      -{DRAFT_ENTRY}<i className="shard" aria-hidden="true" />
-                    </em>
-                  </span>
-                  <span className="gt-sub">
-                    {(story.hero?.shards ?? 0) < DRAFT_ENTRY
-                      ? `Needs ${DRAFT_ENTRY} shards`
-                      : "Eighteen picks from cards you do not own · three lives"}
-                  </span>
-                </button>
-              </div>
-            )}
-
-            {/* THE RUN PANEL — and the way out of a finished run.
-                Without it the mode was a DEAD END: the start button hides
-                whenever `draftRun` exists, and a run that is over is still a
-                run, so once three losses landed there was no draft to play, no
-                deck in your chair, and no button to start another. "Draft
-                again" is the clear, and clearing is what brings the start
-                button back. */}
-            {!onlineMode && !twoPlayer && arenaGame === "draft"
-              && draftRun && draftComplete(draftRun) && (
-              <div className="ar-gauntlet">
-                <div className="gt-head">
-                  <span className="ar-flabel">
-                    DRAFT · {draftWins(draftRun)} WIN{draftWins(draftRun) === 1 ? "" : "S"}
-                  </span>
-                  <span className="gt-sub">
-                    {draftRunOver(draftRun)
-                      ? `Run over — +${draftReward(draftRun)} shards banked.`
-                      : `${DRAFT_LOSSES - draftLosses(draftRun)} ${
-                          DRAFT_LOSSES - draftLosses(draftRun) === 1 ? "life" : "lives"
-                        } left${
-                          // Only name the deck when the RUN put it there — the
-                          // same rule the gauntlet panel follows, so a draft
-                          // parked behind an event cannot announce an opponent
-                          // it never dealt.
-                          draftSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
-                  </span>
-                </div>
-                {/* One pip per life, spent left to right. Lives rather than
-                    wins: the wins are in the label above, and what makes the
-                    next match tense is what is left. */}
-                <div className="gt-pips">
-                  {Array.from({ length: DRAFT_LOSSES }, (_, i) => (
-                    <i key={i} className={i < draftLosses(draftRun) ? "lost" : "won"} />
-                  ))}
-                </div>
-                <button
-                  className="ghost sm gt-quit"
-                  onClick={() => {
-                    const next = { ...story, draft: undefined };
-                    setStory(next); saveStory(next);
-                  }}
-                >
-                  {draftRunOver(draftRun) ? "Draft again" : "Give up the run"}
-                </button>
-              </div>
-            )}
-
-            {!onlineMode && !twoPlayer && arenaGame === "gauntlet" && (
-              <div className="ar-gauntlet">
-                {!gauntletRun ? (
-                  /* Runs the rung the row above names. That row is the ONLY
-                     difficulty control on the screen — this button states the
-                     choice back rather than offering it a second time. */
-                  <button
-                    className="gt-start"
-                    onClick={() => {
-                      const run = startRun(runTier, boardSize);
-                      const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run } };
-                      setStory(next); saveStory(next);
-                      // The seat-sync effect points p2DeckId at seat 1.
-                    }}
-                  >
-                    <span className="gt-start-main">
-                      {/* "Run the …" promised a fight this button does not
-                          start: it ARMS the run and points the opponent seat at
-                          seat 1, and the actual match still begins from Start
-                          Match below. "Line up" says what the tap does. */}
-                      Line up the {TIER_LABEL[runTier]} gauntlet
-                      {/* Number then icon, matching the shop's signed amounts
-                          (`-{PACK_COST}<i className="shard" />`). The bare "+12"
-                          did not say WHAT it paid, and the gauntlet is the one
-                          place on this screen that pays anything. */}
-                      <em className="gt-pay">
-                        +{runReward(runTier, boardSize)}<i className="shard" aria-hidden="true" />
-                      </em>
-                      {(story.gauntlet?.cleared ?? []).includes(runTier) && (
-                        <i className="gt-done" title="Cleared before">✓</i>
-                      )}
-                    </span>
-                    <span className="gt-sub">Four dealt opponents, one loss ends the run — then start it below.</span>
-                  </button>
-                ) : (
-                  <>
+                {/* THE GAUNTLET'S RUN: four seats from one rung, dealt rather than
+                    chosen, and a single loss ends it. A run left standing here is
+                    still standing when you come back — see `settleArena`'s
+                    `gauntletSeat`. Shown for a finished run too, so the result
+                    stays on screen until the next one is lined up. */}
+                {arenaView === "gauntlet" && gauntletRun && (
+                  <div className="ar-gauntlet">
                     <div className="gt-head">
                       <span className="ar-flabel">
                         GAUNTLET · {gauntletRun.tier === "mid" ? "EVEN" : gauntletRun.tier.toUpperCase()}
@@ -5243,11 +5246,10 @@ export function App() {
                             ? `Beaten on seat ${gauntletRun.won + 1}. The run is over.`
                             : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}${
                                 // Only name the deck when the RUN put it there.
-                                // `p2DeckId` is whatever is in the chair, so
-                                // with a run parked behind an event this read
-                                // "Seat 1 of 4 · Nightshrike's brood" — the run
-                                // announcing an opponent it never dealt and
-                                // would never score.
+                                // `p2DeckId` is whatever is in the chair, so with a
+                                // run parked behind an event this read "Seat 1 of 4
+                                // · Nightshrike's brood" — the run announcing an
+                                // opponent it never dealt and would never score.
                                 gauntletSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
                       </span>
                     </div>
@@ -5265,330 +5267,398 @@ export function App() {
                         />
                       ))}
                     </div>
-                    <button
-                      className="ghost sm gt-quit"
-                      onClick={() => {
-                        const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run: undefined } };
-                        setStory(next); saveStory(next);
-                      }}
-                    >
-                      {runOver(gauntletRun) ? "Done" : "Give up the run"}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-
-            {onlineMode && (
-              <div className="ar-field roles">
-                <div className="seg">
-                  <button
-                    className={onlineRole === "host" ? "on blue" : ""}
-                    disabled={!!online}
-                    onClick={() => setOnlineRole("host")}
-                  >Host game</button>
-                  <button
-                    className={onlineRole === "guest" ? "on blue" : ""}
-                    disabled={!!online}
-                    onClick={() => setOnlineRole("guest")}
-                  >Join game</button>
-                </div>
-              </div>
-            )}
-
-            {/* HOW MUCH THE OPPONENT KNOWS. Only against an AI — a human
-                opponent has no knowledge to take away, and offering the dial
-                where it does nothing would read as a setting that is broken
-                rather than one that does not apply. */}
-            {!onlineMode && !twoPlayer && pinApplies && (
-              <div className="ar-modes">
-                <div className="ar-field">
-                  <label className="ar-flabel">OPPONENT</label>
-                  <div className="seg">
-                    {/* AUTO FIRST, and it is the default. The dial moves itself
-                        off your results — two wins up, three losses down — so
-                        the opponent tracks you from learning to steady to
-                        sharp without anyone opening this menu. The three rungs
-                        beside it PIN it, which is the escape hatch: a player
-                        showing someone the game, or one who simply wants the
-                        hardest opponent every time, says so here and the
-                        tracking stops. */}
-                    <button
-                      className={skillAuto ? "on" : ""}
-                      onClick={() => { setSkillAuto(true); clearAiSkill(); setAiSkill(loadAiSkill((story.cleared ?? []).length > 0)); }}
-                    >Auto</button>
-                    {AI_SKILLS.map((k) => (
+                    {!runOver(gauntletRun) && (
                       <button
-                        key={k}
-                        className={!skillAuto && aiSkill === k ? "on" : ""}
-                        onClick={() => { setSkillAuto(false); setAiSkill(k); saveAiSkill(k); }}
-                      >{SKILL_PROFILES[k].name}</button>
-                    ))}
-                  </div>
-                </div>
-                {/* The blurb is the point, not decoration: a handicap whose
-                    shape the player cannot see is one they cannot decide to
-                    give up. On Auto that goes double — it names the rung it has
-                    put you on, so a difficulty nobody chose is still one you
-                    can read. */}
-                <p className="ar-mode-note">
-                  {skillAuto && <b>{SKILL_PROFILES[aiSkill].name} — adjusting as you play. </b>}
-                  {SKILL_PROFILES[aiSkill].blurb}
-                </p>
-              </div>
-            )}
-
-            {/* ...AND IT STILL SAYS WHICH OPPONENT YOU ARE ABOUT TO FIGHT when
-                the picking is refused. A scored mode takes the rung away as a
-                CHOICE, not as information — `skill.ts`'s rule is that a
-                handicap whose shape you cannot see is one you cannot decide to
-                give up, and a difficulty that varies silently between two runs
-                is the worse version of exactly that. Read-only: naming it is
-                the whole job. */}
-            {!onlineMode && !twoPlayer && !pinApplies && (
-              <p className="ar-mode-note">
-                <b>Opponent: {SKILL_PROFILES[matchSkill].name}.</b>{" "}
-                {eventRun
-                  ? "A designed encounter sets its own difficulty."
-                  : "Scored modes are played at the rung you have earned, not one you pick."}
-              </p>
-            )}
-
-            {/* THE VERSUS CARD. Two decks, viewer-relative — yours blue and the
-                opponent's red, the same pairing the board uses, so the seats
-                read the same way in the lobby as they do in the match. */}
-            <div className="ar-vs">
-              <DeckSeat
-                side="mine"
-                flag={onlineMode
-                  ? (onlineRole === "host" ? "YOU · HOST · P1" : "YOU · GUEST · P2")
-                  : draftOwnsMySeat ? "YOU · P1 · DRAFT" : "YOU · P1"}
-                label={deckLabel(mySeatDeckId)}
-                cards={resolveDeckCards(mySeatDeckId)}
-                /* A DRAFT OWNS BOTH SEATS. The opponent's has been locked since
-                   the mode was written; this one was left changeable, so the
-                   lobby offered a deck sheet over a squad you are not allowed
-                   to swap — and picking from it did nothing, because the effect
-                   that seats the drafted deck put it straight back. A control
-                   that fights an effect is worse than no control. `DeckSeat`
-                   already draws an absent `onChange` as a locked panel; it was
-                   only ever the Gauntlet that used it. */
-                onChange={draftOwnsMySeat
-                  ? undefined
-                  : () => setPickSeat(onlineMode && onlineRole === "guest" ? "p2" : "p1")}
-              />
-
-              <div className="ar-vsline"><span /><em>VS</em><span /></div>
-
-              {onlineMode && !online ? (
-                /* The room code belongs INSIDE the empty seat: the code is the
-                   thing that fills it, and putting them together leaves the
-                   screen one focus instead of two competing ones. */
-                <div className="ar-seat empty">
-                  <span className="ar-flag dim">
-                    {onlineRole === "host" ? "GUEST · P2 · EMPTY SEAT" : "HOST · P1 · JOIN A ROOM"}
-                  </span>
-                  <input
-                    className="ar-code"
-                    placeholder={onlineRole === "host" ? "AUTO" : "CODE"}
-                    value={roomCode}
-                    onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                    maxLength={12}
-                  />
-                  <span className="ar-codehint">
-                    {onlineRole === "host"
-                      ? "Share this code to fill the seat"
-                      : "Enter your buddy's room code"}
-                  </span>
-                  <button
-                    className="lockin sm"
-                    disabled={!onlineConfigured}
-                    onClick={onlineRole === "host" ? hostCreateRoom : guestJoinRoom}
-                  >
-                    {onlineRole === "host" ? "Create room" : "Join room"}
-                  </button>
-                </div>
-              ) : onlineMode ? (
-                /* THE PREGAME LOBBY. Everyone in the room, what they are
-                   bringing, and whether they have agreed to start. The host
-                   builds this list and relays it, because it is the only side
-                   that learns every arrival. */
-                <div className="ar-seat empty live lobby">
-                  <span className="ar-flag dim">
-                    ROOM · {(lobby?.seats.length ?? 1)} of {lobby?.need ?? 2}
-                  </span>
-                  <span className="ar-code live">{roomCode || "—"}</span>
-                  <div className="lob-list">
-                    {Array.from({ length: lobby?.need ?? 2 }, (_, i) => {
-                      const seat = (["P1", "P2", "P3", "P4"] as const)[i];
-                      const row = lobby?.seats.find((x) => x.seat === seat);
-                      const isMe = seat === (online?.myId ?? (onlineRole === "host" ? "P1" : null));
-                      return (
-                        <div key={seat} className={`lob-row${row ? "" : " open"}${isMe ? " me" : ""}`}>
-                          <span className={`lob-seat seat-${seat.toLowerCase()}`}>
-                            {SEAT_SUIT[seat].glyph} {seat}
-                          </span>
-                          <span className="lob-name">
-                            {row ? row.name : "waiting for a player…"}
-                            {row?.host && <i className="lob-tag">host</i>}
-                            {isMe && <i className="lob-tag you">you</i>}
-                          </span>
-                          {row
-                            ? <span className={`lob-ready${row.ready ? " on" : ""}`}>
-                                {row.ready ? "READY" : "picking"}
-                              </span>
-                            : <span className="lob-ready open">—</span>}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <span className="ar-codehint">
-                    {netStatus || "Waiting for players to join…"}
-                  </span>
-                  <div className="lob-actions">
-                    <button
-                      className={iAmReady ? "ghost sm" : "lockin sm"}
-                      onClick={() => { const next = !iAmReady; setIAmReady(next); announceMe(next); }}
-                    >
-                      {iAmReady ? "Not ready" : "I'm ready"}
-                    </button>
-                    {onlineRole === "host" && (
-                      <button
-                        className="lockin sm"
-                        disabled={!lobby
-                          || lobby.seats.length < lobby.need
-                          || !lobby.seats.every((x) => x.ready)}
-                        title={!lobby || lobby.seats.length < lobby.need
-                          ? "Every seat has to be filled first"
-                          : !lobby.seats.every((x) => x.ready)
-                            ? "Everyone has to be ready"
-                            : undefined}
-                        onClick={hostStartMatch}
+                        className="ghost sm gt-quit"
+                        onClick={() => {
+                          const next = { ...story, gauntlet: { ...(story.gauntlet ?? {}), run: undefined } };
+                          setStory(next); saveStory(next);
+                        }}
                       >
-                        Start match
+                        Give up the run
                       </button>
                     )}
-                    <button className="ghost sm" onClick={leaveOnline}>Leave</button>
                   </div>
-                </div>
-              ) : (
-                <DeckSeat
-                  side="foe"
-                  /* The seat says which fight this is. Without the event case
-                     the flag read a flat "AI · P2" over a deck called "Darkest
-                     night" — nothing on the screen said a pack was riding on
-                     it. The seat stays CHANGEABLE (unlike a run's): picking
-                     another deck is how you back out, and `eventRun` derives
-                     from this seat, so doing so ends the event cleanly.
+                )}
 
-                     A VOID TRIAL'S SEAT IS THE BOSS. The deck in the chair is
-                     only its summons, so left alone the seat wore the brood's
-                     finisher ("Rotroot's brood", Zombination's face) — the one
-                     card that is NOT in the deck is the whole fight. Name, face
-                     and flag all come from the boss; the chips below still show
-                     what it brings. */
-                  flag={eventRun?.bossId ? "VOID TOWER · BOSS" : eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
-                  label={eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId)}
-                  artOverride={eventRun?.bossId ? cardArtSrc(getDef(eventRun.bossId)) : undefined}
-                  /* The DUEL, not the brood. A boss fight is pitched as two
-                     elements — the tribe's and the mechanic's — and that pair
-                     is what the puzzle is built on; counting the summons in the
-                     chair instead described the wrong half of the fight. */
-                  elements={eventRun?.bossId ? voidBossElements(eventRun.bossId) : undefined}
-                  cards={resolveDeckCards(p2DeckId)}
-                  /* DEALT, NOT CHOSEN — in either challenge mode. A run's seat
-                     was already locked (opening the sheet is the re-roll the run
-                     exists to prevent), but STREAK's was not: you could hand
-                     yourself the softest deck on the rung and climb on it. The
-                     point of both modes is that the opponent is picked FOR you,
-                     and Casual is where picking your own fight lives. */
-                  onChange={
-                    gauntletSeat || arenaGame !== "casual" ? undefined : () => setPickSeat("p2")
-                  }
-                />
-              )}
-            </div>
+                {/* DIFFICULTY, asked outright — the one thing a gauntlet asks you,
+                    because a mode that deals your opponents cannot also let you
+                    choose them. Only while there is no run to play: mid-run the
+                    rung is settled, and a live control that cannot change
+                    anything is a lie. The button at the bottom lines it up. */}
+                {arenaView === "gauntlet" && (!gauntletRun || runOver(gauntletRun)) && (
+                  <>
+                    <div className="ar-field">
+                      <span className="ar-flabel">DIFFICULTY</span>
+                      <div className="seg">
+                        {tiersFor(boardSize).map((rung) => (
+                          <button
+                            key={rung}
+                            className={runTier === rung ? "on" : ""}
+                            title={`Four ${TIER_LABEL[rung]} decks · clears for ${runReward(rung, boardSize)} shards`}
+                            onClick={() => setRunTierPick(rung)}
+                          >
+                            {TIER_LABEL[rung]}
+                            {(story.gauntlet?.cleared ?? []).includes(rung) && (
+                              <i className="rung-done" title="Cleared before" aria-hidden="true">✓</i>
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="ar-modes">
+                      <p className="ar-mode-note">
+                        Four {TIER_LABEL[runTier]} decks, dealt one at a time. Clearing all four pays{" "}
+                        {runReward(runTier, boardSize)} shards
+                        {(story.gauntlet?.cleared ?? []).includes(runTier) ? " — you have cleared this one before." : "."}
+                      </p>
+                    </div>
+                  </>
+                )}
 
-            {/* THE OTHER SEATS AT THE TABLE. Domination is the only mode that
-                deals more than two, and until now the third and fourth were
-                chosen for you — the first premades not already seated — so a
-                four-way was three armies you could not see and one you could.
-                You are about to fight them; the lobby should say what they are.
+                {/* DRAFT, before a run: what it is and what it costs, said plainly.
+                    The entry is charged by the button at the bottom, in the same
+                    write that creates the run, so a draft can never exist unpaid. */}
+                {arenaView === "draft" && !draftRun && (
+                  <div className="ar-modes">
+                    <p className="ar-mode-note">
+                      {/* The board's real number, not a hardcoded eighteen: Draft
+                          runs on the 30-card board too. Names the shape as well,
+                          because warbands-then-singles is the thing a drafter
+                          wants to know before paying. */}
+                      Draft {deckSizeFor(boardSize)} cards you do not own — warbands first, then{" "}
+                      {SINGLE_PICKS} one at a time — then play them until {DRAFT_LOSSES} losses.{" "}
+                      Entry {DRAFT_ENTRY} shards; you have {shards}.
+                    </p>
+                  </div>
+                )}
 
-                Below the VS card rather than inside it, because the versus card
-                is a DUEL: two seats facing each other is what it draws, and a
-                free-for-all is not that shape. These read as the rest of the
-                table, which is what they are.
+                {/* THE DRAFT'S RUN PANEL. A finished run stays on screen with its
+                    payout until the button at the bottom starts the next one or
+                    closes it — the run is a dead end otherwise, with no deck in
+                    your chair and nothing to press. */}
+                {arenaView === "draft" && draftRun && draftComplete(draftRun) && (
+                  <div className="ar-gauntlet">
+                    <div className="gt-head">
+                      <span className="ar-flabel">
+                        DRAFT · {draftWins(draftRun)} WIN{draftWins(draftRun) === 1 ? "" : "S"}
+                      </span>
+                      <span className="gt-sub">
+                        {draftRunOver(draftRun)
+                          ? `Run over — +${draftReward(draftRun)} shards banked.`
+                          : `${DRAFT_LOSSES - draftLosses(draftRun)} ${
+                              DRAFT_LOSSES - draftLosses(draftRun) === 1 ? "life" : "lives"
+                            } left${
+                              // Only name the deck when the RUN put it there — the
+                              // same rule the gauntlet panel follows, so a draft
+                              // parked behind an event cannot announce an opponent
+                              // it never dealt.
+                              draftSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
+                      </span>
+                    </div>
+                    {/* One pip per life, spent left to right. Lives rather than
+                        wins: the wins are in the label above, and what makes the
+                        next match tense is what is left. */}
+                    <div className="gt-pips">
+                      {Array.from({ length: DRAFT_LOSSES }, (_, i) => (
+                        <i key={i} className={i < draftLosses(draftRun) ? "lost" : "won"} />
+                      ))}
+                    </div>
+                    {!draftRunOver(draftRun) && (
+                      <button className="ghost sm gt-quit" onClick={clearDraft}>
+                        Give up the run
+                      </button>
+                    )}
+                  </div>
+                )}
 
-                Hidden online — the host does not choose other people's decks —
-                and hidden in hot-seat, which cannot deal more than two anyway. */}
-            {boardSize === DOMINATION_7X7.boardSize && seatCount > 2
-              && !onlineMode && !twoPlayer && (
-              <div className="ar-table">
-                <span className="ar-flabel">
-                  {seatCount === 3 ? "THIRD SEAT" : "THE OTHER SEATS"}
-                </span>
-                <div className="ar-table-seats">
-                  {(["p3", "p4"] as const).slice(0, seatCount - 2).map((seat, i) => {
-                    const id = seat === "p3" ? p3DeckId : p4DeckId;
-                    return (
-                      <DeckSeat
-                        key={seat}
-                        side="foe"
-                        flag={`AI · P${i + 3}`}
-                        label={deckLabel(id)}
-                        cards={resolveDeckCards(id)}
-                        onChange={() => setPickSeat(seat)}
+                {/* THE VERSUS CARD. Two decks, viewer-relative — yours blue and the
+                    opponent's red, the same pairing the board uses, so the seats
+                    read the same way in the lobby as they do in the match.
+
+                    NOT BEFORE A DRAFT EXISTS: the run deals both chairs, so until a
+                    squad is drafted the card could only show two decks the run will
+                    not use — yours, and whatever the last fight left in the other. */}
+                {!(arenaView === "draft" && !draftSeat) && (
+                <div className="ar-vs">
+                  <DeckSeat
+                    side="mine"
+                    flag={onlineMode
+                      ? (onlineRole === "host" ? "YOU · HOST · P1" : "YOU · GUEST · P2")
+                      : draftOwnsMySeat ? "YOU · P1 · DRAFT" : "YOU · P1"}
+                    label={deckLabel(mySeatDeckId)}
+                    cards={resolveDeckCards(mySeatDeckId)}
+                    /* A DRAFT OWNS BOTH SEATS. The opponent's has been locked since
+                       the mode was written; this one was left changeable, so the
+                       lobby offered a deck sheet over a squad you are not allowed
+                       to swap — and picking from it did nothing, because the effect
+                       that seats the drafted deck put it straight back. A control
+                       that fights an effect is worse than no control. `DeckSeat`
+                       already draws an absent `onChange` as a locked panel; it was
+                       only ever the Gauntlet that used it. */
+                    onChange={draftOwnsMySeat
+                      ? undefined
+                      : () => setPickSeat(onlineMode && onlineRole === "guest" ? "p2" : "p1")}
+                  />
+
+                  <div className="ar-vsline"><span /><em>VS</em><span /></div>
+
+                  {onlineMode && !online ? (
+                    /* The room code belongs INSIDE the empty seat: the code is the
+                       thing that fills it. The button that uses it is the one at
+                       the bottom of the screen, where every screen's next step is. */
+                    <div className="ar-seat empty">
+                      <span className="ar-flag dim">
+                        {onlineRole === "host" ? "GUEST · P2 · EMPTY SEAT" : "HOST · P1 · JOIN A ROOM"}
+                      </span>
+                      <input
+                        className="ar-code"
+                        placeholder={onlineRole === "host" ? "AUTO" : "CODE"}
+                        value={roomCode}
+                        onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
+                        maxLength={12}
                       />
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+                      <span className="ar-codehint">
+                        {onlineRole === "host"
+                          ? "Leave it on AUTO, or type your own — then share it"
+                          : "Enter your buddy's room code"}
+                      </span>
+                    </div>
+                  ) : onlineMode ? (
+                    /* THE PREGAME LOBBY. Everyone in the room, what they are
+                       bringing, and whether they have agreed to start. The host
+                       builds this list and relays it, because it is the only side
+                       that learns every arrival. */
+                    <div className="ar-seat empty live lobby">
+                      <span className="ar-flag dim">
+                        ROOM · {(lobby?.seats.length ?? 1)} of {lobby?.need ?? 2}
+                      </span>
+                      <span className="ar-code live">{roomCode || "—"}</span>
+                      <div className="lob-list">
+                        {Array.from({ length: lobby?.need ?? 2 }, (_, i) => {
+                          const seat = (["P1", "P2", "P3", "P4"] as const)[i];
+                          const row = lobby?.seats.find((x) => x.seat === seat);
+                          const isMe = seat === (online?.myId ?? (onlineRole === "host" ? "P1" : null));
+                          return (
+                            <div key={seat} className={`lob-row${row ? "" : " open"}${isMe ? " me" : ""}`}>
+                              <span className={`lob-seat seat-${seat.toLowerCase()}`}>
+                                {SEAT_SUIT[seat].glyph} {seat}
+                              </span>
+                              <span className="lob-name">
+                                {row ? row.name : "waiting for a player…"}
+                                {row?.host && <i className="lob-tag">host</i>}
+                                {isMe && <i className="lob-tag you">you</i>}
+                              </span>
+                              {row
+                                ? <span className={`lob-ready${row.ready ? " on" : ""}`}>
+                                    {row.ready ? "READY" : "picking"}
+                                  </span>
+                                : <span className="lob-ready open">—</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <span className="ar-codehint">
+                        {netStatus || "Waiting for players to join…"}
+                      </span>
+                      <div className="lob-actions">
+                        <button
+                          className={iAmReady ? "ghost sm" : "lockin sm"}
+                          onClick={() => { const next = !iAmReady; setIAmReady(next); announceMe(next); }}
+                        >
+                          {iAmReady ? "Not ready" : "I'm ready"}
+                        </button>
+                        {onlineRole === "host" && (
+                          <button
+                            className="lockin sm"
+                            disabled={!lobby
+                              || lobby.seats.length < lobby.need
+                              || !lobby.seats.every((x) => x.ready)}
+                            title={!lobby || lobby.seats.length < lobby.need
+                              ? "Every seat has to be filled first"
+                              : !lobby.seats.every((x) => x.ready)
+                                ? "Everyone has to be ready"
+                                : undefined}
+                            onClick={hostStartMatch}
+                          >
+                            Start match
+                          </button>
+                        )}
+                        <button className="ghost sm" onClick={leaveOnline}>Leave</button>
+                      </div>
+                    </div>
+                  ) : arenaView === "gauntlet" && !gauntletSeat ? (
+                    /* NOBODY IS IN THIS CHAIR YET. A gauntlet deals its four seats
+                       when it is lined up, so before that the card showed whatever
+                       deck the last fight left here — an opponent the run was never
+                       going to put in front of you. */
+                    <div className="ar-seat empty pending">
+                      <span className="ar-flag dim">GAUNTLET · FOUR SEATS</span>
+                      <span className="ar-codehint">
+                        Four {TIER_LABEL[runTier]} opponents are dealt when you line up the run.
+                      </span>
+                    </div>
+                  ) : (
+                    <DeckSeat
+                      side="foe"
+                      /* The seat says which fight this is. Without the event case
+                         the flag read a flat "AI · P2" over a deck called "Darkest
+                         night" — nothing on the screen said a pack was riding on
+                         it. The seat stays CHANGEABLE (unlike a run's): picking
+                         another deck is how you back out, and `eventRun` derives
+                         from this seat, so doing so ends the event cleanly.
 
-            <div className="ar-foot">
-              {!onlineMode ? (
-                <button
-                  className={`lockin ar-start${arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) && !eventRun ? " gauntlet" : ""}`}
-                  disabled={!startGate.ok}
-                  onClick={startArenaMatch}
-                >
-                  {/* The deception this fixes: one button, two very different
-                      commitments. With a run armed this begins a GAUNTLET SEAT
-                      — a loss ends four matches' progress — and it read exactly
-                      the same as a throwaway single fight. The label now names
-                      which one you are agreeing to, and where you are in it. */}
-                  {!startGate.ok
-                    ? startGate.why
-                    : arenaGame === "gauntlet" && gauntletRun && !runOver(gauntletRun) && !eventRun
-                      ? `Start Gauntlet · Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}`
-                      : arenaGame === "streak" && !twoPlayer && !onlineMode
-                        ? `Start Streak Match · ${TIER_LABEL[tierForStreak(story.ladder?.streak ?? 0, boardSize)]}`
-                        : "Start Match"}
-                </button>
-              ) : (
-                <button className="lockin ar-start" disabled>
-                  {online ? "Waiting for your buddy…" : "Fill the seat to start"}
-                </button>
-              )}
-              {startGate.warn && (
-                /* Casual lets a half-built squad fight — that is what a sandbox
-                   is for — but the engine never enforced deck size at all, so
-                   "why did I run out of cards" had no answer anywhere on the
-                   screen. */
-                <div className="ar-warn">{startGate.warn} · fine here, not in Streak or Gauntlet.</div>
-              )}
-              {/* Two ghosts, not four — Story and Shop live in the nav. */}
-              <div className="ar-ghosts">
-                <button className="ghost" onClick={() => setBuilderOpen(true)}>Build a squad</button>
-                <button className="ghost" onClick={() => setRulesOpen(true)}>How to play</button>
-              </div>
-              {onlineMode && !onlineConfigured && (
-                <div className="net-status warn">
-                  Online needs VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY — see README.
+                         A VOID TRIAL'S SEAT IS THE BOSS. The deck in the chair is
+                         only its summons, so left alone the seat wore the brood's
+                         finisher ("Rotroot's brood", Zombination's face) — the one
+                         card that is NOT in the deck is the whole fight. Name, face
+                         and flag all come from the boss; the chips below still show
+                         what it brings. */
+                      flag={eventRun?.bossId ? "VOID TOWER · BOSS" : eventRun ? "EVENT · ONE TIME ONLY" : gauntletSeat ? `GAUNTLET · SEAT ${(gauntletRun?.won ?? 0) + 1}` : twoPlayer ? "P2 · SECOND PLAYER" : "AI · P2"}
+                      label={eventRun?.bossId ? getDef(eventRun.bossId).name : deckLabel(p2DeckId)}
+                      artOverride={eventRun?.bossId ? cardArtSrc(getDef(eventRun.bossId)) : undefined}
+                      /* The DUEL, not the brood. A boss fight is pitched as two
+                         elements — the tribe's and the mechanic's — and that pair
+                         is what the puzzle is built on; counting the summons in the
+                         chair instead described the wrong half of the fight. */
+                      elements={eventRun?.bossId ? voidBossElements(eventRun.bossId) : undefined}
+                      cards={resolveDeckCards(p2DeckId)}
+                      /* DEALT, NOT CHOSEN — in either challenge mode. A run's seat
+                         was already locked (opening the sheet is the re-roll the run
+                         exists to prevent), but STREAK's was not: you could hand
+                         yourself the softest deck on the rung and climb on it. The
+                         point of both modes is that the opponent is picked FOR you,
+                         and Quick match is where picking your own fight lives. */
+                      onChange={
+                        gauntletSeat || arenaGame !== "casual" ? undefined : () => setPickSeat("p2")
+                      }
+                    />
+                  )}
                 </div>
-              )}
-            </div>
+                )}
+
+                {/* THE OTHER SEATS AT THE TABLE. Domination is the only mode that
+                    deals more than two, and these are the rest of the table: below
+                    the versus card rather than inside it, because the versus card
+                    is a DUEL and a free-for-all is not that shape. */}
+                {arenaView === "domination" && seatCount > 2 && (
+                  <div className="ar-table">
+                    <span className="ar-flabel">
+                      {seatCount === 3 ? "THIRD SEAT" : "THE OTHER SEATS"}
+                    </span>
+                    <div className="ar-table-seats">
+                      {(["p3", "p4"] as const).slice(0, seatCount - 2).map((seat, i) => {
+                        const id = seat === "p3" ? p3DeckId : p4DeckId;
+                        return (
+                          <DeckSeat
+                            key={seat}
+                            side="foe"
+                            flag={`AI · P${i + 3}`}
+                            label={deckLabel(id)}
+                            cards={resolveDeckCards(id)}
+                            onChange={() => setPickSeat(seat)}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* THE THIRD LEVEL — the choices a match rarely needs, behind one
+                    summary line: the battlefield, and how much the AI knows. AI
+                    screens only; a friend's screen asks its one question outright. */}
+                {!onlineMode && !twoPlayer && (
+                  <ArenaSettings
+                    summary={arenaSettingsSummary}
+                    open={arenaSettingsOpen}
+                    onToggle={() => setArenaSettingsOpen((o) => !o)}
+                    board={arenaView === "domination" ? null : {
+                      boards: VIEW_SETUP[arenaView as ModeView].boards,
+                      value: boardSize,
+                      // LOCKED while a run is live. A run is dealt for a board — it
+                      // stores which one and pays that board's rate — so switching
+                      // underneath it would leave four 4x4 opponents waiting on a
+                      // 5x5 field, and your squad the wrong size for both.
+                      locked: boardLocked
+                        ? "This run was dealt for this battlefield — it is yours to change again when the run ends."
+                        : eventRun ? "This encounter is fought on this battlefield." : undefined,
+                      onPick: pickArenaBoard,
+                    }}
+                    // HOW MUCH THE AI KNOWS. Only against an AI, and only picked in
+                    // a Quick match or Domination — a scored mode is played at the
+                    // level you have earned, so there it is shown and not offered.
+                    skill={pinApplies ? {
+                      // AUTO FIRST, and it is the default. The dial moves itself
+                      // off your results, so the AI tracks you from learning to
+                      // steady to sharp without anyone opening this. The three
+                      // levels beside it PIN it — the escape hatch for a player
+                      // showing someone the game, or one who wants the hardest AI
+                      // every time.
+                      options: [
+                        { id: "auto", label: "Auto" },
+                        ...AI_SKILLS.map((k) => ({ id: k, label: SKILL_PROFILES[k].name })),
+                      ],
+                      value: skillAuto ? "auto" : aiSkill,
+                      // The blurb is the point, not decoration: a handicap whose
+                      // shape the player cannot see is one they cannot decide to
+                      // give up. On Auto it names the level it has put you on.
+                      note: (
+                        <>
+                          {skillAuto && <b>{SKILL_PROFILES[aiSkill].name} — adjusting as you play. </b>}
+                          {SKILL_PROFILES[aiSkill].blurb}
+                        </>
+                      ),
+                      onPick: (id) => {
+                        if (id === "auto") {
+                          setSkillAuto(true); clearAiSkill(); setAiSkill(loadAiSkill((story.cleared ?? []).length > 0));
+                        } else {
+                          const k = id as AiSkill;
+                          setSkillAuto(false); setAiSkill(k); saveAiSkill(k);
+                        }
+                      },
+                    } : null}
+                    // ...AND IT STILL SAYS WHICH AI YOU ARE ABOUT TO FIGHT when the
+                    // picking is refused. A scored mode takes the level away as a
+                    // CHOICE, not as information.
+                    skillNote={pinApplies ? undefined : (
+                      <>
+                        <b>{SKILL_PROFILES[matchSkill].name}.</b>{" "}
+                        {eventRun
+                          ? "A designed encounter sets its own difficulty."
+                          : "Scored modes are played at the level you have earned, not one you pick."}
+                      </>
+                    )}
+                  />
+                )}
+
+                {/* THE NEXT STEP, always here and always the whole of it — see
+                    `arenaPrimary`. Null on an online lobby, whose actions live on
+                    the lobby itself. */}
+                {arenaPrimary && (
+                  <div className="ar-foot">
+                    <button
+                      className={`lockin ar-start${arenaPrimary.gold ? " gauntlet" : ""}`}
+                      disabled={!!arenaPrimary.disabled}
+                      onClick={arenaPrimary.onClick}
+                    >
+                      {arenaPrimary.label}
+                    </button>
+                    {arenaPrimary.start && startGate.warn && (
+                      /* Quick match lets a half-built squad fight — that is what a
+                         sandbox is for — but the engine never enforces deck size,
+                         so "why did I run out of cards" had no answer anywhere on
+                         the screen. */
+                      <div className="ar-warn">{startGate.warn} · fine here, not in Streak or Gauntlet.</div>
+                    )}
+                    {onlineMode && !onlineConfigured && (
+                      <div className="net-status warn">
+                        Online needs VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY — see README.
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         </div>
       )}
@@ -5648,10 +5718,11 @@ export function App() {
             if (rid && rid !== nav.regionId) navDo({ t: "pickRegion", regionId: rid });
             navDo({ t: "open" });
           }}
-          // The Gauntlet panel and the seat lock are both gated on vs-AI, and
-          // the settle effect is NOT — so arriving here in hot-seat showed no
-          // run at all and then let a 2-player match end it.
-          onArena={() => { setArenaMode("ai"); setTab("arena"); }}
+          // Home's run card — "Fight", shown only while a gauntlet is live —
+          // opens the GAUNTLET screen, not just the Arena. It used to set
+          // vs-AI and nothing else, so arriving from Casual or Streak left the
+          // run parked and its panel hidden behind a different mode.
+          onArena={() => { enterArenaView("gauntlet"); setTab("arena"); }}
           // Seats the event and drops you in the Arena on its board, ready to
           // start. Not auto-started: the event is fought with YOUR deck and the
           // Arena is where you pick it, so walking in without that step would be
@@ -5803,6 +5874,8 @@ export function App() {
               return next;
             });
             setArenaGame("casual");
+            // ...and on the Arena's list, not a Draft screen with no draft on it.
+            markArenaView("hub");
           }}
         />
       )}
@@ -5885,7 +5958,10 @@ export function App() {
         <BottomNav
           tab={storyOpen ? "story" : tab}
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}
-          onTab={goTab}
+          // Tapping Arena while already in it returns to the list. Here and
+          // not in `goTab`, which the back button also calls to restore a tab —
+          // that must land on the screen it left, not reset it.
+          onTab={(t) => { if (t === "arena" && shownTab === "arena") markArenaView("hub"); goTab(t); }}
         />
       )}
 
