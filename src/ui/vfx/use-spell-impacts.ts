@@ -1,28 +1,26 @@
-/** Which cards a spell just hit, found by comparing two game states.
+/** Every spell's effect on the board, found by comparing two game states —
+ *  what each one looks like is decided in spell-fx.ts; this finds WHEN.
  *
- *  The engine's log is prose, so there is no "spell X hit card Y" event to
- *  listen for. The signal is a DIFF instead: a state update in which a spell
- *  became used, and in which cards lost HP or shields (or left the board).
- *  That is exact, not a heuristic, because the engine applies one intent per
- *  step — `phases.ts` runs the AI's prep one `aiPrepIntent` at a time, and a
- *  human cast is one dispatch — so a transition that spends a spell carries
- *  that spell's damage and nothing else. It also means the same code serves
- *  the player, the AI and an online opponent, with nothing threaded through
- *  the engine.
+ *  The engine's log is prose, so there is no "spell X did Y" event to listen
+ *  for. The signal is a DIFF instead: a state update in which a spell became
+ *  used, read for everything it changed (spell-fx.ts), plus any trap that went
+ *  off under a card. That is exact, not a heuristic, because the engine
+ *  applies one intent per step — `phases.ts` runs the AI's prep one
+ *  `aiPrepIntent` at a time, and a human cast is one dispatch — so a
+ *  transition that spends a spell carries that spell's effects and nothing
+ *  else. It also means the same code serves the player, the AI and an online
+ *  opponent, with nothing threaded through the engine.
  *
  *  HELD WHILE A FLASH IS UP. A human cast flashes the spell's art for two
  *  seconds and THEN resolves, so its hit lands on a clear screen. The AI's
  *  cast is the other way round: the state arrives first and the flash is shown
  *  after, on top of it — an impact fired then would play, in full, underneath
- *  the art. So hits queue while `hold` is true and fire the moment it clears.
+ *  the art. So effects queue while `hold` is true and fire the moment it clears.
  */
 import { useEffect, useRef } from "react";
-import type { Element, GameState } from "../../engine";
-import { getSpell } from "../../engine/spells";
-import type { ImpactLayer } from "./impact-layer";
-import { spellCast } from "../attack-zone";
-
-export interface Hit { row: number; col: number; element: Element; strength: number }
+import type { GameState, PlayerId } from "../../engine";
+import type { ImpactLayer, Rect } from "./impact-layer";
+import { spellEffects, trapsSprung, type At, type SpellFx } from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -38,39 +36,69 @@ function effectsOn(): boolean {
   return !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
 }
 
-/** The squares a spell hit between two states — none unless a spell was
- *  spent in that transition. Pure, and exported for spell-impacts.test.ts. */
-export function spellHits(before: GameState, after: GameState): Hit[] {
-  const cast = spellCast(before, after);
-  return cast ? hitsOf(before, after, getSpell(cast.spellId).element) : [];
+// ── From board squares to screen rectangles ────────────────────────────────
+// `data-pos` is the LOGICAL square, so every lookup is right for a P2 viewer
+// whose board is drawn flipped.
+const toRect = (r: DOMRect): Rect => ({ x: r.left, y: r.top, w: r.width, h: r.height });
+
+function squareRect(at: At): Rect | null {
+  const el = document.querySelector<HTMLElement>(`[data-pos="${at.row},${at.col}"]`);
+  return el ? toRect(el.getBoundingClientRect()) : null;
 }
 
-function hitsOf(before: GameState, after: GameState, element: Element): Hit[] {
-  const hits: Hit[] = [];
-  for (const [id, was] of Object.entries(before.cards)) {
-    if (!was.pos) continue;
-    const now = after.cards[id];
-    const lost = was.curHp + was.curShields - (now ? now.curHp + now.curShields : 0);
-    if (lost <= 0) continue;
-    // Scaled from the damage, clamped: a chip and a nuke should look
-    // different, but a 30-point hit must not fill the screen.
-    hits.push({ row: was.pos.row, col: was.pos.col, element, strength: Math.max(0.7, Math.min(2.2, lost / 5)) });
-  }
-  return hits;
+function rowRect(row: number): Rect | null {
+  const cells = [...document.querySelectorAll<HTMLElement>(`[data-pos^="${row},"]`)].map((e) => e.getBoundingClientRect());
+  if (cells.length === 0) return null;
+  const x = Math.min(...cells.map((c) => c.left)), y = Math.min(...cells.map((c) => c.top));
+  const right = Math.max(...cells.map((c) => c.right)), bottom = Math.max(...cells.map((c) => c.bottom));
+  return { x, y, w: right - x, h: bottom - y };
 }
 
-function fire(hits: Hit[]) {
-  if (hits.length === 0) return;
+function boardRect(): Rect | null {
+  const el = document.querySelector<HTMLElement>(".board");
+  return el ? toRect(el.getBoundingClientRect()) : null;
+}
+
+function fire(fx: SpellFx[]) {
+  if (fx.length === 0) return;
   void loadLayer().then((l) => {
     let hardest = 0;
-    for (const h of hits) {
-      // `data-pos` is the LOGICAL square, so the lookup is right for a P2
-      // viewer whose board is drawn flipped.
-      const el = document.querySelector<HTMLElement>(`[data-pos="${h.row},${h.col}"]`);
-      if (!el) continue;
-      const r = el.getBoundingClientRect();
-      l.impact(r.left + r.width / 2, r.top + r.height / 2, h.element, h.strength);
-      hardest = Math.max(hardest, h.strength);
+    for (const f of fx) {
+      switch (f.kind) {
+        case "impact":
+        case "trapSprung": {
+          const r = squareRect(f.at);
+          if (!r) break;
+          const k = f.kind === "impact" ? f.strength : 1.2;
+          l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k);
+          hardest = Math.max(hardest, k);
+          break;
+        }
+        case "move": {
+          const from = squareRect(f.from), to = squareRect(f.to);
+          if (from && to) l.play({ kind: "move", from, to, element: f.element });
+          break;
+        }
+        case "wall": {
+          const r = rowRect(f.row);
+          if (r) l.play({ kind: "wall", rect: r, element: f.element });
+          break;
+        }
+        case "pulse": {
+          const r = rowRect(f.row);
+          if (r) l.play({ kind: "pulse", rect: r, element: f.element });
+          break;
+        }
+        case "field": {
+          const r = boardRect();
+          if (r) l.play({ kind: "field", rect: r, element: f.element });
+          break;
+        }
+        default: {
+          const r = squareRect(f.at);
+          if (r) l.play({ ...f, rect: r } as Parameters<ImpactLayer["play"]>[0]);
+        }
+      }
     }
     // A short shake on the board itself, once however many squares were hit,
     // and only for a real blow. Web Animations, so it is a compositor-only
@@ -92,9 +120,11 @@ function fire(hits: Hit[]) {
   });
 }
 
-export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: boolean) {
+/** `viewer` is whose screen this is: an opponent's trap placement must never
+ *  be drawn (spell-fx.ts). */
+export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: boolean, viewer: PlayerId) {
   const prev = useRef<GameState | null>(null);
-  const queued = useRef<Hit[]>([]);
+  const queued = useRef<SpellFx[]>([]);
 
   useEffect(() => {
     if (inMatch && effectsOn()) void loadLayer();
@@ -107,16 +137,16 @@ export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: 
     // survives into the lobby (see the opponent-flash effect in App.tsx), and
     // a diff taken against it there is against the last match.
     if (!game || !before || !inMatch || game.phase === "mulligan" || !effectsOn()) return;
-    const hits = spellHits(before, game);
-    if (hits.length === 0) return;
-    if (hold) queued.current.push(...hits);
-    else fire(hits);
-  }, [game, inMatch, hold]);
+    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game)];
+    if (fx.length === 0) return;
+    if (hold) queued.current.push(...fx);
+    else fire(fx);
+  }, [game, inMatch, hold, viewer]);
 
   useEffect(() => {
     if (hold || queued.current.length === 0) return;
-    const hits = queued.current;
+    const fx = queued.current;
     queued.current = [];
-    fire(hits);
+    fire(fx);
   }, [hold]);
 }

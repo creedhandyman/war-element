@@ -480,9 +480,6 @@ export function App() {
   const [aimedSpellRow, setAimedSpellRow] = useState<number | null>(null);
   // Pre-game deck selection — the match doesn't run until Start.
   const [started, setStarted] = useState(false);
-  // Spell impacts on the WebGL effects layer, held while any flash covers the
-  // board (see use-spell-impacts.ts for why the AI's cast needs the hold).
-  useSpellImpacts(game, started, castFlash !== null);
   /** WHO IS PLAYING — one value, not two booleans.
    *
    *  This was `twoPlayer` and `onlineMode`, which is a three-way choice encoded
@@ -1501,6 +1498,10 @@ export function App() {
   }, [me]);
   // Online: the board is always shown from MY side; local: follow the active human.
   const view: PlayerId = online ? online.myId : (me ?? viewSide);
+  // Spell effects on the WebGL effects layer, held while any flash covers the
+  // board (see use-spell-impacts.ts). `view` decides whether a trap being
+  // hidden may be drawn at all — only when it is this screen's own.
+  useSpellImpacts(game, started, castFlash !== null, view);
   /** The board reads foils per SEAT. Online both seats are known because the
    *  host relays them; offline only the viewer can have any, so the other side
    *  is empty rather than absent — a missing set and an empty one render the
