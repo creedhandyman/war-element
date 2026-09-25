@@ -2,7 +2,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { applyStatus, basicAttack, effectiveBasicHits } from "../combat";
+import { applyStatus, basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import {
   aoeRowsHit, areaBlastCells, blastArea, canBasicAttack, canFireSpecial, farRowCells,
   hasFarRow, isActionBlocked, previewOnSummonArea, previewSpecialArea, previewSpecialFarRow,
@@ -1620,18 +1620,26 @@ describe("an area Special shows its footprint before it fires", () => {
     expect(set(level)).toEqual(set([at(2, 1), at(2, 2), at(3, 1), at(3, 2)]));
   });
 
-  it("blastArea clips at the board edge instead of inventing squares", () => {
-    // Growing AWAY from the caster means a corner anchor with the caster in
-    // the far corner grows OFF the board — so the whole-footprint case needs
-    // room behind the anchor. On a 7x7, anchored mid-board with the caster
-    // beyond it, all sixteen squares fit.
+  it("blastArea slides back onto the board instead of clipping to a sliver", () => {
+    // With room behind the anchor, the square is exactly the grown one.
     const cells = blastArea(7, at(6, 6), at(3, 3), 4);
-    expect(cells).toHaveLength(16);
-    // Anchored one in from the edge with the caster on the far side, it spills
-    // off the top and left and only the on-board part is returned.
-    const clipped = blastArea(4, at(3, 3), at(1, 1), 4);
-    expect(clipped.every((p) => p.row >= 0 && p.col >= 0 && p.row < 4 && p.col < 4)).toBe(true);
-    expect(clipped.length).toBeLessThan(16);
+    expect(set(cells)).toEqual(set(
+      [0, 1, 2, 3].flatMap((r) => [0, 1, 2, 3].map((c) => at(r, c)))));
+    // Near an edge on a 7x7 it would spill off the top — it slides down to
+    // rows 0..3 instead, still a full sixteen, still covering the pick.
+    const slid = blastArea(7, at(6, 3), at(1, 3), 4);
+    expect(slid).toHaveLength(16);
+    expect(set(slid)).toEqual(set(
+      [0, 1, 2, 3].flatMap((r) => [0, 1, 2, 3].map((c) => at(r, 3 + c)))));
+    // On a board no bigger than the burst, it is the whole board.
+    expect(blastArea(4, at(3, 3), at(1, 1), 4)).toHaveLength(16);
+    // Every cell stays on the board, and the pick is always inside.
+    for (const [cr, cc, ar, ac] of [[6, 0, 0, 6], [0, 6, 6, 0], [3, 3, 6, 6], [6, 6, 0, 0]]) {
+      const sq = blastArea(7, at(cr, cc), at(ar, ac), 4);
+      expect(sq).toHaveLength(16);
+      expect(sq.every((p) => p.row >= 0 && p.col >= 0 && p.row < 7 && p.col < 7)).toBe(true);
+      expect(set(sq).has(key(at(ar, ac)))).toBe(true);
+    }
   });
 
   it("areaBlastCells keeps Mega Icicle's fixed quadrant OFF Domination, and aims it ON", () => {
@@ -1668,11 +1676,26 @@ describe("an area Special shows its footprint before it fires", () => {
     place(s, "dusk_vamp", "P2", 1, 1);
     const cells = previewSpecialArea(s, mortar.instanceId, at(1, 1))!;
     expect(cells).not.toBeNull();
-    // Anchored at (1,1), growing up (toward row 0) and right, clipped by the
-    // top edge: rows 1 and 0, columns 1..3 — six of the sixteen.
-    expect(set(cells)).toEqual(set([at(1, 1), at(1, 2), at(1, 3), at(0, 1), at(0, 2), at(0, 3)]));
+    // Anchored at (1,1) on a 4x4 board: it used to clip to six squares (rows
+    // 0-1, columns 1-3) under a card that says 4x4. It now slides back onto the
+    // board, and a 4x4 on a 4x4 board is all sixteen.
+    expect(cells).toHaveLength(16);
     // ...and it is the engine's own shape, not a second copy of the maths.
     expect(set(cells)).toEqual(set(blastArea(4, mortar.pos!, at(1, 1), 4)));
+  });
+
+  it("the shell hits what the slid square lights, not the old clipped sliver", () => {
+    const s = prepState();
+    const mortar = place(s, "pyro_mortar", "P1", 3, 0);
+    const picked = place(s, "leaf_stickviper", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    // Column 0 and row 2 sat outside the old clip (it grew right and up from
+    // (1,1)); both are inside the full square now.
+    const left = place(s, "leaf_stickviper", "P2", 0, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    const low = place(s, "leaf_stickviper", "P2", 2, 3, { curHp: 99, maxHp: 99, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[mortar.instanceId], [s.cards[picked.instanceId]],
+      getDef("pyro_mortar").special!.params as Record<string, number>);
+    for (const c of [picked, left, low])
+      expect(s.cards[c.instanceId].curHp, `${c.pos!.row},${c.pos!.col} was hit`).toBeLessThan(99);
   });
 
   it("previewSpecialArea is null for a Special with no area", () => {

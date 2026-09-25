@@ -1168,8 +1168,18 @@ export function forwardAreaTargets(
  *  a second copy of the maths is a preview that lies the day either copy moves,
  *  and a lying preview is worse than none — it is the thing they aimed with.
  *
+ *  A square that would run off the board SLIDES BACK onto it instead of being
+ *  clipped, so the card always covers the full N x N it prints. Clipping made
+ *  "4x4" a lie on the standard 4x4 board: fired from the home row, the burst
+ *  could grow at most a row or two before the edge ate it, and the player saw
+ *  six lit squares under a card promising sixteen. The pick stays inside the
+ *  slid square (it only moves as far as the edge forces it), so the one you aim
+ *  at is always caught. On a board no bigger than N the square is the whole
+ *  board — every opponent — which is the deliberate trade for a 3 SP Special on
+ *  a tube that only fires every other round.
+ *
  *  Returns the CELLS, not the victims: the footprint is what the player needs to
- *  see, including the empty squares that tell them the shell is off the board.
+ *  see, including the empty squares and the ones holding their own cards.
  */
 export function blastArea(
   boardSize: number,
@@ -1183,14 +1193,20 @@ export function blastArea(
   // `|| 1` and keeping the shape defined for every position.
   const rStep = casterPos ? (Math.sign(anchor.row - casterPos.row) || 1) : 1;
   const cStep = casterPos ? (Math.sign(anchor.col - casterPos.col) || 1) : 1;
+  // The span's low edge on one axis, grown away from the caster, then slid back
+  // so all `size` squares fit. A span wider than the board pins to 0 and the
+  // loop's bounds check trims it to the board.
+  const span = Math.min(size, boardSize);
+  const lowEdge = (a: number, step: number) => {
+    const lo = step > 0 ? a : a - size + 1;
+    return Math.max(0, Math.min(lo, boardSize - span));
+  };
+  const r0 = lowEdge(anchor.row, rStep);
+  const c0 = lowEdge(anchor.col, cStep);
   const out: Pos[] = [];
-  for (let dr = 0; dr < size; dr++)
-    for (let dc = 0; dc < size; dc++) {
-      const row = anchor.row + dr * rStep;
-      const col = anchor.col + dc * cStep;
-      if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) continue;
+  for (let row = r0; row < r0 + size && row < boardSize; row++)
+    for (let col = c0; col < c0 + size && col < boardSize; col++)
       out.push({ row, col } as Pos);
-    }
   return out;
 }
 

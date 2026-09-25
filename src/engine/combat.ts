@@ -4320,8 +4320,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     //
     // The square is anchored at the target and grows AWAY from the caster, the
     // same rule `areaBlast` uses: the victim you pick is the near corner and the
-    // shell bursts onward through the squares behind it. Predictable, and it is
-    // the half of the area a shooter can actually see.
+    // shell bursts onward through the squares behind it — and where the board
+    // edge would cut it short, the square slides back so it stays a full N x N.
     // The shape itself lives in `blastArea` (rules.ts) because the BOARD draws
     // it too, under the player's finger, before they commit. Two copies of this
     // arithmetic is a preview that lies the day one of them moves.

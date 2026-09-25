@@ -14177,8 +14177,11 @@ export const CARDS: CardDef[] = [
       // A 4x4 BURST rather than two picked bodies. `blastSize` anchors the
       // square on the target and grows it AWAY from the mortar, so the card you
       // aim at is the near corner and the shell bursts onward through what is
-      // behind it. `targets: 99` because the square decides the count now, not
-      // the cap.
+      // behind it. Where the edge would cut it short the square slides back
+      // onto the board, so it is always the full 4x4 the text promises — on
+      // the standard 4x4 board that is every opponent, a deliberate call
+      // (2026-09-25) over the clipped two-row sliver it used to land.
+      // `targets: 99` because the square decides the count now, not the cap.
       params: { dmg: 6, targets: 99, blastSize: 4, vsFlyingDmg: 4, statusKind: "ROOT", statusDuration: 2 },
       targetSide: "enemy",
       text: "6 DMG and ROOT 2 rounds to every opponent in a 4×4 burst — 10 instead against anything FLYING, which the shell brings down.",
