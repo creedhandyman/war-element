@@ -4631,6 +4631,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       const novaSecond = params.debuffStatus;
       if (typeof novaSecond === "string" && novaSecond && draft.cards[target.instanceId] && target.curHp > 0)
         applyStatus(draft, target, novaSecond as StatusKind, num(params, "debuffStatusRounds", 1), 0, getDef(attacker.defId).element);
+      // ...and a DOT on top of both (Spindle's Unblinking Gaze: MUTED + BLIND +
+      // DOT 8). Two statuses already fill the slots above, so a damage-over-time
+      // rides its own pair, the `dotPower` / `dotDuration` Toxic Contagion reads.
+      if (num(params, "dotPower") > 0 && draft.cards[target.instanceId] && target.curHp > 0)
+        applyStatus(draft, target, "DOT", num(params, "dotDuration", 2), num(params, "dotPower"), getDef(attacker.defId).element);
       applyDebuffRiders(draft, target, params, attacker); // Mighty Winds push + −SP
       // Bluflames (Sarra): mark the target so it can't be healed.
       const sealR = num(params, "sealRounds");

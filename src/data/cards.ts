@@ -12131,10 +12131,12 @@ export const CARDS: CardDef[] = [
       // declares its own.
       handler: "statusNova",
       // The two borrowed elements, in one button: BOLT's lock and DUSK's dark.
+      // Plus DOT 8 for 2 rounds (owner's call): the gaze burns as well as blinds.
       params: { targets: 3, statusKind: "MUTED", statusDuration: 2,
-                debuffStatus: "BLIND", debuffStatusRounds: 2 },
+                debuffStatus: "BLIND", debuffStatusRounds: 2,
+                dotPower: 8, dotDuration: 2 },
       targetSide: "enemy",
-      text: "It looks at three of you: MUTED for 2 rounds, and BLIND for 2. 3-round cooldown.",
+      text: "It looks at three of you: MUTED for 2 rounds, BLIND for 2, and DOT 8 for 2. 3-round cooldown.",
     },
   },
   {
