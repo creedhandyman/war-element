@@ -4420,6 +4420,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // a TARGETING lift that lets a MELEE swing pick a flier at all, and is a
     // no-op on a Ranged caster.
     const vsFly = num(params, "vsFlyingDmg");
+    // Hastened Assault on the Special (WolfBane's Whirlwind Slasher,
+    // `critIfFaster`): the same rule its basic has. Each hit can CRIT a target
+    // this card is faster than, and every crit heals `healPerCrit`.
+    const hastened = num(params, "critIfFaster") > 0;
+    const perCrit = getDef(attacker.defId).healPerCrit ?? 0;
     let struck = 0;
     for (const target of ordered.slice(0, n)) {
       if (!draft.cards[target.instanceId]) continue;
@@ -4428,7 +4433,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         dmg: dmg + (vsFly > 0 && isFlying(target) ? vsFly : 0),
         hits: num(params, "hits", 1),
         pen: num(params, "pen") > 0,
-        crit: num(params, "crit") > 0,
+        crit: num(params, "crit") > 0 || (hastened && effectiveSp(draft, attacker) > effectiveSp(draft, target)),
         // Hunting Season: the volley is aimed, not sprayed — EVASION doesn't save you.
         alwaysHit: num(params, "alwaysHit") > 0,
         critAlways: num(params, "critAlways") > 0,
@@ -4439,6 +4444,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         incinerate: getDef(attacker.defId).incinerate,
         incinerateBase: attacker.struckThisRound[target.instanceId] ?? 0,
       });
+      if (hastened && perCrit > 0 && hit.critHits && attacker.curHp > 0) {
+        const h = healCard(draft, attacker, perCrit * hit.critHits, attacker);
+        if (h > 0) draft.log.push(`${label(draft, attacker)} feeds on the frenzy (+${h} HP).`);
+      }
       // pctMaxHpDmg (Dyna's Demolition Charge): a bomb sized to the target —
       // extra damage equal to a % of its MAX HP.
       //

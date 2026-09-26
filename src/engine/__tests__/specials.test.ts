@@ -459,8 +459,10 @@ describe("ranged specials on melee cards", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const wolf = place(s, "gale_wolfbane", "P1", 2, 0); // Melee, ranged AOE special
-    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13 }); // melee-reachable
-    const far = place(s, "dusk_vamp", "P2", 1, 3, { curHp: 6 }); // 3 cols away — melee can't reach
+    // Both FASTER than WolfBane (spBonus), so Hastened Assault, which rides this
+    // Special now, cannot crit them and the reach is all this measures.
+    const near = place(s, "dusk_gool", "P2", 1, 0, { curHp: 13, spBonus: 10 }); // melee-reachable
+    const far = place(s, "dusk_vamp", "P2", 1, 3, { curHp: 6, spBonus: 10 }); // 3 cols away — melee can't reach
     const next = applyIntent(battleWith(s, wolf.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",

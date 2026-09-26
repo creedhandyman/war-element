@@ -2192,10 +2192,12 @@ export const CARDS: CardDef[] = [
       // Prep in most cases and only ever reordered a queue. WEAKEN 2 cuts what
       // they hit for, stacks with the rest of the element's, and the 1-space
       // shove buys the board position GALE actually wants.
-      params: { dmg: 5, targets: 99, push: 1, statusKind: "WEAKEN", statusDuration: 2 },
+      // critIfFaster (owner's call): Hastened Assault rides the Special too, so
+      // each hit can CRIT an opponent WolfBane is faster than and heals 3 per crit.
+      params: { dmg: 5, targets: 99, push: 1, statusKind: "WEAKEN", statusDuration: 2, critIfFaster: 1 },
       targetSide: "enemy",
       ranged: true, // "5 DMG to all opponents" — reaches the whole board
-      text: "Deal 5 DMG to every opponent, WEAKEN them for 2 rounds, and push each back 1 space.",
+      text: "Deal 5 DMG to every opponent, WEAKEN them for 2 rounds, and push each back 1 space. Hastened Assault applies: each hit can CRIT an opponent it is faster than, healing 3 per crit.",
     },
   },
   {
@@ -5233,9 +5235,12 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Right Through Me: hit it and the wind goes straight through you —
-    // anyAttacker, so shooters get WEAKENed at range too.
-    passiveNames: { onHitByMelee: "Right Through Me" },
+    // anyAttacker, so shooters get WEAKENed at range too. Plus a 30% chance to
+    // deflect the hit (owner's call): take half, send half back, the same
+    // mechanic as Eagon's Vision Guard.
+    passiveNames: { onHitByMelee: "Right Through Me", onHitDeflect: "Right Through Me" },
     onHitByMelee: { anyAttacker: true, status: { kind: "WEAKEN", duration: 2, power: 0 } },
+    onHitDeflect: 30,
   },
   {
     id: "bolt_jolt",

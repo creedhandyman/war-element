@@ -837,7 +837,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.lightOrbs)
     named("lightOrbs", `Life Cycle: each incoming hit is absorbed by a Light Orb that bursts at the attacker, then disappears. Every opponent death recharges one orb.`);
   if (def.onHitDeflect)
-    named("onHitDeflect", `Vision Guard: ${def.onHitDeflect}% chance when hit to take half damage and deal that much back to the attacker.`);
+    // No name in the text: `named` prefixes the card's own (Eagon's Vision
+    // Guard, Windsor's Right Through Me).
+    named("onHitDeflect", `${def.onHitDeflect}% chance when hit to take half damage and deal that much back to the attacker.`);
   if (def.onOppSummonSelfBuff)
     named("onOppSummonSelfBuff", `King of the Wild: once per round, when an opponent is summoned, gain +${def.onOppSummonSelfBuff.shields} shields and +${def.onOppSummonSelfBuff.dmg} DMG for the round.`);
   if (def.weaponModes)

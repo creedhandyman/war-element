@@ -548,3 +548,16 @@ describe("no card face leaks a JS placeholder", () => {
     expect(bad, bad.join(" | ")).toEqual([]);
   });
 });
+
+describe("a deflect reads under the card's own passive name", () => {
+  it("Windsor's is part of Right Through Me, Eagon's is Vision Guard", () => {
+    // The text used to hard-code "Vision Guard:", which would have printed
+    // Eagon's passive name on Windsor's card.
+    const windsor = describeOwnPassives(getDef("gale_windsor")).join(" | ");
+    expect(windsor).toContain("Right Through Me");
+    expect(windsor).toContain("30% chance when hit to take half damage");
+    expect(windsor).not.toContain("Vision Guard");
+    const eagon = describeOwnPassives(getDef("gale_eagon")).join(" | ");
+    expect(eagon).toContain("Vision Guard — 50% chance when hit");
+  });
+});
