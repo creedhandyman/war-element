@@ -72,6 +72,32 @@ function aquaRipples(t: FxTools, c: Pt, reach: number, seconds: number, n: numbe
 
 /** A crown splash: drops launched UP and out from a small flat ring, falling
  *  back — the shape a drop makes landing in water. */
+/** The veil fog lays over the board, on the normal-blend layer: a pale
+ *  grey-blue that greys what is under it the way fog does. */
+const FOG = 0xaab6c6;
+/** Its banks: dim greys, so under additive light they are a faint haze that
+ *  thickens only where banks overlap — soft-edged, not a pile of discs. */
+const FOG_BANK = [0x353e49, 0x2d353f, 0x232a32];
+
+/** DENSE FOG: not weather that falls but weather that SITS — banks of mist
+ *  rolling in across the board from one side in three waves, the whole board
+ *  greying over until the cards read through a veil, then thinning away.
+ *  Rain was the wrong picture for a field whose whole effect is that the
+ *  enemy cannot see to aim. */
+function aquaFog(t: FxTools, r: { x: number; y: number; w: number; h: number }) {
+  const D = 1.9, dir = Math.random() < 0.5 ? 1 : -1, m = Math.min(r.w, r.h);
+  t.draw(D, (g, u) => {
+    const time = u * D;
+    const veil = time < 0.6 ? time / 0.6 : time > 1.4 ? Math.max(0, 1 - (time - 1.4) / 0.5) : 1;
+    g.rect(r.x, r.y, r.w, r.h).fill({ color: FOG, alpha: 0.12 * veil });
+  }, { dark: true });
+  for (let w = 0; w < 3; w++)
+    t.later(w * 0.22, () => t.emit({
+      count: 18, palette: FOG_BANK, from: r, dir: dir > 0 ? [-8, 8] : [172, 188], speed: [18, 45], gravity: 0, drag: 0.9,
+      life: [1.2, 1.7], size: [m * 0.22, m * 0.34],
+    }));
+}
+
 function aquaCrown(t: FxTools, c: Pt, n: number, spread: number, lift: number, style: SparkStyle, life: [number, number]) {
   for (let i = 0; i < n; i++) {
     const th = (i / n) * TAU + rand(-0.25, 0.25);
@@ -477,7 +503,11 @@ export const AQUA: ElementLook = {
     });
   },
 
-  field(t, r) {
+  field(t, r, o) {
+    if (o?.fog) {
+      aquaFog(t, r);
+      return;
+    }
     // The weather turns: the board dims under cloud, rain slants across it,
     // and its surface pocks with ripples where the rain lands.
     t.draw(1.3, (g, u) => {

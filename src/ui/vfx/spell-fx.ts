@@ -38,7 +38,9 @@ export type SpellFx =
   /** A card crossing an enemy wall and paying for it (Ice Wall's 2 DMG and
    *  freeze), in the wall's look. */
   | { kind: "wallBite"; at: At; element: Element; variant?: LookVariant }
-  | { kind: "field"; element: Element }
+  /** `fog`: the field hides the enemy's aim (Dense Fog's `enemyMissChance`),
+   *  so it is drawn as fog rather than as its element's weather. */
+  | { kind: "field"; element: Element; fog?: boolean }
   | { kind: "trapSet" | "trapSprung"; at: At; element: Element }
   /** A spell that changed nothing on the board (Power Rebate, Recon Ping,
    *  System Override): a ripple from the caster's own Home row, so a cast is
@@ -155,7 +157,7 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
 
   for (const f of after.fields)
     if (!before.fields.some((b) => b.spellId === f.spellId && b.owner === f.owner))
-      out.push({ kind: "field", element: f.element });
+      out.push({ kind: "field", element: f.element, ...(getSpell(f.spellId).field?.enemyMissChance ? { fog: true } : {}) });
 
   for (const t of after.traps) {
     const isNew = !before.traps.some((b) => b.owner === t.owner && b.pos.row === t.pos.row && b.pos.col === t.pos.col);

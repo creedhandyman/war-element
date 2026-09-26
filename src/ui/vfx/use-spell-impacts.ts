@@ -310,7 +310,7 @@ function fire(all: SpellFx[]) {
         }
         case "field": {
           const r = boardRect();
-          if (r) l.play({ kind: "field", rect: r, element: f.element });
+          if (r) l.play({ kind: "field", rect: r, element: f.element, fog: f.fog });
           break;
         }
         default: {

@@ -42,7 +42,7 @@ export type LayerFx =
   | { kind: "wall"; rect: Rect; element: Element; variant?: LookVariant }
   /** A card crossing an enemy wall and paying for it, in the wall's look. */
   | { kind: "wallBite"; rect: Rect; element: Element; variant?: LookVariant }
-  | { kind: "field"; rect: Rect; element: Element }
+  | { kind: "field"; rect: Rect; element: Element; fog?: boolean }
   | { kind: "trapSet"; rect: Rect; element: Element }
   | { kind: "pulse"; rect: Rect; element: Element }
   /** A whole-board spell's set piece, in two halves: INCOMING plays for
@@ -1186,7 +1186,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         break;
       }
       case "field":
-        look.field(t, fx.rect);
+        look.field(t, fx.rect, { fog: fx.fog });
         break;
       case "trapSet":
         look.trapSet(t, fx.rect);

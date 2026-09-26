@@ -211,8 +211,9 @@ export interface ElementLook {
   boardIncoming?(t: FxTools, a: { rect: Rect; aims: Rect[]; seconds: number; strength: number; fromTop: boolean; status?: StatusKind }): void;
   /** ...and its FINALE, with the landing, over each card's own impact. */
   boardFinale?(t: FxTools, a: { rect: Rect; targets: Rect[]; strength: number; fromTop: boolean; status?: StatusKind }): void;
-  /** The whole board's weather changing. */
-  field(t: FxTools, r: Rect): void;
+  /** The whole board's weather changing. `fog`: the field hides the enemy's
+   *  aim (Dense Fog) — draw it as fog, not as the element's usual weather. */
+  field(t: FxTools, r: Rect, o?: { fog?: boolean }): void;
   /** A card moved (pushed, pulled, swapped) from one square to another. */
   move(t: FxTools, from: Rect, to: Rect): void;
   /** The viewer's own trap going into a square. */

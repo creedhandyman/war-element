@@ -154,6 +154,18 @@ describe("traps going off", () => {
   });
 });
 
+describe("a field is drawn as what it does", () => {
+  it("Dense Fog — the enemy cannot see to aim — is fog; Downpour is still rain", () => {
+    const field = (id: string) => {
+      const s = armed(id);
+      return spellEffects(s, applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: id }), "P1").find((f) => f.kind === "field");
+    };
+    expect(field("aqua_dense_fog")).toMatchObject({ kind: "field", element: "AQUA", fog: true });
+    expect(field("aqua_downpour")).toMatchObject({ kind: "field", element: "AQUA" });
+    expect(field("aqua_downpour")).not.toHaveProperty("fog");
+  });
+});
+
 describe("whole-board spells get a set piece of their own", () => {
   it("Ashfall: a board effect aimed at every card it reached, weighted by its cost", () => {
     const s = armed("pyro_ashfall");
