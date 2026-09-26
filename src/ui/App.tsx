@@ -188,8 +188,9 @@ import {
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
 import { attackDeliveryMs, boardIncomingMs, playAttack, playBoardIncoming, useSpellImpacts } from "./vfx/use-spell-impacts";
+import { arrivals } from "./vfx/spell-fx";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
-import { createRemoteQueue } from "./remote-queue";
+import { createRemoteQueue, type StageShow } from "./remote-queue";
 import { WinScreen, type NextUp } from "./WinScreen";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
@@ -287,6 +288,14 @@ const TARGET_HOLD_MS = 600;
 /** The spell cast-flash's length. The AI's spells now play theirs BEFORE they
  *  land (see `stagedCast`), the same order a human cast has always had. */
 const CAST_FLASH_MS = 2000;
+/** A legendary summon's announcement — the same 2s a player's own gets. */
+const ANNOUNCE_MS = 2000;
+/** A LEGENDARY+ card that arrived in the step, from a seat `whose` accepts —
+ *  the summon that gets announced before it lands. */
+function bigArrival(before: GameState, next: GameState, whose: (seat: PlayerId) => boolean): StageShow | null {
+  const c = arrivals(before, next).find((x) => whose(x.owner) && announces(x.defId));
+  return c ? { summonDefId: c.defId, instanceId: c.instanceId } : null;
+}
 /** A zone's hold: a line or the end of a round is a shape to read, a target
  *  is a card to spot. */
 const holdFor = (zone: StrikeZone) => (zone.kind === "target" ? TARGET_HOLD_MS : STRIKE_HOLD_MS);
@@ -398,7 +407,10 @@ export function App() {
     before: GameState;
     next: GameState;
     zone: StrikeZone | null;
-    spellId: string;
+    /** What plays first: a spell's art, or a legendary summon's announcement.
+     *  Either way BEFORE the step lands — the opponent's used to land first and
+     *  play on top, hiding everything that landed underneath. */
+    show: StageShow;
     /** Called once it has landed (the online queue waits on it). */
     onLand?: () => void;
   } | null>(null);
@@ -418,13 +430,14 @@ export function App() {
       setGame(next);
     },
     light: setRemoteStrike,
-    stageSpell: (before, next, zone, spellId, landed) => setStagedCast({
-      from: null, before, next, zone, spellId,
+    stage: (before, next, zone, show, landed) => setStagedCast({
+      from: null, before, next, zone, show,
       onLand: () => {
         shownGameRef.current = next;
         landed();
       },
     }),
+    announcing: (before, next) => bigArrival(before, next, () => true),
     wait: (ms, fn) => {
       const t = window.setTimeout(fn, ms);
       return () => clearTimeout(t);
@@ -439,10 +452,12 @@ export function App() {
   const castTimerRef = useRef<number | null>(null);
   /** A player's own attack between its delivery and its landing. */
   const attackTimerRef = useRef<number | null>(null);
-  /** ...and the same, as state, so the action controls stand down for it:
-   *  the turn is spent, only not yet landed, and an Attack button still on
-   *  offer would be offering something that no longer exists. */
-  const [swinging, setSwinging] = useState(false);
+  /** A player's own DELIVERY IN FLIGHT — an attack or a summon's strike
+   *  winding up, a board spell rolling in. The action is spent, only not yet
+   *  landed, so the controls stand down and an input shield takes every tap:
+   *  a second action now would be applied to the state this one is about to
+   *  replace, and then overwritten when it lands. */
+  const [delivering, setDelivering] = useState(false);
   // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
   // a newly-used spell in their book and flash its art too — with its own timer
   // so it never clobbers a local flash-then-cast in flight.
@@ -1564,7 +1579,12 @@ export function App() {
     let t: number;
     if (cast && !game.humans.includes(cast.seat)) {
       // An AI spell: flash, then targets, then land — the staged-step effect.
-      t = window.setTimeout(() => setStagedCast({ from: game, before: game, next, zone, spellId: cast.spellId }), delay);
+      t = window.setTimeout(() => setStagedCast({ from: game, before: game, next, zone, show: { spellId: cast.spellId } }), delay);
+    } else if (bigArrival(game, next, (seat) => !game.humans.includes(seat))) {
+      // An AI legendary: announced, then its strike delivered, then it lands —
+      // the order a player's own summon has always had.
+      const show = bigArrival(game, next, (seat) => !game.humans.includes(seat))!;
+      t = window.setTimeout(() => setStagedCast({ from: game, before: game, next, zone, show }), delay);
     } else if (zone) {
       setStrike(zone);
       const hold = Math.max(delay, holdFor(zone));
@@ -1590,19 +1610,32 @@ export function App() {
   useEffect(() => {
     if (!stagedCast) return;
     const timers: number[] = [];
-    preFlashedRef.current = stagedCast.spellId;
-    setCastFlash({ spellId: stagedCast.spellId });
+    const { show } = stagedCast;
+    const isSpell = "spellId" in show;
+    if (isSpell) {
+      preFlashedRef.current = show.spellId;
+      setCastFlash({ spellId: show.spellId });
+    } else {
+      // Marked seen BEFORE it lands, so the opponent-announce effect does not
+      // announce it a second time once it is on the board.
+      seenBigRef.current.add(show.instanceId);
+      setAnnounce({ defId: show.summonDefId, mine: false });
+    }
     timers.push(window.setTimeout(() => {
-      setCastFlash(null);
+      if (isSpell) setCastFlash(null);
+      else setAnnounce(null);
       if (stagedCast.zone) setStrike(stagedCast.zone);
-      // The pause before it lands: long enough to read the targets, and for a
-      // whole-board spell long enough for its incoming half, which is told the
-      // pause's exact length so what it throws lands with the state.
+      // The pause before it lands: long enough to read the targets, and long
+      // enough for whatever is thrown — a board spell's incoming half, a
+      // summon's strike — each told the pause's exact length, so it lands
+      // with the state.
       const hold = Math.max(
         stagedCast.zone ? holdFor(stagedCast.zone) : 0,
         boardIncomingMs(stagedCast.before, stagedCast.next),
+        attackDeliveryMs(stagedCast.before, stagedCast.next),
       );
       playBoardIncoming(stagedCast.before, stagedCast.next, hold);
+      playAttack(stagedCast.before, stagedCast.next, hold);
       timers.push(window.setTimeout(() => {
         setStrike(null);
         // Only onto the game it was computed from: a player who quit or
@@ -1612,7 +1645,7 @@ export function App() {
         setStagedCast(null);
         stagedCast.onLand?.();
       }, hold));
-    }, CAST_FLASH_MS));
+    }, isSpell ? CAST_FLASH_MS : ANNOUNCE_MS));
     return () => timers.forEach((id) => clearTimeout(id));
   }, [stagedCast]);
   // Leaving the match drops anything still being shown, so the next match
@@ -1628,7 +1661,8 @@ export function App() {
     castTimerRef.current = null;
     if (attackTimerRef.current !== null) window.clearTimeout(attackTimerRef.current);
     attackTimerRef.current = null;
-    setSwinging(false);
+    setDelivering(false);
+    setAnnounce(null); // a staged summon's timers died with it too
     setRemoteStrike(null);
     remoteQueue.clear();
   }, [started, remoteQueue]);
@@ -2177,6 +2211,7 @@ export function App() {
       setCastFlash(null);
       const land = () => {
         castTimerRef.current = null;
+        setDelivering(false);
         dispatch(intent);
         setHint(doneHint);
       };
@@ -2193,6 +2228,7 @@ export function App() {
       }
       const incoming = next ? boardIncomingMs(game, next) : 0;
       if (next && incoming > 0) {
+        setDelivering(true);
         playBoardIncoming(game, next, incoming);
         castTimerRef.current = window.setTimeout(land, incoming);
       } else {
@@ -2762,11 +2798,13 @@ export function App() {
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
         setAnnounce(null);
-        dispatch(intent, summonHint);
+        dispatchStrike(intent, summonHint);
       }, 2000);
       return;
     }
-    dispatch(intent, summonHint);
+    // A summon that strikes as it lands is delivered first (dispatchStrike);
+    // one that does not lands at once.
+    dispatchStrike(intent, summonHint);
   }
   function cancelSummon() {
     setStaged(null);
@@ -3250,8 +3288,8 @@ export function App() {
    *  had. `dispatch` applies the same intent to the same state, so what was
    *  thrown is what lands; an action that attacks nothing (a skip, a buff)
    *  dispatches at once. */
-  function dispatchBattle(intent: Intent) {
-    if (attackTimerRef.current !== null) return; // one swing at a time
+  function dispatchStrike(intent: Intent, doneHint?: (next: GameState) => string) {
+    if (attackTimerRef.current !== null) return; // one strike at a time
     let next: GameState | null = null;
     try {
       next = applyIntent(game, intent);
@@ -3260,18 +3298,21 @@ export function App() {
     }
     const ms = next ? attackDeliveryMs(game, next) : 0;
     if (!next || ms === 0) {
-      dispatch(intent);
+      dispatch(intent, doneHint);
       return;
     }
-    // Disarm the pick prompt now, so it is not still asking during the swing.
+    // Disarm the prompt and the staged summon now: the action is committed,
+    // and nothing should still be asking for it during the delivery.
     setPending(null);
     setPicks([]);
-    setSwinging(true);
+    setSel(null);
+    setStaged(null);
+    setDelivering(true);
     playAttack(game, next, ms);
     attackTimerRef.current = window.setTimeout(() => {
       attackTimerRef.current = null;
-      setSwinging(false);
-      dispatch(intent);
+      setDelivering(false);
+      dispatch(intent, doneHint);
     }, ms);
   }
 
@@ -3280,7 +3321,7 @@ export function App() {
     const owner = game.cards[awaitingId].owner;
     // Never issue an action for a card I don't control (online opponent / AI).
     if (me !== owner) return;
-    dispatchBattle({
+    dispatchStrike({
       type: "BATTLE_ACTION",
       player: owner,
       action: pending!,
@@ -3768,7 +3809,7 @@ export function App() {
       // Second press = fire. Area Specials hit the whole previewed zone;
       // targeted ones fire the picks assigned so far.
       if (specialAoE) {
-        dispatchBattle({
+        dispatchStrike({
           type: "BATTLE_ACTION", player: activeCard.owner, action: "special",
           targetIds: specialValid.map((t) => t.instanceId),
         });
@@ -3806,7 +3847,7 @@ export function App() {
     // outright and moves the card, so a misfire is a body and a position — not
     // something to hand to a single tap.
     if (pending === "plummet") {
-      dispatchBattle({
+      dispatchStrike({
         type: "BATTLE_ACTION", player: activeCard.owner, action: "plummet",
         targetId: picks[0],
       });
@@ -3946,7 +3987,7 @@ export function App() {
    *  act with, instead of in a row at the bottom of the screen that you have to
    *  look away from the board to read. One interaction to learn, on every size.
    *  `.wrap.wheel-up` still hides the button row, so the two never both show. */
-  const wheelUp = iActBattle && wheelAt !== null && !swinging;
+  const wheelUp = iActBattle && wheelAt !== null && !delivering;
 
   const wheelVerbs: WheelVerb[] = activeCard && activeDef
     ? [
@@ -4312,7 +4353,7 @@ export function App() {
               </div>
             </div>
           ) : iActBattle && activeCard && activeDef ? (
-            <div className={`bprompt${swinging ? " swinging" : ""}`}>
+            <div className={`bprompt${delivering ? " delivering" : ""}`}>
               <div className="bp-title">
                 {activeDef.name} is up{" "}
                 <small>
@@ -4892,6 +4933,7 @@ export function App() {
       )}
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
+      {delivering && <div className="input-shield" aria-hidden="true" />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
 
       {/* REJOIN. A match this device was in when the app closed, offered on

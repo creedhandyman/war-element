@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import type { GameState } from "../types";
-import { battleAction, battleEffects } from "../../ui/vfx/spell-fx";
-import { atBattle, place, prepState } from "./helpers";
+import { cardAttack, cardAttackEffects } from "../../ui/vfx/spell-fx";
+import { atBattle, giveHand, place, prepState } from "./helpers";
 
 // A card's attack is animated from what its battle turn DID: who acted (read
 // off the battle queue), with what (melee or ranged, basic or Special — the
@@ -13,7 +13,7 @@ import { atBattle, place, prepState } from "./helpers";
 function firstTurnOf(s: GameState, seat: "P1" | "P2") {
   for (let i = 0; i < 16 && s.phase === "battle"; i++) {
     const next = advance(s);
-    const act = battleAction(s, next);
+    const act = cardAttack(s, next);
     if (act?.seat === seat) return { before: s, after: next, act };
     s = next;
   }
@@ -54,7 +54,7 @@ describe("a card's battle turn, read off what it did", () => {
     s.players.P2.magicPool = 20;
     for (let i = 0; i < 16 && s.phase === "battle"; i++) {
       const next = advance(s);
-      const act = battleAction(s, next);
+      const act = cardAttack(s, next);
       if (act?.special) {
         expect(act.seat).toBe("P2");
         expect(act.targets.length).toBeGreaterThanOrEqual(2);
@@ -74,8 +74,8 @@ describe("a card's battle turn, read off what it did", () => {
     const after = structuredClone(s);
     after.battle!.index = 1;
     after.cards[v.instanceId].fxMiss = (after.cards[v.instanceId].fxMiss ?? 0) + 1; // nothing else changed
-    expect(battleAction(s, after)?.targets).toEqual([{ row: 2, col: 1 }]);
-    expect(battleEffects(s, after).some((f) => f.kind === "hit")).toBe(false); // nothing to hit
+    expect(cardAttack(s, after)?.targets).toEqual([{ row: 2, col: 1 }]);
+    expect(cardAttackEffects(s, after).some((f) => f.kind === "hit")).toBe(false); // nothing to hit
   });
 
   it("the landing: a hit on the card struck, none for a thorn biting back", () => {
@@ -88,7 +88,7 @@ describe("a card's battle turn, read off what it did", () => {
     after.battle!.index = 1;
     after.cards[v.instanceId].curHp -= 10;
     after.cards[a.instanceId].curHp -= 2; // retaliation
-    const hits = battleEffects(s, after).filter((f) => f.kind === "hit");
+    const hits = cardAttackEffects(s, after).filter((f) => f.kind === "hit");
     expect(hits).toEqual([{
       kind: "hit", at: { row: 2, col: 1 }, from: { row: 1, col: 1 }, element: "AQUA",
       strength: expect.any(Number), melee: true, special: false,
@@ -106,7 +106,7 @@ describe("a card's battle turn, read off what it did", () => {
       after.battle!.index = 1;
       after.cards[v.instanceId].curHp -= 10;
       if (special) after.cards[a.instanceId].specialCasts += 1;
-      return (battleEffects(s, after).find((f) => f.kind === "hit") as { strength: number }).strength;
+      return (cardAttackEffects(s, after).find((f) => f.kind === "hit") as { strength: number }).strength;
     };
     expect(make(false)).toBeLessThan(make(true));
   });
@@ -118,7 +118,7 @@ describe("a card's battle turn, read off what it did", () => {
     s = atBattle(s);
     while (s.phase === "battle" && s.battle?.awaitingInput !== mine.instanceId) s = advance(s);
     const after = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [foe.instanceId] });
-    expect(battleAction(s, after)).toMatchObject({ seat: "P1", melee: true, targets: [{ row: 1, col: 1 }] });
+    expect(cardAttack(s, after)).toMatchObject({ seat: "P1", melee: true, targets: [{ row: 1, col: 1 }] });
   });
 
   it("a spell, or the round's end, is not a card's attack", () => {
@@ -127,13 +127,59 @@ describe("a card's battle turn, read off what it did", () => {
     s.players.P2.spellbook = [{ defId: "pyro_spark", used: false }];
     const t = place(s, "leaf_greegon", "P1", 1, 2, { curHp: 9 });
     const cast = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "pyro_spark", targetId: t.instanceId });
-    expect(battleAction(s, cast)).toBeNull();
-    expect(battleEffects(s, cast)).toEqual([]);
+    expect(cardAttack(s, cast)).toBeNull();
+    expect(cardAttackEffects(s, cast)).toEqual([]);
 
     let b = prepState(2);
     place(b, "leaf_greegon", "P1", 2, 0, { curHp: 9, status: { kind: "BURN", duration: 2, power: 2 } as never });
     b = atBattle(b);
     b.battle!.index = b.battle!.queue.length;
-    expect(battleAction(b, advance(b))).toBeNull();
+    expect(cardAttack(b, advance(b))).toBeNull();
+  });
+});
+
+describe("a card striking as it is summoned", () => {
+  /** P1 summons `defId` into its Home row, column `col`, with gold to spare. */
+  function summon(defId: string, col: number, setup: (s: GameState) => void) {
+    const s = prepState(1, "P1");
+    s.players.P1.gold = 20;
+    setup(s);
+    const handId = giveHand(s, "P1", defId);
+    const after = applyIntent(s, { type: "SUMMON", player: "P1", handId, col });
+    return { s, after };
+  }
+
+  it("Piranha's bite on arrival is an attack FROM its landing square, at the two nearest", () => {
+    const { s, after } = summon("aqua_piranha", 1, (st) => {
+      place(st, "leaf_greegon", "P2", 2, 1, { curHp: 30, maxHp: 30 });
+      place(st, "leaf_greegon", "P2", 1, 2, { curHp: 30, maxHp: 30 });
+      place(st, "leaf_greegon", "P2", 0, 3, { curHp: 30, maxHp: 30 }); // the far one
+    });
+    const act = cardAttack(s, after)!;
+    expect(act).toMatchObject({ seat: "P1", actor: { row: 3, col: 1 }, element: "AQUA", melee: true, arriving: true, special: true });
+    expect(act.targets.map((t) => `${t.row},${t.col}`).sort()).toEqual(["1,2", "2,1"]);
+  });
+
+  it("DAWN's Awakening strikes as the card lands — at basic weight, not a designed entrance", () => {
+    const { s, after } = summon("dawn_quasar", 0, (st) => {
+      place(st, "leaf_greegon", "P2", 2, 0, { curHp: 30, maxHp: 30 });
+    });
+    const act = cardAttack(s, after);
+    expect(act).toMatchObject({ arriving: true, special: false, element: "DAWN", targets: [{ row: 2, col: 0 }] });
+  });
+
+  it("it materialises on its square as its hits land", () => {
+    const { s, after } = summon("aqua_piranha", 1, (st) => {
+      place(st, "leaf_greegon", "P2", 2, 1, { curHp: 30, maxHp: 30 });
+    });
+    const fx = cardAttackEffects(s, after);
+    expect(fx[0]).toEqual({ kind: "arrive", at: { row: 3, col: 1 }, element: "AQUA" });
+    expect(fx.filter((f) => f.kind === "hit").map((f) => ("at" in f ? `${f.at.row},${f.at.col}` : ""))).toEqual(["2,1"]);
+  });
+
+  it("a summon that strikes nothing is not an attack, and does not materialise", () => {
+    const { s, after } = summon("leaf_greegon", 1, () => {});
+    expect(cardAttack(s, after)).toBeNull();
+    expect(cardAttackEffects(s, after).some((f) => f.kind === "arrive")).toBe(false);
   });
 });

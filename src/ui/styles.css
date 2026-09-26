@@ -7800,7 +7800,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    tap, so the board underneath works exactly as if it were not there. */
 .vfx-layer { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: var(--z-vfx); }
 
-/* A player's attack is being delivered (App.tsx `swinging`): the turn is
-   spent, only not yet landed. The prompt stays where it is — hiding it would
-   reflow the bar for half a second — but stands down. */
-.bprompt.swinging { opacity: 0.55; pointer-events: none; transition: opacity 0.12s; }
+/* A player's delivery is in flight (App.tsx `delivering`): the turn is spent,
+   only not yet landed. The prompt stays where it is — hiding it would reflow
+   the bar for half a second — but stands down. */
+.bprompt.delivering { opacity: 0.55; pointer-events: none; transition: opacity 0.12s; }
+/* ...and nothing else takes a tap either: a second action now would be applied
+   to the state the first is about to replace, then overwritten when it lands.
+   Invisible — the effects play through it. At the toast rung, where the cast
+   flash and the summon announcement already block input for the same reason. */
+.input-shield { position: fixed; inset: 0; z-index: var(--z-toast); }

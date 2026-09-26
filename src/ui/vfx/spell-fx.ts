@@ -15,7 +15,7 @@
  *  ONE RULE IS NOT DERIVED, it is protected: a hidden trap is placed where
  *  its owner chose, and drawing that for the other player would give it away.
  *  Only the viewer's own trap placement gets an effect. */
-import type { Element, GameState, PlayerId, StatusKind } from "../../engine";
+import type { CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
 import { effectiveSp } from "../../engine/state";
 import { getSpell } from "../../engine/spells";
 import { getDef } from "../../data/cards";
@@ -41,6 +41,8 @@ export type SpellFx =
   /** A card's attack landing on a card it struck: slashed by a melee card,
    *  burst by a ranged one's shot. */
   | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean }
+  /** A summon that struck as it landed, materialising on its square. */
+  | { kind: "arrive"; at: At; element: Element }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
    *  the set piece that sweeps the board, over and above each card's own
    *  effect. `targets` are the opposing cards it reached, which the set piece
@@ -149,77 +151,106 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
   return out;
 }
 
-// ── BATTLE ACTIONS ───────────────────────────────────────────────────────────
+// ── CARD ATTACKS ─────────────────────────────────────────────────────────────
 
-/** A card's battle turn between two states: who struck, how, and at what.
- *  Read the same way as everything else here — off what the step did. */
-export interface BattleAction {
+/** A card's attack between two states — a battle turn, or a card striking as
+ *  it is summoned — read the same way as everything else here: off what the
+ *  step did. */
+export interface CardAttack {
   seat: PlayerId;
+  /** Where it struck from — for a summon, the square it is landing on. */
   actor: At;
   element: Element;
   /** Melee cards close the distance and strike; Ranged cards throw. */
   melee: boolean;
-  /** Its Special fired this turn (`specialCasts` rose) — the heavier look. */
+  /** The heavier look: its Special fired (`specialCasts` rose), or it is a
+   *  summon's designed entrance (an `onSummon` effect). DAWN's Awakening,
+   *  which every DAWN card does as it lands, strikes at basic weight. */
   special: boolean;
+  /** Summoned this step. It is not on the board until the step lands, so its
+   *  attack is delivered FROM ITS SQUARE: it gathers there, strikes, and
+   *  materialises as the hits land. */
+  arriving: boolean;
   /** Opposing cards it hurt, statused or drained — or that DODGED it: a miss
    *  changes nothing but the dodger's MISS counter, and it was still aimed. */
   targets: At[];
 }
 
-/** The battle card that acted between two states, and its def — or null for a
- *  step that was not a battle turn (a spell, an arrival, the round's end). */
-function battleActor(before: GameState, after: GameState) {
-  if (spellCast(before, after)) return null;
-  const b = before.battle;
-  if (before.phase !== "battle" || !b || b.index >= b.queue.length) return null;
-  // The step re-sorts the untaken tail by SP before it acts, so the actor is
-  // read from the queue AFTER that sort.
-  const id = after.battle?.queue[b.index] ?? b.queue[b.index];
-  const was = before.cards[id];
-  if (!was?.pos) return null;
-  const now = after.cards[id];
-  return { was, now, def: getDef(was.defId), special: !!now && now.specialCasts > was.specialCasts };
+/** Cards on the board in `after` that were not in `before` — summoned, or
+ *  spawned, this step. */
+export function arrivals(before: GameState, after: GameState): CardInstance[] {
+  return Object.values(after.cards).filter((c) => c.pos && !before.cards[c.instanceId]);
 }
 
-/** The attack a battle step made, if it made one at anything. */
-export function battleAction(before: GameState, after: GameState): BattleAction | null {
-  const a = battleActor(before, after);
+/** The card that acted between two states: the battle card whose turn it was,
+ *  or a card that arrived — or null for a spell, or the round's end. */
+function striker(before: GameState, after: GameState) {
+  if (spellCast(before, after)) return null;
+  const b = before.battle;
+  if (before.phase === "battle" && b) {
+    if (b.index >= b.queue.length) return null; // the round's end
+    // The step re-sorts the untaken tail by SP before it acts, so the actor is
+    // read from the queue AFTER that sort.
+    const id = after.battle?.queue[b.index] ?? b.queue[b.index];
+    const was = before.cards[id];
+    if (!was?.pos) return null;
+    const now = after.cards[id];
+    return {
+      seat: was.owner, at: was.pos, def: getDef(was.defId),
+      special: !!now && now.specialCasts > was.specialCasts, arriving: false,
+    };
+  }
+  // A summon that spawns tokens brings several cards: the one with an
+  // entrance is the one striking.
+  const arrived = arrivals(before, after);
+  const card = arrived.find((c) => getDef(c.defId).onSummon) ?? arrived[0];
+  if (!card?.pos) return null;
+  const def = getDef(card.defId);
+  return { seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true };
+}
+
+/** The attack a step made, if it made one at anything. */
+export function cardAttack(before: GameState, after: GameState): CardAttack | null {
+  const a = striker(before, after);
   if (!a) return null;
-  const { reached } = cardChanges(before, after, a.def.element, a.was.owner);
+  const { reached } = cardChanges(before, after, a.def.element, a.seat);
   const targets = [...reached];
   for (const [id, c] of Object.entries(before.cards)) {
-    if (!c.pos || c.owner === a.was.owner) continue;
+    if (!c.pos || c.owner === a.seat) continue;
     const n = after.cards[id];
     if (n && (n.fxMiss ?? 0) > (c.fxMiss ?? 0) && !targets.some((t) => t.row === c.pos!.row && t.col === c.pos!.col))
       targets.push(c.pos);
   }
   if (targets.length === 0) return null;
   return {
-    seat: a.was.owner, actor: a.was.pos!, element: a.def.element,
-    melee: a.def.attackType === "Melee", special: a.special, targets,
+    seat: a.seat, actor: a.at, element: a.def.element,
+    melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets,
   };
 }
 
-/** A battle step's effects at the landing: a HIT on each card it struck —
+/** A step's attack effects at the landing: a HIT on each card it struck —
  *  slashed by a melee card, burst by a ranged one's shot — plus whatever else
  *  changed. The opposing side shows all of it (the freeze left behind, the
- *  push); the actor's own side only the good (a lifesteal heal, a shield).
- *  Its own side's damage — a thorn biting back — is the damage numbers' job. */
-export function battleEffects(before: GameState, after: GameState): SpellFx[] {
-  const a = battleActor(before, after);
+ *  push); the attacker's own side only the good (a lifesteal heal, a shield).
+ *  Its own side's damage — a thorn biting back — is the damage numbers' job.
+ *  A summon that struck also MATERIALISES: a burst on its square as it lands. */
+export function cardAttackEffects(before: GameState, after: GameState): SpellFx[] {
+  const a = striker(before, after);
   if (!a) return [];
   const element = a.def.element;
   const melee = a.def.attackType === "Melee";
   const out: SpellFx[] = [];
-  for (const { fx, opposing } of cardChanges(before, after, element, a.was.owner).changes) {
+  const { changes, reached } = cardChanges(before, after, element, a.seat);
+  for (const { fx, opposing } of changes) {
     if (fx.kind === "impact") {
       // A basic attack happens every turn, so it lands lighter; a Special
       // lands at full weight.
-      if (opposing) out.push({ kind: "hit", at: fx.at, from: a.was.pos!, element, strength: fx.strength * (a.special ? 1 : 0.65), melee, special: a.special });
+      if (opposing) out.push({ kind: "hit", at: fx.at, from: a.at, element, strength: fx.strength * (a.special ? 1 : 0.65), melee, special: a.special });
       continue;
     }
     if (opposing || fx.kind !== "debuff") out.push(fx);
   }
+  if (a.arriving && reached.length > 0) out.unshift({ kind: "arrive", at: a.at, element });
   return out;
 }
 

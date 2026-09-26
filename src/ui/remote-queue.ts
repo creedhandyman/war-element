@@ -11,6 +11,10 @@
  *  App.tsx and free of React so it can be tested without two live clients: App
  *  hands it the few things it does to the screen. */
 import type { GameState } from "../engine";
+
+/** What plays before a staged step lands: a spell's art, or a legendary
+ *  summon's announcement. */
+export type StageShow = { spellId: string } | { summonDefId: string; instanceId: string };
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 
 export interface RemoteScreen {
@@ -20,10 +24,13 @@ export interface RemoteScreen {
   land(next: GameState): void;
   /** Light a zone, or clear it with null. */
   light(zone: StrikeZone | null): void;
-  /** Play a spell's flash, light its zone, land `next`, then call `landed`.
-   *  `before` is the state on screen — what the spell's effects are read
-   *  against. */
-  stageSpell(before: GameState, next: GameState, zone: StrikeZone | null, spellId: string, landed: () => void): void;
+  /** Play `show` (a spell's flash, a summon's announcement), light the zone,
+   *  land `next`, then call `landed`. `before` is the state on screen — what
+   *  the step's effects are read against. */
+  stage(before: GameState, next: GameState, zone: StrikeZone | null, show: StageShow, landed: () => void): void;
+  /** A legendary summon in the step, to be announced BEFORE it lands — or
+   *  null. The screen decides, because which cards announce is its call. */
+  announcing(before: GameState, next: GameState): StageShow | null;
   /** Run `fn` after `ms`; returns a cancel. */
   wait(ms: number, fn: () => void): () => void;
   /** How long a zone stays lit. */
@@ -74,7 +81,13 @@ export function createRemoteQueue(screen: RemoteScreen): RemoteQueue {
     };
     if (cast) {
       busy = true;
-      screen.stageSpell(before, next, zone, cast.spellId, done);
+      screen.stage(before, next, zone, { spellId: cast.spellId }, done);
+      return;
+    }
+    const big = screen.announcing(before, next);
+    if (big) {
+      busy = true;
+      screen.stage(before, next, zone, big, done);
       return;
     }
     if (!zone) {

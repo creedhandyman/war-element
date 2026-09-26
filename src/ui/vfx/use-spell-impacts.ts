@@ -20,7 +20,7 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
-import { battleAction, battleEffects, boardSpell, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
+import { boardSpell, cardAttack, cardAttackEffects, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -118,22 +118,25 @@ export const ATTACK_MS = 450;
 /** The pause a battle step wants for its delivery — 0 for a step that attacked
  *  nothing, or with effects off. */
 export function attackDeliveryMs(before: GameState, after: GameState): number {
-  return effectsOn() && battleAction(before, after) ? ATTACK_MS : 0;
+  return effectsOn() && cardAttack(before, after) ? ATTACK_MS : 0;
 }
 
 /** Deliver a battle step's attack, timed to arrive in `ms` — call it as the
  *  pause before the landing begins, with the pause's full length. */
 export function playAttack(before: GameState, after: GameState, ms: number) {
   if (!effectsOn() || ms <= 0) return;
-  const act = battleAction(before, after);
+  const act = cardAttack(before, after);
   if (!act) return;
   const from = squareRect(act.actor);
   const targets = act.targets.map(squareRect).filter((r): r is Rect => r !== null);
   if (!from || targets.length === 0) return;
   void loadLayer().then((l) => l.play({
-    kind: "attack", from, targets, element: act.element, melee: act.melee, special: act.special, seconds: ms / 1000,
+    kind: "attack", from, targets, element: act.element, melee: act.melee, special: act.special,
+    arriving: act.arriving, seconds: ms / 1000,
   }));
-  if (act.melee) lunge(act.actor, from, targets, ms);
+  // A summon striking as it lands has no token to lunge yet — it is not on the
+  // board until the step lands — so its delivery comes from its square alone.
+  if (act.melee && !act.arriving) lunge(act.actor, from, targets, ms);
 }
 
 /** A melee card closing the distance: its token draws back, then drives most
@@ -174,6 +177,11 @@ function fire(fx: SpellFx[]) {
           const g = boardGeometry(f);
           if (g) l.play({ kind: "boardFinale", ...g, element: f.element, strength: f.strength });
           hardest = Math.max(hardest, 1 + f.strength);
+          break;
+        }
+        case "arrive": {
+          const r = squareRect(f.at);
+          if (r) l.play({ kind: "arrive", rect: r, element: f.element });
           break;
         }
         case "hit": {
@@ -259,7 +267,7 @@ export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: 
     // survives into the lobby (see the opponent-flash effect in App.tsx), and
     // a diff taken against it there is against the last match.
     if (!game || !before || !inMatch || game.phase === "mulligan" || !effectsOn()) return;
-    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...battleEffects(before, game)];
+    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...cardAttackEffects(before, game)];
     if (fx.length === 0) return;
     if (hold) queued.current.push(...fx);
     else fire(fx);

@@ -10,7 +10,7 @@ import { place, prepState } from "./helpers";
 // before it lands, exactly as the local look-ahead does. It can't be clicked
 // through here without two live clients, so it is driven through a fake screen
 // that records what it was told to do, with a hand-cranked clock.
-function fakeScreen(start: GameState) {
+function fakeScreen(start: GameState, announce: (before: GameState, next: GameState) => ReturnType<RemoteScreen["announcing"]> = () => null) {
   const log: string[] = [];
   let shown: GameState = start;
   const timers: (() => void)[] = [];
@@ -19,10 +19,12 @@ function fakeScreen(start: GameState) {
     shown: () => shown,
     land: (next) => { shown = next; log.push(`land r${next.round}#${next.nextId}`); },
     light: (zone: StrikeZone | null) => log.push(zone ? `light ${zone.kind} ${zone.squares.map((q) => `${q.row},${q.col}`).join(" ")}` : "unlight"),
-    stageSpell: (_before, next, zone, spellId, landed) => {
-      log.push(`stage ${spellId} ${zone?.squares.map((q) => `${q.row},${q.col}`).join(" ")}`);
+    stage: (_before, next, zone, show, landed) => {
+      const what = "spellId" in show ? show.spellId : show.summonDefId;
+      log.push(`stage ${what} ${zone?.squares.map((q) => `${q.row},${q.col}`).join(" ")}`);
       staged = () => { shown = next; log.push("staged landed"); landed(); };
     },
+    announcing: announce,
     wait: (_ms, fn) => { timers.push(fn); return () => { const i = timers.indexOf(fn); if (i >= 0) timers.splice(i, 1); }; },
     holdFor: () => 600,
   };
@@ -127,5 +129,16 @@ describe("states from the other player are shown before they land", () => {
     q.clear();
     f.tick(); // the cancelled timer is gone
     expect(f.shown).toBe(s);
+  });
+  it("an opponent's LEGENDARY summon is announced before it lands, through the same staging", () => {
+    const s = prepState(1, "P2");
+    const after = structuredClone(s);
+    const big = place(after, "leaf_greegon", "P2", 0, 1);
+    const f = fakeScreen(s, (_b, n) => (n.cards[big.instanceId] ? { summonDefId: "leaf_greegon", instanceId: big.instanceId } : null));
+    createRemoteQueue(f.screen).receive(after);
+    expect(f.log[0]).toMatch(/^stage leaf_greegon/);
+    expect(f.shown).toBe(s); // not landed yet
+    f.finishStage();
+    expect(f.shown).toBe(after);
   });
 });

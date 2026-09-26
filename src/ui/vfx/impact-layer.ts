@@ -48,7 +48,12 @@ export type LayerFx =
   | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number }
   /** A card's attack being DELIVERED — the wind-up and the throw, or the
    *  swing — for exactly `seconds`, so it arrives as the turn lands. */
-  | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number }
+  | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number;
+      /** A summon striking as it lands: `from` is its square, still empty — the
+       *  element gathers THERE, and a melee card pounces the whole way. */
+      arriving?: boolean }
+  /** A summon that struck, materialising on its square as the hits land. */
+  | { kind: "arrive"; rect: Rect; element: Element }
   /** A melee card's blow landing: a cut across `angle`, the line of attack. */
   | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number };
 
@@ -961,18 +966,28 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const travel = T - wind;
     const from = centre(fx.from);
     const size = Math.min(fx.from.w, fx.from.h);
-    // The wind-up: the attacker gathers itself — visibly more for a Special,
-    // which also draws its element in around it.
-    charge(from, size * (fx.special ? 1.7 : 1.1), look.head, fx.special ? 0.85 : 0.4, wind + travel * 0.3);
-    if (fx.special)
-      emit({ count: 28, palette: look.trail, from: fx.from, at: "ring", speed: [110, 190], gravity: 0, drag: 1,
-        life: [0.2, wind], size: [9, 3] });
+    if (fx.arriving) {
+      // Arriving: the square it will land on is still empty, so the element
+      // GATHERS there — drawn in from around it, building — and the strike
+      // comes out of that.
+      charge(from, size * (fx.special ? 1.9 : 1.4), look.head, fx.special ? 0.95 : 0.6, T);
+      emit({ count: fx.special ? 40 : 24, palette: look.trail, from: fx.from, at: "ring", speed: [100, 180], gravity: 0,
+        drag: 1, life: [0.2, wind], size: [10, 3] });
+    } else {
+      // The wind-up: the attacker gathers itself — visibly more for a Special,
+      // which also draws its element in around it.
+      charge(from, size * (fx.special ? 1.7 : 1.1), look.head, fx.special ? 0.85 : 0.4, wind + travel * 0.3);
+      if (fx.special)
+        emit({ count: 28, palette: look.trail, from: fx.from, at: "ring", speed: [110, 190], gravity: 0, drag: 1,
+          life: [0.2, wind], size: [9, 3] });
+    }
     for (const t of fx.targets) {
       const to = centre(t);
       if (fx.melee) {
-        // The swing's path, shadowing the token as the hook lunges it.
+        // The swing's path, shadowing the token as the hook lunges it — or,
+        // for a card arriving with no token yet, the whole pounce.
         shot({
-          from, to: lerpPt(from, to, 0.55), seconds: travel, delay: wind, ease: "in",
+          from, to: fx.arriving ? to : lerpPt(from, to, 0.55), seconds: travel, delay: wind, ease: "in",
           head: look.head, headSize: size * 0.2,
           trail: { palette: look.trail, rate: fx.special ? 130 : 60, size: [10, 3], life: [0.15, 0.35], drift: 20 },
         });
@@ -1048,6 +1063,17 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         return age < draw + hold;
       },
     });
+  }
+
+  /** A summon materialising on its square as its strike lands: a burst of its
+   *  element outward from where it gathered. */
+  function arrive(fx: Extract<LayerFx, { kind: "arrive" }>) {
+    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const c = centre(fx.rect);
+    glow(fx.rect, look.head, 0.8, 0.45, 1.25);
+    ring(fx.rect, look.markColor, 0.3, 1.3, 0.45, 5);
+    emit({ count: 34, palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 }, speed: [120, 300],
+      gravity: 0, drag: 0.3, life: [0.25, 0.5], size: [10, 3] });
   }
 
   function slash(fx: Extract<LayerFx, { kind: "slash" }>) {
@@ -1169,6 +1195,9 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         break;
       case "slash":
         slash(fx);
+        break;
+      case "arrive":
+        arrive(fx);
         break;
       case "boardIncoming":
         boardIncoming(fx);
