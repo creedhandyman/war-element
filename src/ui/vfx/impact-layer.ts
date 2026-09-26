@@ -23,8 +23,9 @@
  *  Pixi. */
 import { Application, Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import type { Element, StatusKind } from "../../engine";
-import { LOOKS } from "./looks";
-import type { Emit, FxTools, Pt, Shot, SparkStyle } from "./looks/types";
+import { LOOKS, lookFor } from "./looks";
+import { drawDrain, drawTick, type TickArgs } from "./ticks";
+import type { Emit, FxTools, LookVariant, Pt, Shot, SparkStyle } from "./looks/types";
 
 /** A screen rectangle, CSS px — a square, a row, the board. */
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -53,17 +54,21 @@ export type LayerFx =
   | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number;
       /** A summon striking as it lands: `from` is its square, still empty — the
        *  element gathers THERE, and a melee card pounces the whole way. */
-      arriving?: boolean }
+      arriving?: boolean; variant?: LookVariant }
   /** A summon that struck, materialising on its square as the hits land. */
-  | { kind: "arrive"; rect: Rect; element: Element }
+  | { kind: "arrive"; rect: Rect; element: Element; variant?: LookVariant }
   /** A melee card's blow landing: a cut across `angle`, the line of attack. */
-  | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number };
+  | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number; variant?: LookVariant }
+  /** The end of the round on one card, after `delay` (see ticks.ts). */
+  | ({ kind: "tick"; rect: Rect; element: Element; delay: number } & TickArgs)
+  /** Creeping Dark: life carried from `from` to the DUSK card at `to`. */
+  | { kind: "drain"; from: Rect; to: Rect; element: Element; delay: number };
 
 export interface ImpactLayer {
   /** A spell's damage landing at a screen point (CSS px). `strength` ~0.7-2.2,
    *  scaled from the damage dealt: a 2-point chip and a 12-point nuke should
    *  not look the same. */
-  impact(x: number, y: number, element: Element, strength?: number): void;
+  impact(x: number, y: number, element: Element, strength?: number, variant?: LookVariant): void;
   /** Every other spell effect. */
   play(fx: LayerFx): void;
   /** Sparks alive right now — the lab's HUD reads it. */
@@ -116,6 +121,14 @@ const STYLES: Record<Element, Style> = {
   VOID: { palette: [0xffffff, 0xe3e7f1, 0xc2c8d8, 0x6b7285], sparks: 150, speed: [200, 600],
           gravity: 0, drag: 0.1, life: [0.35, 0.85], size: [14, 3], streak: true, implode: true },
 };
+
+/** An icy AQUA card's hit (see looks/aqua-ice.ts): splinters that fly and
+ *  fall — ice shatters where water splashes. The six-point read is the
+ *  look's snowflake; long light-rays here whited out the board on a Special
+ *  landing twice. The flash takes water's pale blue, not white, for the same
+ *  reason. */
+const ICE_STYLE: Style = { palette: [0xffffff, 0x9fe3ff, 0x6ec3ff, 0x4d94e8], sparks: 100, speed: [180, 460],
+  gravity: 420, drag: 0.2, life: [0.3, 0.7], size: [12, 3], streak: true };
 
 interface Spark {
   p: Particle;
@@ -212,6 +225,17 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   const effects: Burst[] = [];
   let cap = 6000;
 
+  /** A spark's scale and turn at birth. `update()` sets them every frame, but
+   *  a spark born inside an effect's own tick (a `later`, a drawn shape, a
+   *  projectile's trail) is pushed AFTER this frame's spark pass has run, so it
+   *  was drawn once as it came: a fresh Particle at scale 1 is the whole 64px
+   *  dot — a white blob flickering on for a frame — and a pooled one keeps the
+   *  last spark's size and angle. */
+  function sizeAtBirth(s: Spark) {
+    s.p.scaleX = s.p.scaleY = s.s0 / TEX;
+    s.p.rotation = 0;
+  }
+
   function spawnSpark(x: number, y: number, st: Style, strength: number, angle: number, inward: boolean) {
     if (live.length >= cap) return;
     const s = pool.pop() ?? {
@@ -241,6 +265,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     s.style = st;
     s.p.tint = st.palette[0];
     s.p.alpha = 1;
+    sizeAtBirth(s);
     live.push(s);
     sparks.particleChildren.push(s.p);
   }
@@ -394,6 +419,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     s.style = st;
     s.p.tint = st.palette[0];
     s.p.alpha = 1;
+    sizeAtBirth(s);
     live.push(s);
     sparks.particleChildren.push(s.p);
   }
@@ -902,7 +928,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   const lerpPt = (a: Pt, b: Pt, t: number): Pt => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
   function attackIn(fx: Extract<LayerFx, { kind: "attack" }>) {
-    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const look = lookFor(fx.element, fx.variant);
     const t = toolsFor(fx.element);
     const T = fx.seconds;
     const wind = T * (fx.special ? 0.45 : 0.35);
@@ -979,11 +1005,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
 
   /** A summon materialising on its square as its strike lands. */
   function arrive(fx: Extract<LayerFx, { kind: "arrive" }>) {
-    (LOOKS[fx.element] ?? LOOKS.VOID).arrive(toolsFor(fx.element), fx.rect);
+    lookFor(fx.element, fx.variant).arrive(toolsFor(fx.element), fx.rect);
   }
 
   function slash(fx: Extract<LayerFx, { kind: "slash" }>) {
-    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const look = lookFor(fx.element, fx.variant);
     const t = toolsFor(fx.element);
     const c = centre(fx.rect);
     const k = Math.max(0.6, Math.min(2.2, fx.strength));
@@ -1111,6 +1137,16 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       case "pulse":
         look.pulse(t, fx.rect);
         break;
+      case "tick": {
+        const f = fx;
+        later(f.delay, () => (f.tick === "shield" ? look.shield(t, f.rect) : drawTick(t, f.rect, f)));
+        break;
+      }
+      case "drain": {
+        const f = fx;
+        later(f.delay, () => drawDrain(t, f.from, f.to));
+        break;
+      }
     }
     if (!app.ticker.started) app.ticker.start();
   }
@@ -1179,8 +1215,8 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   app.ticker.add(update);
 
   return {
-    impact(x, y, element, strength = 1) {
-      const st = STYLES[element] ?? STYLES.VOID;
+    impact(x, y, element, strength = 1, variant) {
+      const st = variant === "ice" && element === "AQUA" ? ICE_STYLE : STYLES[element] ?? STYLES.VOID;
       const k = Math.max(0.5, Math.min(2.4, strength));
       if (st.implode) {
         // Gather first, burst when they arrive — the one element whose hit
@@ -1211,7 +1247,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         const ember: Style = { ...st, speed: [40, 160], gravity: -120, life: [0.8, 1.6], size: [7, 2], streak: false };
         burst(x, y, ember, k, Math.round(st.embers * k));
       }
-      (LOOKS[element] ?? LOOKS.VOID).impactAccent?.(toolsFor(element), { x, y }, k);
+      lookFor(element, variant).impactAccent?.(toolsFor(element), { x, y }, k);
       if (!app.ticker.started) app.ticker.start();
     },
     play,

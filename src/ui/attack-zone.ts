@@ -131,7 +131,7 @@ function actorOf(before: GameState, after: GameState): { seat: PlayerId; from: A
 
 /** The end-of-round step: the battle's queue ran out, and `stepBattle` runs
  *  the whole Cleanup phase in this one step. */
-function isRoundEnd(before: GameState): boolean {
+export function isRoundEnd(before: GameState): boolean {
   const b = before.battle;
   return before.phase === "battle" && !!b && b.index >= b.queue.length;
 }

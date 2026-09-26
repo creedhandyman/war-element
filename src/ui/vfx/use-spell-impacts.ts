@@ -20,7 +20,7 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
-import { boardSpell, cardAttack, cardAttackEffects, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
+import { boardSpell, cardAttack, cardAttackEffects, roundEndEffects, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -132,7 +132,7 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
   if (!from || targets.length === 0) return;
   void loadLayer().then((l) => l.play({
     kind: "attack", from, targets, element: act.element, melee: act.melee, special: act.special,
-    arriving: act.arriving, seconds: ms / 1000,
+    arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
   }));
   // A summon striking as it lands has no token to lunge yet — it is not on the
   // board until the step lands — so its delivery comes from its square alone.
@@ -181,15 +181,16 @@ function fire(fx: SpellFx[]) {
         }
         case "arrive": {
           const r = squareRect(f.at);
-          if (r) l.play({ kind: "arrive", rect: r, element: f.element });
+          if (r) l.play({ kind: "arrive", rect: r, element: f.element, variant: f.variant });
           break;
         }
         case "hit": {
           const r = squareRect(f.at), a = squareRect(f.from);
           if (!r) break;
           const angle = a ? Math.atan2(r.y - a.y, r.x - a.x) : -Math.PI / 2;
-          if (f.melee) l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle });
-          else l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength);
+          if (f.melee)
+            l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle, variant: f.variant });
+          else l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength, f.variant);
           // Only a Special shakes the board: a basic attack happens every turn.
           if (f.special) hardest = Math.max(hardest, f.strength);
           break;
@@ -201,6 +202,11 @@ function fire(fx: SpellFx[]) {
           const k = f.kind === "impact" ? f.strength * (boardWide ? 0.5 : 1) : 1.2;
           l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k);
           hardest = Math.max(hardest, k);
+          break;
+        }
+        case "drain": {
+          const from = squareRect(f.from), to = squareRect(f.to);
+          if (from && to) l.play({ kind: "drain", from, to, element: f.element, delay: f.delay });
           break;
         }
         case "move": {
@@ -267,7 +273,10 @@ export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: 
     // survives into the lobby (see the opponent-flash effect in App.tsx), and
     // a diff taken against it there is against the last match.
     if (!game || !before || !inMatch || game.phase === "mulligan" || !effectsOn()) return;
-    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...cardAttackEffects(before, game)];
+    const fx = [
+      ...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...cardAttackEffects(before, game),
+      ...roundEndEffects(before, game),
+    ];
     if (fx.length === 0) return;
     if (hold) queued.current.push(...fx);
     else fire(fx);

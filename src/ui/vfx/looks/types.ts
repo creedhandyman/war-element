@@ -13,6 +13,10 @@ import type { Rect } from "../impact-layer";
 
 export type Pt = { x: number; y: number };
 
+/** A card that looks unlike the rest of its element: an AQUA card that is
+ *  ice rather than water (see spell-fx.ts `lookVariant`). */
+export type LookVariant = "ice";
+
 /** How a spark moves and ages: born at palette[0], walking the list as it
  *  ages, so a burst reads as heat cooling rather than confetti. */
 export interface SparkStyle {

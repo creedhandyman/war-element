@@ -15,12 +15,15 @@
  *  ONE RULE IS NOT DERIVED, it is protected: a hidden trap is placed where
  *  its owner chose, and drawing that for the other player would give it away.
  *  Only the viewer's own trap placement gets an effect. */
-import type { CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
-import { effectiveSp } from "../../engine/state";
+import type { CardDef, CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
+import { chebyshev, effectiveSp } from "../../engine/state";
 import { getSpell } from "../../engine/spells";
+import { DUSK_DRAIN, hasElementAura } from "../../engine/auras";
 import { getDef } from "../../data/cards";
-import { homeRow } from "../../engine/types";
-import { spellCast } from "../attack-zone";
+import { homeRow, NEGATIVE_STATUSES } from "../../engine/types";
+import { isRoundEnd, spellCast } from "../attack-zone";
+import type { TickArgs } from "./ticks";
+import type { LookVariant } from "./looks/types";
 
 export type At = { row: number; col: number };
 
@@ -40,16 +43,22 @@ export type SpellFx =
   | { kind: "pulse"; row: number; element: Element }
   /** A card's attack landing on a card it struck: slashed by a melee card,
    *  burst by a ranged one's shot. */
-  | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean }
+  | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean; variant?: LookVariant }
   /** A summon that struck as it landed, materialising on its square. */
-  | { kind: "arrive"; at: At; element: Element }
+  | { kind: "arrive"; at: At; element: Element; variant?: LookVariant }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
    *  the set piece that sweeps the board, over and above each card's own
    *  effect. `targets` are the opposing cards it reached, which the set piece
    *  aims at — meteors land on them, bolts strike them, roots reach them.
    *  `strength` comes from the spell's cost, so a cost-5 Ashfall is a flurry
    *  and a cost-10 Volcanic Eruption is the sky falling. */
-  | { kind: "board"; element: Element; strength: number; targets: At[]; caster: PlayerId; casterRow: number };
+  | { kind: "board"; element: Element; strength: number; targets: At[]; caster: PlayerId; casterRow: number }
+  /** THE END OF THE ROUND, one card at a time: a status biting or running
+   *  out, a heal-over-time, an element aura paying out (ticks.ts draws each).
+   *  `delay` staggers them in the order Cleanup runs them. */
+  | ({ kind: "tick"; at: At; element: Element; delay: number } & TickArgs)
+  /** Creeping Dark: a DUSK card drinking from the card it touches. */
+  | { kind: "drain"; from: At; to: At; element: Element; delay: number };
 
 export type BoardFx = Extract<SpellFx, { kind: "board" }>;
 
@@ -174,6 +183,33 @@ export interface CardAttack {
   /** Opposing cards it hurt, statused or drained — or that DODGED it: a miss
    *  changes nothing but the dodger's MISS counter, and it was still aimed. */
   targets: At[];
+  /** It attacks in a look unlike its element's (see `lookVariant`). */
+  variant?: LookVariant;
+}
+
+/** Names that are plainly the cold: a cold word opening a name ("Frostveil",
+ *  "Glacius", "Polar King") or closing one ("Blackice", "Permafrost"). */
+const ICY_NAME = /\b(ice|icy|frost|frozen|glaci|snow|cryo|polar|arcti|blizzard|hail|hoar)|(ice|frost)\b/i;
+
+/** Its kit freezes something — its hit, its Special, whoever strikes it, a
+ *  round tick, its death. Read from the definition's own fields rather than a
+ *  list of them, so a new way of freezing counts on the day it is written.
+ *  (Card text is prose and never matches a quoted "FREEZE".) Cached per card:
+ *  a definition never changes. */
+const freezeKit = new Map<string, boolean>();
+function freezes(def: CardDef): boolean {
+  let f = freezeKit.get(def.id);
+  if (f === undefined) freezeKit.set(def.id, (f = JSON.stringify(def).includes('"FREEZE"')));
+  return f;
+}
+
+/** An AQUA card that is ICE rather than water attacks in ice: it took the
+ *  Frozen Flow as it landed, its kit freezes, or it is named for the cold.
+ *  Read off the card, not a list — a new ice card is drawn in ice on day one. */
+export function lookVariant(card: CardInstance): LookVariant | undefined {
+  const def = getDef(card.defId);
+  if (def.element !== "AQUA") return undefined;
+  return card.flowMode === "ice" || freezes(def) || ICY_NAME.test(def.name) ? "ice" : undefined;
 }
 
 /** Cards on the board in `after` that were not in `before` — summoned, or
@@ -197,7 +233,7 @@ function striker(before: GameState, after: GameState) {
     const now = after.cards[id];
     return {
       seat: was.owner, at: was.pos, def: getDef(was.defId),
-      special: !!now && now.specialCasts > was.specialCasts, arriving: false,
+      special: !!now && now.specialCasts > was.specialCasts, arriving: false, variant: lookVariant(was),
     };
   }
   // A summon that spawns tokens brings several cards: the one with an
@@ -206,7 +242,7 @@ function striker(before: GameState, after: GameState) {
   const card = arrived.find((c) => getDef(c.defId).onSummon) ?? arrived[0];
   if (!card?.pos) return null;
   const def = getDef(card.defId);
-  return { seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true };
+  return { seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true, variant: lookVariant(card) };
 }
 
 /** The attack a step made, if it made one at anything. */
@@ -224,7 +260,7 @@ export function cardAttack(before: GameState, after: GameState): CardAttack | nu
   if (targets.length === 0) return null;
   return {
     seat: a.seat, actor: a.at, element: a.def.element,
-    melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets,
+    melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets, variant: a.variant,
   };
 }
 
@@ -245,12 +281,14 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
     if (fx.kind === "impact") {
       // A basic attack happens every turn, so it lands lighter; a Special
       // lands at full weight.
-      if (opposing) out.push({ kind: "hit", at: fx.at, from: a.at, element, strength: fx.strength * (a.special ? 1 : 0.65), melee, special: a.special });
+      if (opposing)
+        out.push({ kind: "hit", at: fx.at, from: a.at, element, strength: fx.strength * (a.special ? 1 : 0.65), melee,
+          special: a.special, variant: a.variant });
       continue;
     }
     if (opposing || fx.kind !== "debuff") out.push(fx);
   }
-  if (a.arriving && reached.length > 0) out.unshift({ kind: "arrive", at: a.at, element });
+  if (a.arriving && reached.length > 0) out.unshift({ kind: "arrive", at: a.at, element, variant: a.variant });
   return out;
 }
 
@@ -279,4 +317,119 @@ export function trapsSprung(before: GameState, after: GameState): SpellFx[] {
     if (!still && trodOn) out.push({ kind: "trapSprung", at: t.pos, element: t.element });
   }
   return out;
+}
+
+// ── THE END OF THE ROUND ────────────────────────────────────────────────────
+
+/** The statuses that do damage at Cleanup. */
+const DOTS: StatusKind[] = ["BURN", "SCALD", "BLEED", "DOT"];
+
+/** Cleanup's own order, as a stagger — the bites, then the heals and the
+ *  auras, then whatever ran out — so the eye reads cause before consequence. */
+const BITE = 0, AURA = 0.3, END = 0.6;
+
+/** What the end-of-round step did, card by card — [] for any other step.
+ *
+ *  Read the same way as everything else here, off the change, with one twist:
+ *  Cleanup is several rules in one step, so a card's net change can hide what
+ *  happened to it (2 BURN and REGEN 2 end on the HP it started with). So each
+ *  effect is read from its CAUSE in `before` — the burn it carried, the aura it
+ *  has, the enemy it touches — and the change only confirms it fired. */
+export function roundEndEffects(before: GameState, after: GameState): SpellFx[] {
+  if (!isRoundEnd(before)) return [];
+  const out: SpellFx[] = [];
+  // What each card's DOTs will take off it, which is also how the drain below
+  // picks its victim: Cleanup ticks every DOT before any aura runs.
+  const bite = new Map<string, number>();
+  for (const [id, c] of Object.entries(before.cards)) {
+    if (!c.pos) continue;
+    bite.set(id, c.statuses.filter((st) => DOTS.includes(st.kind)).reduce((n, st) => n + st.power, 0));
+  }
+  const hpAfterBite = (c: CardInstance) => c.curHp - (bite.get(c.instanceId) ?? 0);
+
+  // Creeping Dark first, because a drinker's heal and a victim's loss are
+  // both explained by it. Lowest HP after the bites, ties by id — the rule
+  // Cleanup uses — and only if that card really was hurt this step.
+  const drained = new Map<string, number>();
+  const drinkers = new Set<string>();
+  for (const [id, c] of Object.entries(before.cards)) {
+    if (!c.pos || !after.cards[id]?.pos || !hasElementAura(getDef(c.defId), "DUSK")) continue;
+    const victim = Object.values(before.cards)
+      .filter((e) => e.pos && e.owner !== c.owner && hpAfterBite(e) > 0 && chebyshev(c.pos!, e.pos) === 1)
+      .sort((a, b) => hpAfterBite(a) - hpAfterBite(b) || a.instanceId.localeCompare(b.instanceId))[0];
+    if (!victim || !hurtBy(before, after, victim.instanceId)) continue;
+    drained.set(victim.instanceId, (drained.get(victim.instanceId) ?? 0) + DUSK_DRAIN);
+    drinkers.add(id);
+    out.push({ kind: "drain", from: victim.pos!, to: c.pos, element: "DUSK", delay: AURA });
+  }
+
+  for (const [id, was] of Object.entries(before.cards)) {
+    if (!was.pos) continue;
+    const now = after.cards[id];
+    const def = getDef(was.defId);
+    const element = def.element;
+
+    // 1. The bites: every DOT it carried, BURN melting the plating it wore.
+    const bit = new Set<StatusKind>();
+    for (const st of was.statuses) {
+      if (!DOTS.includes(st.kind) || bit.has(st.kind)) continue;
+      bit.add(st.kind);
+      const power = was.statuses.filter((x) => x.kind === st.kind).reduce((n, x) => n + x.power, 0);
+      out.push({ kind: "tick", tick: "bite", status: st.kind, at: was.pos, element, delay: BITE,
+        strength: strengthOf(power), melted: st.kind === "BURN" && was.curShields > 0 });
+    }
+    if (!now?.pos) continue; // it died in the tick: nothing heals or expires on a corpse
+    const at = now.pos;
+
+    // 2. The heals and auras. What came back, net of what the bites and a
+    //    drain took — REGEN 2 against BURN 2 still healed 2.
+    const healed = now.curHp - (hpAfterBite(was) - (drained.get(id) ?? 0));
+    const leaf = hasElementAura(def, "LEAF");
+    if (healed > 0 && !(drinkers.has(id) && healed <= DUSK_DRAIN))
+      out.push({ kind: "tick", tick: leaf ? "photosynthesis" : "regen", at, element, delay: AURA, strength: strengthOf(healed) });
+    const melted = was.statuses.some((st) => st.kind === "BURN") ? Math.min(2, was.curShields) : 0;
+    const tide = (now.tideTicks ?? 0) > (was.tideTicks ?? 0);
+    if (tide) out.push({ kind: "tick", tick: "tide", mode: now.flowMode, at, element, delay: AURA, strength: 1 });
+    else if (now.curShields > was.curShields - melted)
+      out.push({ kind: "tick", tick: leaf && was.hitsTakenThisRound > 0 ? "bark" : "shield", at, element, delay: AURA, strength: 1 });
+    if (now.spBonus > was.spBonus) {
+      if (hasElementAura(def, "GALE")) out.push({ kind: "tick", tick: "zephyr", at, element, delay: AURA, strength: 1 });
+      else if (hasElementAura(def, "DAWN")) out.push({ kind: "tick", tick: "firstLight", at, element, delay: AURA, strength: 1 });
+    }
+
+    // 3. Statuses gone — burned off by DAWN's light (the oldest affliction,
+    //    Cleanup's rule), wiped by a bubble's full cleanse, or simply run out.
+    //    One cleanse per card however much it lifted; one ending per status.
+    const kept = new Set(now.statuses.map((st) => st.kind));
+    const dawnOff = hasElementAura(def, "DAWN") ? was.statuses.find((st) => NEGATIVE_STATUSES.includes(st.kind))?.kind : undefined;
+    const wiped = (was.channelBuffRounds ?? 0) > 0;
+    const ended = new Set<StatusKind>();
+    let cleansed = false;
+    for (const st of was.statuses) {
+      if (kept.has(st.kind) || ended.has(st.kind)) continue;
+      ended.add(st.kind);
+      if (st.kind === dawnOff || (wiped && NEGATIVE_STATUSES.includes(st.kind))) {
+        if (!cleansed) out.push({ kind: "tick", tick: "cleanse", status: st.kind, at, element, delay: AURA, strength: 1 });
+        cleansed = true;
+        continue;
+      }
+      out.push({ kind: "tick", tick: "expire", status: st.kind, at, element, delay: END, strength: 1 });
+    }
+    // ...and anything new: the creeping roots' far-row snare, a round tick's
+    // status. Drawn as it would be from a spell — a root is a root.
+    const had = new Set(was.statuses.map((st) => st.kind));
+    for (const st of now.statuses)
+      if (!had.has(st.kind)) {
+        out.push({ kind: "status", at, status: st.kind, element: st.source });
+        had.add(st.kind);
+      }
+  }
+  return out;
+}
+
+/** The step hurt this card — lost HP or shields, left the board, or had a
+ *  damage number noted against it (see attack-zone.ts `hurt`). */
+function hurtBy(before: GameState, after: GameState, id: string): boolean {
+  const was = before.cards[id], now = after.cards[id];
+  return !now?.pos || now.curHp < was.curHp || now.curShields < was.curShields || (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
 }

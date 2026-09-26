@@ -92,6 +92,7 @@ describe("a card's battle turn, read off what it did", () => {
     expect(hits).toEqual([{
       kind: "hit", at: { row: 2, col: 1 }, from: { row: 1, col: 1 }, element: "AQUA",
       strength: expect.any(Number), melee: true, special: false,
+      variant: "ice", // Blackice is ice, not water: it attacks in AQUA's frozen look (lookVariant)
     }]);
   });
 
