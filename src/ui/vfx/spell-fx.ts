@@ -29,7 +29,8 @@ import type { LookVariant } from "./looks/types";
 export type At = { row: number; col: number };
 
 export type SpellFx =
-  | { kind: "impact"; at: At; element: Element; strength: number; variant?: LookVariant }
+  /** Damage landing. `soaked`: the card's shields took all of it — no HP. */
+  | { kind: "impact"; at: At; element: Element; strength: number; variant?: LookVariant; soaked?: boolean }
   | { kind: "heal"; at: At; element: Element; strength: number }
   | { kind: "shield"; at: At; element: Element; variant?: LookVariant }
   | { kind: "status"; at: At; status: StatusKind; element: Element }
@@ -52,7 +53,17 @@ export type SpellFx =
   | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean; variant?: LookVariant;
       /** The blow's size, from its damage (`shotPower`): a melee mark is drawn
        *  in proportion to what it dealt, as a projectile is. */
-      power?: number }
+      power?: number;
+      /** The target's shields took all of it: the blow stops on the shield
+       *  plate in front of the card rather than landing on the card. */
+      soaked?: boolean }
+  /** A card's SHIELDS KNOCKED OFF: the plate that took a blow flares up and
+   *  breaks a piece per shield lost — shattering when the last one goes
+   *  (shield-hit.ts draws it). `had` is what it wore before. `from`: the
+   *  attacker, whose blow the plate faces; a spell has none, and lights all of
+   *  it. `soaked`: the shields took the whole blow and no HP was lost — so it
+   *  is drawn splashing off the plate in the blow's `element`, not as damage. */
+  | { kind: "shieldHit"; at: At; element: Element; had: number; lost: number; soaked: boolean; from?: At; variant?: LookVariant }
   /** A summon that struck as it landed, materialising on its square. */
   | { kind: "arrive"; at: At; element: Element; variant?: LookVariant }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
@@ -78,6 +89,19 @@ const strengthOf = (n: number) => Math.max(0.7, Math.min(2.2, n / 5));
 /** One card's change, and whether it happened on the side that did NOT act. */
 interface Change { fx: SpellFx; opposing: boolean }
 
+/** What a step did to a card's SHIELDS: how many it lost, and whether they
+ *  soaked the lot — no HP lost and no damage number noted, which is the case
+ *  that used to draw as nothing at all. Shields are armour rather than a
+ *  second health bar: a hit they soak changes no HP and floats no number, so
+ *  a shield falling is the only sign it landed. None for a card that left the
+ *  board — its death is the story — or that became another card: a
+ *  transform's new body simply wears other plating. */
+function shieldLoss(was: CardInstance, now: CardInstance | undefined): { shed: number; soaked: boolean } {
+  if (!now?.pos || now.defId !== was.defId || now.curShields >= was.curShields) return { shed: 0, soaked: false };
+  const noted = (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
+  return { shed: was.curShields - now.curShields, soaked: now.curHp >= was.curHp && !noted };
+}
+
 /** EVERYTHING THAT HAPPENED TO THE CARDS between two states, drawn in
  *  `element`, seen from `seat` — the side that acted. Shared by spells and by
  *  battle actions: whatever caused it, a freeze looks like a freeze. `reached`
@@ -98,11 +122,14 @@ function cardChanges(before: GameState, after: GameState, element: Element, seat
     // noted even though a heal in the same step put the HP back.
     const lost = was.curHp + was.curShields - (now?.pos ? now.curHp + now.curShields : 0);
     const noted = !!now && (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
+    const { shed, soaked } = shieldLoss(was, now);
     if (lost > 0 || noted) {
       const dmg = lost > 0 ? lost : (now?.fxDmgHits?.at(-1) ?? 1);
-      add({ kind: "impact", at: was.pos, element, strength: strengthOf(dmg) });
+      add({ kind: "impact", at: was.pos, element, strength: strengthOf(dmg), ...(soaked ? { soaked } : {}) });
       if (opposing) reached.push(was.pos);
     }
+    // ...and the plating it cost, drawn where the blow landed.
+    if (shed > 0) add({ kind: "shieldHit", at: was.pos, element, had: was.curShields, lost: shed, soaked });
     if (!now?.pos) continue;
 
     if (now.curHp > was.curHp) add({ kind: "heal", at, element, strength: strengthOf(now.curHp - was.curHp) });
@@ -150,7 +177,7 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
   const variant = spellVariant(spell);
   const iced = (fx: SpellFx): SpellFx =>
     !variant ? fx
-    : fx.kind === "impact" ? { ...fx, variant }
+    : fx.kind === "impact" || fx.kind === "shieldHit" ? { ...fx, variant }
     : fx.kind === "shield" && !spell.allyShield ? { ...fx, variant }
     : fx;
   const out: SpellFx[] = changes.map((c) => iced(c.fx));
@@ -206,6 +233,9 @@ export interface CardAttack {
   /** What each target takes, aligned with `targets` (see `damageAt`) — a
    *  projectile is drawn in proportion to it. */
   damage: number[];
+  /** Each target's shields took all of it, aligned with `targets`: the shot
+   *  is stopped by the shield plate in front of the card, not the card. */
+  soaked: boolean[];
 }
 
 /** A PROJECTILE'S SIZE IS ITS DAMAGE: its area in proportion to what it
@@ -307,15 +337,20 @@ export function cardAttack(before: GameState, after: GameState): CardAttack | nu
     seat: a.seat, actor: a.at, element: a.def.element,
     melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets, variant: a.variant,
     damage: targets.map((at) => damageAt(before, after, at)),
+    soaked: targets.map((at) => {
+      const card = Object.values(before.cards).find((c) => c.pos?.row === at.row && c.pos?.col === at.col);
+      return !!card && shieldLoss(card, after.cards[card.instanceId]).soaked;
+    }),
   };
 }
 
 /** A step's attack effects at the landing: a HIT on each card it struck —
  *  slashed by a melee card, burst by a ranged one's shot — plus whatever else
  *  changed. The opposing side shows all of it (the freeze left behind, the
- *  push); the attacker's own side only the good (a lifesteal heal, a shield).
- *  Its own side's damage — a thorn biting back — is the damage numbers' job.
- *  A summon that struck also MATERIALISES: a burst on its square as it lands. */
+ *  push, the shields it knocked off); the attacker's own side only the good (a
+ *  lifesteal heal, a shield). Its own side's damage — a thorn biting back —
+ *  is the floating numbers' job. A summon that struck also MATERIALISES: a
+ *  burst on its square as it lands. */
 export function cardAttackEffects(before: GameState, after: GameState): SpellFx[] {
   const a = striker(before, after);
   if (!a) return [];
@@ -329,7 +364,13 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
       // lands at full weight.
       if (opposing)
         out.push({ kind: "hit", at: fx.at, from: a.at, element, strength: fx.strength * (a.special ? 1 : 0.65), melee,
-          special: a.special, variant: a.variant, power: shotPower(damageAt(before, after, fx.at), a.special) });
+          special: a.special, variant: a.variant, power: shotPower(damageAt(before, after, fx.at), a.special),
+          ...(fx.soaked ? { soaked: true } : {}) });
+      continue;
+    }
+    // The plate faces the blow that broke it, and splashes in its look.
+    if (fx.kind === "shieldHit") {
+      if (opposing) out.push({ ...fx, from: a.at, ...(a.variant ? { variant: a.variant } : {}) });
       continue;
     }
     // The attacker's own plating in its look: an icy card taking the Frozen

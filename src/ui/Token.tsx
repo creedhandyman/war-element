@@ -108,6 +108,36 @@ function useDamageFloats(instanceId: string, seq: number, hits: readonly number[
   return batch;
 }
 
+/** Float "🛡−N" when this card's shields fall — the readout for a hit the
+ *  shields SOAKED. Shields are armour: a hit they take whole changes no HP, so
+ *  the damage numbers (HP only, by design) float nothing, and the card looked
+ *  untouched. Read off the shield count the way the HP flash reads the HP, so
+ *  every way of losing plating shows (a blow, BURN melting it, a wall).
+ *
+ *  Re-baselined, never floated, when a different card stands in the slot or
+ *  this one became another: a transform's new body wears other plating, and
+ *  losing that is not a hit. */
+function useShieldLoss(instanceId: string, defId: string, shields: number) {
+  const prev = useRef({ id: instanceId, def: defId, shields });
+  const keyRef = useRef(0);
+  const [fx, setFx] = useState<{ key: number; n: number } | null>(null);
+  useEffect(() => {
+    const was = prev.current;
+    prev.current = { id: instanceId, def: defId, shields };
+    if (was.id !== instanceId || was.def !== defId) {
+      setFx(null);
+      return;
+    }
+    if (shields < was.shields) setFx({ key: ++keyRef.current, n: was.shields - shields });
+  }, [instanceId, defId, shields]);
+  useEffect(() => {
+    if (!fx) return;
+    const t = setTimeout(() => setFx(null), 950);
+    return () => clearTimeout(t);
+  }, [fx]);
+  return fx;
+}
+
 /** Floats a "+1" coin off a card the moment it earns its home-slot income, or
  *  the moment it steps onto the home row and becomes able to. Same counter-rise
  *  trick as the others: the engine bumps `fxCoin`, a rise plays it once.
@@ -262,6 +292,7 @@ export function Token(props: {
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
   const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
+  const shieldFx = useShieldLoss(card.instanceId, card.defId, card.curShields);
   const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
   // Same bump-a-counter shape as the coin float — a PARALYZE that actually cost
   // the card its turn floats the word, so a turn that produced nothing reads as
@@ -440,6 +471,12 @@ export function Token(props: {
             </span>
           )}
         </div>
+      )}
+      {/* Shields knocked off. It neither rises (CRIT/MISS) nor falls (damage):
+          it rings, like a blow on a plate — and sits above where the damage
+          numbers start, so a hit the shields only partly soaked shows both. */}
+      {shieldFx && (
+        <span key={`sh${shieldFx.key}`} className="fx-shield">🛡−{shieldFx.n}</span>
       )}
       {frozen && <div className="freeze-overlay" />}
       {/* Name owns the entire top edge — no cost gem beside it. The cost is

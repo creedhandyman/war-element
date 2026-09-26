@@ -24,7 +24,9 @@
 import { Application, Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import type { Element, StatusKind } from "../../engine";
 import { LOOKS, lookFor } from "./looks";
+import { platePoint } from "./looks/base";
 import { drawDrain, drawTick, type TickArgs } from "./ticks";
+import { drawShieldHit } from "./shield-hit";
 import type { Emit, FxTools, LookVariant, Pt, Shot, SparkStyle } from "./looks/types";
 
 /** A screen rectangle, CSS px — a square, a row, the board. */
@@ -59,9 +61,17 @@ export type LayerFx =
       power?: number[];
       /** A summon striking as it lands: `from` is its square, still empty — the
        *  element gathers THERE, and a melee card pounces the whole way. */
-      arriving?: boolean; variant?: LookVariant }
+      arriving?: boolean; variant?: LookVariant;
+      /** Targets whose shields took all of it, aligned with `targets`: the shot
+       *  is stopped on the shield plate in front of them (`platePoint`). */
+      soaked?: boolean[] }
   /** A summon that struck, materialising on its square as the hits land. */
   | { kind: "arrive"; rect: Rect; element: Element; variant?: LookVariant }
+  /** A card's shields knocked off: the plate that took the blow, facing along
+   *  `angle` (the line of attack) — none for a spell, which lights all of it.
+   *  A soaked blow splashes off it in `element` (or an icy card's ice). See
+   *  shield-hit.ts. */
+  | { kind: "shieldHit"; rect: Rect; element: Element; had: number; lost: number; soaked: boolean; angle?: number; variant?: LookVariant }
   /** A melee card's blow landing: a cut across `angle`, the line of attack. */
   | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number; variant?: LookVariant;
       /** The blow's size, from its damage (spell-fx.ts `shotPower`). */
@@ -1010,14 +1020,17 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       // A projectile's size is its damage (spell-fx.ts `shotPower`), and so is
       // a swing's trail: a heavy blow drags a heavier one.
       const power = fx.power?.[i] ?? 1;
+      // A blow the shields soak never reaches the card: it is stopped on the
+      // plate in front of it, which is where the hit lands (shield-hit.ts).
+      const stop = fx.soaked?.[i] ? platePoint(r, Math.atan2(to.y - from.y, to.x - from.x)) : to;
       if (fx.melee) {
         look.swing(t, {
-          from, to: fx.arriving ? to : lerpPt(from, to, 0.55), target: to, arriving: !!fx.arriving,
+          from, to: fx.arriving ? stop : lerpPt(from, to, 0.55), target: to, arriving: !!fx.arriving,
           delay: wind, seconds: travel, special: fx.special, size: size * power, power,
         });
         return;
       }
-      look.projectile(t, { from, to, delay: wind, seconds: travel, special: fx.special, size: size * power, power });
+      look.projectile(t, { from, to: stop, delay: wind, seconds: travel, special: fx.special, size: size * power, power });
     });
   }
 
@@ -1218,6 +1231,9 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         break;
       case "arrive":
         arrive(fx);
+        break;
+      case "shieldHit":
+        drawShieldHit(t, fx, fx.variant === "ice" && fx.element === "AQUA" ? ICE_STYLE : el);
         break;
       case "boardIncoming":
         boardIncoming(fx);

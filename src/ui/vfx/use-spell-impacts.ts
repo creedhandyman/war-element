@@ -20,6 +20,7 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
+import { centre, platePoint } from "./looks/base";
 import {
   boardSpell, cardAttack, cardAttackEffects, roundEndEffects, shotPower, spellEffects, trapsSprung, wallsCrossed,
   type At, type BoardFx, type SpellFx,
@@ -140,12 +141,13 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
   if (!act) return;
   const from = squareRect(act.actor);
   // Paired before filtering, so each target keeps its own damage.
-  const aimed = act.targets.map((at, i) => ({ r: squareRect(at), dmg: act.damage[i] ?? 0 }))
-    .filter((a): a is { r: Rect; dmg: number } => a.r !== null);
+  const aimed = act.targets.map((at, i) => ({ r: squareRect(at), dmg: act.damage[i] ?? 0, soaked: act.soaked[i] ?? false }))
+    .filter((a): a is { r: Rect; dmg: number; soaked: boolean } => a.r !== null);
   if (!from || aimed.length === 0) return;
   void loadLayer().then((l) => l.play({
     kind: "attack", from, targets: aimed.map((a) => a.r), power: aimed.map((a) => shotPower(a.dmg, act.special)), element: act.element,
     melee: act.melee, special: act.special, arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
+    soaked: aimed.map((a) => a.soaked),
   }));
   // A summon striking as it lands has no token to lunge yet — it is not on the
   // board until the step lands — so its delivery comes from its square alone.
@@ -199,7 +201,7 @@ const MAX_WAIT_MS = 1200;
 function settleOf(f: SpellFx): number {
   switch (f.kind) {
     case "hit": return f.melee ? 0.35 : 0.55;
-    case "impact": case "trapSprung": case "wallBite": return 0.55;
+    case "impact": case "trapSprung": case "wallBite": case "shieldHit": return 0.55;
     case "tick": case "drain": return f.delay + 0.8;
     case "board": return 1.1;
     case "field": return 1.2;
@@ -274,17 +276,33 @@ function fire(all: SpellFx[]) {
           const r = squareRect(f.at), a = squareRect(f.from);
           if (!r) break;
           const angle = a ? Math.atan2(r.y - a.y, r.x - a.x) : -Math.PI / 2;
-          if (f.melee)
-            l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle, variant: f.variant, power: f.power });
-          else l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength, f.variant);
+          // A blow the shields SOAKED never reached the card, so it is not drawn
+          // as damage: the shot was stopped on the plate in front of it and
+          // splashes there (its shieldHit draws that); a melee blow's X lands
+          // on the plate, not the card.
+          if (f.melee) {
+            const at = f.soaked ? platePoint(r, angle) : centre(r);
+            l.play({ kind: "slash", rect: { ...r, x: at.x - r.w / 2, y: at.y - r.h / 2 }, element: f.element, strength: f.strength,
+              special: f.special, angle, variant: f.variant, power: f.power });
+          } else if (!f.soaked) l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength, f.variant);
           // Only a Special shakes the board: a basic attack happens every turn.
-          if (f.special) hardest = Math.max(hardest, f.strength);
+          // Nor one the shields held — nothing got through to shake.
+          if (f.special && !f.soaked) hardest = Math.max(hardest, f.strength);
+          break;
+        }
+        case "shieldHit": {
+          const r = squareRect(f.at);
+          if (!r) break;
+          const a = f.from ? squareRect(f.from) : null;
+          l.play({ kind: "shieldHit", rect: r, element: f.element, had: f.had, lost: f.lost, soaked: f.soaked, variant: f.variant,
+            angle: a ? Math.atan2(r.y - a.y, r.x - a.x) : undefined });
           break;
         }
         case "impact":
         case "trapSprung": {
           const r = squareRect(f.at);
-          if (!r) break;
+          // Spell damage the shields soaked did none: its shieldHit draws it.
+          if (!r || (f.kind === "impact" && f.soaked)) break;
           const k = f.kind === "impact" ? f.strength * (boardWide ? 0.5 : 1) : 1.2;
           l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k, f.kind === "impact" ? f.variant : undefined);
           hardest = Math.max(hardest, k);

@@ -1164,7 +1164,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   display: flex; overflow: hidden; border-radius: 0 0 7px 7px;
   background: rgba(255, 255, 255, 0.07);
 }
-.tk-bar-sh { background: var(--stat-sh); }
+.tk-bar-sh { background: var(--stat-sh); transition: width 0.25s ease; }
 .tk-bar-hp { background: linear-gradient(90deg, #3ec778, var(--stat-hp)); transition: width 0.25s ease; }
 /* DIRECT children only — the "/max" inside the HP pill is a span too, and it
    must not get its own padding. */
@@ -1267,6 +1267,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   38% { opacity: 1; transform: translate(-50%, -4px) scale(1); }
   100% { opacity: 0; transform: translate(-50%, -34px) scale(0.92); }
 }
+/* SHIELDS KNOCKED OFF — "🛡−1". A hit the shields soak changes no HP and floats
+   no damage number, so the card looked untouched; this names what it cost. In
+   the shield stat's steel. It neither rises (CRIT/MISS) nor falls (damage): it
+   RINGS — a jolt side to side, like a blow on a plate — and it sits above where
+   the damage numbers start, so a hit the shields only partly soaked shows both. */
+.fx-shield {
+  position: absolute; left: 50%; top: 13%;
+  font-weight: 900; font-size: 15px; white-space: nowrap; pointer-events: none; z-index: 10;
+  color: var(--stat-sh); text-shadow: 0 1px 3px #000, 0 0 9px rgba(176, 196, 232, 0.95);
+  opacity: 0; /* the keyframes fade it in */
+  animation: fxClang 900ms ease-out forwards;
+}
+@keyframes fxClang {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+  12% { opacity: 1; transform: translate(-50%, 0) scale(1.25); }
+  22% { transform: translate(calc(-50% - 3px), 0) scale(1.05); }
+  32% { transform: translate(calc(-50% + 3px), 0) scale(1); }
+  42% { transform: translate(calc(-50% - 1.5px), 0) scale(1); }
+  55% { opacity: 1; transform: translate(-50%, 0) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -5px) scale(0.95); }
+}
 @keyframes movepulse { 0%, 100% { box-shadow: 0 0 6px rgba(78, 203, 143, 0.4); } 50% { box-shadow: 0 0 14px rgba(78, 203, 143, 0.9); } }
 /* What remains of `.board.tight`: three FX font sizes, and nothing structural.
    The block used to re-tune the whole token for a 5x5 board — name, cost, class,
@@ -1278,6 +1299,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .board.tight .fx-dmg { font-size: 14px; }
 .board.tight .fx-dmg-total { font-size: 16px; }
 .board.tight .fx-float { font-size: 13px; }
+.board.tight .fx-shield { font-size: 12px; }
 .pick-count { position: absolute; top: -8px; right: -6px; z-index: 4; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: var(--legal); color: #06251a; font-size: 12px; font-weight: 900; display: grid; place-items: center; box-shadow: 0 0 12px rgba(78, 203, 143, 0.7); pointer-events: none; }
 /* READ-ONLY auto marker. Was `.auto-btn`, a tappable cycler sat on the token —
    no cursor, no hover grow and no pointer-events now, because the only job left
@@ -6083,7 +6105,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .trapmark { animation: none; opacity: 0.85; }
 
   /* Combat readouts — INFORMATION. Held, not dropped. */
-  .fx-dmg { animation: fxHold 900ms linear forwards; }
+  .fx-dmg, .fx-shield { animation: fxHold 900ms linear forwards; }
   @keyframes fxHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
   .fx-coin { animation: fxCoinHold 950ms linear forwards; }
   @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
