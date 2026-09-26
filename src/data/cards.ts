@@ -4204,10 +4204,10 @@ export const CARDS: CardDef[] = [
     hp: 16,
     sp: 11,
     shields: 0,
-    // Both blades of the 4×2 roll for a crit — which is where the shape matters:
-    // CRIT doubles a HIT, so heavier blades are worth more to it than more of
-    // them, and an unshielded target can now take 16 off a single swing.
-    keywords: { CRIT: true },
+    // PEN, not CRIT: both blades of the 4×2 go straight to HP and strip no
+    // shields. CRIT's coin only rolled against an UNSHIELDED target; PEN lands
+    // every swing, shielded or not.
+    keywords: { PEN: true },
     // Wind Warp: it moves to anywhere open on the board, at any distance.
     passiveNames: { windWarp: "Wind Warp" },
     windWarp: true,
