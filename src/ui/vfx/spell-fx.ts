@@ -89,17 +89,25 @@ const strengthOf = (n: number) => Math.max(0.7, Math.min(2.2, n / 5));
 /** One card's change, and whether it happened on the side that did NOT act. */
 interface Change { fx: SpellFx; opposing: boolean }
 
-/** What a step did to a card's SHIELDS: how many it lost, and whether they
- *  soaked the lot — no HP lost and no damage number noted, which is the case
- *  that used to draw as nothing at all. Shields are armour rather than a
- *  second health bar: a hit they soak changes no HP and floats no number, so
- *  a shield falling is the only sign it landed. None for a card that left the
- *  board — its death is the story — or that became another card: a
+/** What a step did to a card's SHIELDS: how many a BLOW knocked off, and
+ *  whether they soaked the lot — no HP lost and no damage number noted, which
+ *  is the case that used to draw as nothing at all. Shields are armour rather
+ *  than a second health bar: a hit they soak changes no HP and floats no
+ *  number, so a shield falling is the only sign it landed.
+ *
+ *  Counted by the engine as it breaks them (`fxShieldsKnocked`), not read off
+ *  the shield number: plating that simply ran out (a "for the round" plate
+ *  expiring at the round's end) or melted (BURN's shred, drawn by its own
+ *  tick) was never knocked off, and breaks no plate. None for a card that left
+ *  the board — its death is the story — or that became another card: a
  *  transform's new body simply wears other plating. */
 function shieldLoss(was: CardInstance, now: CardInstance | undefined): { shed: number; soaked: boolean } {
-  if (!now?.pos || now.defId !== was.defId || now.curShields >= was.curShields) return { shed: 0, soaked: false };
+  if (!now?.pos || now.defId !== was.defId) return { shed: 0, soaked: false };
+  // Capped at what it wore going in: the plate breaks the pieces it had.
+  const shed = Math.min(was.curShields, (now.fxShieldsKnocked ?? 0) - (was.fxShieldsKnocked ?? 0));
+  if (shed <= 0) return { shed: 0, soaked: false };
   const noted = (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
-  return { shed: was.curShields - now.curShields, soaked: now.curHp >= was.curHp && !noted };
+  return { shed, soaked: now.curHp >= was.curHp && !noted };
 }
 
 /** EVERYTHING THAT HAPPENED TO THE CARDS between two states, drawn in

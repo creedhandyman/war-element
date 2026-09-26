@@ -2182,6 +2182,15 @@ export interface CardInstance {
   tribeFeedStacks?: number;
   fxDmgHits?: number[];
   fxDmgSeq?: number;
+  /** UI-only: every shield a BLOW has knocked off this card — a hit, a spell's
+   *  damage, a wall it crossed, a strike that cracks plating off or pulls it
+   *  away (see `noteShieldFx`). The renderer diffs it to play the armour
+   *  animation (the plate breaking, the "🛡−N" float), so that plays only for
+   *  plating a blow TOOK — never for shields that ran out (a "for the round"
+   *  plate expiring in Cleanup) or melted (BURN's shred, which its round-end
+   *  tick draws). A running count, not a list: all the renderer needs is how
+   *  many fell since it last looked. No gameplay effect. */
+  fxShieldsKnocked?: number;
   /** Extra basic hits queued for the NEXT basic attack (Dart Frog's loaded
    *  darts). Consumed the next time this card basic-attacks. */
   loadedHits: number;

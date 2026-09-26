@@ -6,7 +6,7 @@ import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
-  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -1288,8 +1288,11 @@ function triggerTrapOnMove(draft: GameState, card: CardInstance, arrival = "step
  *  (if it survived) apply the status / push. */
 function applyWall(draft: GameState, card: CardInstance, w: WallState): void {
   draft.log.push(`${label(draft, card)} crosses ${getSpell(w.spellId).name}!`);
-  if (w.stripShields && card.curShields > 0)
+  if (w.stripShields && card.curShields > 0) {
+    const had = card.curShields;
     card.curShields = Math.max(0, card.curShields - w.stripShields);
+    noteShieldFx(card, had - card.curShields);
+  }
   const died = spellHit(draft, card, w.dmg, false, w.owner);
   if (died || !draft.cards[card.instanceId] || card.curHp <= 0) return;
   if (w.status)

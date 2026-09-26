@@ -108,28 +108,31 @@ function useDamageFloats(instanceId: string, seq: number, hits: readonly number[
   return batch;
 }
 
-/** Float "🛡−N" when this card's shields fall — the readout for a hit the
- *  shields SOAKED. Shields are armour: a hit they take whole changes no HP, so
- *  the damage numbers (HP only, by design) float nothing, and the card looked
- *  untouched. Read off the shield count the way the HP flash reads the HP, so
- *  every way of losing plating shows (a blow, BURN melting it, a wall).
+/** Float "🛡−N" when a BLOW knocks this card's shields off — the readout for a
+ *  hit the shields SOAKED. Shields are armour: a hit they take whole changes no
+ *  HP, so the damage numbers (HP only, by design) float nothing, and the card
+ *  looked untouched. Read off the engine's count of shields knocked off
+ *  (`fxShieldsKnocked`: a hit, a spell's damage, a wall, a crack, a magnet),
+ *  not off the shield number — so plating that simply ran out (Downpour's
+ *  Frozen Flow or Leo's "for the round" plate expiring at the round's end) or
+ *  melted (BURN's shred, which its own tick draws) floats nothing.
  *
  *  Re-baselined, never floated, when a different card stands in the slot or
  *  this one became another: a transform's new body wears other plating, and
  *  losing that is not a hit. */
-function useShieldLoss(instanceId: string, defId: string, shields: number) {
-  const prev = useRef({ id: instanceId, def: defId, shields });
+function useShieldLoss(instanceId: string, defId: string, knocked: number) {
+  const prev = useRef({ id: instanceId, def: defId, knocked });
   const keyRef = useRef(0);
   const [fx, setFx] = useState<{ key: number; n: number } | null>(null);
   useEffect(() => {
     const was = prev.current;
-    prev.current = { id: instanceId, def: defId, shields };
+    prev.current = { id: instanceId, def: defId, knocked };
     if (was.id !== instanceId || was.def !== defId) {
       setFx(null);
       return;
     }
-    if (shields < was.shields) setFx({ key: ++keyRef.current, n: was.shields - shields });
-  }, [instanceId, defId, shields]);
+    if (knocked > was.knocked) setFx({ key: ++keyRef.current, n: knocked - was.knocked });
+  }, [instanceId, defId, knocked]);
   useEffect(() => {
     if (!fx) return;
     const t = setTimeout(() => setFx(null), 950);
@@ -292,7 +295,7 @@ export function Token(props: {
   const combatFx = useCombatFx(card.instanceId, card.fxMiss ?? 0, card.fxCrit ?? 0);
   const motionFx = useMotionFx(card.instanceId, card.fxLunge ?? 0, card.fxRecoil ?? 0);
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
-  const shieldFx = useShieldLoss(card.instanceId, card.defId, card.curShields);
+  const shieldFx = useShieldLoss(card.instanceId, card.defId, card.fxShieldsKnocked ?? 0);
   const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
   // Same bump-a-counter shape as the coin float — a PARALYZE that actually cost
   // the card its turn floats the word, so a turn that produced nothing reads as

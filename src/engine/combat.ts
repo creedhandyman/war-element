@@ -1021,6 +1021,17 @@ export function noteDamageFx(card: CardInstance, amount: number): void {
   card.fxDmgSeq = (card.fxDmgSeq ?? 0) + 1;
 }
 
+/** Record shields a BLOW knocked off, for the armour animation (the plate
+ *  breaking, the "🛡−N" float — see `fxShieldsKnocked`).
+ *
+ *  Purely cosmetic, like `noteDamageFx`: call it wherever a hit, a spell's
+ *  damage, a wall or a strike takes plating OFF, and nowhere else. Shields that
+ *  expire or melt were not knocked off, and must not play it. */
+export function noteShieldFx(card: CardInstance, lost: number): void {
+  if (!(lost > 0)) return;
+  card.fxShieldsKnocked = (card.fxShieldsKnocked ?? 0) + Math.round(lost);
+}
+
 /**
  * Resolve one attack (basic / special / reflect) from attacker onto target.
  * Handles the full pipeline including multi-hit, keywords, and deaths.
@@ -1470,6 +1481,7 @@ export function resolveHit(
         const broke = hasElementAura(tDef, "BORE") ? 1 : shieldsBrokenBy(remaining);
         const hadShields = target.curShields;
         target.curShields = Math.max(0, target.curShields - broke);
+        noteShieldFx(target, hadShields - target.curShields);
         // Exostone (BORE): the stone TAKES what it breaks. Break a plate off
         // something and wear it — DRAIN's trade, in the currency BORE is built
         // in. It is the aura's first offensive half: arrival plating and the
@@ -2306,6 +2318,7 @@ export function basicAttack(
       if (aDef.onHitStripShields && t.curHp > 0 && t.curShields > 0 && draft.cards[t.instanceId]) {
         const cracked = Math.min(t.curShields, aDef.onHitStripShields);
         t.curShields -= cracked;
+        noteShieldFx(t, cracked);
         notePassive(draft, attacker, "onHitStripShields");
         draft.log.push(`${label(draft, attacker)} cracks ${cracked} shield(s) off ${label(draft, t)}.`);
       }
@@ -3084,7 +3097,11 @@ export function spellHit(
     toHp = remaining;
   } else {
     toHp = Math.max(0, remaining - t.curShields);
-    if (t.curShields > 0) t.curShields = Math.max(0, t.curShields - shieldsBrokenBy(remaining));
+    if (t.curShields > 0) {
+      const had = t.curShields;
+      t.curShields = Math.max(0, t.curShields - shieldsBrokenBy(remaining));
+      noteShieldFx(t, had - t.curShields);
+    }
   }
   t.curHp -= toHp;
   noteDamageFx(t, toHp);
@@ -4575,6 +4592,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (draft.cards[t.instanceId] && t.curShields > 0) {
           const got = Math.min(stealSh, t.curShields);
           t.curShields -= got; attacker.curShields += got; stolen += got;
+          noteShieldFx(t, got);
         }
       }
       if (stolen) draft.log.push(`${label(draft, attacker)} magnetizes ${stolen} shield(s) away.`);
