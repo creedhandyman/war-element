@@ -58,8 +58,9 @@ import {
 } from "../engine";
 import { spellCapForBoard } from "../engine/spells";
 import {
-  boardOfRun, nextSeat, runComplete, runOver, runReward, settleArena, startRun,
+  boardOfRun, nextSeat, runComplete, runOver, runReward, runRewardOf, seatExtras, seatFoes, settleArena, startRun,
 } from "../data/gauntlet";
+import { dealExtras, extrasFit, tableWinPay } from "../data/dom-ladder";
 import {
   afterMatch, recordLadderMatch, tierForStreak, winsToNextRung, WINS_PER_RUNG,
 } from "../data/matchmaker";
@@ -182,10 +183,10 @@ import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
-import { ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
+import { ArenaFormat, ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
 import {
-  BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
-  type ArenaPrefs, type ArenaView, type Board as ArenaBoard, type HubStatus, type ModeView,
+  BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, isDomView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
+  type ArenaPrefs, type ArenaView, type Board as ArenaBoard, type DomView, type HubStatus, type ModeView,
 } from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
@@ -852,6 +853,11 @@ export function App() {
   // four different armies without anyone touching them.
   const [p3DeckId, setP3DeckId] = useState(premadeDecksFor(5)[2].id);
   const [p4DeckId, setP4DeckId] = useState(premadeDecksFor(5)[3].id);
+  // ...and a DOMINATION STREAK's other decks at the table, beside the dealt
+  // seat: dealt by the matchmaker, never these pickers (dom-ladder.ts). Null is
+  // "not dealt for this table yet", distinct from an empty table — a Domination
+  // fight is a duel half the time, and a dealt duel must not be dealt again.
+  const [streakExtras, setStreakExtras] = useState<string[] | null>(null);
   // WHAT KIND of AI match this is — a MODE, not a selection buried in the
   // lobby. Three, and they no longer bleed into each other: Casual picks its
   // own fight and scores nothing, Streak climbs the ladder, Gauntlet runs the
@@ -963,6 +969,15 @@ export function App() {
   useEffect(() => {
     if (gauntletSeatId && gauntletSeatId !== p2DeckId) setP2DeckId(gauntletSeatId);
   }, [gauntletSeatId, p2DeckId]);
+  /** A DOMINATION TABLE's other decks, beside the seat, in the scored mode on
+   *  screen: the run's stored table for a gauntlet seat, the matchmaker's deal
+   *  for a streak fight, and none anywhere else — a duel, a casual game, or a
+   *  run left parked. The picker seats (P3/P4) are casual Domination's alone. */
+  const ladderExtras: string[] = gauntletSeat
+    ? seatExtras(gauntletRun, boardSize).map((d) => d.id)
+    : arenaGame === "streak" && arenaMode === "ai" && !eventRun && boardSize === DOMINATION_7X7.boardSize
+      ? streakExtras ?? []
+      : [];
   /** The draft's opponent, dealt from the rung its win count has earned.
    *
    *  Gated exactly like `gauntletSeat` above, and for the same reasons written
@@ -1264,10 +1279,14 @@ export function App() {
    *
    *  Null in every other case: story battles settle their own way, events are
    *  fought once, and two of the three Arena modes have nothing queued. */
+  /** The seat's deck, and how many more share its table — "Stormcall + 2 more". */
+  const tableLabel = (id: string, extras: readonly string[]) =>
+    extras.length ? `${deckLabel(id)} + ${extras.length} more` : deckLabel(id);
   const nextUp: NextUp | null = (() => {
     if (storyNode || eventRun || twoPlayer || onlineMode) return null;
     if (game.phase !== "gameover") return null;
     const elements = [...new Set(resolveDeckCards(p2DeckId).map((id) => getDef(id).element))];
+    const foes = 1 + ladderExtras.length;
     if (arenaGame === "gauntlet") {
       const run = gauntletRun;
       // A finished run has nothing next — the panel in the lobby says what
@@ -1275,10 +1294,10 @@ export function App() {
       // exist. Only a LIVE run queues a seat.
       if (!run || runOver(run)) return null;
       return {
-        flag: `GAUNTLET · SEAT ${run.won + 1} OF ${run.seats.length}`,
-        label: deckLabel(p2DeckId),
+        flag: `GAUNTLET · SEAT ${run.won + 1} OF ${run.seats.length}${foes > 1 ? ` · ${foes} OPPONENTS` : ""}`,
+        label: tableLabel(p2DeckId, ladderExtras),
         elements,
-        sub: `${run.seats.length - run.won} left · clear the run for ${runReward(run.tier, boardOfRun(run))} shards. `
+        sub: `${run.seats.length - run.won} left · clear the run for ${runRewardOf(run)} shards. `
           + "A loss ends it.",
         goLabel: `Fight seat ${run.won + 1}`,
         leaveLabel: "Leave — run is saved",
@@ -1288,13 +1307,13 @@ export function App() {
     if (arenaGame === "streak") {
       const streak = story.ladder?.streak ?? 0;
       const tier = tierForStreak(streak, boardSize);
-      const pay = SHARDS_PER_WIN.arena
-        + recordLadderMatch({ streak, best: streak }, { won: true, tier, boardSize }).bonus;
+      const pay = tableWinPay(SHARDS_PER_WIN.arena
+        + recordLadderMatch({ streak, best: streak }, { won: true, tier, boardSize }).bonus, boardSize, foes);
       return {
         flag: streak > 0 ? `STREAK · ${streak} IN A ROW` : "STREAK · NEXT UP",
-        label: deckLabel(p2DeckId),
+        label: tableLabel(p2DeckId, ladderExtras),
         elements,
-        sub: `${TIER_LABEL[tier]} rung · a win pays ${pay} shards`
+        sub: `${TIER_LABEL[tier]} rung${foes > 1 ? ` · ${foes} opponents` : ""} · a win pays ${pay} shards`
           + (streak > 0 ? ` · a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}` : ""),
         goLabel: "Fight next opponent",
         leaveLabel: "Leave the streak",
@@ -1443,6 +1462,12 @@ export function App() {
     // Hot-seat is excluded upstream: this effect only reaches here when the
     // match was not online, and a two-human match never had the dial on.
     if (!event?.bossId && !twoPlayer) reportSkillMatch(won);
+    // A DOMINATION TABLE pays its size (dom-ladder.ts): what a win there adds
+    // above its duel price. Read off the FINISHED match rather than the lobby —
+    // the seats that played are the table that was won at, whatever the screen
+    // has dealt since — and zero on every duel board.
+    const foes = seatsOf(game).length - 1;
+    const tableExtra = (duelPay: number) => tableWinPay(duelPay, game.boardSize, foes) - duelPay;
     setStory((prev) => {
       // An event settles on its OWN path and never through `settleArena`, which
       // advances or ends a live Gauntlet run unconditionally — so routing an
@@ -1476,8 +1501,12 @@ export function App() {
         ? (won ? tamedSave(completeEvent(prev, event.id)) : prev)
         : settleArena(
             prev,
-            // The mode decides whether this match belongs to the run at all.
-            { won, againstPremade, gauntletSeat: arenaGame === "gauntlet" },
+            // The mode decides whether this match belongs to the run at all —
+            // and so whether its table's bonus is paid: a live seat's only.
+            {
+              won, againstPremade, gauntletSeat: arenaGame === "gauntlet",
+              tableBonus: tableExtra(SHARDS_PER_WIN.arena),
+            },
             (sv) => awardShards(sv, "arena"),
           );
       // The draft run is a FOURTH axis, settled the same way and on the same
@@ -1504,7 +1533,13 @@ export function App() {
         : recordLadderMatch(drafted.ladder, { won, tier: tierOf(p2DeckId), boardSize });
       const next = !climb || climb.ladder === drafted.ladder
         ? drafted
-        : addShards({ ...drafted, ladder: climb.ladder }, climb.bonus);
+        // ...and a counted WIN at a Domination table pays the whole duel price
+        // (flat win + ladder bonus) scaled to the table: the number the
+        // matchmaker quoted before the fight, from the same function.
+        : addShards(
+            { ...drafted, ladder: climb.ladder },
+            climb.bonus + (won ? tableExtra(SHARDS_PER_WIN.arena + climb.bonus) : 0),
+          );
       if (next !== prev) saveStory(next);
       return next;
     });
@@ -1522,8 +1557,7 @@ export function App() {
     // standing on the new rung when the win screen names it.
     if (arenaGame === "streak" && !event) {
       const climbed = recordLadderMatch(story.ladder, { won, tier: tierOf(p2DeckId), boardSize });
-      const pick = rollOpponent(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
-      if (pick) setP2DeckId(pick.id);
+      dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
     }
   }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story, online]);
 
@@ -1921,7 +1955,8 @@ export function App() {
     setArenaMode(setup.mode);
     setArenaGame(setup.game);
     const duel: 4 | 5 = boardSize === 4 || boardSize === 5 ? boardSize : arenaPrefs.duel;
-    const board = boardForView(v, boardSize, duel, arenaView);
+    // A scored mode opens in the FORMAT it was last played in on its own screen.
+    const board = boardForView(v, boardSize, duel, arenaView, isDomView(v) && arenaPrefs.dom[v]);
     if (board !== boardSize) setBoardSize(board);
     // AN EVENT BELONGS TO QUICK MATCH. It is seated from Home or the Tower onto
     // that screen, and carried anywhere else it parks a run behind a fight the
@@ -1940,14 +1975,43 @@ export function App() {
    *  it is played on. Re-dealt when the seat is off the rung — so "Start Streak
    *  Match · Even" is not sitting over whatever the last fight left behind — and
    *  when it holds a deck from the other board's shelf, which would resolve to a
-   *  different army entirely. */
+   *  different army entirely. On the 7x7 the rest of the TABLE is held to the
+   *  same standard: dealt again when the one it has no longer fits the rung, the
+   *  board or the seat — and dealt for the first time when there is none. */
   function reseatStreak(board: number, seat: string) {
     const tier = tierForStreak(story.ladder?.streak ?? 0, board);
     const onShelf = premadeDecksFor(board).some((d) => d.id === seat);
     if (tierOf(seat) !== tier || !onShelf) {
-      const pick = rollOpponent(tier, board, seat);
-      if (pick) setP2DeckId(pick.id);
+      dealStreakFight(tier, board, seat);
+      return;
     }
+    if (board < DOMINATION_7X7.boardSize) setStreakExtras(null);
+    else if (!streakExtras || !extrasFit(streakExtras, tier, board, seat)) {
+      setStreakExtras(dealExtras(tier, board, seat));
+    }
+  }
+
+  /** THE STREAK'S NEXT FIGHT, dealt whole: a deck from the rung and, on the 7x7,
+   *  the rest of its table. One function for every deal — the matchmaker's
+   *  button, the re-deal after a match, a seat that fell off the rung — so a new
+   *  opponent can never sit down at the last one's table. */
+  function dealStreakFight(tier: DeckTier, board: number, avoid: string) {
+    const pick = rollOpponent(tier, board, avoid);
+    if (!pick) return;
+    setP2DeckId(pick.id);
+    setStreakExtras(board >= DOMINATION_7X7.boardSize ? dealExtras(tier, board, pick.id) : null);
+  }
+
+  /** A scored mode's FORMAT, picked on its own screen: Domination is the 7x7,
+   *  Duel goes back to the last duel board. Remembered per screen, so a Streak
+   *  played as Domination opens as Domination next time. */
+  function pickArenaFormat(v: DomView, dom: boolean) {
+    setArenaPrefs((p) => {
+      const next: ArenaPrefs = { ...p, dom: { ...p.dom, [v]: dom } };
+      saveArenaPrefs(next);
+      return next;
+    });
+    pickArenaBoard(dom ? DOMINATION_7X7.boardSize as ArenaBoard : arenaPrefs.duel);
   }
 
   /** A battlefield picked on an Arena screen. Remembered as the duel board when
@@ -2024,14 +2088,15 @@ export function App() {
     // online both hand the other seat to a person, and there is one other
     // person. Clamped here rather than in the picker so a leftover 4 from a
     // previous match cannot deal a four-way on a 5x5.
-    // ...and a LADDER is one opponent per seat. Gauntlet deals a run of named
-    // seats and Streak deals the next rung: both are "you versus this deck",
-    // so a free-for-all there would be a run whose seat you only fought a third
-    // of. Casual is where the extra chairs live.
+    // ...and a LADDER's table is DEALT, never picked. Casual Domination asks how
+    // many opponents; a Streak or Gauntlet fight on the 7x7 seats whatever the
+    // matchmaker or the run dealt (`ladderExtras`, dom-ladder.ts) — the seat's
+    // own deck, and sometimes one or two more from its rung, paid for as the
+    // bigger table it is. A duel board is still one opponent, as it always was.
     const ladder = arenaGame === "gauntlet" || arenaGame === "streak";
-    const domSeats = boardSize === DOMINATION_7X7.boardSize
-      && !twoPlayer && !onlineMode && !ladder
-      ? seatCount : 2;
+    const domSeats = boardSize === DOMINATION_7X7.boardSize && !twoPlayer && !onlineMode
+      ? (ladder ? 2 + ladderExtras.length : seatCount)
+      : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
     // Remembered so Rematch can run the same two decks back — under the same
@@ -2047,7 +2112,7 @@ export function App() {
     // seats use, so a custom deck is legal in seat three and an id left over
     // from another battlefield degrades to this board's shelf exactly as P1's
     // and P2's do.
-    const extraDeckIds = [p3DeckId, p4DeckId];
+    const extraDeckIds = ladder ? ladderExtras : [p3DeckId, p4DeckId];
     const extraSeats = domSeats > 2
       ? (["P3", "P4"] as const).slice(0, domSeats - 2).map((id, i) => ({
           id,
@@ -5397,6 +5462,22 @@ export function App() {
                     streak's to decide — choosing your own fight is what Quick match
                     is for — so the seat is dealt, and this names what it dealt
                     before you agree to the fight. */}
+                {/* DUEL OR DOMINATION — Streak's one question besides the fight
+                    itself. Gauntlet asks it beside its difficulty, below. */}
+                {arenaView === "streak" && !eventRun && (
+                  <ArenaFormat
+                    dom={boardSize === DOMINATION_7X7.boardSize}
+                    onPick={(dom) => pickArenaFormat("streak", dom)}
+                    note={boardSize === DOMINATION_7X7.boardSize && (
+                      <>
+                        Fought on the 7×7 and won on Points. Sometimes one or two more decks
+                        from your rung share the table — every opponent past the first adds
+                        half again to the pay.
+                      </>
+                    )}
+                  />
+                )}
+
                 {arenaView === "streak" && (() => {
                   const streak = story.ladder?.streak ?? 0;
                   const tier = tierForStreak(streak, boardSize);
@@ -5409,18 +5490,18 @@ export function App() {
                   // What the NEXT win is worth, stated before you agree to the
                   // fight. The ladder pays by rung and streak, so "wins pay 12" is
                   // the whole reason to be up here rather than farming Easy — and
-                  // it is invisible unless the lobby says it.
-                  const winPay = SHARDS_PER_WIN.arena
+                  // it is invisible unless the lobby says it. On the 7x7 it is
+                  // scaled to the table dealt, by the function the settlement uses.
+                  const foes = 1 + ladderExtras.length;
+                  const winPay = tableWinPay(SHARDS_PER_WIN.arena
                     + recordLadderMatch({ streak, best: streak },
-                        { won: true, tier, boardSize }).bonus;
+                        { won: true, tier, boardSize }).bonus, boardSize, foes);
+                  const pays = `${foes > 1 ? `${foes} opponents · ` : ""}wins pay ${winPay}`;
                   return (
                     <div className="ar-gauntlet mm">
                       <button
                         className="gt-start"
-                        onClick={() => {
-                          const pick = rollOpponent(tier, boardSize, p2DeckId);
-                          if (pick) setP2DeckId(pick.id);
-                        }}
+                        onClick={() => dealStreakFight(tier, boardSize, p2DeckId)}
                       >
                         <span className="gt-start-main">
                           {onRung ? "Reroll" : "Find"} {a} {TIER_LABEL[tier]} match
@@ -5428,10 +5509,10 @@ export function App() {
                         </span>
                         <span className="gt-sub">
                           {streak === 0
-                            ? `A random ${TIER_LABEL[tier]} deck · wins pay ${winPay}. Win ${WINS_PER_RUNG} in a row to move up a rung.`
+                            ? `A random ${TIER_LABEL[tier]} deck · ${pays}. Win ${WINS_PER_RUNG} in a row to move up a rung.`
                             : owed > 0
-                              ? `${streak} in a row · wins pay ${winPay} · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
-                              : `${streak} in a row · wins pay ${winPay} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
+                              ? `${streak} in a row · ${pays} · ${owed} more to reach ${TIER_LABEL[tierForStreak(streak + owed, boardSize)]}`
+                              : `${streak} in a row · ${pays} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
                           {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
                         </span>
                       </button>
@@ -5449,10 +5530,11 @@ export function App() {
                     <div className="gt-head">
                       <span className="ar-flabel">
                         GAUNTLET · {gauntletRun.tier === "mid" ? "EVEN" : gauntletRun.tier.toUpperCase()}
+                        {boardOfRun(gauntletRun) >= DOMINATION_7X7.boardSize && " · DOMINATION"}
                       </span>
                       <span className="gt-sub">
                         {runComplete(gauntletRun)
-                          ? `Run cleared — +${runReward(gauntletRun.tier, boardOfRun(gauntletRun))} shards banked.`
+                          ? `Run cleared — +${runRewardOf(gauntletRun)} shards banked.`
                           : gauntletRun.lost
                             ? `Beaten on seat ${gauntletRun.won + 1}. The run is over.`
                             : `Seat ${gauntletRun.won + 1} of ${gauntletRun.seats.length}${
@@ -5461,7 +5543,7 @@ export function App() {
                                 // run parked behind an event this read "Seat 1 of 4
                                 // · Nightshrike's brood" — the run announcing an
                                 // opponent it never dealt and would never score.
-                                gauntletSeat ? ` · ${deckLabel(p2DeckId)}` : " · parked"}`}
+                                gauntletSeat ? ` · ${tableLabel(p2DeckId, ladderExtras)}` : " · parked"}`}
                       </span>
                     </div>
                     {/* One pip per seat: what you have banked and what is left,
@@ -5478,6 +5560,16 @@ export function App() {
                         />
                       ))}
                     </div>
+                    {/* A DOMINATION RUN'S TABLES, one under each pip. Dealt with
+                        the run and fixed, so there is nothing to hide: knowing
+                        seat three is a table of three is part of the run. */}
+                    {gauntletRun.extras && (
+                      <div className="gt-tables" aria-label="Opponents at each seat">
+                        {gauntletRun.seats.map((id, i) => (
+                          <span key={id}>{seatFoes(gauntletRun, i) === 1 ? "1 foe" : `${seatFoes(gauntletRun, i)} foes`}</span>
+                        ))}
+                      </div>
+                    )}
                     {!runOver(gauntletRun) && (
                       <button
                         className="ghost sm gt-quit"
@@ -5499,6 +5591,14 @@ export function App() {
                     anything is a lie. The button at the bottom lines it up. */}
                 {arenaView === "gauntlet" && (!gauntletRun || runOver(gauntletRun)) && (
                   <>
+                    {/* ...and its FORMAT, beside it for the same reason: a run is
+                        dealt for one, and a live run keeps the one it was dealt. */}
+                    {!eventRun && (
+                      <ArenaFormat
+                        dom={boardSize === DOMINATION_7X7.boardSize}
+                        onPick={(dom) => pickArenaFormat("gauntlet", dom)}
+                      />
+                    )}
                     <div className="ar-field">
                       <span className="ar-flabel">DIFFICULTY</span>
                       <div className="seg">
@@ -5506,7 +5606,8 @@ export function App() {
                           <button
                             key={rung}
                             className={runTier === rung ? "on" : ""}
-                            title={`Four ${TIER_LABEL[rung]} decks · clears for ${runReward(rung, boardSize)} shards`}
+                            title={`Four ${TIER_LABEL[rung]} decks · clears for ${
+                              boardSize === DOMINATION_7X7.boardSize ? "at least " : ""}${runReward(rung, boardSize)} shards`}
                             onClick={() => setRunTierPick(rung)}
                           >
                             {TIER_LABEL[rung]}
@@ -5518,11 +5619,23 @@ export function App() {
                       </div>
                     </div>
                     <div className="ar-modes">
-                      <p className="ar-mode-note">
-                        Four {TIER_LABEL[runTier]} decks, dealt one at a time. Clearing all four pays{" "}
-                        {runReward(runTier, boardSize)} shards
-                        {(story.gauntlet?.cleared ?? []).includes(runTier) ? " — you have cleared this one before." : "."}
-                      </p>
+                      {boardSize === DOMINATION_7X7.boardSize ? (
+                        // THE RUN'S TABLES ARE NOT DEALT YET, so the price is a
+                        // floor: a run of four duels pays it, and every bigger
+                        // table the deal brings adds to it (`runReward`).
+                        <p className="ar-mode-note">
+                          Four {TIER_LABEL[runTier]} seats on the 7×7, dealt one at a time — some put
+                          two or three decks at the table at once. Clearing all four pays{" "}
+                          {runReward(runTier, boardSize)} shards, and more for every bigger table
+                          {(story.gauntlet?.cleared ?? []).includes(runTier) ? " — you have cleared this one before." : "."}
+                        </p>
+                      ) : (
+                        <p className="ar-mode-note">
+                          Four {TIER_LABEL[runTier]} decks, dealt one at a time. Clearing all four pays{" "}
+                          {runReward(runTier, boardSize)} shards
+                          {(story.gauntlet?.cleared ?? []).includes(runTier) ? " — you have cleared this one before." : "."}
+                        </p>
+                      )}
                     </div>
                   </>
                 )}
@@ -5706,7 +5819,9 @@ export function App() {
                     <div className="ar-seat empty pending">
                       <span className="ar-flag dim">GAUNTLET · FOUR SEATS</span>
                       <span className="ar-codehint">
-                        Four {TIER_LABEL[runTier]} opponents are dealt when you line up the run.
+                        {boardSize === DOMINATION_7X7.boardSize
+                          ? `Four ${TIER_LABEL[runTier]} seats and their tables are dealt when you line up the run.`
+                          : `Four ${TIER_LABEL[runTier]} opponents are dealt when you line up the run.`}
                       </span>
                     </div>
                   ) : (
@@ -5774,6 +5889,25 @@ export function App() {
                     </div>
                   </div>
                 )}
+                {/* ...and a SCORED Domination table's, the same row read-only:
+                    the matchmaker or the run dealt these, and a picker on a dealt
+                    seat is the reroll the mode exists to prevent. */}
+                {(arenaView === "streak" || arenaView === "gauntlet") && ladderExtras.length > 0 && (
+                  <div className="ar-table">
+                    <span className="ar-flabel">ALSO AT THE TABLE · FREE-FOR-ALL</span>
+                    <div className="ar-table-seats">
+                      {ladderExtras.map((id, i) => (
+                        <DeckSeat
+                          key={id}
+                          side="foe"
+                          flag={`AI · P${i + 3}`}
+                          label={deckLabel(id)}
+                          cards={resolveDeckCards(id)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {/* THE THIRD LEVEL — the choices a match rarely needs, behind one
                     summary line: the battlefield, and how much the AI knows. AI
@@ -5783,7 +5917,9 @@ export function App() {
                     summary={arenaSettingsSummary}
                     open={arenaSettingsOpen}
                     onToggle={() => setArenaSettingsOpen((o) => !o)}
-                    board={arenaView === "domination" ? null : {
+                    // No battlefield on the 7x7: casual Domination IS that board,
+                    // and a scored mode picks it with its FORMAT toggle instead.
+                    board={arenaView === "domination" || boardSize === DOMINATION_7X7.boardSize ? null : {
                       boards: VIEW_SETUP[arenaView as ModeView].boards,
                       value: boardSize,
                       // LOCKED while a run is live. A run is dealt for a board — it

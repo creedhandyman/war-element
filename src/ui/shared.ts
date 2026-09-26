@@ -2,8 +2,9 @@
 
 import { SPELLS } from "../engine/spells";
 import { buildableCards } from "../data/custom-decks";
-import type { Element, Keyword, PlayerId, StatusKind, Suit } from "../engine";
+import type { Element, GameState, Keyword, PlayerId, StatusKind, Suit } from "../engine";
 import { styleOf, suitVariantOf } from "../engine/suits";
+import { dominationMap } from "../data/domination";
 
 // Element colors — the redesign palette (brighter, reads on the cosmic board).
 /** THE element order, wherever a UI lists all eight.
@@ -279,6 +280,26 @@ export function suitFor(seatSuits: Partial<Record<PlayerId, Suit>> | undefined, 
     name: style.name,
     blurb: style.blurb,
   };
+}
+
+/** WHO HOLDS A DOMINATION POINT, as the suit drawn above its letter.
+ *
+ *  The letter's colour is viewer-relative — yours, open, contested, or held
+ *  against you — and in a free-for-all "against you" has up to three answers.
+ *  The holder's suit is the one mark that says WHICH seat, in the same glyph
+ *  and colour their cards wear. Only on a Point's citadel (where the letter
+ *  is), and undefined while nobody holds it. */
+export function poiHolderSuit(
+  game: Pick<GameState, "domination" | "seatSuits">, row: number, col: number,
+): { seat: PlayerId; glyph: string; key: string } | undefined {
+  const dom = game.domination;
+  const map = dom && dominationMap(dom.mapId);
+  if (!dom || !map) return undefined;
+  const poi = map.pois.find((p) => p.centre.row === row && p.centre.col === col);
+  const seat = poi ? dom.held[poi.id] : null;
+  if (!seat) return undefined;
+  const suit = suitFor(game.seatSuits, seat);
+  return { seat, glyph: suit.glyph, key: suit.key };
 }
 
 export const SEAT_SUIT: Record<PlayerId, { glyph: string; key: string }> = {

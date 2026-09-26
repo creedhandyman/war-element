@@ -27,6 +27,9 @@ export function Slot(props: {
    *  which is the one square in a Point that can never hold a token to cover
    *  it. Domination only. */
   poiLetter?: string;
+  /** The suit of whoever holds that Point, drawn ABOVE the letter — the colour
+   *  says yours or theirs, the suit says whose. Absent while nobody holds it. */
+  poiSuit?: { glyph: string; key: string };
   /** Each SEAT's foils, keyed by owner. Was a single "the local player's" set
    *  tested against `owner === viewer`, which is the same thing offline and
    *  wrong online: the opponent's shinies are theirs to show, and yours have to
@@ -136,7 +139,12 @@ export function Slot(props: {
           ::after already belongs to traps and closed squares, and this must
           sit OVER the card standing here — that card is the point. */}
       {props.strike && <i className="slot-strike" aria-hidden="true" />}
-      {props.poiLetter && <span className="poi-letter" aria-hidden="true">{props.poiLetter}</span>}
+      {props.poiLetter && (
+        <span className="poi-letter" aria-hidden="true">
+          {props.poiSuit && <i className={`poi-suit suit-${props.poiSuit.key}`}>{props.poiSuit.glyph}</i>}
+          {props.poiLetter}
+        </span>
+      )}
       {props.captured && (
         <span
           className="lock"

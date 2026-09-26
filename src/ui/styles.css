@@ -2385,6 +2385,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gt-pips i.won { background: var(--legal); border-color: var(--legal); }
 .gt-pips i.now { border-color: var(--gold); box-shadow: 0 0 8px rgba(201, 162, 75, .5); }
 .gt-pips i.lost { background: var(--threat); border-color: var(--threat); }
+/* A Domination run's table sizes, one under each pip, in the pips' columns. */
+.gt-tables { display: flex; gap: 6px; margin-top: -3px; }
+.gt-tables span {
+  flex: 1; text-align: center; font-size: 10px; line-height: 1.2;
+  letter-spacing: 0.04em; color: var(--ink-dim);
+}
 .gt-quit { align-self: flex-start; }
 /* A dealt seat is not a control. It keeps the card's look and loses the
    affordance, rather than being a button that does nothing. */
@@ -7092,6 +7098,25 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.obj-theirs .poi-letter   { color: rgba(255, 200, 200, 0.95); text-shadow: 0 0 10px rgba(240, 92, 92, 0.65), 0 2px 4px #000; }
 .slot.obj-contested .poi-letter{ color: rgba(255, 222, 170, 0.98); text-shadow: 0 0 12px rgba(255, 158, 46, 0.75), 0 2px 4px #000; }
 .slot.obj-open .poi-letter     { color: rgba(200, 224, 255, 0.90); text-shadow: 0 0 10px rgba(90, 165, 255, 0.55), 0 2px 4px #000; }
+/* THE HOLDER'S SUIT, above the letter. The letter's colour answers "is it
+   mine"; in a free-for-all "held against you" has up to three answers, and
+   the suit is the one mark that says whose — the glyph and colour that seat's
+   cards wear. Stacked with the letter as one centred group. */
+.poi-letter { align-content: center; }
+.poi-suit {
+  font-style: normal;
+  font-size: max(11px, 0.85em);
+  line-height: 1;
+  text-shadow: 0 1px 3px #000, 0 0 6px rgba(0, 0, 0, 0.9);
+}
+.poi-suit.suit-spade   { color: var(--suit-spade); }
+.poi-suit.suit-club    { color: var(--suit-club); }
+.poi-suit.suit-diamond { color: var(--suit-diamond); }
+.poi-suit.suit-heart   { color: var(--suit-heart); }
+.poi-suit.suit-spade-alt   { color: var(--suit-spade-alt); }
+.poi-suit.suit-club-alt    { color: var(--suit-club-alt); }
+.poi-suit.suit-diamond-alt { color: var(--suit-diamond-alt); }
+.poi-suit.suit-heart-alt   { color: var(--suit-heart-alt); }
 
 /* Closed ground shows the STATE through its letter, not through a ring — a
    square nothing can stand on should not look like a square you can take. */

@@ -82,6 +82,37 @@ export function ArenaHeader(props: { title: string; blurb: string; onBack: () =>
   );
 }
 
+/** DUEL OR DOMINATION — the question Streak and Gauntlet add. On the screen,
+ *  not in the settings row: it changes what a win pays and how many opponents
+ *  a match can seat (dom-ladder.ts), and a choice like that should be seen
+ *  rather than found behind "Settings". */
+export function ArenaFormat(props: { dom: boolean; onPick: (dom: boolean) => void; note?: ReactNode }) {
+  return (
+    <>
+      <div className="ar-field">
+        <span className="ar-flabel">FORMAT</span>
+        <div className="seg as-seg">
+          <button className={props.dom ? "" : "on"} aria-pressed={!props.dom} onClick={() => props.onPick(false)}>
+            <b>Duel</b>
+            <span>One opponent</span>
+          </button>
+          <button className={props.dom ? "on" : ""} aria-pressed={props.dom} onClick={() => props.onPick(true)}>
+            <b>Domination</b>
+            <span>7×7 · pays ×2</span>
+          </button>
+        </div>
+      </div>
+      {/* Below the row, not inside it: `.ar-field` is one flex line, and a
+          sentence in it squeezes the toggle into a sliver. */}
+      {props.note && (
+        <div className="ar-modes">
+          <p className="ar-mode-note">{props.note}</p>
+        </div>
+      )}
+    </>
+  );
+}
+
 export interface SettingsBoard {
   boards: readonly Board[];
   value: number;

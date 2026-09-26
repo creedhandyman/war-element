@@ -385,6 +385,14 @@ export function RulesBook(props: { onClose: () => void }) {
                 Dragon's Lair. You hold a Point by having more live bodies on its ring
                 than anyone else — a <i>tie</i> changes nothing, so whoever held it keeps
                 it until someone breaks the deadlock. Each one pays <b>2</b> Gold a round.
+                Its letter sits on the closed middle square, with the <b>suit</b> of
+                whoever holds it above it.
+              </li>
+              <li>
+                <b>In Streak and Gauntlet</b> — pick <b>Domination</b> as the format and
+                the fight moves here. Sometimes one or two more decks from the same rung
+                share the table. A win pays <b>double</b>, and every opponent past the
+                first adds half again.
               </li>
               <li>
                 <b>Winning</b> — hold <b>all four</b> and the match ends on the spot. Or

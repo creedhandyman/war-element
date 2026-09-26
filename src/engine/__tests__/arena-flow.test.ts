@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ARENA_PREFS_KEY, DEFAULT_ARENA_PREFS, HUB_ENTRIES, VIEW_HEAD, VIEW_SETUP,
-  boardForView, entryForView, hubBadge, loadArenaPrefs, saveArenaPrefs, viewForEntry,
+  boardForView, entryForView, hubBadge, isDomView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
   type HubStatus, type ModeView,
 } from "../../ui/arena-nav";
 
@@ -25,12 +25,34 @@ describe("what each screen sets underneath", () => {
     expect(VIEW_SETUP.online).toMatchObject({ mode: "online", game: "casual" });
   });
 
-  it("the duels never offer the 7x7, and Domination offers nothing else", () => {
+  it("no duel screen offers the 7x7 as a battlefield, and Domination offers nothing else", () => {
     for (const v of ["quick", "streak", "gauntlet", "draft"] as const)
       expect(VIEW_SETUP[v].boards, v).toEqual([4, 5]);
     expect(VIEW_SETUP.domination.boards).toEqual([7]);
     expect(VIEW_SETUP.local.boards).toContain(7);
     expect(VIEW_SETUP.online.boards).toContain(7);
+  });
+
+  it("Streak and Gauntlet reach the 7x7 through their FORMAT toggle, and only they do", () => {
+    // Domination in a scored mode pays double and can seat more than one
+    // opponent (dom-ladder.ts) — a choice made on the screen, not a board size
+    // buried in the settings row.
+    expect(VIEW_SETUP.streak.dom).toBe(true);
+    expect(VIEW_SETUP.gauntlet.dom).toBe(true);
+    for (const v of ["quick", "draft", "domination", "local", "online"] as const)
+      expect(VIEW_SETUP[v].dom, v).toBeFalsy();
+    expect(isDomView("streak") && isDomView("gauntlet")).toBe(true);
+    expect(isDomView("quick") || isDomView("domination") || isDomView("hub")).toBe(false);
+  });
+
+  it("a scored mode opens in the format it was last played in on its own screen", () => {
+    expect(boardForView("streak", 4, 4, "hub", true)).toBe(7);
+    expect(boardForView("gauntlet", 5, 5, "domination", true)).toBe(7);
+    // Duel again: back to the last duel board, not left on the 7x7.
+    expect(boardForView("streak", 7, 5, "hub", false)).toBe(5);
+    // ...and a remembered format means nothing on a screen without the toggle.
+    expect(boardForView("quick", 4, 4, "hub", true)).toBe(4);
+    expect(boardForView("draft", 5, 5, "hub", true)).toBe(5);
   });
 
   it("every AI screen is played against the AI, in the mode it names", () => {
@@ -133,16 +155,27 @@ describe("the choice remembered between visits", () => {
 
   it("round-trips", () => {
     const s = mem();
-    saveArenaPrefs({ view: "gauntlet", duel: 5, friend: "local" }, s);
-    expect(loadArenaPrefs(s)).toEqual({ view: "gauntlet", duel: 5, friend: "local" });
+    const prefs = { view: "gauntlet", duel: 5, friend: "local", dom: { streak: true, gauntlet: false } } as const;
+    saveArenaPrefs(prefs, s);
+    expect(loadArenaPrefs(s)).toEqual(prefs);
   });
 
   it("repairs a bad field without losing the good ones", () => {
     const s = mem();
     s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "nowhere", duel: 7, friend: "local" }));
-    expect(loadArenaPrefs(s)).toEqual({ view: "hub", duel: 4, friend: "local" });
+    expect(loadArenaPrefs(s)).toEqual({ view: "hub", duel: 4, friend: "local", dom: { streak: false, gauntlet: false } });
     s.setItem(ARENA_PREFS_KEY, "{not json");
     expect(loadArenaPrefs(s)).toEqual(DEFAULT_ARENA_PREFS);
+  });
+
+  it("a saved format is Domination only when it says so plainly", () => {
+    // Prefs written before the toggle have no `dom` at all, and those players
+    // were playing duels — a missing or garbled entry must read as a duel.
+    const s = mem();
+    s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "streak", duel: 5, friend: "online", dom: { streak: "yes", gauntlet: true } }));
+    expect(loadArenaPrefs(s).dom).toEqual({ streak: false, gauntlet: true });
+    s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "streak", duel: 5, friend: "online", dom: 1 }));
+    expect(loadArenaPrefs(s).dom).toEqual({ streak: false, gauntlet: false });
   });
 
   it("survives storage that refuses to be used", () => {
@@ -253,5 +286,55 @@ describe("the wiring in App.tsx", () => {
     // own `bossRun.cardId` is the only field read off it anywhere in App.tsx.
     const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
     expect(code.match(/\bbossRun\??\.\w+/g), "every read goes through bossFight").toEqual(["bossRun.cardId"]);
+  });
+
+  // ── Domination in Streak and Gauntlet ─────────────────────────────────────
+  it("a scored mode opens in its own remembered FORMAT", () => {
+    expect(fn("enterArenaView")).toContain("boardForView(v, boardSize, duel, arenaView, isDomView(v) && arenaPrefs.dom[v])");
+    const pick = fn("pickArenaFormat");
+    expect(pick).toContain("dom: { ...p.dom, [v]: dom }");
+    expect(pick).toContain("saveArenaPrefs(next)");
+  });
+
+  it("a scored Domination fight seats the DEALT table, and casual keeps its pickers", () => {
+    const start = fn("startArenaMatch");
+    expect(start).toContain("(ladder ? 2 + ladderExtras.length : seatCount)");
+    expect(start).toContain("const extraDeckIds = ladder ? ladderExtras : [p3DeckId, p4DeckId];");
+    // The table is the run's for a gauntlet seat and the matchmaker's for a
+    // streak fight — never P3/P4's pickers, which are casual Domination's.
+    expect(APP).toContain("seatExtras(gauntletRun, boardSize).map((d) => d.id)");
+    expect(APP).toContain("? streakExtras ?? []");
+  });
+
+  it("every streak deal deals the whole table, through one function", () => {
+    const deal = fn("dealStreakFight");
+    expect(deal).toContain("setP2DeckId(pick.id)");
+    expect(deal).toContain("dealExtras(tier, board, pick.id)");
+    // The matchmaker's button and the re-deal after a match both use it, and
+    // it is the only place the Arena rolls an opponent at all.
+    expect(APP).toContain("onClick={() => dealStreakFight(tier, boardSize, p2DeckId)}");
+    expect(APP).toContain("dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);");
+    const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
+    expect(code.match(/rollOpponent\(/g), "rolled only inside dealStreakFight").toHaveLength(1);
+    // A seat that is still on the rung keeps its deck but not a stale table.
+    const reseat = fn("reseatStreak");
+    expect(reseat).toContain("!extrasFit(streakExtras, tier, board, seat)");
+  });
+
+  it("a table's bonus is paid from the FINISHED match, and quoted by the same function", () => {
+    expect(APP).toContain("const foes = seatsOf(game).length - 1;");
+    expect(APP).toContain("tableWinPay(duelPay, game.boardSize, foes) - duelPay");
+    // Gauntlet: through settleArena, which pays it on a live seat only.
+    expect(APP).toContain("tableBonus: tableExtra(SHARDS_PER_WIN.arena),");
+    // Streak: on a counted win, on top of the flat win and the ladder bonus.
+    expect(APP).toContain("climb.bonus + (won ? tableExtra(SHARDS_PER_WIN.arena + climb.bonus) : 0)");
+    // The matchmaker panel and the win screen quote it the same way.
+    expect(APP.split("tableWinPay(SHARDS_PER_WIN.arena").length - 1, "quoted in two places").toBe(2);
+  });
+
+  it("the settings row has no battlefield on the 7x7 — the FORMAT toggle owns it there", () => {
+    expect(APP).toContain('board={arenaView === "domination" || boardSize === DOMINATION_7X7.boardSize ? null : {');
+    expect(APP).toContain('onPick={(dom) => pickArenaFormat("streak", dom)}');
+    expect(APP).toContain('onPick={(dom) => pickArenaFormat("gauntlet", dom)}');
   });
 });

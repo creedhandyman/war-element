@@ -3381,16 +3381,19 @@ What holds it together (all pinned in `arena-flow.test.ts`):
   screens are `game: "casual"`, and that is load-bearing: the run settlements
   read only `arenaGame`, so a hot-seat match played while the mode still said
   "gauntlet" was scored against the run.
-- **The 7x7 is Domination's.** Quick match and the scored modes offer 4x4 and 5x5
-  only, and `boardForView` leaves the 7x7 behind on the way out of Domination
-  (it carries only between the two friend screens). Scored runs on the 7x7 are
-  no longer OFFERED; one begun there before still plays, with the board lock
-  showing it.
+- **The 7x7 is never a battlefield SETTING on a duel screen.** Quick match and
+  Draft offer 4x4 and 5x5 only, and `boardForView` leaves the 7x7 behind on the
+  way out of Domination (it carries only between the two friend screens).
+- **Streak and Gauntlet reach it through FORMAT** (owner, 2026-09): a Duel /
+  Domination toggle on their own screens (`ArenaFormat`, `VIEW_SETUP.*.dom`),
+  remembered per screen (`ArenaPrefs.dom`) — not a third battlefield, because it
+  changes the pay and the table, which a player should see. See the next
+  section.
 - **An event belongs to Quick match.** `seatEventFight` lands there; entering
   any other screen with an event seated gives the P2 seat back and clears
   `bossRun`, so an event can never park a run.
 - **Remembered per device** under `we_arena_v1` — the screen, the last duel
-  board, the last friend screen — and NOT in `SAVE_KEYS`. Restored at boot by
+  board, the last friend screen, each scored mode's format — and NOT in `SAVE_KEYS`. Restored at boot by
   re-running `enterArenaView`, so what is stored is the screen and everything it
   implies is derived.
 - **Back**: a mode screen is a `useBackLayer` over the list — the
@@ -3401,6 +3404,39 @@ What holds it together (all pinned in `arena-flow.test.ts`):
   and nothing else, so from Casual or Streak the run stayed parked and hidden.
 - On a phone the header's back pill and the list's ribbon step past the floating
   mute button — the collision `.story-head` clears with its 44px.
+
+## Domination in Streak and Gauntlet — `data/dom-ladder.ts`
+
+Either scored mode can be played on the 7x7 now. Two rules, both in
+`dom-ladder.ts` and pinned in `dom-ladder.test.ts`:
+
+- **The table is DEALT, sometimes bigger than a duel.** Beside the seat's own
+  deck: none half the time, one more three in ten, two more one in five
+  (`EXTRA_FOE_ODDS`), from the SAME rung, never the seat's deck, never one twice
+  (`dealExtras`). Streak deals it with every opponent (`dealStreakFight` — the
+  matchmaker's button, the re-deal after a match, an off-rung seat; the one
+  place `rollOpponent` is called) into `streakExtras`, and `reseatStreak` re-deals
+  a stale table (`extrasFit`). Gauntlet deals every seat's table when the run is
+  lined up and STORES it (`GauntletRun.extras`), drawn after the seat shuffle so
+  a seeded run's four seats are unchanged — a big table you could leave and
+  come back from as a duel is a reroll. `startArenaMatch` seats `ladderExtras`
+  as P3/P4; the casual pickers stay casual Domination's.
+- **The pay: Domination doubles a scored win, and every opponent past the first
+  adds half again** (`tablePay`, `tableWinPay`). The half-again is the table's
+  odds, not generosity: against F equal opponents you win about 1 in F + 1, and
+  (F + 1) / 2 is what keeps the expected shards per MATCH level — so a big table
+  is never the worse deal and never the farm. Streak: the whole duel price (flat
+  win + ladder bonus) scaled, on a COUNTED win. Gauntlet: a won LIVE seat adds
+  its table's bonus (`settleArena`'s `tableBonus` — not a parked run, not a
+  Rematch after the run, not against your own deck), and the clearing reward
+  scales by the run's tables averaged over its seats (`runReward(..., extras)`,
+  `runRewardOf`). The foe count is read off the FINISHED match
+  (`seatsOf(game)`), and the screens quote the same function the settlement pays.
+
+A held Point also shows WHOSE it is: the holder's suit above the letter on its
+citadel (`poiHolderSuit` in shared.ts), in that seat's suit colour. The letter's
+colour is viewer-relative, and in a free-for-all "held against you" has three
+answers.
 
 ## Traps found the hard way
 

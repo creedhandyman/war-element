@@ -31,22 +31,35 @@ export interface ViewSetup {
   game: ArenaGame;
   /** The battlefields this screen offers, in order. */
   boards: readonly Board[];
+  /** Can ALSO be played on the Domination map, through the screen's FORMAT
+   *  toggle rather than the battlefield setting — see `DomView`. */
+  dom?: boolean;
 }
 
-/** THE 7x7 IS DOMINATION, and only Domination. It is a free-for-all won on
- *  Points, so it has its own screen with its own question (how many opponents),
- *  and the duels — Quick match and the three scored modes — are fought on the
- *  two duel boards. A friend can still pick it: a hot-seat or online game is a
- *  room of people choosing their own table. */
+/** THE 7x7 IS DOMINATION. Casually it is a free-for-all with its own screen and
+ *  its own question (how many opponents); the duels — Quick match and Draft —
+ *  are fought on the two duel boards. A friend can still pick it: a hot-seat or
+ *  online game is a room of people choosing their own table.
+ *
+ *  STREAK AND GAUNTLET can be played on it too (owner, 2026-09), as a FORMAT
+ *  on their own screens: Duel or Domination. Not as a third battlefield in the
+ *  settings row, because it is not a board size — it pays double and sometimes
+ *  seats more than one opponent (dom-ladder.ts), which is a choice the screen
+ *  should show, not one to find behind "Settings". So `boards` stays the duel
+ *  boards and `dom` marks the screen that has the toggle. */
 export const VIEW_SETUP: Record<ModeView, ViewSetup> = {
   quick: { mode: "ai", game: "casual", boards: [4, 5] },
-  streak: { mode: "ai", game: "streak", boards: [4, 5] },
-  gauntlet: { mode: "ai", game: "gauntlet", boards: [4, 5] },
+  streak: { mode: "ai", game: "streak", boards: [4, 5], dom: true },
+  gauntlet: { mode: "ai", game: "gauntlet", boards: [4, 5], dom: true },
   draft: { mode: "ai", game: "draft", boards: [4, 5] },
   domination: { mode: "ai", game: "casual", boards: [7] },
   local: { mode: "local", game: "casual", boards: [4, 5, 7] },
   online: { mode: "online", game: "casual", boards: [4, 5, 7] },
 };
+
+/** The scored modes with a Duel / Domination toggle. */
+export type DomView = "streak" | "gauntlet";
+export const isDomView = (v: ArenaView): v is DomView => v === "streak" || v === "gauntlet";
 
 /** The battlefield a view opens on: the current one if the view offers it, the
  *  last duel board if that fits, else the view's first. So a player who plays
@@ -55,8 +68,15 @@ export const VIEW_SETUP: Record<ModeView, ViewSetup> = {
  *  THE 7x7 STAYS BEHIND when you leave Domination, even for a screen that offers
  *  it: a friend's game opened straight after a free-for-all opened AS one — the
  *  big map and four seats already picked, by a choice made for something else.
- *  It carries only between the two friend screens, where it was chosen for them. */
-export function boardForView(view: ModeView, current: number, lastDuel: 4 | 5, from?: ArenaView): Board {
+ *  It carries only between the two friend screens, where it was chosen for them.
+ *
+ *  `domOn` is the screen's own FORMAT, remembered per screen (`ArenaPrefs.dom`):
+ *  a Streak last played as Domination opens as Domination, whatever board the
+ *  screen before it was on. */
+export function boardForView(
+  view: ModeView, current: number, lastDuel: 4 | 5, from?: ArenaView, domOn?: boolean,
+): Board {
+  if (domOn && VIEW_SETUP[view].dom) return 7;
   const boards = VIEW_SETUP[view].boards as readonly number[];
   const friend = (v?: ArenaView) => v === "local" || v === "online";
   const keep = boards.includes(current)
@@ -173,9 +193,13 @@ export interface ArenaPrefs {
   duel: 4 | 5;
   /** Which of Play a friend's two screens was used last. */
   friend: "local" | "online";
+  /** Each scored mode's FORMAT, last picked on its own screen: true = Domination. */
+  dom: Record<DomView, boolean>;
 }
 
-export const DEFAULT_ARENA_PREFS: ArenaPrefs = { view: "hub", duel: 4, friend: "online" };
+export const DEFAULT_ARENA_PREFS: ArenaPrefs = {
+  view: "hub", duel: 4, friend: "online", dom: { streak: false, gauntlet: false },
+};
 
 type Store = Pick<Storage, "getItem" | "setItem">;
 
@@ -200,10 +224,14 @@ export function loadArenaPrefs(store: Store | null = browserStore()): ArenaPrefs
     raw = null;
   }
   const o = raw && typeof raw === "object" ? (raw as Partial<Record<keyof ArenaPrefs, unknown>>) : {};
+  const dom = o.dom && typeof o.dom === "object" ? (o.dom as Partial<Record<DomView, unknown>>) : {};
   return {
     view: typeof o.view === "string" && VIEWS.includes(o.view) ? (o.view as ArenaView) : DEFAULT_ARENA_PREFS.view,
     duel: o.duel === 4 || o.duel === 5 ? o.duel : DEFAULT_ARENA_PREFS.duel,
     friend: o.friend === "local" || o.friend === "online" ? o.friend : DEFAULT_ARENA_PREFS.friend,
+    // Per mode, and only a real `true` turns it on: a missing or garbled entry
+    // is a duel, which is what every player had before the toggle existed.
+    dom: { streak: dom.streak === true, gauntlet: dom.gauntlet === true },
   };
 }
 

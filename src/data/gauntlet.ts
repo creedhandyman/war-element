@@ -28,6 +28,7 @@
  *  four decks you did not pick.
  */
 import { DECK_TIERS, decksForTier, type DeckTier, type PremadeDeck } from "./custom-decks";
+import { dealExtras, EXTRA_FOE_PAY } from "./dom-ladder";
 import type { StorySave } from "./story";
 
 /** Opponents in a run.
@@ -73,10 +74,21 @@ export const BIG_BOARD_PAY = 1.5;
  *  is the wrong incentive pointed at the wrong format. */
 export const DOM_BOARD_PAY = 2;
 
-/** Shards for CLEARING a rung on a board. The table above is the 4x4 figure. */
-export const runReward = (tier: DeckTier, board: number): number =>
-  Math.round(RUN_REWARD[tier]
-    * (board >= 7 ? DOM_BOARD_PAY : board === 5 ? BIG_BOARD_PAY : 1));
+/** Shards for CLEARING a rung on a board. The table above is the 4x4 figure.
+ *
+ *  `extras` is a Domination run's extra decks per seat (see `GauntletRun.extras`).
+ *  Its bigger tables raise the price on the rule a single win uses — half again
+ *  per extra opponent (dom-ladder.ts) — averaged over the run's seats, so a run
+ *  dealt one table of three pays for that one table, not for four of them.
+ *  Omitted (every duel board, and a run not yet dealt) it is the plain rate. */
+export const runReward = (tier: DeckTier, board: number, extras?: readonly number[]): number => {
+  const tables = board >= 7 && extras?.length
+    ? extras.reduce((sum, n) => sum + n, 0) / extras.length
+    : 0;
+  return Math.round(RUN_REWARD[tier]
+    * (board >= 7 ? DOM_BOARD_PAY : board === 5 ? BIG_BOARD_PAY : 1)
+    * (1 + EXTRA_FOE_PAY * tables));
+};
 
 export interface GauntletRun {
   tier: DeckTier;
@@ -94,6 +106,11 @@ export interface GauntletRun {
   /** Set when a seat is lost. A finished run stays in the save so the screen
    *  can say what happened rather than silently resetting. */
   lost?: boolean;
+  /** DOMINATION ONLY: the other decks at each seat's table, by seat index — none
+   *  for a duel seat. Dealt with the run and stored with it for the same reason
+   *  the seats are: a big table you could leave and come back from as a duel is
+   *  a reroll. Absent on a duel board and on every run written before this. */
+  extras?: string[][];
 }
 
 export interface GauntletState {
@@ -114,8 +131,25 @@ export function startRun(tier: DeckTier, boardSize: number, rand: () => number =
     const j = Math.floor(rand() * (i + 1));
     [seats[i], seats[j]] = [seats[j], seats[i]];
   }
-  return { tier, board: boardSize, seats: seats.slice(0, RUN_LENGTH).map((d) => d.id), won: 0 };
+  const run: GauntletRun = { tier, board: boardSize, seats: seats.slice(0, RUN_LENGTH).map((d) => d.id), won: 0 };
+  // ...and on the 7x7 every seat's table, after the seats so a duel board's
+  // deal is untouched by it.
+  if (boardSize >= 7) run.extras = run.seats.map((id) => dealExtras(tier, boardSize, id, rand));
+  return run;
 }
+
+/** The decks sharing the current seat's table, beside the seat's own — empty
+ *  for a duel seat, a duel board, or a run that is over. */
+export function seatExtras(run: GauntletRun | undefined, boardSize: number): PremadeDeck[] {
+  if (!run || runOver(run)) return [];
+  const pool = decksForTier(run.tier, boardSize);
+  return (run.extras?.[run.won] ?? [])
+    .map((id) => pool.find((d) => d.id === id))
+    .filter((d): d is PremadeDeck => !!d);
+}
+
+/** How many opponents sit at seat `i`'s table: its own deck and its extras. */
+export const seatFoes = (run: GauntletRun, i: number): number => 1 + (run.extras?.[i]?.length ?? 0);
 
 export const runOver = (run?: GauntletRun): boolean =>
   !!run && (!!run.lost || run.won >= run.seats.length);
@@ -143,9 +177,13 @@ export function recordResult(run: GauntletRun, won: boolean): GauntletRun {
 export const boardOfRun = (run: GauntletRun): number =>
   run.board ?? (run.seats.some((id) => id.endsWith("_5")) ? 5 : 4);
 
+/** A run's clearing price, big tables included. */
+export const runRewardOf = (run: GauntletRun): number =>
+  runReward(run.tier, boardOfRun(run), run.extras?.map((e) => e.length));
+
 /** Shards owed for a run, and zero unless it was actually completed. */
 export const rewardFor = (run?: GauntletRun): number =>
-  runComplete(run) ? runReward(run!.tier, boardOfRun(run!)) : 0;
+  runComplete(run) ? runRewardOf(run!) : 0;
 
 /** Rungs in ladder order with whether each has ever been cleared. */
 export const ladderProgress = (g: GauntletState | undefined) =>
@@ -178,6 +216,11 @@ export function settleArena(
      *  So the caller now states it, and a run survives every other mode: the
      *  Arena is a place you can leave and come back to. */
     gauntletSeat?: boolean;
+    /** Shards a won DOMINATION seat adds to the flat win — its table's price
+     *  above a duel's (dom-ladder.ts `tableWinPay`). Paid only for a live run's
+     *  seat against a premade, the same gate as the run itself: a Rematch after
+     *  the run ended is fought on the same 7x7 and must not earn run money. */
+    tableBonus?: number;
   },
   award: (s: StorySave) => StorySave,
 ): StorySave {
@@ -185,7 +228,7 @@ export function settleArena(
   const run = save.gauntlet?.run;
   if (opts.gauntletSeat && run && !runOver(run)) {
     const after = recordResult(run, opts.won);
-    const reward = rewardFor(after);
+    const reward = rewardFor(after) + (opts.won && opts.againstPremade ? Math.max(0, opts.tableBonus ?? 0) : 0);
     const cleared = runComplete(after)
       ? [...new Set([...(save.gauntlet?.cleared ?? []), after.tier])]
       : (save.gauntlet?.cleared ?? []);

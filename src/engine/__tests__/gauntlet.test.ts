@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   RUN_LENGTH, RUN_REWARD, boardOfRun, ladderProgress, nextSeat, recordResult, rewardFor, runReward,
-  runComplete, runOver, startRun,
+  runRewardOf, runComplete, runOver, startRun,
 } from "../../data/gauntlet";
 import { DECK_TIERS, decksForTier, tiersFor } from "../../data/custom-decks";
 import { settleArena } from "../../data/gauntlet";
@@ -295,7 +295,11 @@ describe("the 7×7 runs its own ladder", () => {
     for (let i = 0; i < RUN_LENGTH; i++) run = recordResult(run, true);
     expect(runComplete(run)).toBe(true);
     expect(runOver(run)).toBe(true);
-    expect(rewardFor(run), "settled at the wrong board's rate").toBe(runReward("hard", B));
+    // A 7x7 run deals its TABLES with it (dom-ladder.ts) and a bigger table
+    // raises the price, so the run's own price is the rate — and the plain 7x7
+    // figure is its floor.
+    expect(rewardFor(run), "settled at the wrong board's rate").toBe(runRewardOf(run));
+    expect(rewardFor(run)).toBeGreaterThanOrEqual(runReward("hard", B));
   });
 
   it("still pays the 7×7 rate when the board field is missing", () => {

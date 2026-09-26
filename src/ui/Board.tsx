@@ -3,7 +3,7 @@ import type { StrikeZone } from "./attack-zone";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
-import { cardThumbSrc, EL_COLOR } from "./shared";
+import { cardThumbSrc, EL_COLOR, poiHolderSuit } from "./shared";
 import { dominationMap, isImpassable, isRoad, isShrine, isWell, poiAt, poiRing } from "../data/domination";
 
 /** Plain-language summary of a live Field's numeric bonuses. Used for terrain,
@@ -362,6 +362,7 @@ export function Board(props: {
                   terrain={domTerrain(game, row, col)}
                   objective={objectiveAt(game, props.viewPlayer, row, col)}
                   poiLetter={poiLetterAt(game, row, col)}
+                  poiSuit={poiHolderSuit(game, row, col)}
                   trap={myTrap ?? null}
                   canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
