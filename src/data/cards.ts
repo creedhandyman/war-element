@@ -4270,14 +4270,14 @@ export const CARDS: CardDef[] = [
     roundTick: { selfShields: 1, selfShieldsMax: 6 },
     onDeath: { dmg: 0, spawnToken: { token: "bolt_static_wisp_tok", count: 1 } },
     // Core Overload: release the built-up charge — 8 DMG to all opponents in
-    // range and PARALYZE each for 1 round.
+    // range and PARALYZE each for 3 rounds (was 1; owner's call).
     special: {
       name: "Core Overload",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 8, targets: 99, statusKind: "PARALYZE", statusDuration: 1 },
+      params: { dmg: 8, targets: 99, statusKind: "PARALYZE", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Deal 8 DMG to all opponents in range and PARALYZE each for 1 round.",
+      text: "Deal 8 DMG to all opponents in range and PARALYZE each for 3 rounds.",
     },
   },
   {
