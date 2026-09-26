@@ -165,8 +165,81 @@ function lunge(at: At, from: Rect, targets: Rect[], ms: number) {
   );
 }
 
-function fire(fx: SpellFx[]) {
-  if (fx.length === 0) return;
+// ── KEEPING UP ───────────────────────────────────────────────────────────────
+// Domination with three AI seats took its steps faster than a landing plays
+// out: every throw went up on top of the last one's burst, a round's end fired
+// a tick for every status on twenty cards in one frame, and the game stuttered
+// under its own effects. Two answers here, and a third in the layer (adaptive
+// detail, impact-layer.ts):
+//  - THE PACE. The effects keep a clock of when what they fired will have
+//    played out, and the auto-advance waits on it before its next step
+//    (App.tsx) — so the game keeps up with its effects instead of burying them.
+//  - THE BUDGET. A crowded round's end keeps every bite (what happened) and
+//    caps the flavour, then spreads what is left over a few frames instead of
+//    building it all in one.
+
+/** When what has been fired will have played out, on the real clock (ms). */
+let busyUntil = 0;
+/** The next step may start over the tail of the last one's effects... */
+const OVERLAP_MS = 300;
+/** ...and is never held longer than this, however much is on screen. */
+const MAX_WAIT_MS = 1200;
+
+/** Roughly how long an effect holds the eye, in seconds. */
+function settleOf(f: SpellFx): number {
+  switch (f.kind) {
+    case "hit": return f.melee ? 0.35 : 0.55;
+    case "impact": case "trapSprung": case "wallBite": return 0.55;
+    case "tick": case "drain": return f.delay + 0.8;
+    case "board": return 1.1;
+    case "field": return 1.2;
+    case "wall": return 1;
+    case "heal": case "pulse": return 0.8;
+    default: return 0.5;
+  }
+}
+
+/** How long to hold the next automatic step so it is not thrown on top of
+ *  effects still playing — 0 once they have had their moment. Read by the
+ *  auto-advance in App.tsx, which is declared after `useSpellImpacts`, so a
+ *  landing's effects are already on this clock when it asks. */
+export function effectsBacklogMs(): number {
+  if (!effectsOn()) return 0;
+  return Math.max(0, Math.min(MAX_WAIT_MS, busyUntil - performance.now() - OVERLAP_MS));
+}
+
+type Tick = Extract<SpellFx, { kind: "tick" }>;
+/** Past this many round-end ticks in one step, the flavour is budgeted. */
+const TICK_BUDGET = 14;
+/** What goes first when it is: the auras, then the heals. Never a bite. */
+const TICK_RANK: Record<Tick["tick"], number> = {
+  bite: 0, cleanse: 1, expire: 2, regen: 3, photosynthesis: 3, tide: 4, bark: 4, shield: 4, zephyr: 5, firstLight: 5,
+};
+
+/** A step's effects, made affordable: a crowded round's end keeps every bite
+ *  and at least a few of the rest, most important first; and the ticks are
+ *  spread a beat apart, so twenty cards' worth is not built in one frame. */
+export function budgeted(fx: SpellFx[]): SpellFx[] {
+  const ticks = fx.filter((f): f is Tick => f.kind === "tick");
+  let kept = fx;
+  if (ticks.length > TICK_BUDGET) {
+    const bites = ticks.filter((f) => f.tick === "bite").length;
+    const rest = ticks.filter((f) => f.tick !== "bite").sort((a, b) => TICK_RANK[a.tick] - TICK_RANK[b.tick]);
+    const drop = new Set<SpellFx>(rest.slice(Math.max(4, TICK_BUDGET - bites)));
+    kept = fx.filter((f) => !drop.has(f));
+  }
+  let n = 0;
+  return kept.map((f) => (f.kind === "tick" || f.kind === "drain" ? { ...f, delay: f.delay + Math.min(0.3, n++ * 0.03) } : f));
+}
+
+/** The board's shake in progress, so a burst of hits does not restart it on
+ *  every one of them. */
+let shaking: Animation | null = null;
+
+function fire(all: SpellFx[]) {
+  if (all.length === 0) return;
+  const fx = budgeted(all);
+  busyUntil = Math.max(busyUntil, performance.now() + Math.max(...fx.map(settleOf)) * 1000);
   void loadLayer().then((l) => {
     let hardest = 0;
     // With a whole-board spell the set piece carries the spectacle: each card's
@@ -242,10 +315,10 @@ function fire(fx: SpellFx[]) {
     // and only for a real blow. Web Animations, so it is a compositor-only
     // transform and cannot fight the board's own styles.
     const board = document.querySelector<HTMLElement>(".board");
-    if (board && hardest >= 1) {
+    if (board && hardest >= 1 && shaking?.playState !== "running") {
       // A whole-board spell shakes the whole board harder and for longer.
       const a = 3 + hardest * (boardWide ? 3 : 2);
-      board.animate(
+      shaking = board.animate(
         [
           { transform: "translate(0,0)" },
           { transform: `translate(${-a}px,${a * 0.5}px)` },

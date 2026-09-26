@@ -189,7 +189,9 @@ import {
 } from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
-import { attackDeliveryMs, boardIncomingMs, playAttack, playBoardIncoming, useSpellImpacts } from "./vfx/use-spell-impacts";
+import {
+  attackDeliveryMs, boardIncomingMs, effectsBacklogMs, playAttack, playBoardIncoming, useSpellImpacts,
+} from "./vfx/use-spell-impacts";
 import { arrivals } from "./vfx/spell-fx";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 import { createRemoteQueue, type StageShow } from "./remote-queue";
@@ -460,6 +462,9 @@ export function App() {
    *  a second action now would be applied to the state this one is about to
    *  replace, and then overwritten when it lands. */
   const [delivering, setDelivering] = useState(false);
+  /** Bumped when the auto-advance has waited out effects still playing, to
+   *  re-run it (see KEEP TO THE EFFECTS' PACE below). */
+  const [paceTick, setPaceTick] = useState(0);
   // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
   // a newly-used spell in their book and flash its art too — with its own timer
   // so it never clobbers a local flash-then-cast in flight.
@@ -1570,6 +1575,17 @@ export function App() {
       const t = setTimeout(() => commitNow(advance(game)), delay);
       return () => clearTimeout(t);
     }
+    // KEEP TO THE EFFECTS' PACE. With several AI seats (Domination) the steps
+    // came faster than a landing plays out, so every throw went up on top of
+    // the last one's burst, a round's end fired over the next round's first
+    // moves, and the effects stacked until the game stuttered. What is still
+    // playing is waited out first — bounded, and the next step may overlap its
+    // tail (effectsBacklogMs) — and only then is the next step lit and thrown.
+    const backlog = effectsBacklogMs();
+    if (backlog > 0) {
+      const t = window.setTimeout(() => setPaceTick((n) => n + 1), backlog);
+      return () => clearTimeout(t);
+    }
     // LOOK AHEAD, THEN SHOW, THEN LAND. The step is computed NOW with the pure
     // `advance()`, and what it was aimed at is lit during the wait the step
     // had anyway; the computed state is then applied as-is. What lights up is
@@ -1603,7 +1619,7 @@ export function App() {
       // re-run computes the same step and lights it again.
       setStrike(null);
     };
-  }, [game, started, online, announce, castFlash, stagedCast]);
+  }, [game, started, online, announce, castFlash, stagedCast, paceTick]);
 
   // THE AI'S SPELL, SHOWN BEFORE IT LANDS: its art flashes (the board is under
   // a near-opaque scrim while it does), then the flash clears onto its targets

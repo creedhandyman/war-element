@@ -75,6 +75,9 @@ export interface ImpactLayer {
   play(fx: LayerFx): void;
   /** Sparks alive right now — the lab's HUD reads it. */
   readonly live: number;
+  /** Detail right now, QUALITY_FLOOR-1: it falls while frames run long and
+   *  recovers when they don't (see `adapt`). */
+  readonly quality: number;
   /** Smoothed frames per second, while the ticker is running. */
   fps(): number;
   /** Hard ceiling on live sparks. A burst that would exceed it is thinned, not
@@ -151,6 +154,8 @@ interface Burst {
 }
 
 const TEX = 64; // the dot texture's side, px — every scale below is size / TEX
+/** The least detail adaptive quality will shed to (see `adapt`). */
+const QUALITY_FLOOR = 0.35;
 
 function dotTexture(): Texture {
   // White, soft-edged: tint does the colour and additive blending does the
@@ -227,6 +232,42 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   const effects: Burst[] = [];
   let cap = 6000;
 
+  // ── ADAPTIVE DETAIL ───────────────────────────────────────────────────────
+  // A busy board — Domination with three AI seats, a round's end on twenty
+  // cards — can ask for more than a phone draws in a frame, and the game
+  // stuttered under its own effects. So the layer watches its own frames:
+  // while they run long it sheds SPARKS (fewer born — never fewer effects, so
+  // every hit still shows), and as frames come back it restores them. Judged
+  // against the device's own frame, so a phone held at 30 Hz is not mistaken
+  // for a slow one.
+  /** 1 = full detail. */
+  let quality = 1;
+  /** The device's frame, ms: the median of a few idle frames at start-up. */
+  let frameMs = 1000 / 60;
+  {
+    const stamps: number[] = [];
+    const probe = (ts: number) => {
+      stamps.push(ts);
+      if (stamps.length < 12) { requestAnimationFrame(probe); return; }
+      const d = stamps.slice(1).map((v, i) => v - stamps[i]).sort((a, b) => a - b);
+      frameMs = d[Math.floor(d.length / 2)] || frameMs;
+    };
+    requestAnimationFrame(probe);
+  }
+  let slowRun = 0, fastRun = 0;
+  /** Three long frames in a row shed 15% of the sparks; a second of good
+   *  ones restores 10%. Quick to back off, slow to come back, so it
+   *  does not see-saw on a board that is only just too busy. */
+  function adapt(ms: number) {
+    if (ms > Math.max(24, frameMs * 1.6)) {
+      fastRun = 0;
+      if (++slowRun >= 3) { quality = Math.max(QUALITY_FLOOR, quality - 0.15); slowRun = 0; }
+    } else {
+      slowRun = 0;
+      if (quality < 1 && ++fastRun >= 60) { quality = Math.min(1, quality + 0.1); fastRun = 0; }
+    }
+  }
+
   /** A spark's scale and turn at birth. `update()` sets them every frame, but
    *  a spark born inside an effect's own tick (a `later`, a drawn shape, a
    *  projectile's trail) is pushed AFTER this frame's spark pass has run, so it
@@ -273,7 +314,8 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   }
 
   function burst(x: number, y: number, st: Style, strength: number, count: number) {
-    for (let i = 0; i < count; i++) spawnSpark(x, y, st, strength, rand(0, Math.PI * 2), false);
+    const n = Math.round(count * quality);
+    for (let i = 0; i < n; i++) spawnSpark(x, y, st, strength, rand(0, Math.PI * 2), false);
   }
 
   function addFlash(x: number, y: number, st: Style, strength: number, delay = 0) {
@@ -377,7 +419,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       life: e.life, size: e.size, streak: !!e.streak, swirl: e.swirl,
     };
     const cx = e.from.x + e.from.w / 2, cy = e.from.y + e.from.h / 2;
-    const n = Math.min(e.count, Math.max(0, cap - live.length));
+    const n = Math.min(Math.round(e.count * quality), Math.max(0, cap - live.length));
     for (let i = 0; i < n; i++) {
       if (e.at === "ring") {
         const a = rand(0, Math.PI * 2);
@@ -586,7 +628,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         // Stretched with speed, but capped: uncapped, a fast dart drew two squares
         // long and read as a laser.
         head.scale.set((p.headSize * (p.stretch ? Math.min(3.2, 1 + v * 0.004) : 1)) / TEX, (p.headSize * (p.stretch ? 0.7 : 1)) / TEX);
-        acc += p.trail.rate * dt;
+        acc += p.trail.rate * dt * quality;
         while (acc >= 1) {
           acc -= 1;
           const a = rand(0, Math.PI * 2), d = rand(0, p.trail.drift);
@@ -675,7 +717,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
           }
           g.rect(R.x, fromTop ? y1 - 3 : y0, R.w, 3).fill({ color: 0xdff4ff, alpha: 0.85 });
         }
-        acc += 300 * dt;
+        acc += 300 * dt * quality;
         while (acc >= 1) {
           acc -= 1;
           spawnRaw(R.x + rand(0, R.w), front, rand(-50, 50), (fromTop ? 1 : -1) * rand(60, 240) - rand(40, 140),
@@ -694,7 +736,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     let acc = 0;
     effects.push({
       age: 0, delay: 0, tick: (age, dt) => {
-        acc += 320 * dt;
+        acc += 320 * dt * quality;
         while (acc >= 1) {
           acc -= 1;
           const a = rand(0, Math.PI * 2), r = rand(0.35, 1) * reach, v = rand(150, 320);
@@ -1076,8 +1118,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     t = {
       element, style: st,
       emit, shot, glow, ring, band, charge, later, arcCut, rakes, bolt, draw,
-      spark: (x, y, vx, vy, life, style, origin) =>
-        spawnRaw(x, y, vx, vy, life, asStyle(style), origin?.x ?? x, origin?.y ?? y),
+      // One at a time, so thinned by chance: at quality 0.5, half are born.
+      spark: (x, y, vx, vy, life, style, origin) => {
+        if (quality < 1 && Math.random() > quality) return;
+        spawnRaw(x, y, vx, vy, life, asStyle(style), origin?.x ?? x, origin?.y ?? y);
+      },
       flash: (at, color, strength, delay = 0) => addFlash(at.x, at.y, { ...st, palette: [color, color] }, strength, delay),
       arcs: (at, palette, strength, n) => addArcs(at.x, at.y, { ...st, palette }, strength, n),
       rays: (at, palette, strength, n) => addRays(at.x, at.y, { ...st, palette }, strength, n),
@@ -1161,6 +1206,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
 
   let lastCount = 0;
   function update() {
+    adapt(app.ticker.deltaMS);
     const dt = Math.min(app.ticker.deltaMS / 1000, 1 / 20); // a hitch must not teleport sparks
     for (let i = live.length - 1; i >= 0; i--) {
       const s = live[i];
@@ -1229,7 +1275,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     if (st.implode) {
       // Gather first, burst when they arrive — the one element whose hit
       // has a wind-up, because shadow collapsing IN is what DUSK is.
-      const n = Math.round(st.sparks * 0.5 * k);
+      const n = Math.round(st.sparks * 0.5 * k * quality);
       for (let i = 0; i < n; i++) spawnSpark(x, y, st, k, rand(0, Math.PI * 2), true);
       const later = new Graphics();
       bursts.addChild(later);
@@ -1263,6 +1309,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     impact: impactAt,
     play,
     get live() { return live.length; },
+    get quality() { return quality; },
     fps: () => app.ticker.FPS,
     setCap(n) { cap = n; },
     destroy() {
@@ -1273,5 +1320,5 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
 }
 
 function noopLayer(): ImpactLayer {
-  return { impact() {}, play() {}, live: 0, fps: () => 0, setCap() {}, destroy() {} };
+  return { impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, destroy() {} };
 }
