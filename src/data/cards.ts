@@ -8505,8 +8505,13 @@ export const CARDS: CardDef[] = [
     tribe: "Grove",
     // Overwatch: when an ally is killed, answer the killer with 7 DMG (once per
     // round).
-    passiveNames: { onAllyKilled: "Overwatch" },
+    // Grove Ward (Aura, owner's call 2026-09): Grove allies — Hartwood too, as
+    // every tribe aura covers its holder — carry +2 shields, regrown each round
+    // up to printed +2 (`auraShieldBonus`). Most of the tribe prints 0, so for
+    // them it is a two-shield skin that comes back while Hartwood stands.
+    passiveNames: { onAllyKilled: "Overwatch", aura: "Grove Ward" },
     onAllyKilled: { dmg: 7, oncePerRound: true },
+    aura: { scope: "tribe", match: "Grove", shields: 2 },
     // Justice: 2×4 DMG (PEN) to all opponents in range, draining from them.
     special: {
       name: "Justice",
