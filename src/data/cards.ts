@@ -1347,10 +1347,12 @@ export const CARDS: CardDef[] = [
     // 6 DMG on 7 HP, not 12 on 1: a 1-HP card died before it swung (-7.0 against
     // same-cost AQUA peers after the AI fix). Same 20 points, -2.1.
     // Then 8 / 5 (owner's call): two points of body into the claw, still 20.
-    // It read -7.9 (tier E) on fresh seeds in the second ledger at 6 / 7.
+    // It read -7.9 (tier E) on fresh seeds in the second ledger at 6 / 7, and
+    // -9.0 (tier F, the only one) at 8 / 5. Then +2 HP (owner's call): 8 / 7,
+    // 22 points — the top of the cost-2 band, no exemption needed.
     dmg: 8,
     hits: 1,
-    hp: 5,
+    hp: 7,
     sp: 7,
     shields: 0,
     keywords: {},
