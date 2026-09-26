@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cardAttack, damageAt, shotPower } from "../../ui/vfx/spell-fx";
+import { cardAttack, cardAttackEffects, damageAt, shotPower } from "../../ui/vfx/spell-fx";
 import { place, prepState } from "./helpers";
 
 /** A battle step by `attackerId`, with `after` left for the test to shape. */
@@ -51,5 +51,10 @@ describe("a projectile's size is its damage", () => {
     const act = cardAttack(s, after)!;
     const by = Object.fromEntries(act.targets.map((t, i) => [`${t.row},${t.col}`, act.damage[i]]));
     expect(by).toEqual({ "3,0": 6, "3,1": 2, "3,2": 3, "3,3": 0 });
+    // A blow's mark is sized the same way: each hit carries its own.
+    const hits = cardAttackEffects(s, after).filter((f) => f.kind === "hit");
+    const power = Object.fromEntries(hits.map((h) => [`${h.at.row},${h.at.col}`, h.kind === "hit" ? h.power : undefined]));
+    expect(power["3,0"]).toBeCloseTo(shotPower(6, false));
+    expect(power["3,2"]).toBeCloseTo(shotPower(3, false));
   });
 });

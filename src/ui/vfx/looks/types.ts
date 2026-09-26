@@ -146,8 +146,9 @@ export interface Throw {
   size: number;
   /** The hit's damage as a scale: area in proportion to damage, 1 for a
    *  typical hit (4 from a basic, 8 from a Special — a Special is drawn about
-   *  √2 its basic already), 0.55 for a miss, up to 2. Always 1 for a swing. A
-   *  look drawing lines of fixed width (a bolt, a beam) scales those by it. */
+   *  √2 its basic already), 0.55 for a miss, up to 2. A swing's `size` carries
+   *  it too, so a heavy blow drags a heavier trail. A look drawing lines of
+   *  fixed width (a bolt, a beam) scales those by it. */
   power: number;
 }
 

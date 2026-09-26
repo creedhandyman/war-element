@@ -275,7 +275,7 @@ function fire(all: SpellFx[]) {
           if (!r) break;
           const angle = a ? Math.atan2(r.y - a.y, r.x - a.x) : -Math.PI / 2;
           if (f.melee)
-            l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle, variant: f.variant });
+            l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle, variant: f.variant, power: f.power });
           else l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength, f.variant);
           // Only a Special shakes the board: a basic attack happens every turn.
           if (f.special) hardest = Math.max(hardest, f.strength);

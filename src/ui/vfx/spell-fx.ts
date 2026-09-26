@@ -49,7 +49,10 @@ export type SpellFx =
   | { kind: "pulse"; row: number; element: Element }
   /** A card's attack landing on a card it struck: slashed by a melee card,
    *  burst by a ranged one's shot. */
-  | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean; variant?: LookVariant }
+  | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean; variant?: LookVariant;
+      /** The blow's size, from its damage (`shotPower`): a melee mark is drawn
+       *  in proportion to what it dealt, as a projectile is. */
+      power?: number }
   /** A summon that struck as it landed, materialising on its square. */
   | { kind: "arrive"; at: At; element: Element; variant?: LookVariant }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
@@ -326,7 +329,7 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
       // lands at full weight.
       if (opposing)
         out.push({ kind: "hit", at: fx.at, from: a.at, element, strength: fx.strength * (a.special ? 1 : 0.65), melee,
-          special: a.special, variant: a.variant });
+          special: a.special, variant: a.variant, power: shotPower(damageAt(before, after, fx.at), a.special) });
       continue;
     }
     // The attacker's own plating in its look: an icy card taking the Frozen

@@ -63,7 +63,9 @@ export type LayerFx =
   /** A summon that struck, materialising on its square as the hits land. */
   | { kind: "arrive"; rect: Rect; element: Element; variant?: LookVariant }
   /** A melee card's blow landing: a cut across `angle`, the line of attack. */
-  | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number; variant?: LookVariant }
+  | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number; variant?: LookVariant;
+      /** The blow's size, from its damage (spell-fx.ts `shotPower`). */
+      power?: number }
   /** The end of the round on one card, after `delay` (see ticks.ts). */
   | ({ kind: "tick"; rect: Rect; element: Element; delay: number } & TickArgs)
   /** Creeping Dark: life carried from `from` to the DUSK card at `to`. */
@@ -1005,15 +1007,16 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     else look.windUp(t, d);
     fx.targets.forEach((r, i) => {
       const to = centre(r);
+      // A projectile's size is its damage (spell-fx.ts `shotPower`), and so is
+      // a swing's trail: a heavy blow drags a heavier one.
+      const power = fx.power?.[i] ?? 1;
       if (fx.melee) {
         look.swing(t, {
           from, to: fx.arriving ? to : lerpPt(from, to, 0.55), target: to, arriving: !!fx.arriving,
-          delay: wind, seconds: travel, special: fx.special, size, power: 1,
+          delay: wind, seconds: travel, special: fx.special, size: size * power, power,
         });
         return;
       }
-      // A projectile's size is its damage (spell-fx.ts `shotPower`).
-      const power = fx.power?.[i] ?? 1;
       look.projectile(t, { from, to, delay: wind, seconds: travel, special: fx.special, size: size * power, power });
     });
   }
@@ -1082,6 +1085,10 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const t = toolsFor(fx.element);
     const c = centre(fx.rect);
     const k = Math.max(0.6, Math.min(2.2, fx.strength));
+    // A melee hit's size is its damage, as a projectile's is (spell-fx.ts
+    // `shotPower`): 1 for a typical blow, so the X a 4-point basic leaves is
+    // the X it always was.
+    const p = fx.power ?? 1;
     if (!fx.special) {
       // A BASIC MELEE HIT IS A SMALL X: two quick cuts crossing on the card,
       // in the element's colour, and a few sparks. Upright on screen whatever
@@ -1090,17 +1097,22 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       // happens every turn, and the element's signature mark is saved for a
       // Special. The owner asked for exactly this, for every element: only the
       // few sparks it throws are the element's own.
-      const arm = Math.min(fx.rect.w, fx.rect.h) * 0.2 * (0.9 + k * 0.1);
-      rakes(c, arm, Math.PI / 4, look.markColor, 1, 0, 3.5);
-      later(0.05, () => rakes(c, arm, -Math.PI / 4, look.markColor, 1, 0, 3.5));
-      look.xSparks(t, c, Math.round(7 * k));
+      // Its size follows the damage; its sparks do too, capped so a big hit
+      // still leaves a light mark.
+      const arm = Math.min(fx.rect.w, fx.rect.h) * 0.2 * (0.9 + k * 0.1) * p;
+      const width = 3.5 * Math.min(1.5, Math.max(0.8, p));
+      rakes(c, arm, Math.PI / 4, look.markColor, 1, 0, width);
+      later(0.05, () => rakes(c, arm, -Math.PI / 4, look.markColor, 1, 0, width));
+      look.xSparks(t, c, Math.min(14, Math.round(7 * k * p)));
       return;
     }
     // A Special gets its element's signature mark, sized to sit inside the
     // square so the card it lands on still reads underneath it. The cut runs
     // ACROSS the line of attack, a little off square so it reads as a swing
     // rather than a plus sign.
-    const reach = Math.min(fx.rect.w, fx.rect.h) * 0.5 * (0.85 + k * 0.15);
+    // Grown with the damage, to 1.6x at most: past that a huge blow buries the
+    // cards beside it.
+    const reach = Math.min(fx.rect.w, fx.rect.h) * 0.5 * (0.85 + k * 0.15) * Math.min(1.6, p);
     look.mark(t, { rect: fx.rect, c, reach, angle: fx.angle, across: fx.angle + Math.PI / 2 + 0.45, k });
   }
 
