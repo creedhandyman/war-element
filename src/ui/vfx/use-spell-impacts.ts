@@ -20,7 +20,7 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
-import { boardSpell, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
+import { battleAction, battleEffects, boardSpell, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -108,6 +108,57 @@ export function playBoardIncoming(before: GameState, after: GameState, ms: numbe
 
 const rand = (a: number, b: number) => a + Math.random() * (b - a);
 
+// ── Card attacks ────────────────────────────────────────────────────────────
+
+/** How long a player's OWN attack takes to deliver before it lands: the wind-
+ *  up and the throw, or the lunge. The AI's turns already pause this long with
+ *  their targets lit, so theirs fit in the pause they have. */
+export const ATTACK_MS = 450;
+
+/** The pause a battle step wants for its delivery — 0 for a step that attacked
+ *  nothing, or with effects off. */
+export function attackDeliveryMs(before: GameState, after: GameState): number {
+  return effectsOn() && battleAction(before, after) ? ATTACK_MS : 0;
+}
+
+/** Deliver a battle step's attack, timed to arrive in `ms` — call it as the
+ *  pause before the landing begins, with the pause's full length. */
+export function playAttack(before: GameState, after: GameState, ms: number) {
+  if (!effectsOn() || ms <= 0) return;
+  const act = battleAction(before, after);
+  if (!act) return;
+  const from = squareRect(act.actor);
+  const targets = act.targets.map(squareRect).filter((r): r is Rect => r !== null);
+  if (!from || targets.length === 0) return;
+  void loadLayer().then((l) => l.play({
+    kind: "attack", from, targets, element: act.element, melee: act.melee, special: act.special, seconds: ms / 1000,
+  }));
+  if (act.melee) lunge(act.actor, from, targets, ms);
+}
+
+/** A melee card closing the distance: its token draws back, then drives most
+ *  of the way to its target — arriving on the landing frame — and returns.
+ *  `translate`, not `transform`, so it composes with the attacking token's
+ *  own pulsing scale instead of replacing it. */
+function lunge(at: At, from: Rect, targets: Rect[], ms: number) {
+  const token = document.querySelector<HTMLElement>(`[data-pos="${at.row},${at.col}"] .token`);
+  if (!token) return;
+  const tx = targets.reduce((s, t) => s + t.x + t.w / 2, 0) / targets.length;
+  const ty = targets.reduce((s, t) => s + t.y + t.h / 2, 0) / targets.length;
+  const dx = (tx - (from.x + from.w / 2)) * 0.42, dy = (ty - (from.y + from.h / 2)) * 0.42;
+  const total = ms + 220;
+  const strike = ms / total;
+  token.animate(
+    [
+      { translate: "0px 0px", offset: 0 },
+      { translate: `${-dx * 0.1}px ${-dy * 0.1}px`, offset: strike * 0.4 },
+      { translate: `${dx}px ${dy}px`, offset: strike },
+      { translate: "0px 0px", offset: 1 },
+    ],
+    { duration: total, easing: "ease-in" },
+  );
+}
+
 function fire(fx: SpellFx[]) {
   if (fx.length === 0) return;
   void loadLayer().then((l) => {
@@ -123,6 +174,16 @@ function fire(fx: SpellFx[]) {
           const g = boardGeometry(f);
           if (g) l.play({ kind: "boardFinale", ...g, element: f.element, strength: f.strength });
           hardest = Math.max(hardest, 1 + f.strength);
+          break;
+        }
+        case "hit": {
+          const r = squareRect(f.at), a = squareRect(f.from);
+          if (!r) break;
+          const angle = a ? Math.atan2(r.y - a.y, r.x - a.x) : -Math.PI / 2;
+          if (f.melee) l.play({ kind: "slash", rect: r, element: f.element, strength: f.strength, special: f.special, angle });
+          else l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, f.strength);
+          // Only a Special shakes the board: a basic attack happens every turn.
+          if (f.special) hardest = Math.max(hardest, f.strength);
           break;
         }
         case "impact":
@@ -198,7 +259,7 @@ export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: 
     // survives into the lobby (see the opponent-flash effect in App.tsx), and
     // a diff taken against it there is against the last match.
     if (!game || !before || !inMatch || game.phase === "mulligan" || !effectsOn()) return;
-    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game)];
+    const fx = [...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...battleEffects(before, game)];
     if (fx.length === 0) return;
     if (hold) queued.current.push(...fx);
     else fire(fx);

@@ -28,6 +28,9 @@ export interface RemoteScreen {
   wait(ms: number, fn: () => void): () => void;
   /** How long a zone stays lit. */
   holdFor(zone: StrikeZone): number;
+  /** Deliver the step's attack — a shot, a lunge — to arrive in `ms`, as the
+   *  lit pause runs. Optional: a screen with no effects simply skips it. */
+  animate?(before: GameState, next: GameState, ms: number): void;
 }
 
 export interface RemoteQueue {
@@ -81,6 +84,7 @@ export function createRemoteQueue(screen: RemoteScreen): RemoteQueue {
     }
     busy = true;
     screen.light(zone);
+    screen.animate?.(before, next, screen.holdFor(zone));
     cancel = screen.wait(screen.holdFor(zone), () => {
       screen.light(null);
       screen.land(next);

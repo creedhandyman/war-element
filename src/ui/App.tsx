@@ -187,7 +187,7 @@ import {
 } from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
 import { SpellCastFlash } from "./SpellCastFlash";
-import { boardIncomingMs, playBoardIncoming, useSpellImpacts } from "./vfx/use-spell-impacts";
+import { attackDeliveryMs, boardIncomingMs, playAttack, playBoardIncoming, useSpellImpacts } from "./vfx/use-spell-impacts";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 import { createRemoteQueue } from "./remote-queue";
 import { WinScreen, type NextUp } from "./WinScreen";
@@ -430,12 +430,19 @@ export function App() {
       return () => clearTimeout(t);
     },
     holdFor,
+    animate: playAttack,
   }), []);
   /** The spell `staged` already flashed. The opponent-flash effect diffs
    *  spent spells after the fact, and would otherwise flash it a second time
    *  the moment the staged state lands. */
   const preFlashedRef = useRef<string | null>(null);
   const castTimerRef = useRef<number | null>(null);
+  /** A player's own attack between its delivery and its landing. */
+  const attackTimerRef = useRef<number | null>(null);
+  /** ...and the same, as state, so the action controls stand down for it:
+   *  the turn is spent, only not yet landed, and an Attack button still on
+   *  offer would be offering something that no longer exists. */
+  const [swinging, setSwinging] = useState(false);
   // Opponent casts (AI / online-remote) resolve outside castSpell, so we detect
   // a newly-used spell in their book and flash its art too — with its own timer
   // so it never clobbers a local flash-then-cast in flight.
@@ -1560,8 +1567,11 @@ export function App() {
       t = window.setTimeout(() => setStagedCast({ from: game, before: game, next, zone, spellId: cast.spellId }), delay);
     } else if (zone) {
       setStrike(zone);
-      t = window.setTimeout(() => commitNow(next),
-        Math.max(delay, holdFor(zone)));
+      const hold = Math.max(delay, holdFor(zone));
+      // A battle turn's attack is delivered in this same pause — the wind-up
+      // and the throw, or the lunge — timed to arrive as it lands.
+      playAttack(game, next, hold);
+      t = window.setTimeout(() => commitNow(next), hold);
     } else {
       t = window.setTimeout(() => commitNow(next), delay);
     }
@@ -1612,6 +1622,13 @@ export function App() {
     setStagedCast(null);
     setCastFlash(null); // a staged spell's timers died with it, including the one that clears this
     setStrike(null);
+    // A cast or an attack still in the air would otherwise land the match just
+    // left: their timers dispatch against the state they were thrown from.
+    if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current);
+    castTimerRef.current = null;
+    if (attackTimerRef.current !== null) window.clearTimeout(attackTimerRef.current);
+    attackTimerRef.current = null;
+    setSwinging(false);
     setRemoteStrike(null);
     remoteQueue.clear();
   }, [started, remoteQueue]);
@@ -2186,6 +2203,7 @@ export function App() {
   // Clear pending flash timers if the app unmounts mid-cast.
   useEffect(() => () => {
     if (castTimerRef.current !== null) window.clearTimeout(castTimerRef.current);
+    if (attackTimerRef.current !== null) window.clearTimeout(attackTimerRef.current);
     if (oppFlashTimerRef.current !== null) window.clearTimeout(oppFlashTimerRef.current);
     if (announceTimerRef.current !== null) window.clearTimeout(announceTimerRef.current);
   }, []);
@@ -3226,12 +3244,43 @@ export function App() {
     return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
 
+  /** A PLAYER'S OWN BATTLE ACTION, delivered before it lands: the card winds
+   *  up and throws, or lunges, for ATTACK_MS, then the turn is dispatched and
+   *  the hit lands with its numbers. The same pause the AI's turns already
+   *  had. `dispatch` applies the same intent to the same state, so what was
+   *  thrown is what lands; an action that attacks nothing (a skip, a buff)
+   *  dispatches at once. */
+  function dispatchBattle(intent: Intent) {
+    if (attackTimerRef.current !== null) return; // one swing at a time
+    let next: GameState | null = null;
+    try {
+      next = applyIntent(game, intent);
+    } catch {
+      next = null; // dispatch reports it
+    }
+    const ms = next ? attackDeliveryMs(game, next) : 0;
+    if (!next || ms === 0) {
+      dispatch(intent);
+      return;
+    }
+    // Disarm the pick prompt now, so it is not still asking during the swing.
+    setPending(null);
+    setPicks([]);
+    setSwinging(true);
+    playAttack(game, next, ms);
+    attackTimerRef.current = window.setTimeout(() => {
+      attackTimerRef.current = null;
+      setSwinging(false);
+      dispatch(intent);
+    }, ms);
+  }
+
   function firePicks(finalPicks: string[]) {
     if (!awaitingId) return;
     const owner = game.cards[awaitingId].owner;
     // Never issue an action for a card I don't control (online opponent / AI).
     if (me !== owner) return;
-    dispatch({
+    dispatchBattle({
       type: "BATTLE_ACTION",
       player: owner,
       action: pending!,
@@ -3719,7 +3768,7 @@ export function App() {
       // Second press = fire. Area Specials hit the whole previewed zone;
       // targeted ones fire the picks assigned so far.
       if (specialAoE) {
-        dispatch({
+        dispatchBattle({
           type: "BATTLE_ACTION", player: activeCard.owner, action: "special",
           targetIds: specialValid.map((t) => t.instanceId),
         });
@@ -3757,7 +3806,7 @@ export function App() {
     // outright and moves the card, so a misfire is a body and a position — not
     // something to hand to a single tap.
     if (pending === "plummet") {
-      dispatch({
+      dispatchBattle({
         type: "BATTLE_ACTION", player: activeCard.owner, action: "plummet",
         targetId: picks[0],
       });
@@ -3897,7 +3946,7 @@ export function App() {
    *  act with, instead of in a row at the bottom of the screen that you have to
    *  look away from the board to read. One interaction to learn, on every size.
    *  `.wrap.wheel-up` still hides the button row, so the two never both show. */
-  const wheelUp = iActBattle && wheelAt !== null;
+  const wheelUp = iActBattle && wheelAt !== null && !swinging;
 
   const wheelVerbs: WheelVerb[] = activeCard && activeDef
     ? [
@@ -4263,7 +4312,7 @@ export function App() {
               </div>
             </div>
           ) : iActBattle && activeCard && activeDef ? (
-            <div className="bprompt">
+            <div className={`bprompt${swinging ? " swinging" : ""}`}>
               <div className="bp-title">
                 {activeDef.name} is up{" "}
                 <small>

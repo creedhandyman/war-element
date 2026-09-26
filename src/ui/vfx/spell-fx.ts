@@ -18,6 +18,7 @@
 import type { Element, GameState, PlayerId, StatusKind } from "../../engine";
 import { effectiveSp } from "../../engine/state";
 import { getSpell } from "../../engine/spells";
+import { getDef } from "../../data/cards";
 import { homeRow } from "../../engine/types";
 import { spellCast } from "../attack-zone";
 
@@ -37,6 +38,9 @@ export type SpellFx =
    *  System Override): a ripple from the caster's own Home row, so a cast is
    *  never silent. */
   | { kind: "pulse"; row: number; element: Element }
+  /** A card's attack landing on a card it struck: slashed by a melee card,
+   *  burst by a ranged one's shot. */
+  | { kind: "hit"; at: At; from: At; element: Element; strength: number; melee: boolean; special: boolean }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
    *  the set piece that sweeps the board, over and above each card's own
    *  effect. `targets` are the opposing cards it reached, which the set piece
@@ -51,45 +55,44 @@ export type BoardFx = Extract<SpellFx, { kind: "board" }>;
  *  different, but a 30-point hit must not fill the screen. */
 const strengthOf = (n: number) => Math.max(0.7, Math.min(2.2, n / 5));
 
-/** The effects of a spell cast between two states, or [] if none was cast.
- *  `viewer` is whose screen this is — it decides whether a trap placement may
- *  be shown at all. */
-export function spellEffects(before: GameState, after: GameState, viewer: PlayerId): SpellFx[] {
-  const cast = spellCast(before, after);
-  if (!cast) return [];
-  const spell = getSpell(cast.spellId);
-  const element = spell.element;
-  const out: SpellFx[] = [];
-  /** Opposing cards the spell did something to — a whole-board spell's aim. */
-  const reached: At[] = [];
+/** One card's change, and whether it happened on the side that did NOT act. */
+interface Change { fx: SpellFx; opposing: boolean }
 
+/** EVERYTHING THAT HAPPENED TO THE CARDS between two states, drawn in
+ *  `element`, seen from `seat` — the side that acted. Shared by spells and by
+ *  battle actions: whatever caused it, a freeze looks like a freeze. `reached`
+ *  is the opposing cards it did something to — hurt, statused or drained. */
+function cardChanges(before: GameState, after: GameState, element: Element, seat: PlayerId): { changes: Change[]; reached: At[] } {
+  const changes: Change[] = [];
+  const reached: At[] = [];
   for (const [id, was] of Object.entries(before.cards)) {
     if (!was.pos) continue;
     const now = after.cards[id];
+    const opposing = was.owner !== seat;
+    const add = (fx: SpellFx) => changes.push({ fx, opposing });
     // Where the card is now, for anything that happened to it: a push or a
     // redeploy moves it, and the heal should rise where it stands.
     const at: At = now?.pos ?? was.pos;
 
     // Damage: lost HP or shields, or left the board — or a damage number was
-    // noted even though a heal in the same spell put the HP back.
+    // noted even though a heal in the same step put the HP back.
     const lost = was.curHp + was.curShields - (now?.pos ? now.curHp + now.curShields : 0);
     const noted = !!now && (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
-    const opposing = was.owner !== cast.seat;
     if (lost > 0 || noted) {
       const dmg = lost > 0 ? lost : (now?.fxDmgHits?.at(-1) ?? 1);
-      out.push({ kind: "impact", at: was.pos, element, strength: strengthOf(dmg) });
+      add({ kind: "impact", at: was.pos, element, strength: strengthOf(dmg) });
       if (opposing) reached.push(was.pos);
     }
     if (!now?.pos) continue;
 
-    if (now.curHp > was.curHp) out.push({ kind: "heal", at, element, strength: strengthOf(now.curHp - was.curHp) });
-    if (now.curShields > was.curShields) out.push({ kind: "shield", at, element });
+    if (now.curHp > was.curHp) add({ kind: "heal", at, element, strength: strengthOf(now.curHp - was.curHp) });
+    if (now.curShields > was.curShields) add({ kind: "shield", at, element });
 
     const had = new Set(was.statuses.map((x) => x.kind));
     let statused = false;
     for (const st of now.statuses)
       if (!had.has(st.kind)) {
-        out.push({ kind: "status", at, status: st.kind, element });
+        add({ kind: "status", at, status: st.kind, element });
         had.add(st.kind);
         statused = true;
       }
@@ -99,16 +102,29 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
     // speed, and the ice already says so; a debuff streak on top is noise.
     const sp0 = effectiveSp(before, was), sp1 = effectiveSp(after, now);
     const weakened = !statused && (sp1 < sp0 || now.maxHp < was.maxHp);
-    if (!statused && (sp1 > sp0 || now.maxHp > was.maxHp)) out.push({ kind: "buff", at, element });
-    else if (weakened) out.push({ kind: "debuff", at, element });
+    if (!statused && (sp1 > sp0 || now.maxHp > was.maxHp)) add({ kind: "buff", at, element });
+    else if (weakened) add({ kind: "debuff", at, element });
     // Hurt already counted it; a status or a drain with no damage (Heart of
     // the Forest's roots, Bloodroot's bleed) still makes it a target.
     if (opposing && (statused || weakened) && !reached.some((r) => r.row === was.pos!.row && r.col === was.pos!.col))
       reached.push(at);
 
     if (now.pos.row !== was.pos.row || now.pos.col !== was.pos.col)
-      out.push({ kind: "move", from: was.pos, to: now.pos, element });
+      add({ kind: "move", from: was.pos, to: now.pos, element });
   }
+  return { changes, reached };
+}
+
+/** The effects of a spell cast between two states, or [] if none was cast.
+ *  `viewer` is whose screen this is — it decides whether a trap placement may
+ *  be shown at all. */
+export function spellEffects(before: GameState, after: GameState, viewer: PlayerId): SpellFx[] {
+  const cast = spellCast(before, after);
+  if (!cast) return [];
+  const spell = getSpell(cast.spellId);
+  const element = spell.element;
+  const { changes, reached } = cardChanges(before, after, element, cast.seat);
+  const out: SpellFx[] = changes.map((c) => c.fx);
 
   for (const w of after.walls)
     if (!before.walls.some((b) => b.row === w.row && b.owner === w.owner && b.spellId === w.spellId))
@@ -130,6 +146,80 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
     });
 
   if (out.length === 0) out.push({ kind: "pulse", row: homeRow(cast.seat, after.boardSize), element });
+  return out;
+}
+
+// ── BATTLE ACTIONS ───────────────────────────────────────────────────────────
+
+/** A card's battle turn between two states: who struck, how, and at what.
+ *  Read the same way as everything else here — off what the step did. */
+export interface BattleAction {
+  seat: PlayerId;
+  actor: At;
+  element: Element;
+  /** Melee cards close the distance and strike; Ranged cards throw. */
+  melee: boolean;
+  /** Its Special fired this turn (`specialCasts` rose) — the heavier look. */
+  special: boolean;
+  /** Opposing cards it hurt, statused or drained — or that DODGED it: a miss
+   *  changes nothing but the dodger's MISS counter, and it was still aimed. */
+  targets: At[];
+}
+
+/** The battle card that acted between two states, and its def — or null for a
+ *  step that was not a battle turn (a spell, an arrival, the round's end). */
+function battleActor(before: GameState, after: GameState) {
+  if (spellCast(before, after)) return null;
+  const b = before.battle;
+  if (before.phase !== "battle" || !b || b.index >= b.queue.length) return null;
+  // The step re-sorts the untaken tail by SP before it acts, so the actor is
+  // read from the queue AFTER that sort.
+  const id = after.battle?.queue[b.index] ?? b.queue[b.index];
+  const was = before.cards[id];
+  if (!was?.pos) return null;
+  const now = after.cards[id];
+  return { was, now, def: getDef(was.defId), special: !!now && now.specialCasts > was.specialCasts };
+}
+
+/** The attack a battle step made, if it made one at anything. */
+export function battleAction(before: GameState, after: GameState): BattleAction | null {
+  const a = battleActor(before, after);
+  if (!a) return null;
+  const { reached } = cardChanges(before, after, a.def.element, a.was.owner);
+  const targets = [...reached];
+  for (const [id, c] of Object.entries(before.cards)) {
+    if (!c.pos || c.owner === a.was.owner) continue;
+    const n = after.cards[id];
+    if (n && (n.fxMiss ?? 0) > (c.fxMiss ?? 0) && !targets.some((t) => t.row === c.pos!.row && t.col === c.pos!.col))
+      targets.push(c.pos);
+  }
+  if (targets.length === 0) return null;
+  return {
+    seat: a.was.owner, actor: a.was.pos!, element: a.def.element,
+    melee: a.def.attackType === "Melee", special: a.special, targets,
+  };
+}
+
+/** A battle step's effects at the landing: a HIT on each card it struck —
+ *  slashed by a melee card, burst by a ranged one's shot — plus whatever else
+ *  changed. The opposing side shows all of it (the freeze left behind, the
+ *  push); the actor's own side only the good (a lifesteal heal, a shield).
+ *  Its own side's damage — a thorn biting back — is the damage numbers' job. */
+export function battleEffects(before: GameState, after: GameState): SpellFx[] {
+  const a = battleActor(before, after);
+  if (!a) return [];
+  const element = a.def.element;
+  const melee = a.def.attackType === "Melee";
+  const out: SpellFx[] = [];
+  for (const { fx, opposing } of cardChanges(before, after, element, a.was.owner).changes) {
+    if (fx.kind === "impact") {
+      // A basic attack happens every turn, so it lands lighter; a Special
+      // lands at full weight.
+      if (opposing) out.push({ kind: "hit", at: fx.at, from: a.was.pos!, element, strength: fx.strength * (a.special ? 1 : 0.65), melee, special: a.special });
+      continue;
+    }
+    if (opposing || fx.kind !== "debuff") out.push(fx);
+  }
   return out;
 }
 

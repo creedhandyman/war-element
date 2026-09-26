@@ -45,7 +45,12 @@ export type LayerFx =
    *  targets are the cards it reaches; `fromTop` is which edge the caster's
    *  side is on, for anything that should come from them. */
   | { kind: "boardIncoming"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; seconds: number; strength: number }
-  | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number };
+  | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number }
+  /** A card's attack being DELIVERED — the wind-up and the throw, or the
+   *  swing — for exactly `seconds`, so it arrives as the turn lands. */
+  | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number }
+  /** A melee card's blow landing: a cut across `angle`, the line of attack. */
+  | { kind: "slash"; rect: Rect; element: Element; strength: number; special: boolean; angle: number };
 
 export interface ImpactLayer {
   /** A spell's damage landing at a screen point (CSS px). `strength` ~0.7-2.2,
@@ -548,6 +553,8 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     headSize: number;
     /** Stretch the head along its motion — a streaking meteor. */
     stretch?: boolean;
+    /** Lob it: how high, in px, the path bows above the straight line. */
+    arc?: number;
     trail: { palette: number[]; rate: number; size: [number, number]; life: [number, number]; drift: number; gravity?: number };
     onArrive?: () => void;
   }
@@ -571,14 +578,16 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         const t = Math.min(1, age / p.seconds);
         const e = ease(t);
         const x = p.from.x + (p.to.x - p.from.x) * e;
-        const y = p.from.y + (p.to.y - p.from.y) * e;
+        const y = p.from.y + (p.to.y - p.from.y) * e - (p.arc ?? 0) * 4 * t * (1 - t);
         const vx = (x - px) / Math.max(dt, 1e-3), vy = (y - py) / Math.max(dt, 1e-3);
         px = x; py = y;
         const v = Math.hypot(vx, vy);
         head.position.set(x, y);
         head.alpha = Math.min(1, t * 6);
         head.rotation = Math.atan2(vy, vx);
-        head.scale.set((p.headSize * (p.stretch ? 1 + v * 0.004 : 1)) / TEX, (p.headSize * (p.stretch ? 0.7 : 1)) / TEX);
+        // Stretched with speed, but capped: uncapped, a fast dart drew two squares
+        // long and read as a laser.
+        head.scale.set((p.headSize * (p.stretch ? Math.min(3.2, 1 + v * 0.004) : 1)) / TEX, (p.headSize * (p.stretch ? 0.7 : 1)) / TEX);
         acc += p.trail.rate * dt;
         while (acc >= 1) {
           acc -= 1;
@@ -911,6 +920,172 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     }
   }
 
+  // ── CARD ATTACKS ──────────────────────────────────────────────────────────
+  // DELIVERY plays in the pause before a battle turn lands and lasts exactly
+  // that long: a ranged card winds up and throws, a melee card winds up while
+  // the hook lunges its token, and either arrives on the landing frame. The
+  // HIT plays at the landing: a burst where a shot lands, a SLASH where a
+  // melee card struck. A Special winds up visibly and lands heavier.
+
+  /** How each element's attacks look: what its ranged cards throw, and the
+   *  mark its melee cards leave. */
+  interface AttackLook {
+    head: number;
+    trail: number[];
+    /** orb: a ball of it; streak: a fast dart; lob: thrown in an arc; zap:
+     *  lightning does not travel — it crackles, then strikes. */
+    shape: "orb" | "streak" | "lob" | "zap";
+    /** arc: one sweeping cut; claw: three parallel rakes; cuts: several thin
+     *  wind-cuts; smash: a blow into the ground. */
+    mark: "arc" | "claw" | "cuts" | "smash";
+    markColor: number;
+  }
+  const LOOKS: Record<Element, AttackLook> = {
+    PYRO: { head: 0xffa050, trail: [0xfff4d6, 0xffc14a, 0xff6a2a, 0xc2261a], shape: "orb", mark: "arc", markColor: 0xff8a3a },
+    AQUA: { head: 0xbfeaff, trail: [0xf0fbff, 0x9fe3ff, 0x4d94e8], shape: "orb", mark: "arc", markColor: 0x6ec3ff },
+    BOLT: { head: 0xe3d8ff, trail: [0xffffff, 0xe3d8ff, 0x9575ff], shape: "zap", mark: "arc", markColor: 0xb9a6ff },
+    GALE: { head: 0xffe8c8, trail: [0xfffaf0, 0xffd9a0, 0xffa040], shape: "streak", mark: "cuts", markColor: 0xffd9a0 },
+    BORE: { head: 0xd9b48a, trail: [0xfff1dc, 0xd9b48a, 0xa1887f], shape: "lob", mark: "smash", markColor: 0xd9b48a },
+    DAWN: { head: 0xfff1b3, trail: [0xffffff, 0xfff1b3, 0xffd54f], shape: "streak", mark: "arc", markColor: 0xffe38a },
+    DUSK: { head: 0xc9a6ff, trail: [0xf3e8ff, 0xc9a6ff, 0x7b4fb0], shape: "orb", mark: "claw", markColor: 0xb07cff },
+    LEAF: { head: 0xb6f27a, trail: [0xf4ffe6, 0xb6f27a, 0x4caf6d], shape: "streak", mark: "arc", markColor: 0x8fd66a },
+    VOID: { head: 0xe3e7f1, trail: [0xffffff, 0xe3e7f1, 0xc2c8d8], shape: "orb", mark: "arc", markColor: 0xc2c8d8 },
+  };
+
+  const lerpPt = (a: Pt, b: Pt, t: number): Pt => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
+
+  function attackIn(fx: Extract<LayerFx, { kind: "attack" }>) {
+    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const T = fx.seconds;
+    const wind = T * (fx.special ? 0.45 : 0.35);
+    const travel = T - wind;
+    const from = centre(fx.from);
+    const size = Math.min(fx.from.w, fx.from.h);
+    // The wind-up: the attacker gathers itself — visibly more for a Special,
+    // which also draws its element in around it.
+    charge(from, size * (fx.special ? 1.7 : 1.1), look.head, fx.special ? 0.85 : 0.4, wind + travel * 0.3);
+    if (fx.special)
+      emit({ count: 28, palette: look.trail, from: fx.from, at: "ring", speed: [110, 190], gravity: 0, drag: 1,
+        life: [0.2, wind], size: [9, 3] });
+    for (const t of fx.targets) {
+      const to = centre(t);
+      if (fx.melee) {
+        // The swing's path, shadowing the token as the hook lunges it.
+        shot({
+          from, to: lerpPt(from, to, 0.55), seconds: travel, delay: wind, ease: "in",
+          head: look.head, headSize: size * 0.2,
+          trail: { palette: look.trail, rate: fx.special ? 130 : 60, size: [10, 3], life: [0.15, 0.35], drift: 20 },
+        });
+        continue;
+      }
+      if (look.shape === "zap") {
+        // Lightning does not fly: it crackles on the caster, then strikes on
+        // the landing frame.
+        addArcs(from.x, from.y, STYLES.BOLT, fx.special ? 0.8 : 0.5, 3);
+        later(Math.max(0, T - 0.06), () => bolt(from, to, 0xffffff, 0x9575ff, fx.special ? 0.35 : 0.22));
+        continue;
+      }
+      const dist = Math.hypot(to.x - from.x, to.y - from.y);
+      shot({
+        from, to, seconds: travel, delay: wind,
+        ease: look.shape === "lob" ? "linear" : "in",
+        arc: look.shape === "lob" ? dist * 0.35 : 0,
+        head: look.head, headSize: size * (fx.special ? 0.42 : 0.26), stretch: look.shape === "streak",
+        trail: { palette: look.trail, rate: fx.special ? 170 : 80, size: fx.special ? [13, 4] : [9, 3], life: [0.2, 0.45], drift: 18 },
+      });
+    }
+  }
+
+  /** A curved cut drawn quickly through a point, then fading: a sweeping arc
+   *  across `angle`, bulging to one side. */
+  function arcCut(c: Pt, reach: number, angle: number, color: number, width: number, draw: number, hold: number, bulge = 0.35) {
+    const g = new Graphics();
+    bursts.addChild(g);
+    const dx = Math.cos(angle) * reach, dy = Math.sin(angle) * reach;
+    const p0 = { x: c.x - dx, y: c.y - dy }, p2 = { x: c.x + dx, y: c.y + dy };
+    const ctrl = { x: c.x - dy * bulge * 2, y: c.y + dx * bulge * 2 };
+    const at = (t: number): Pt => ({
+      x: (1 - t) * (1 - t) * p0.x + 2 * (1 - t) * t * ctrl.x + t * t * p2.x,
+      y: (1 - t) * (1 - t) * p0.y + 2 * (1 - t) * t * ctrl.y + t * t * p2.y,
+    });
+    effects.push({
+      node: g, age: 0, delay: 0, tick: (age) => {
+        const drawn = Math.min(1, age / draw);
+        const fade = age <= draw ? 1 : Math.max(0, 1 - (age - draw) / hold);
+        const pts: number[] = [];
+        const n = 14;
+        for (let i = 0; i <= n; i++) { const p = at((i / n) * drawn); pts.push(p.x, p.y); }
+        g.clear();
+        if (pts.length >= 4) {
+          g.poly(pts, false).stroke({ width: width * 3, color, alpha: 0.25 * fade });
+          g.poly(pts, false).stroke({ width, color, alpha: 0.9 * fade });
+          g.poly(pts, false).stroke({ width: Math.max(1, width * 0.35), color: 0xffffff, alpha: fade });
+        }
+        return age < draw + hold;
+      },
+    });
+  }
+
+  /** Straight rakes drawn quickly, then fading — claw marks. */
+  function rakes(c: Pt, reach: number, angle: number, color: number, count: number, gap: number, width: number) {
+    const g = new Graphics();
+    bursts.addChild(g);
+    const ux = Math.cos(angle), uy = Math.sin(angle);
+    const nx = -uy, ny = ux;
+    const draw = 0.09, hold = 0.3;
+    effects.push({
+      node: g, age: 0, delay: 0, tick: (age) => {
+        const drawn = Math.min(1, age / draw);
+        const fade = age <= draw ? 1 : Math.max(0, 1 - (age - draw) / hold);
+        g.clear();
+        for (let i = 0; i < count; i++) {
+          const off = (i - (count - 1) / 2) * gap;
+          const sx = c.x - ux * reach + nx * off, sy = c.y - uy * reach + ny * off;
+          const ex = sx + ux * reach * 2 * drawn, ey = sy + uy * reach * 2 * drawn;
+          g.moveTo(sx, sy).lineTo(ex, ey).stroke({ width: width * 2.6, color, alpha: 0.25 * fade });
+          g.moveTo(sx, sy).lineTo(ex, ey).stroke({ width, color, alpha: 0.95 * fade });
+        }
+        return age < draw + hold;
+      },
+    });
+  }
+
+  function slash(fx: Extract<LayerFx, { kind: "slash" }>) {
+    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const c = centre(fx.rect);
+    const k = Math.max(0.6, Math.min(2.2, fx.strength));
+    const reach = Math.min(fx.rect.w, fx.rect.h) * (fx.special ? 0.62 : 0.46) * (0.85 + k * 0.15);
+    // The cut runs ACROSS the line of attack, a little off square so it
+    // reads as a swing rather than a plus sign.
+    const across = fx.angle + Math.PI / 2 + 0.45;
+    const width = fx.special ? 7 : 5;
+    switch (look.mark) {
+      case "arc":
+        arcCut(c, reach, across, look.markColor, width, 0.09, 0.28);
+        if (fx.special) arcCut(c, reach, across + Math.PI / 2, look.markColor, width, 0.09, 0.32, -0.35);
+        break;
+      case "claw":
+        rakes(c, reach * 0.9, across, look.markColor, fx.special ? 4 : 3, reach * 0.3, width * 0.7);
+        break;
+      case "cuts":
+        for (let i = 0; i < (fx.special ? 5 : 3); i++)
+          arcCut(c, reach * rand(0.7, 1.05), across + rand(-0.5, 0.5), look.markColor, width * 0.55, 0.07, 0.25, rand(-0.3, 0.3));
+        break;
+      case "smash":
+        ring(fx.rect, look.markColor, 0.25, fx.special ? 1.3 : 0.95, 0.4, 6);
+        emit({ count: Math.round((fx.special ? 34 : 18) * k), palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 },
+          dir: [-160, -20], speed: [120, 300], gravity: 900, drag: 0.5, life: [0.35, 0.7], size: [11, 5] });
+        break;
+    }
+    // Sparks thrown off the blow, in the element's colours.
+    emit({ count: Math.round((fx.special ? 36 : 16) * k), palette: look.trail, from: { x: c.x - 6, y: c.y - 6, w: 12, h: 12 },
+      speed: [120, 320], gravity: 300, drag: 0.4, life: [0.2, 0.45], size: [8, 2], streak: true });
+    if (fx.special) {
+      glow(fx.rect, look.markColor, 0.55, 0.4, 1.3);
+      ring(fx.rect, look.markColor, 0.4, 1.35, 0.45, 5);
+    }
+  }
+
   function play(fx: LayerFx) {
     const el = STYLES[fx.element] ?? STYLES.VOID;
     switch (fx.kind) {
@@ -988,6 +1163,12 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         emit({ count: 22, palette: [0xffffff, el.palette[1], el.palette[2]], from: fx.rect, at: "ring",
           speed: [100, 170], gravity: 0, drag: 0.9, life: [0.3, 0.5], size: [9, 3] });
         later(0.3, () => ring(fx.rect, el.palette[2], 0.9, 0.2, 0.4, 3));
+        break;
+      case "attack":
+        attackIn(fx);
+        break;
+      case "slash":
+        slash(fx);
         break;
       case "boardIncoming":
         boardIncoming(fx);
