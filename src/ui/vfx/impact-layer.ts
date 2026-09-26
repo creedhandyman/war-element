@@ -975,8 +975,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         drag: 1, life: [0.2, wind], size: [10, 3] });
     } else {
       // The wind-up: the attacker gathers itself — visibly more for a Special,
-      // which also draws its element in around it.
-      charge(from, size * (fx.special ? 1.7 : 1.1), look.head, fx.special ? 0.85 : 0.4, wind + travel * 0.3);
+      // which also draws its element in around it, and least for a basic melee
+      // swing, where the lunge itself is the wind-up.
+      const basicMelee = fx.melee && !fx.special;
+      charge(from, size * (fx.special ? 1.7 : basicMelee ? 0.8 : 1.1), look.head,
+        fx.special ? 0.85 : basicMelee ? 0.22 : 0.4, wind + travel * 0.3);
       if (fx.special)
         emit({ count: 28, palette: look.trail, from: fx.from, at: "ring", speed: [110, 190], gravity: 0, drag: 1,
           life: [0.2, wind], size: [9, 3] });
@@ -988,8 +991,10 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         // for a card arriving with no token yet, the whole pounce.
         shot({
           from, to: fx.arriving ? to : lerpPt(from, to, 0.55), seconds: travel, delay: wind, ease: "in",
-          head: look.head, headSize: size * 0.2,
-          trail: { palette: look.trail, rate: fx.special ? 130 : 60, size: [10, 3], life: [0.15, 0.35], drift: 20 },
+          // A basic swing's trail is a whisper of it: the token's lunge is the
+          // motion, and a basic happens every turn.
+          head: look.head, headSize: size * (fx.special ? 0.2 : 0.1),
+          trail: { palette: look.trail, rate: fx.special ? 130 : 26, size: fx.special ? [10, 3] : [7, 2], life: [0.15, 0.3], drift: 16 },
         });
         continue;
       }
@@ -1080,36 +1085,50 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const look = LOOKS[fx.element] ?? LOOKS.VOID;
     const c = centre(fx.rect);
     const k = Math.max(0.6, Math.min(2.2, fx.strength));
-    const reach = Math.min(fx.rect.w, fx.rect.h) * (fx.special ? 0.62 : 0.46) * (0.85 + k * 0.15);
+    if (!fx.special) {
+      // A BASIC MELEE HIT IS A SMALL X: two quick cuts crossing on the card,
+      // in the element's colour, and a few sparks. Upright on screen whatever
+      // direction the blow came from — tilted to the line of attack, a
+      // diagonal blow turned it into a plus. Deliberately small and plain: it
+      // happens every turn, and the element's signature mark is saved for a
+      // Special.
+      const arm = Math.min(fx.rect.w, fx.rect.h) * 0.2 * (0.9 + k * 0.1);
+      rakes(c, arm, Math.PI / 4, look.markColor, 1, 0, 3.5);
+      later(0.05, () => rakes(c, arm, -Math.PI / 4, look.markColor, 1, 0, 3.5));
+      emit({ count: Math.round(7 * k), palette: look.trail, from: { x: c.x - 4, y: c.y - 4, w: 8, h: 8 },
+        speed: [90, 220], gravity: 300, drag: 0.4, life: [0.15, 0.3], size: [6, 2], streak: true });
+      return;
+    }
+    // A Special keeps its element's signature mark — a little smaller than it
+    // was, so the card it lands on still reads underneath it.
+    const reach = Math.min(fx.rect.w, fx.rect.h) * 0.5 * (0.85 + k * 0.15);
     // The cut runs ACROSS the line of attack, a little off square so it
     // reads as a swing rather than a plus sign.
     const across = fx.angle + Math.PI / 2 + 0.45;
-    const width = fx.special ? 7 : 5;
+    const width = 6;
     switch (look.mark) {
       case "arc":
         arcCut(c, reach, across, look.markColor, width, 0.09, 0.28);
-        if (fx.special) arcCut(c, reach, across + Math.PI / 2, look.markColor, width, 0.09, 0.32, -0.35);
+        arcCut(c, reach, across + Math.PI / 2, look.markColor, width, 0.09, 0.32, -0.35);
         break;
       case "claw":
-        rakes(c, reach * 0.9, across, look.markColor, fx.special ? 4 : 3, reach * 0.3, width * 0.7);
+        rakes(c, reach * 0.9, across, look.markColor, 4, reach * 0.3, width * 0.7);
         break;
       case "cuts":
-        for (let i = 0; i < (fx.special ? 5 : 3); i++)
+        for (let i = 0; i < 5; i++)
           arcCut(c, reach * rand(0.7, 1.05), across + rand(-0.5, 0.5), look.markColor, width * 0.55, 0.07, 0.25, rand(-0.3, 0.3));
         break;
       case "smash":
-        ring(fx.rect, look.markColor, 0.25, fx.special ? 1.3 : 0.95, 0.4, 6);
-        emit({ count: Math.round((fx.special ? 34 : 18) * k), palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 },
+        ring(fx.rect, look.markColor, 0.25, 1.15, 0.4, 6);
+        emit({ count: Math.round(28 * k), palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 },
           dir: [-160, -20], speed: [120, 300], gravity: 900, drag: 0.5, life: [0.35, 0.7], size: [11, 5] });
         break;
     }
     // Sparks thrown off the blow, in the element's colours.
-    emit({ count: Math.round((fx.special ? 36 : 16) * k), palette: look.trail, from: { x: c.x - 6, y: c.y - 6, w: 12, h: 12 },
-      speed: [120, 320], gravity: 300, drag: 0.4, life: [0.2, 0.45], size: [8, 2], streak: true });
-    if (fx.special) {
-      glow(fx.rect, look.markColor, 0.55, 0.4, 1.3);
-      ring(fx.rect, look.markColor, 0.4, 1.35, 0.45, 5);
-    }
+    emit({ count: Math.round(28 * k), palette: look.trail, from: { x: c.x - 6, y: c.y - 6, w: 12, h: 12 },
+      speed: [120, 300], gravity: 300, drag: 0.4, life: [0.2, 0.4], size: [8, 2], streak: true });
+    glow(fx.rect, look.markColor, 0.45, 0.35, 1.15);
+    ring(fx.rect, look.markColor, 0.4, 1.15, 0.45, 4);
   }
 
   function play(fx: LayerFx) {
