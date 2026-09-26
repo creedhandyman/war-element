@@ -25,18 +25,20 @@ describe("what each screen sets underneath", () => {
     expect(VIEW_SETUP.online).toMatchObject({ mode: "online", game: "casual" });
   });
 
-  it("no duel screen offers the 7x7 as a battlefield, and Domination offers nothing else", () => {
-    for (const v of ["quick", "streak", "gauntlet", "draft"] as const)
+  it("Quick match and Draft stay on the duel boards, and Domination offers nothing else", () => {
+    for (const v of ["quick", "draft"] as const)
       expect(VIEW_SETUP[v].boards, v).toEqual([4, 5]);
     expect(VIEW_SETUP.domination.boards).toEqual([7]);
     expect(VIEW_SETUP.local.boards).toContain(7);
     expect(VIEW_SETUP.online.boards).toContain(7);
   });
 
-  it("Streak and Gauntlet reach the 7x7 through their FORMAT toggle, and only they do", () => {
-    // Domination in a scored mode pays double and can seat more than one
-    // opponent (dom-ladder.ts) — a choice made on the screen, not a board size
-    // buried in the settings row.
+  it("Streak and Gauntlet list the 7x7 in their battlefield setting, beside the 4x4 and 5x5", () => {
+    // Owner's call: Domination sits in the settings row like the other two
+    // boards (it began as a separate Duel / Domination toggle on the screen).
+    expect(VIEW_SETUP.streak.boards).toEqual([4, 5, 7]);
+    expect(VIEW_SETUP.gauntlet.boards).toEqual([4, 5, 7]);
+    // ...and only they remember it per screen.
     expect(VIEW_SETUP.streak.dom).toBe(true);
     expect(VIEW_SETUP.gauntlet.dom).toBe(true);
     for (const v of ["quick", "draft", "domination", "local", "online"] as const)
@@ -45,12 +47,13 @@ describe("what each screen sets underneath", () => {
     expect(isDomView("quick") || isDomView("domination") || isDomView("hub")).toBe(false);
   });
 
-  it("a scored mode opens in the format it was last played in on its own screen", () => {
+  it("a scored mode opens on the 7x7 when it was last played there, from its own screen", () => {
     expect(boardForView("streak", 4, 4, "hub", true)).toBe(7);
     expect(boardForView("gauntlet", 5, 5, "domination", true)).toBe(7);
-    // Duel again: back to the last duel board, not left on the 7x7.
+    // Last played as a duel: the last duel board, even arriving from a 7x7.
     expect(boardForView("streak", 7, 5, "hub", false)).toBe(5);
-    // ...and a remembered format means nothing on a screen without the toggle.
+    expect(boardForView("gauntlet", 7, 4, "domination", false), "Domination's 7x7 stays behind").toBe(4);
+    // ...and a remembered 7x7 means nothing on a screen without one.
     expect(boardForView("quick", 4, 4, "hub", true)).toBe(4);
     expect(boardForView("draft", 5, 5, "hub", true)).toBe(5);
   });
@@ -289,10 +292,10 @@ describe("the wiring in App.tsx", () => {
   });
 
   // ── Domination in Streak and Gauntlet ─────────────────────────────────────
-  it("a scored mode opens in its own remembered FORMAT", () => {
+  it("a scored mode remembers its own 7x7 when the battlefield is picked", () => {
     expect(fn("enterArenaView")).toContain("boardForView(v, boardSize, duel, arenaView, isDomView(v) && arenaPrefs.dom[v])");
-    const pick = fn("pickArenaFormat");
-    expect(pick).toContain("dom: { ...p.dom, [v]: dom }");
+    const pick = fn("pickArenaBoard");
+    expect(pick).toContain("dom: { ...p.dom, [scored]: b === DOMINATION_7X7.boardSize }");
     expect(pick).toContain("saveArenaPrefs(next)");
   });
 
@@ -332,9 +335,10 @@ describe("the wiring in App.tsx", () => {
     expect(APP.split("tableWinPay(SHARDS_PER_WIN.arena").length - 1, "quoted in two places").toBe(2);
   });
 
-  it("the settings row has no battlefield on the 7x7 — the FORMAT toggle owns it there", () => {
-    expect(APP).toContain('board={arenaView === "domination" || boardSize === DOMINATION_7X7.boardSize ? null : {');
-    expect(APP).toContain('onPick={(dom) => pickArenaFormat("streak", dom)}');
-    expect(APP).toContain('onPick={(dom) => pickArenaFormat("gauntlet", dom)}');
+  it("the 7x7 is picked in the settings row — hidden only on casual Domination, which IS it", () => {
+    expect(APP).toContain('board={arenaView === "domination" ? null : {');
+    // The separate Duel / Domination toggle is gone from the screens.
+    expect(APP).not.toContain("ArenaFormat");
+    expect(APP).not.toContain("pickArenaFormat");
   });
 });

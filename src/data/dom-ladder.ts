@@ -3,8 +3,9 @@
  *  The 7×7 was Domination's alone: a free-for-all with its own screen, casual
  *  only, because the scored modes are "you versus this deck" and a table of
  *  four is a different shape. Now either scored mode can be played on it — the
- *  FORMAT toggle on their screens — and pays more for it, and SOMETIMES the
- *  table is bigger than a duel: two or three decks from the same rung at once.
+ *  7×7 in their settings row, beside the 4×4 and 5×5 — and pays more for it,
+ *  and SOMETIMES the table is bigger than a duel: two or three decks from the
+ *  same rung at once.
  *
  *  THE PAY, in one rule a screen can say out loud:
  *

@@ -3381,14 +3381,15 @@ What holds it together (all pinned in `arena-flow.test.ts`):
   screens are `game: "casual"`, and that is load-bearing: the run settlements
   read only `arenaGame`, so a hot-seat match played while the mode still said
   "gauntlet" was scored against the run.
-- **The 7x7 is never a battlefield SETTING on a duel screen.** Quick match and
-  Draft offer 4x4 and 5x5 only, and `boardForView` leaves the 7x7 behind on the
-  way out of Domination (it carries only between the two friend screens).
-- **Streak and Gauntlet reach it through FORMAT** (owner, 2026-09): a Duel /
-  Domination toggle on their own screens (`ArenaFormat`, `VIEW_SETUP.*.dom`),
-  remembered per screen (`ArenaPrefs.dom`) — not a third battlefield, because it
-  changes the pay and the table, which a player should see. See the next
-  section.
+- **The 7x7 is not a battlefield on Quick match or Draft** — they offer 4x4 and
+  5x5 only — and `boardForView` leaves the 7x7 behind on the way out of
+  Domination (it carries only between the two friend screens).
+- **Streak and Gauntlet list it in their settings row** as the third
+  battlefield, "7×7 Domination", beside the 4x4 and 5x5 (owner, 2026-09 — it
+  shipped first as a separate Duel / Domination toggle on the screen, and the
+  owner moved it). Remembered per screen (`ArenaPrefs.dom`, written by
+  `pickArenaBoard`; `VIEW_SETUP.*.dom` marks the two screens). The Streak and
+  Gauntlet notes say what the 7x7 changes. See the next section.
 - **An event belongs to Quick match.** `seatEventFight` lands there; entering
   any other screen with an event seated gives the P2 seat back and clears
   `bossRun`, so an event can never park a run.

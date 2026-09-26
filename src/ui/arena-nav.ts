@@ -31,33 +31,32 @@ export interface ViewSetup {
   game: ArenaGame;
   /** The battlefields this screen offers, in order. */
   boards: readonly Board[];
-  /** Can ALSO be played on the Domination map, through the screen's FORMAT
-   *  toggle rather than the battlefield setting — see `DomView`. */
+  /** A scored mode that can ALSO be played on the Domination map. Its 7x7 is
+   *  remembered per screen (`ArenaPrefs.dom`) — see `DomView`. */
   dom?: boolean;
 }
 
 /** THE 7x7 IS DOMINATION. Casually it is a free-for-all with its own screen and
- *  its own question (how many opponents); the duels — Quick match and Draft —
- *  are fought on the two duel boards. A friend can still pick it: a hot-seat or
- *  online game is a room of people choosing their own table.
+ *  its own question (how many opponents); Quick match and Draft are fought on
+ *  the two duel boards. A friend can still pick it: a hot-seat or online game is
+ *  a room of people choosing their own table.
  *
- *  STREAK AND GAUNTLET can be played on it too (owner, 2026-09), as a FORMAT
- *  on their own screens: Duel or Domination. Not as a third battlefield in the
- *  settings row, because it is not a board size — it pays double and sometimes
- *  seats more than one opponent (dom-ladder.ts), which is a choice the screen
- *  should show, not one to find behind "Settings". So `boards` stays the duel
- *  boards and `dom` marks the screen that has the toggle. */
+ *  STREAK AND GAUNTLET offer it too, as the third battlefield in their settings
+ *  row beside the 4x4 and 5x5 (owner, 2026-09). It pays double and sometimes
+ *  seats more than one opponent (dom-ladder.ts), which the screens say where
+ *  the pay is shown; it began as a Duel / Domination toggle of its own and the
+ *  owner moved it here. */
 export const VIEW_SETUP: Record<ModeView, ViewSetup> = {
   quick: { mode: "ai", game: "casual", boards: [4, 5] },
-  streak: { mode: "ai", game: "streak", boards: [4, 5], dom: true },
-  gauntlet: { mode: "ai", game: "gauntlet", boards: [4, 5], dom: true },
+  streak: { mode: "ai", game: "streak", boards: [4, 5, 7], dom: true },
+  gauntlet: { mode: "ai", game: "gauntlet", boards: [4, 5, 7], dom: true },
   draft: { mode: "ai", game: "draft", boards: [4, 5] },
   domination: { mode: "ai", game: "casual", boards: [7] },
   local: { mode: "local", game: "casual", boards: [4, 5, 7] },
   online: { mode: "online", game: "casual", boards: [4, 5, 7] },
 };
 
-/** The scored modes with a Duel / Domination toggle. */
+/** The scored modes that can be played on the 7x7. */
 export type DomView = "streak" | "gauntlet";
 export const isDomView = (v: ArenaView): v is DomView => v === "streak" || v === "gauntlet";
 
@@ -70,9 +69,9 @@ export const isDomView = (v: ArenaView): v is DomView => v === "streak" || v ===
  *  big map and four seats already picked, by a choice made for something else.
  *  It carries only between the two friend screens, where it was chosen for them.
  *
- *  `domOn` is the screen's own FORMAT, remembered per screen (`ArenaPrefs.dom`):
- *  a Streak last played as Domination opens as Domination, whatever board the
- *  screen before it was on. */
+ *  ...unless the screen itself was last played on it: `domOn` is a scored mode's
+ *  own 7x7, remembered per screen (`ArenaPrefs.dom`), so a Streak last played as
+ *  Domination opens as Domination, whatever board the screen before it was on. */
 export function boardForView(
   view: ModeView, current: number, lastDuel: 4 | 5, from?: ArenaView, domOn?: boolean,
 ): Board {
@@ -193,7 +192,7 @@ export interface ArenaPrefs {
   duel: 4 | 5;
   /** Which of Play a friend's two screens was used last. */
   friend: "local" | "online";
-  /** Each scored mode's FORMAT, last picked on its own screen: true = Domination. */
+  /** Whether each scored mode was last played on the 7x7, from its own screen. */
   dom: Record<DomView, boolean>;
 }
 

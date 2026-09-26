@@ -389,8 +389,8 @@ export function RulesBook(props: { onClose: () => void }) {
                 whoever holds it above it.
               </li>
               <li>
-                <b>In Streak and Gauntlet</b> — pick <b>Domination</b> as the format and
-                the fight moves here. Sometimes one or two more decks from the same rung
+                <b>In Streak and Gauntlet</b> — pick the <b>7×7 Domination</b> battlefield
+                in Settings and the fight moves here. Sometimes one or two more decks from the same rung
                 share the table. A win pays <b>double</b>, and every opponent past the
                 first adds half again.
               </li>

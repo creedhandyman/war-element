@@ -195,7 +195,7 @@ import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
-import { ArenaFormat, ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
+import { ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
 import {
   BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, isDomView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
   type ArenaPrefs, type ArenaView, type Board as ArenaBoard, type DomView, type HubStatus, type ModeView,
@@ -1973,7 +1973,7 @@ export function App() {
     setArenaMode(setup.mode);
     setArenaGame(setup.game);
     const duel: 4 | 5 = boardSize === 4 || boardSize === 5 ? boardSize : arenaPrefs.duel;
-    // A scored mode opens in the FORMAT it was last played in on its own screen.
+    // A scored mode last played on the 7x7, from its own screen, opens on it.
     const board = boardForView(v, boardSize, duel, arenaView, isDomView(v) && arenaPrefs.dom[v]);
     if (board !== boardSize) setBoardSize(board);
     // AN EVENT BELONGS TO QUICK MATCH. It is seated from Home or the Tower onto
@@ -2020,25 +2020,20 @@ export function App() {
     setStreakExtras(board >= DOMINATION_7X7.boardSize ? dealExtras(tier, board, pick.id) : null);
   }
 
-  /** A scored mode's FORMAT, picked on its own screen: Domination is the 7x7,
-   *  Duel goes back to the last duel board. Remembered per screen, so a Streak
-   *  played as Domination opens as Domination next time. */
-  function pickArenaFormat(v: DomView, dom: boolean) {
-    setArenaPrefs((p) => {
-      const next: ArenaPrefs = { ...p, dom: { ...p.dom, [v]: dom } };
-      saveArenaPrefs(next);
-      return next;
-    });
-    pickArenaBoard(dom ? DOMINATION_7X7.boardSize as ArenaBoard : arenaPrefs.duel);
-  }
-
   /** A battlefield picked on an Arena screen. Remembered as the duel board when
-   *  it is one, and in Streak the seat is re-dealt for the new board. */
+   *  it is one — and in Streak and Gauntlet whether it is the 7x7, per screen,
+   *  so a Streak played as Domination opens as Domination next time. In Streak
+   *  the seat (and on the 7x7 its table) is re-dealt for the new board. */
   function pickArenaBoard(b: ArenaBoard) {
     setBoardSize(b);
-    if (b === 4 || b === 5) {
+    const scored: DomView | null = isDomView(arenaView) ? arenaView : null;
+    if (b === 4 || b === 5 || scored) {
       setArenaPrefs((p) => {
-        const next: ArenaPrefs = { ...p, duel: b };
+        const next: ArenaPrefs = {
+          ...p,
+          ...(b === 4 || b === 5 ? { duel: b } : {}),
+          ...(scored ? { dom: { ...p.dom, [scored]: b === DOMINATION_7X7.boardSize } } : {}),
+        };
         saveArenaPrefs(next);
         return next;
       });
@@ -5482,20 +5477,16 @@ export function App() {
                     streak's to decide — choosing your own fight is what Quick match
                     is for — so the seat is dealt, and this names what it dealt
                     before you agree to the fight. */}
-                {/* DUEL OR DOMINATION — Streak's one question besides the fight
-                    itself. Gauntlet asks it beside its difficulty, below. */}
-                {arenaView === "streak" && !eventRun && (
-                  <ArenaFormat
-                    dom={boardSize === DOMINATION_7X7.boardSize}
-                    onPick={(dom) => pickArenaFormat("streak", dom)}
-                    note={boardSize === DOMINATION_7X7.boardSize && (
-                      <>
-                        Fought on the 7×7 and won on Points. Sometimes one or two more decks
-                        from your rung share the table — every opponent past the first adds
-                        half again to the pay.
-                      </>
-                    )}
-                  />
+                {/* A STREAK ON THE 7x7 — picked in the settings row, beside the
+                    4x4 and 5x5 — says what changes, above the fight it dealt. */}
+                {arenaView === "streak" && !eventRun && boardSize === DOMINATION_7X7.boardSize && (
+                  <div className="ar-modes">
+                    <p className="ar-mode-note">
+                      Domination: fought on the 7×7 and won on Points, for double the pay.
+                      Sometimes one or two more decks from your rung share the table — every
+                      opponent past the first adds half again.
+                    </p>
+                  </div>
                 )}
 
                 {arenaView === "streak" && (() => {
@@ -5611,14 +5602,6 @@ export function App() {
                     anything is a lie. The button at the bottom lines it up. */}
                 {arenaView === "gauntlet" && (!gauntletRun || runOver(gauntletRun)) && (
                   <>
-                    {/* ...and its FORMAT, beside it for the same reason: a run is
-                        dealt for one, and a live run keeps the one it was dealt. */}
-                    {!eventRun && (
-                      <ArenaFormat
-                        dom={boardSize === DOMINATION_7X7.boardSize}
-                        onPick={(dom) => pickArenaFormat("gauntlet", dom)}
-                      />
-                    )}
                     <div className="ar-field">
                       <span className="ar-flabel">DIFFICULTY</span>
                       <div className="seg">
@@ -5937,9 +5920,9 @@ export function App() {
                     summary={arenaSettingsSummary}
                     open={arenaSettingsOpen}
                     onToggle={() => setArenaSettingsOpen((o) => !o)}
-                    // No battlefield on the 7x7: casual Domination IS that board,
-                    // and a scored mode picks it with its FORMAT toggle instead.
-                    board={arenaView === "domination" || boardSize === DOMINATION_7X7.boardSize ? null : {
+                    // No battlefield on casual Domination: that screen IS the 7x7.
+                    // Streak and Gauntlet list it here, beside the 4x4 and 5x5.
+                    board={arenaView === "domination" ? null : {
                       boards: VIEW_SETUP[arenaView as ModeView].boards,
                       value: boardSize,
                       // LOCKED while a run is live. A run is dealt for a board — it
