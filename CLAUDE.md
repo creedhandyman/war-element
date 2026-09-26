@@ -1529,6 +1529,8 @@ matches, story and arena are untouched, and control tests pin that):
 - **The boss holds its home row for 2 rounds** (`BOSS_HOLD_ROUNDS`). It holds,
   it does not freeze — attacks, Specials and the clock all fire, and it may
   still slide ALONG its own row. One `bossHeldHome` for both ways off the row.
+  A TAMED boss is exempt — the hold is your opening against the boss you came
+  to fight, not a leash on your own (see the taming section).
 
 **Difficulty, measured** (vs three tuned 5x5 premades on the 24-round clock):
 Permafrost 47% · Rotroot 53% · Nightshrike 67% · Basilisk 70% · Overclock 73% ·
@@ -1985,6 +1987,19 @@ from ever being yours. Also the home-row overrun check and the Void Tower
 deployment head start (`find` takes the first boss in either seat). All three now
 skip a `tamed` instance — grep `c.tamed` in phases.ts. **Any future rule that
 looks for "the boss" must decide which side it means.**
+
+**A FOURTH, THE OPENING HOLD, HELD YOUR OWN BOSS** (fixed 2026-09-26).
+`bossHeldHome` asked only `def.boss`, so for rounds 1-2 a tamed ally refused
+your moves ("The boss has not moved from its home row yet") and its gaits stood
+still. It now exempts `card.tamed`. **WALL-PIERCING IS KEPT FOR A TAMED BOSS, on
+purpose** (owner's call, same day): `aDef.boss && tDef.guardsHomeRow` in
+combat.ts pierces the shields of the ENEMY's walls too — Kheiringer's Lava
+Fortress Gates, Spindle's Sentinel Eyes — about 28 vs 16 a hit for Umbranova,
+and it pre-empts Vulcanyx's plate-tearing on those. Don't "fix" it. Measured the
+same day: the enemy AI never reads `boss`; replaying ~170k steps with a tamed
+ally's flag off changed no enemy decision. (Method, scratch-only: `advance()`
+the same state twice, flag on and off — the RNG cursor lives in `GameState`, so
+the two agree unless the flag matters.)
 
 **Taming is NOT ownership.** It never enters `collection`; the test asserting a
 boss can be acquired nowhere still holds and must keep holding.

@@ -3129,7 +3129,14 @@ export function bossHeldHome(state: GameState, card: CardInstance, def: CardDef)
   // `boss` flag. Both end up in one predicate so the two ways off the row (the
   // AI moving it in Prep, `roundTick.advance` walking it at Cleanup) still read
   // a single rule.
-  const hold = card.heldHomeRounds ?? (def.boss === true ? BOSS_HOLD_ROUNDS : 0);
+  //
+  // ...and NOT a TAMED boss. The hold is the player's opening against the boss
+  // they came to fight; asking only `def.boss` held their own loaner as well,
+  // so for two rounds of a three-battle loan it refused their moves ("The boss
+  // has not moved from its home row yet") and its gaits stood still. The same
+  // question the board-scanning rules had to learn to ask — `c.tamed` in
+  // phases.ts.
+  const hold = card.heldHomeRounds ?? (def.boss === true && !card.tamed ? BOSS_HOLD_ROUNDS : 0);
   return hold > 0 && state.round <= hold;
 }
 

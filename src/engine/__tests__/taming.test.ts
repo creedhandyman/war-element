@@ -9,7 +9,8 @@
 // predate a player ever having a boss, and all three would misfire on one. The
 // first is the worst: without its fix, bringing a tamed boss to a tower fight
 // makes the fight UNWINNABLE, because you kill the thing you came for and a
-// boss is still standing.
+// boss is still standing. A fourth, the opening hold, reads one body rather
+// than scanning the board, and it held your own boss — pinned below too.
 import { beforeEach, describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import {
@@ -22,6 +23,7 @@ import {
 import { effectiveDmg, effectiveSp, scaleInstance, summonCard } from "../state";
 import { fireCardSpecial } from "../combat";
 import { advance } from "../phases";
+import { canMove } from "../rules";
 import { atBattle, atCleanup, bigPrepState, place } from "./helpers";
 
 /** A localStorage that behaves, for a node test environment that has none.
@@ -199,6 +201,35 @@ describe("a tamed boss does not break the rules that scan for a boss", () => {
     // Reaching the Resource phase must not throw and must still pay the player.
     const after = atBattle(s);
     expect(after.phase, "the round ran").toBeTruthy();
+  });
+});
+
+describe("a tamed boss is yours from round one — the opening hold is not for it", () => {
+  // BOSS_HOLD_ROUNDS keeps a tower boss on its home row for rounds 1-2 so the
+  // player gets the opening to read it. It asked only whether the body was
+  // boss-flagged, so it held the player's own loaner too. Both ways off the row
+  // read the one predicate, and both are pinned: the move by hand and the gait.
+  // Xilty is the boss the hold's own tests use, for its `roundTick.advance`.
+  it("can be walked off your home row in round 1 — an untamed boss still cannot", () => {
+    const s = bigPrepState();                          // round 1, P1 to act
+    const ally = place(s, "boss_xilty", "P1", 4, 1);
+    ally.tamed = true;
+    const wild = place(s, "boss_xilty", "P1", 4, 3);   // the rule is still live
+    expect(canMove(s, "P1", ally.instanceId, { row: 3, col: 1 } as never).ok, "yours to move").toBe(true);
+    const held = canMove(s, "P1", wild.instanceId, { row: 3, col: 3 } as never);
+    expect(held.ok, "an untamed boss holds").toBe(false);
+    expect(held.reason).toContain("home row");
+  });
+
+  it("its own gait walks in round 1, while the enemy boss holds its row", () => {
+    const s = bigPrepState();
+    const ally = place(s, "boss_xilty", "P1", 4, 1);
+    ally.tamed = true;
+    scaleInstance(s.cards[ally.instanceId], TAME_SCALE);
+    const boss = place(s, "boss_xilty", "P2", 0, 3);
+    const n = advance(atCleanup(s));
+    expect(n.cards[ally.instanceId].pos!.row, "your loaner stepped forward").toBeLessThan(4);
+    expect(n.cards[boss.instanceId].pos, "the boss you came to fight held").toEqual({ row: 0, col: 3 });
   });
 });
 
