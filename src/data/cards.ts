@@ -8379,7 +8379,8 @@ export const CARDS: CardDef[] = [
     hp: 14,
     sp: 11,
     shields: 6,
-    keywords: {},
+    // BLOCK 2 (owner's call): every hit on it is 2 lighter, before its shields.
+    keywords: { BLOCK: 2 },
     // Diamond Kingdom (Aura): BORE allies gain +1 shield; when a BORE ally
     // falls, the lowest-HP survivor is hardened with a one-round BLOCK 2.
     aura: { scope: "element", shields: 1 },
