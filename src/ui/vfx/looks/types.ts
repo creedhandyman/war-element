@@ -74,6 +74,10 @@ export interface FxTools {
    *  that should match the element's standard hit (see STYLES). */
   readonly element: Element;
   readonly style: SparkStyle & { speed: [number, number]; life: [number, number] };
+  /** The layer's detail right now, 0.35-1 (it sheds sparks while frames run
+   *  long). `emit` and `spark` already honour it; a look spawning its own
+   *  drawn pieces on a rate (wisps, smoke, debris) should scale by it too. */
+  readonly quality: number;
   emit(e: Emit): void;
   /** One spark with an exact velocity: for shapes `emit` cannot make (a fan,
    *  a spray along a line, a ring of drops). `origin` is what `swirl` turns
@@ -198,6 +202,13 @@ export interface ElementLook {
   /** A card crossing this element's wall and paying for it. Optional: without
    *  one, the element's standard damage burst plays on the card. */
   wallBite?(t: FxTools, r: Rect): void;
+  /** The INCOMING half of this element's whole-board spell, if the look draws
+   *  its own (otherwise impact-layer.ts's set piece plays): lasting exactly
+   *  `seconds`, landing on `aims` — the cards it reaches, or a few points of
+   *  the far half when it reaches none. `fromTop`: the caster's edge. */
+  boardIncoming?(t: FxTools, a: { rect: Rect; aims: Rect[]; seconds: number; strength: number; fromTop: boolean }): void;
+  /** ...and its FINALE, with the landing, over each card's own impact. */
+  boardFinale?(t: FxTools, a: { rect: Rect; targets: Rect[]; strength: number; fromTop: boolean }): void;
   /** The whole board's weather changing. */
   field(t: FxTools, r: Rect): void;
   /** A card moved (pushed, pulled, swapped) from one square to another. */

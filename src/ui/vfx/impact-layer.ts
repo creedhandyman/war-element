@@ -104,11 +104,17 @@ interface Style {
   arcs?: number;           // BOLT: jagged lightning branches
   rays?: number;           // DAWN: long radiant spokes
   embers?: number;         // slow second wave per unit strength
+  /** The flash's size against the standard (1). PYRO's is smaller: its fire
+   *  bloom (looks/pyro.ts) carries the hit, and two full flashes on a
+   *  Special's targets whited out the cards being read. */
+  flash?: number;
 }
 
 const STYLES: Record<Element, Style> = {
-  PYRO: { palette: [0xfff4d6, 0xffc14a, 0xff6a2a, 0xc2261a], sparks: 170, speed: [220, 620],
-          gravity: -260, drag: 0.08, life: [0.35, 0.9], size: [16, 4], streak: true, embers: 40 },
+  // Round, rising and amber-hot, not white streaks: a PYRO hit is a burst of
+  // fire, not fireworks — its bloom of flame (looks/pyro.ts) sits on top.
+  PYRO: { palette: [0xffe0a0, 0xffb040, 0xff6a2a, 0xc2261a], sparks: 90, speed: [140, 420],
+          gravity: -320, drag: 0.1, life: [0.35, 0.8], size: [15, 4], streak: false, embers: 70, flash: 0.5 },
   AQUA: { palette: [0xf0fbff, 0x9fe3ff, 0x4d94e8, 0x1f4fa8], sparks: 150, speed: [180, 520],
           gravity: 900, drag: 0.25, life: [0.4, 0.9], size: [14, 5], streak: false },
   BOLT: { palette: [0xffffff, 0xe3d8ff, 0x9575ff, 0x5b3bd6], sparks: 130, speed: [420, 980],
@@ -117,8 +123,10 @@ const STYLES: Record<Element, Style> = {
           gravity: 120, drag: 0.3, life: [0.6, 1.3], size: [15, 8], streak: false, swirl: 140 },
   GALE: { palette: [0xfffaf0, 0xffd9a0, 0xffa040, 0xd9701a], sparks: 160, speed: [160, 460],
           gravity: -40, drag: 0.2, life: [0.45, 1.0], size: [13, 3], streak: true, swirl: 900 },
-  BORE: { palette: [0xfff1dc, 0xd9b48a, 0xa1887f, 0x5d4a40], sparks: 120, speed: [180, 520],
-          gravity: 1400, drag: 0.4, life: [0.5, 1.0], size: [18, 10], streak: false },
+  // Grit, not glow: the solid chunks and dust of BORE's look (looks/bore.ts)
+  // carry the hit, and big pale blobs over them read as light, not stone.
+  BORE: { palette: [0xe8cfa8, 0xd9b48a, 0xa1887f, 0x5d4a40], sparks: 60, speed: [160, 440],
+          gravity: 1400, drag: 0.4, life: [0.4, 0.8], size: [11, 5], streak: false, flash: 0.45 },
   DAWN: { palette: [0xffffff, 0xfff1b3, 0xffd54f, 0xe0a41c], sparks: 140, speed: [200, 560],
           gravity: -60, drag: 0.1, life: [0.4, 1.0], size: [14, 3], streak: true, rays: 12 },
   DUSK: { palette: [0xf3e8ff, 0xc9a6ff, 0x7b4fb0, 0x3a1f5c], sparks: 150, speed: [200, 560],
@@ -325,7 +333,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     sp.tint = st.palette[1];
     sp.alpha = 0;
     bursts.addChild(sp);
-    const size = 260 * strength;
+    const size = 260 * strength * (st.flash ?? 1);
     effects.push({
       node: sp, age: 0, delay, tick: wrap((t) => {
         // Fast in, slow out: the eye reads the peak as the moment of impact.
@@ -779,6 +787,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       const w = R.w / 4, h = R.h / 4;
       return { x: R.x + rand(0, R.w - w), y: (fx.fromTop ? mid.y : R.y) + rand(0, R.h / 2 - h), w, h };
     });
+    const own = LOOKS[fx.element]?.boardIncoming;
+    if (own) {
+      own(toolsFor(fx.element), { rect: R, aims, seconds: T, strength: k, fromTop: fx.fromTop });
+      return;
+    }
     switch (fx.element) {
       case "PYRO": {
         // Meteors, each timed to strike its card on the landing frame...
@@ -890,6 +903,11 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
 
   function boardFinale(fx: Extract<LayerFx, { kind: "boardFinale" }>) {
     const R = fx.rect, k = fx.strength;
+    const own = LOOKS[fx.element]?.boardFinale;
+    if (own) {
+      own(toolsFor(fx.element), { rect: R, targets: fx.targets, strength: k, fromTop: fx.fromTop });
+      return;
+    }
     const el = STYLES[fx.element] ?? STYLES.VOID;
     const mid = centre(R);
     const sky = R.y - R.h * 0.5;
@@ -1117,6 +1135,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const st = STYLES[element] ?? STYLES.VOID;
     t = {
       element, style: st,
+      get quality() { return quality; },
       emit, shot, glow, ring, band, charge, later, arcCut, rakes, bolt, draw,
       // One at a time, so thinned by chance: at quality 0.5, half are born.
       spark: (x, y, vx, vy, life, style, origin) => {

@@ -15,6 +15,7 @@ import type { Graphics } from "pixi.js";
 import type { StatusKind } from "../../engine";
 import type { Rect } from "./impact-layer";
 import { centre, rand } from "./looks/base";
+import { pyroBody, pyroFire } from "./looks/fire";
 import type { FxTools, Pt, SparkStyle } from "./looks/types";
 
 /** What the end of the round did to one card. */
@@ -87,15 +88,6 @@ const ZAP: Record<string, number[]> = {
 
 // ── Shapes ─────────────────────────────────────────────────────────────────
 
-/** A flame tongue standing on (x, base), `h` tall, its tip swaying. */
-function flame(g: Graphics, x: number, base: number, w: number, h: number, sway: number, color: number, alpha: number) {
-  g.moveTo(x - w, base)
-    .quadraticCurveTo(x - w * 0.9, base - h * 0.55, x + sway, base - h)
-    .quadraticCurveTo(x + w * 0.9, base - h * 0.55, x + w, base)
-    .closePath()
-    .fill({ color, alpha });
-}
-
 /** A leaf `len` long at `p`, pointing along `a`. */
 function leafShape(g: Graphics, p: Pt, a: number, len: number, color: number, alpha: number) {
   const ux = Math.cos(a), uy = Math.sin(a), nx = -uy, ny = ux, w = len * 0.38;
@@ -148,23 +140,20 @@ function bubbles(t: FxTools, r: Rect, n: number, color: number, seconds: number,
 
 // ── The bites ──────────────────────────────────────────────────────────────
 
-/** BURN: fire flares up off the card's footing, embers lift off it, and if it
- *  still wore shields they glow and drip away (BURN melts two a tick). */
+/** BURN: the card catches — PYRO's own fire (looks/fire.ts) burning up off its
+ *  footing, wisps tearing off the top and smoke above it, embers lifting —
+ *  and if it still wore shields they glow and drip away (BURN melts two a
+ *  tick). */
 function burn(t: FxTools, r: Rect, k: number, melted: boolean) {
-  const s = Math.min(r.w, r.h), base = r.y + r.h * 0.92;
-  const n = 3 + Math.round(k);
-  const tongues = Array.from({ length: n }, (_, i) => ({
-    x: r.x + r.w * (0.18 + (0.64 * (i + 0.5)) / n) + rand(-4, 4),
-    h: s * rand(0.32, 0.5) * (0.8 + k * 0.15), w: s * rand(0.08, 0.12), ph: rand(0, TAU),
-  }));
-  t.draw(0.8, (g, u) => {
-    const e = envelope(u, 0.18, 0.5);
-    for (const f of tongues) {
-      const flick = 0.85 + 0.15 * Math.sin(u * 40 + f.ph);
-      const sway = Math.sin(u * 18 + f.ph) * f.w * 0.8;
-      flame(g, f.x, base, f.w, f.h * e * flick, sway, 0xff6a2a, 0.55 * e);
-      flame(g, f.x, base, f.w * 0.55, f.h * 0.62 * e * flick, sway * 0.7, 0xffd27a, 0.7 * e);
-    }
+  const s = Math.min(r.w, r.h), base = r.y + r.h * 0.92, seed = rand(0, 100);
+  pyroFire(t, {
+    seconds: 0.8,
+    body: (g, time, kk) => {
+      const e = envelope(kk, 0.18, 0.5);
+      pyroBody(g, r.x + r.w * 0.12, r.x + r.w * 0.88, base, s * (0.34 + 0.06 * k) * e, e, time, seed, 0.9);
+    },
+    wisp: () => ({ x: r.x + r.w * rand(0.2, 0.8), y: base - s * rand(0.2, 0.42) }), wispRate: 14, wispSize: s * 0.08,
+    puff: (kk) => (kk > 0.2 ? { x: r.x + r.w * rand(0.3, 0.7), y: base - s * 0.45 } : null), smokeRate: 7, smokeSize: s * 0.13,
   });
   t.glow(r, 0xff6a2a, 0.3 + 0.08 * k, 0.7, 1.05);
   t.emit({ count: Math.round(12 * k), palette: EMBER.palette, from: { x: r.x + r.w * 0.15, y: r.y + r.h * 0.5, w: r.w * 0.7, h: r.h * 0.4 },

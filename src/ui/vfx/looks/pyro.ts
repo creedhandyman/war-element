@@ -7,22 +7,16 @@
  *  the normal-blend layer). Everything below is composed from those three:
  *  tongues, rising embers, scorch. Colours walk hot white -> amber -> orange ->
  *  deep red as they cool, matching the standard PYRO burst and the meteors of
- *  its whole-board set piece. */
+ *  its whole-board set piece. The flame itself — tongues, a burning body,
+ *  wisps tearing off, smoke — is fire.ts, shared with the BURN tick. */
 import type { Graphics } from "pixi.js";
 import { centre, rand } from "./base";
+import {
+  AMBER, EMBER, F_CORE, F_MID, F_OUT, ORANGE, PAL, RED, SCORCH, WHITE,
+  pyroEmbers, pyroEnv, pyroFire, pyroFlame, pyroFlick, pyroLick, pyroTongue,
+} from "./fire";
 import type { ElementLook, FxTools, Pt, SparkStyle } from "./types";
 
-type Box = { x: number; y: number; w: number; h: number };
-
-const WHITE = 0xfff4d6, AMBER = 0xffc14a, ORANGE = 0xff6a2a, RED = 0xc2261a;
-const PAL = [WHITE, AMBER, ORANGE, RED];
-// A tongue's three layers. Additive, so where they stack the core runs
-// white-hot and the edge stays deep: the gradient comes free from the overlap.
-const F_OUT = 0xd8401c, F_MID = 0xff8a2a, F_CORE = 0xfff0c8;
-const SCORCH = 0x1c0a04;
-
-/** Embers: round, slow, rising, cooling as they go. */
-const EMBER: SparkStyle = { palette: PAL, gravity: -170, drag: 0.55, size: [6, 2], streak: false };
 /** Sparks flicked off a blow: fast streaks that curl upward. */
 const FLICK: SparkStyle = { palette: [WHITE, AMBER, ORANGE], gravity: -480, drag: 0.3, size: [6, 1.5], streak: true };
 /** Embers settling: they keep their velocity (drag 1, no gravity) so each
@@ -30,50 +24,6 @@ const FLICK: SparkStyle = { palette: [WHITE, AMBER, ORANGE], gravity: -480, drag
 const SETTLE: SparkStyle = { palette: [AMBER, ORANGE, RED], gravity: 0, drag: 1, size: [7, 3], streak: false };
 
 // ── Drawing fire ─────────────────────────────────────────────────────────────
-
-/** Three incommensurate waves: a flame's height never quite repeats, which is
- *  what makes it read as burning rather than pulsing. ~-1..1. */
-function pyroFlick(time: number, seed: number): number {
-  return 0.5 * Math.sin(time * 17 + seed) + 0.3 * Math.sin(time * 29.3 + seed * 1.7) + 0.2 * Math.sin(time * 47.1 + seed * 2.9);
-}
-
-/** One flame tongue: a round bulb at `b`, tapering to a tip `len` along
- *  (ux, uy), the tip pushed `lean` px sideways. Quadratics, not beziers: a few
- *  fewer points per shape, and there can be thirty of these on screen. */
-function pyroTongue(g: Graphics, bx: number, by: number, ux: number, uy: number, len: number, w: number,
-  lean: number, color: number, alpha: number) {
-  if (len < 1.5 || alpha <= 0.01) return;
-  const px = -uy, py = ux, hw = w / 2;
-  const tx = bx + ux * len + px * lean, ty = by + uy * len + py * lean;
-  // The belly sits low (a third of the way up) so the bulb is fat and the tip thin.
-  const mx = bx + ux * len * 0.32 + px * lean * 0.2, my = by + uy * len * 0.32 + py * lean * 0.2;
-  g.moveTo(bx - px * hw, by - py * hw)
-    .quadraticCurveTo(mx - px * hw * 1.25, my - py * hw * 1.25, tx, ty)
-    .quadraticCurveTo(mx + px * hw * 1.25, my + py * hw * 1.25, bx + px * hw, by + py * hw)
-    .quadraticCurveTo(bx - ux * hw * 1.3, by - uy * hw * 1.3, bx - px * hw, by - py * hw)
-    .closePath()
-    .fill({ color, alpha });
-}
-
-/** A whole flame: deep outer tongue, orange body, white-hot core low down. */
-function pyroFlame(g: Graphics, bx: number, by: number, ux: number, uy: number, len: number, w: number,
-  lean: number, a: number) {
-  pyroTongue(g, bx, by, ux, uy, len, w, lean, F_OUT, 0.5 * a);
-  pyroTongue(g, bx, by, ux, uy, len * 0.7, w * 0.64, lean * 0.7, F_MID, 0.6 * a);
-  pyroTongue(g, bx, by, ux, uy, len * 0.4, w * 0.34, lean * 0.4, F_CORE, 0.8 * a);
-}
-
-/** An upright flame whose height and lean flicker on their own. */
-function pyroLick(g: Graphics, x: number, y: number, h: number, w: number, time: number, seed: number, a: number) {
-  const hh = h * (1 + 0.24 * pyroFlick(time, seed));
-  pyroFlame(g, x, y, 0, -1, hh, w, hh * 0.18 * pyroFlick(time * 0.8, seed + 4.1), a);
-}
-
-/** Rise fast, hold, die down: a flame's life, 0..1 over `life` seconds. */
-function pyroEnv(age: number, life: number, rise = 0.07): number {
-  if (age <= 0 || age >= life) return 0;
-  return age < rise ? age / rise : 1 - (age - rise) / (life - rise);
-}
 
 /** A point on the quadratic p0 -> p2 bowed through `c`, into `out`. */
 function pyroQuad(p0: Pt, c: Pt, p2: Pt, s: number, out: Pt) {
@@ -107,13 +57,14 @@ function pyroCrescent(g: Graphics, p0: Pt, c: Pt, p2: Pt, upto: number, th: numb
 
 /** A ball of fire flown from `from` to `to`, arriving exactly `delay +
  *  seconds` in. `shot` carries its heat-glow and the embers it sheds (it owns
- *  the timing contract); the flame body is drawn over it on the same clock and
- *  the same ease — a round white-hot head with tongues streaming behind,
- *  bent upward, longer the faster it goes. A Special's also sheds small flames
- *  that stay burning on the path it crossed. */
+ *  the timing contract); the fire is drawn over it on the same clock and the
+ *  same ease — a white-hot head WRAPPED in licking flame, tongues streaming
+ *  behind (bent upward, longer the faster it goes), wisps tearing off the
+ *  tail and a trail of smoke left hanging in the air. A Special's also leaves
+ *  fire burning on the path it crossed. */
 function pyroComet(t: FxTools, o: {
   from: Pt; to: Pt; delay: number; seconds: number;
-  r: number; tongues: number; shed: number; trailRate: number; glow: number;
+  r: number; tongues: number; shed: number; trailRate: number; glow: number; wisps: number; smoke: number;
 }) {
   const dx = o.to.x - o.from.x, dy = o.to.y - o.from.y;
   const dist = Math.hypot(dx, dy) || 1, ux = dx / dist, uy = dy / dist;
@@ -126,43 +77,56 @@ function pyroComet(t: FxTools, o: {
   let tx = -ux, ty = -uy - 0.5;
   const tl = Math.hypot(tx, ty) || 1;
   tx /= tl; ty /= tl;
+  const back = Math.atan2(ty, tx);
   const seed = rand(0, 100);
   const D = o.seconds + (o.shed ? 0.42 : 0);
-  t.draw(D, (g, kk) => {
-    const time = kk * D;
-    for (let j = 0; j < o.shed; j++) {
-      // Each catches as the head passes (ease "in": the head is at f when
-      // k = sqrt(f)), licks up off the path and lifts away.
-      const f = ((j + 1) / (o.shed + 1)) * 0.85;
-      const age = time - Math.sqrt(f) * o.seconds;
-      const env = pyroEnv(age, 0.4, 0.05);
-      if (env <= 0) continue;
-      pyroLick(g, o.from.x + dx * f + (j % 2 ? 1 : -1) * o.r * 0.5, o.from.y + dy * f - age * 55,
-        o.r * 2 * env, o.r * 1.15, time, seed + j * 3.3, env);
-    }
-    const k = time / o.seconds;
-    if (k >= 1) return; // landed: the element's burst takes it from here
-    const e = k * k;
-    const x = o.from.x + dx * e, y = o.from.y + dy * e;
-    const speed = (2 * k * dist) / o.seconds;
-    const fade = Math.min(1, k * 6);
-    const len = o.r * (2 + Math.min(2.4, speed / 450));
-    for (let i = 0; i < o.tongues; i++) {
+  let head: Pt | null = null, tip: Pt | null = null;
+  pyroFire(t, {
+    seconds: D, delay: o.delay,
+    body: (g, time) => {
+      for (let j = 0; j < o.shed; j++) {
+        // Each catches as the head passes (ease "in": the head is at f when
+        // k = sqrt(f)), licks up off the path and lifts away.
+        const f = ((j + 1) / (o.shed + 1)) * 0.85;
+        const age = time - Math.sqrt(f) * o.seconds;
+        const env = pyroEnv(age, 0.4, 0.05);
+        if (env <= 0) continue;
+        pyroLick(g, o.from.x + dx * f + (j % 2 ? 1 : -1) * o.r * 0.5, o.from.y + dy * f - age * 55,
+          o.r * 2 * env, o.r * 1.15, time, seed + j * 3.3, env);
+      }
+      const k = time / o.seconds;
+      if (k >= 1) { head = tip = null; return; } // landed: the element's burst takes it from here
+      const e = k * k;
+      const x = o.from.x + dx * e, y = o.from.y + dy * e;
+      const speed = (2 * k * dist) / o.seconds;
+      const fade = Math.min(1, k * 6);
+      const len = o.r * (2.6 + Math.min(2.6, speed / 400));
       const mid = (o.tongues - 1) / 2;
-      const off = (i - mid) * 0.4 + 0.14 * pyroFlick(time, seed + i * 5);
-      const cs = Math.cos(off), sn = Math.sin(off);
-      const vx = tx * cs - ty * sn, vy = tx * sn + ty * cs;
-      const l = len * (i === mid ? 1.1 : 0.8) * (1 + 0.28 * pyroFlick(time * 1.3, seed + i * 2.3));
-      pyroFlame(g, x + ux * o.r * 0.3, y + uy * o.r * 0.3, vx, vy, l, o.r * 1.8, o.r * 0.5 * pyroFlick(time * 1.7, seed + i), fade);
-    }
-    g.circle(x, y, o.r).fill({ color: F_MID, alpha: 0.55 * fade });
-    g.circle(x, y, o.r * 0.6).fill({ color: F_CORE, alpha: 0.9 * fade });
-  }, { delay: o.delay });
-}
-
-/** `count` embers lifting off a rect, born anywhere in it. */
-function pyroEmbers(t: FxTools, r: Box, count: number, speed: [number, number], life: [number, number], size: [number, number] = [7, 2]) {
-  t.emit({ count, palette: PAL, from: r, dir: [-118, -62], speed, gravity: -170, drag: 0.55, life, size });
+      for (let i = 0; i < o.tongues; i++) {
+        const off = (i - mid) * 0.4 + 0.14 * pyroFlick(time, seed + i * 5);
+        const cs = Math.cos(off), sn = Math.sin(off);
+        const vx = tx * cs - ty * sn, vy = tx * sn + ty * cs;
+        const l = len * (i === mid ? 1.1 : 0.8) * (1 + 0.28 * pyroFlick(time * 1.3, seed + i * 2.3));
+        pyroFlame(g, x + ux * o.r * 0.3, y + uy * o.r * 0.3, vx, vy, l, o.r * 1.8, o.r * 0.5 * pyroFlick(time * 1.7, seed + i), fade);
+      }
+      // Flame wrapping the head: short licks off its back half, each on its
+      // own flicker — what makes it a ball of FIRE and not a glowing dot.
+      for (let i = 0; i < 6; i++) {
+        const a = back + (i - 2.5) * 0.55;
+        const lx = Math.cos(a), ly = Math.sin(a);
+        pyroFlame(g, x + lx * o.r * 0.45, y + ly * o.r * 0.45, lx, ly, o.r * (1.3 + 0.4 * pyroFlick(time * 1.4, seed + i * 3.3)),
+          o.r * 0.95, o.r * 0.35 * pyroFlick(time, seed + i * 1.1), fade);
+      }
+      // Orange through, white only at the heart: a ball of fire, not a light.
+      g.circle(x, y, o.r * 1.35).fill({ color: F_OUT, alpha: 0.3 * fade });
+      g.circle(x, y, o.r).fill({ color: F_MID, alpha: 0.6 * fade });
+      g.circle(x, y, o.r * 0.45).fill({ color: F_CORE, alpha: 0.85 * fade });
+      head = { x, y };
+      tip = { x: x + tx * len, y: y + ty * len };
+    },
+    wisp: () => (tip ? { x: tip.x + rand(-4, 4), y: tip.y + rand(-4, 4) } : null), wispRate: o.wisps, wispSize: o.r * 0.9,
+    puff: () => (head ? { x: head.x + rand(-3, 3), y: head.y } : null), smokeRate: o.smoke, smokeSize: o.r * 0.75,
+  });
 }
 
 // ── The look ─────────────────────────────────────────────────────────────────
@@ -180,8 +144,11 @@ export const PYRO: ElementLook = {
     t.charge(c, s * (d.special ? 1.5 : basicMelee ? 0.7 : 1.0), ORANGE, d.special ? 0.6 : basicMelee ? 0.18 : 0.3, dur);
     const n = d.special ? 7 : basicMelee ? 2 : 3;
     const seed = rand(0, 100);
-    t.draw(dur, (g, kk) => {
-      const time = kk * dur;
+    pyroFire(t, {
+      seconds: dur,
+      wisp: basicMelee ? undefined : () => ({ x: r.x + r.w * rand(0.1, 0.9), y: r.y + r.h * rand(0.25, 0.6) }),
+      wispRate: d.special ? 26 : 10, wispSize: s * 0.075,
+      body: (g, time, kk) => {
       // A Special builds to the release; a basic flares and is already
       // dying as the shot leaves.
       const grow = d.special ? 0.35 + 0.65 * kk : Math.min(1, kk * 3) * (1 - 0.5 * Math.max(0, kk - 0.6) / 0.4);
@@ -194,7 +161,7 @@ export const PYRO: ElementLook = {
         const h = s * (basicMelee ? 0.16 : d.special ? 0.5 - 0.14 * edge : 0.3) * grow;
         pyroLick(g, bx, by, h, s * (d.special ? 0.17 : 0.15), time, seed + i * 2.2, Math.min(1, kk * 4));
       }
-    });
+    } });
     if (!basicMelee) pyroEmbers(t, { x: r.x + r.w * 0.1, y: r.y + r.h * 0.5, w: r.w * 0.8, h: r.h * 0.45 },
       d.special ? 16 : 5, [40, 120], [0.3, 0.6]);
   },
@@ -223,8 +190,8 @@ export const PYRO: ElementLook = {
     // burning along its path.
     pyroComet(t, {
       from: s.from, to: s.to, delay: s.delay, seconds: s.seconds,
-      r: s.size * (s.special ? 0.16 : 0.1), tongues: s.special ? 4 : 3, shed: s.special ? 4 : 0,
-      trailRate: s.special ? 120 : 65, glow: s.special ? 2.6 : 2.4,
+      r: s.size * (s.special ? 0.18 : 0.12), tongues: s.special ? 4 : 3, shed: s.special ? 4 : 0,
+      trailRate: s.special ? 120 : 65, glow: s.special ? 2.6 : 2.4, wisps: s.special ? 30 : 16, smoke: s.special ? 26 : 14,
     });
   },
 
@@ -236,7 +203,7 @@ export const PYRO: ElementLook = {
     pyroComet(t, {
       from: s.from, to: s.to, delay: s.delay, seconds: s.seconds,
       r: s.size * (heavy ? 0.12 : 0.065), tongues: heavy ? 3 : 1, shed: heavy ? 3 : 0,
-      trailRate: heavy ? 100 : 22, glow: heavy ? 2.4 : 2,
+      trailRate: heavy ? 100 : 22, glow: heavy ? 2.4 : 2, wisps: heavy ? 18 : 0, smoke: heavy ? 10 : 0,
     });
   },
 
@@ -257,8 +224,12 @@ export const PYRO: ElementLook = {
     const seed = rand(0, 100);
     const SWEEP = 0.07;
     const flames = 5;
-    t.draw(0.5, (g, kk) => {
-      const time = kk * 0.5;
+    const along = (): Pt => { const p = { x: 0, y: 0 }; pyroQuad(p0, cc, p2, rand(0.1, 0.9), p); return p; };
+    pyroFire(t, {
+      seconds: 0.5,
+      wisp: () => { const p = along(); p.y -= R * rand(0.15, 0.5); return p; }, wispRate: 34, wispSize: R * 0.16,
+      puff: (kk) => (kk > 0.2 ? along() : null), smokeRate: 14, smokeSize: R * 0.2,
+      body: (g, time) => {
       const upto = Math.min(1, time / SWEEP);
       const after = Math.max(0, time - SWEEP);
       pyroCrescent(g, p0, cc, p2, upto, th, F_OUT, 0.6 * Math.max(0, 1 - after / 0.33), tmp);
@@ -273,7 +244,7 @@ export const PYRO: ElementLook = {
         pyroLick(g, tmp.x, tmp.y - age * 30, R * (0.62 - 0.5 * Math.abs(sAt - 0.5)) * env, R * 0.3,
           time, seed + i * 2.6, Math.min(1, env * 1.4));
       }
-    });
+    } });
     // The scorch it leaves, underneath: real darkness, gone as the embers go.
     t.draw(0.6, (g, kk) => {
       pyroCrescent(g, p0, cc, p2, 1, th * 0.8, SCORCH, 0.5 * Math.min(1, kk * 8) * Math.pow(1 - kk, 1.3), tmp);
@@ -307,8 +278,11 @@ export const PYRO: ElementLook = {
     const s = Math.min(r.w, r.h), c = centre(r);
     const baseY = r.y + r.h * 0.86;
     const seed = rand(0, 100);
-    t.draw(0.6, (g, kk) => {
-      const time = kk * 0.6;
+    pyroFire(t, {
+      seconds: 0.6,
+      wisp: (kk) => ({ x: c.x + rand(-0.4, 0.4) * r.w, y: baseY - s * rand(0.4, 0.95) * (1 - kk) }), wispRate: 40, wispSize: s * 0.1,
+      puff: (kk) => (kk > 0.1 ? { x: c.x + rand(-0.35, 0.35) * r.w, y: baseY - s * 0.85 } : null), smokeRate: 16, smokeSize: s * 0.16,
+      body: (g, time, kk) => {
       const env = kk < 0.16 ? 1 - (1 - kk / 0.16) * (1 - kk / 0.16) : Math.pow(1 - (kk - 0.16) / 0.84, 1.2);
       for (let i = 0; i < 5; i++) {
         const f = (i - 2) / 2;
@@ -316,7 +290,7 @@ export const PYRO: ElementLook = {
         const hh = h * (1 + 0.2 * pyroFlick(time, seed + i * 2.4));
         pyroFlame(g, c.x + f * r.w * 0.34, baseY, f * 0.28, -1, hh, s * 0.28, hh * 0.12 * pyroFlick(time, seed + i), Math.min(1, env * 1.3));
       }
-    });
+    } });
     t.draw(0.8, (g, kk) => {
       g.ellipse(c.x, baseY, r.w * 0.44, r.h * 0.13).fill({ color: SCORCH, alpha: 0.45 * Math.min(1, kk * 6) * (1 - kk) });
     }, { dark: true });
@@ -326,17 +300,35 @@ export const PYRO: ElementLook = {
   },
 
   impactAccent(t, at, k) {
-    // Scorch: a PYRO hit leaves its target ALIGHT — a few tongues catch on it
-    // as the flash clears, the burn its basic attacks stack. One drawing, no
-    // sparks: it rides on every PYRO hit.
-    const h = 14 + 16 * k, w = 7 + 5 * k;
-    const seed = rand(0, 100);
-    t.draw(0.62, (g, kk) => {
-      const time = kk * 0.62;
-      const env = pyroEnv(time - 0.08, 0.54, 0.12);
-      if (env <= 0) return;
-      for (let i = 0; i < 3; i++)
-        pyroLick(g, at.x + (i - 1) * w * 1.05, at.y + h * 0.35, h * (i === 1 ? 1 : 0.68) * env, w, time, seed + i * 2, env);
+    // The hit goes up in FIRE: a bloom of flame bursting out of the point and
+    // lifting as it burns down — fire climbs, even out of an explosion — a
+    // ball of it swelling and cooling at the heart, wisps torn off the tips
+    // and smoke rolling up after. The standard burst under it is smaller for
+    // PYRO (STYLES), so this, not a white flash, is what the eye gets.
+    const R = 13 + 13 * k, n = 7, seed = rand(0, 100);
+    const tips: Pt[] = [];
+    pyroFire(t, {
+      seconds: 0.6,
+      body: (g, time, kk) => {
+        const grow = kk < 0.18 ? 1 - Math.pow(1 - kk / 0.18, 2) : 1;
+        const fade = kk < 0.3 ? 1 : 1 - (kk - 0.3) / 0.7;
+        const lift = kk * R * 0.55;
+        g.circle(at.x, at.y - lift, R * (0.5 + 0.5 * grow) * (1 - 0.35 * kk)).fill({ color: F_OUT, alpha: 0.32 * fade });
+        g.circle(at.x, at.y - lift, R * 0.5 * (1 - kk)).fill({ color: F_CORE, alpha: 0.6 * fade });
+        tips.length = 0;
+        for (let i = 0; i < n; i++) {
+          const a = (i / n) * Math.PI * 2 + seed;
+          let ux = Math.cos(a), uy = Math.sin(a) - 0.75;
+          const l = Math.hypot(ux, uy) || 1;
+          ux /= l; uy /= l;
+          const len = R * (0.95 + 0.3 * Math.sin(seed + i * 2.3)) * grow * (1 - 0.45 * kk) * (1 + 0.22 * pyroFlick(time, seed + i));
+          const bx = at.x + ux * R * 0.2, by = at.y - lift + uy * R * 0.2;
+          pyroFlame(g, bx, by, ux, uy, len, R * 0.5, len * 0.2 * pyroFlick(time * 0.8, seed + i * 1.7), fade);
+          tips.push({ x: bx + ux * len, y: by + uy * len });
+        }
+      },
+      wisp: () => (tips.length ? tips[Math.floor(Math.random() * tips.length)] : null), wispRate: 22, wispSize: R * 0.35,
+      puff: (kk) => (kk > 0.15 ? { x: at.x + rand(-R * 0.4, R * 0.4), y: at.y - R * 0.55 } : null), smokeRate: 12, smokeSize: R * 0.45,
     });
   },
 
@@ -348,8 +340,11 @@ export const PYRO: ElementLook = {
     const rad = s * 0.6, n = 11;
     const seed = rand(0, 100);
     const D = 1.0;
-    t.draw(D, (g, kk) => {
-      const time = kk * D;
+    pyroFire(t, {
+      seconds: D,
+      wisp: (kk) => { const a = rand(0, Math.PI * 2); return { x: c.x + Math.cos(a) * rad, y: c.y + Math.sin(a) * rad - s * 0.2 * (1 - kk) }; },
+      wispRate: 18, wispSize: s * 0.07,
+      body: (g, time, kk) => {
       const out = kk < 0.62 ? 1 : Math.max(0, 1 - (kk - 0.62) / 0.38);
       const lit = Math.min(1, time / 0.1) * out;
       g.circle(c.x, c.y, rad).stroke({ width: 8, color: F_OUT, alpha: 0.3 * lit });
@@ -367,7 +362,7 @@ export const PYRO: ElementLook = {
         pyroFlame(g, c.x + cs * rad, c.y + sn * rad, (cs * 0.35) / ul, -1 / ul, h, s * 0.16,
           h * 0.15 * pyroFlick(time * 0.8, seed + i), grow * out);
       }
-    });
+    } });
     const ember = () => {
       for (let i = 0; i < 11; i++) {
         const a = rand(0, Math.PI * 2);
@@ -409,12 +404,16 @@ export const PYRO: ElementLook = {
     // A curtain of flame along the row: it whooshes up from the middle out,
     // an uneven line of tall tongues licking up off a bed of coals, holds,
     // and burns down (shorter, not just fainter).
-    const n = Math.max(5, Math.round(r.w / 28));
+    const n = Math.max(6, Math.round(r.w / 22));
     const seed = rand(0, 100);
     const baseY = r.y + r.h * 0.96;
     const D = 1.15;
-    t.draw(D, (g, kk) => {
-      const time = kk * D;
+    pyroFire(t, {
+      seconds: D,
+      wisp: (kk) => ({ x: r.x + r.w * rand(0.04, 0.96), y: baseY - r.h * rand(0.45, 0.85) * (kk < 0.6 ? 1 : 1.6 - kk) }),
+      wispRate: r.w / 9, wispSize: r.h * 0.12,
+      puff: () => ({ x: r.x + r.w * rand(0.04, 0.96), y: baseY - r.h * rand(0.8, 1.0) }), smokeRate: r.w / 26, smokeSize: r.h * 0.22,
+      body: (g, time) => {
       const out = time < 0.7 ? 1 : Math.max(0, 1 - (time - 0.7) / 0.45);
       const lit = Math.min(1, time / 0.08) * out;
       g.rect(r.x, baseY - r.h * 0.12, r.w, r.h * 0.14).fill({ color: RED, alpha: 0.3 * lit });
@@ -425,10 +424,10 @@ export const PYRO: ElementLook = {
         if (a <= 0) continue;
         const grow = 1 - Math.pow(1 - Math.min(1, a / 0.14), 2);
         const tall = 0.62 + (0.38 * ((i * 7 + 3) % 5)) / 4; // uneven, but fixed
-        pyroLick(g, r.x + r.w * f, baseY, r.h * 0.9 * tall * grow * (0.3 + 0.7 * out), (r.w / n) * 1.3,
+        pyroLick(g, r.x + r.w * f, baseY, r.h * 0.9 * tall * grow * (0.3 + 0.7 * out), (r.w / n) * 1.5,
           time, seed + i * 2.7, 0.55 + 0.45 * out);
       }
-    });
+    } });
     t.emit({ count: Math.round(r.w / 4.5), palette: PAL, from: r, at: "bottom", dir: [-102, -78], speed: [120, 300],
       gravity: -110, drag: 0.4, life: [0.4, 0.85], size: [8, 2] });
     t.later(0.4, () => t.emit({ count: Math.round(r.w / 8), palette: PAL, from: r, at: "bottom", dir: [-105, -75],
