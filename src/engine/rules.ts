@@ -2013,12 +2013,31 @@ export function canFireSpecial(
   const mayDie = Number(def.special.params?.selfHpLethal ?? 0) > 0;
   if (hpCost > 0 && !mayDie && card.curHp <= hpCost)
     return { ok: false, reason: `Not enough HP (costs ${hpCost})` };
-  if (specialTargets(state, instanceId).length === 0)
+  if (specialTargets(state, instanceId).length === 0) {
+    // CAST FOR THE STEP ALONE (owner's call). A Special that moves its caster
+    // forward before it strikes (`chargeFirst`) and opts in with
+    // `moveIfNoTarget` may fire with nobody in range, for the move: Dandelion is
+    // SP 0, and Razor Guard's step is the only way it ever advances.
+    if (Number(def.special.params?.moveIfNoTarget ?? 0) > 0 && forwardStepOpen(state, card))
+      return { ok: true };
     // Said plainly for the wave: "no valid target" beside a board full of enemies
     // reads as a bug, when the rule is simply that nobody is standing in the one
     // row it breaks on.
     return { ok: false, reason: def.special.handler === "surfsUp" ? "No opponent in the row ahead" : "No valid target" };
+  }
   return { ok: true };
+}
+
+/** Can `card` take one step straight toward the enemy home? The same square
+ *  `chargeForward` would move it onto: on the board, not captured, and empty.
+ *  (A TRAMPLE card could shove its way in; nothing that opts into a
+ *  target-free step carries TRAMPLE, so this does not model the shove.) */
+export function forwardStepOpen(state: GameState, card: CardInstance): boolean {
+  if (!card.pos) return false;
+  const row = card.pos.row + (card.owner === "P1" ? -1 : 1);
+  if (row < 0 || row >= state.boardSize) return false;
+  if (state.slots[row][card.pos.col].capturedBy) return false;
+  return !cardAt(state, row, card.pos.col);
 }
 
 export type PlannedAction = "AUTO" | "YOU" | "SKIP";

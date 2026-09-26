@@ -3940,7 +3940,9 @@ export function App() {
     setPicks([]);
     setHint(
       specialAoE
-        ? `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
+        ? specialValid.length === 0 && Number(spec.params?.moveIfNoTarget ?? 0) > 0
+          ? `<b>${spec.name}</b>: nobody in range yet. Press <b>Confirm</b> to step forward and rake anyone the step brings into reach.`
+          : `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
         : aimedArea
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
         : aimedCorridor

@@ -44,7 +44,7 @@ describe("Oakgre", () => {
     const after = next.cards[oak.instanceId];
     expect(after.curHp).toBe(getDef("leaf_oakgre").hp - 9); // the HP cost is real
     expect(effectiveSp(next, after)).toBe(3); // unpinned
-    expect(effectiveDmg(next, after)).toBe(getDef("leaf_oakgre").dmg + 2);
+    expect(effectiveDmg(next, after)).toBe(getDef("leaf_oakgre").dmg + 3); // +3 a cast (owner's call; was +2)
 
     // Movement is a PREP-phase action; uproot() left us mid-battle.
     next.phase = "prep";
@@ -57,7 +57,7 @@ describe("Oakgre", () => {
     const oak = place(s, "leaf_oakgre", "P1", 3, 0, { curHp: 55, maxHp: 55 });
     const cur = uproot(s, oak.instanceId, 3);
     expect(cur.cards[oak.instanceId].curHp).toBe(55 - 27);
-    expect(effectiveDmg(cur, cur.cards[oak.instanceId])).toBe(getDef("leaf_oakgre").dmg + 6);
+    expect(effectiveDmg(cur, cur.cards[oak.instanceId])).toBe(getDef("leaf_oakgre").dmg + 9);
     expect(effectiveSp(cur, cur.cards[oak.instanceId])).toBe(9);
   });
 
@@ -95,8 +95,9 @@ describe("Oakgre", () => {
       expect(delta("leaf_trinezer", 2)).toBe(0); // Trinezer 11 > 6
     });
 
-    it("does not reach two rows away", () => {
-      expect(delta("leaf_greegon", 1)).toBe(0); // rows 3 vs 1
+    it("reaches across the whole board (owner's call; it was one row)", () => {
+      expect(delta("leaf_greegon", 1)).toBe(-1); // rows 3 vs 1
+      expect(delta("leaf_greegon", 0)).toBe(-1); // the far home row
     });
 
     it("spares the intimidator's own side", () => {
@@ -111,7 +112,7 @@ describe("Oakgre", () => {
     it("catches an enemy it could not before, once Uprooted grows its DMG", () => {
       // The live comparison is the whole reason this pairs with a ramping
       // Special. Sticks out-damages a fresh Oakgre and is unafraid; two
-      // Uprooteds (6 -> 10) bring it under the aura.
+      // Uprooteds (6 -> 12) bring it under the aura.
       expect(delta("leaf_sticks", 2, 0)).toBe(0);
       expect(delta("leaf_sticks", 2, 2)).toBe(-1);
     });

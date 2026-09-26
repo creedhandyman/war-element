@@ -1515,6 +1515,11 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
         if (dmg * hits * volleys + rider > effectiveDmg(state, card) * def.hits)
           return { action: "special", targetId: scored[0].t.instanceId };
       }
+      // CAST FOR THE STEP ALONE (`moveIfNoTarget`): nothing in reach for the
+      // basic or the volley, and the Special can walk it forward. Dandelion is
+      // SP 0, so without this it stands still all game. Only with magic spare.
+      if (specTargets.length === 0 && targets.length === 0 && Number(params.moveIfNoTarget ?? 0) > 0 && rich)
+        return { action: "special" };
     } else if (sp.handler === "empower" || sp.handler === "powerGauntlets") {
       // Self-buff (Heir's Crowned / Velvolt's gauntlets): strong standing value —
       // take it when there's no kill to secure this turn.

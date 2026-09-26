@@ -1343,9 +1343,11 @@ export const CARDS: CardDef[] = [
     cost: 2,
     // 6 DMG on 7 HP, not 12 on 1: a 1-HP card died before it swung (-7.0 against
     // same-cost AQUA peers after the AI fix). Same 20 points, -2.1.
-    dmg: 6,
+    // Then 8 / 5 (owner's call): two points of body into the claw, still 20.
+    // It read -7.9 (tier E) on fresh seeds in the second ledger at 6 / 7.
+    dmg: 8,
     hits: 1,
-    hp: 7,
+    hp: 5,
     sp: 7,
     shields: 0,
     keywords: {},
@@ -1554,9 +1556,10 @@ export const CARDS: CardDef[] = [
       name: "Geyser Gash",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, targets: 2, statusKind: "SCALD", statusPower: 3, statusDuration: 2 },
+      // 3 -> 6 DMG (owner's call); cost 3, SCALD 3 for 2 rounds unchanged.
+      params: { dmg: 6, targets: 2, statusKind: "SCALD", statusPower: 3, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 3 DMG and apply SCALD 3 (2r) to up to 2 opponents.",
+      text: "Deal 6 DMG and apply SCALD 3 (2r) to up to 2 opponents.",
     },
   },
   {
@@ -2930,8 +2933,10 @@ export const CARDS: CardDef[] = [
     // Intimidation (Aura): anything weaker than Oakgre flinches. Gated on a LIVE
     // comparison, so as Uprooted grows its DMG the aura catches more of the
     // board — and a card that out-grows Oakgre walks out from under it.
+    // The WHOLE BOARD now (owner's call), not just the rows beside it: 99 rows
+    // is more than any board has.
     passiveNames: { intimidate: "Intimidation" },
-    intimidate: { dmg: 1, rows: 1 },
+    intimidate: { dmg: 1, rows: 99 },
     // Trample Through: a walking tree does not go around things. Dead weight
     // until Uprooted clears its SP 0 — Oakgre cannot move at all before that,
     // and a trample is a move — which suits the card: the Special is what turns
@@ -2944,12 +2949,13 @@ export const CARDS: CardDef[] = [
       // but only three times (maxStacks). Left unchecked, an Oakgre parked out
       // of reach simply grows every round for the rest of the game.
       // The +3 SP is what unpins it: 0 -> 3 clears moveReach's zero and puts it
-      // in the slow tier (1 space); fully grown it is +6 DMG / +9 SP.
+      // in the slow tier (1 space); fully grown it is +9 DMG / +9 SP (DMG was
+      // +2 a cast, +3 by the owner's call).
       // selfHpCost is refused when lethal — it does not opt into selfHpLethal,
       // so Oakgre can never tear itself apart.
-      params: { selfHpCost: 9, selfDmg: 2, selfSp: 3, maxStacks: 3 },
+      params: { selfHpCost: 9, selfDmg: 3, selfSp: 3, maxStacks: 3 },
       targetSide: "self",
-      text: "Lose 9 HP. Permanently gain +2 DMG and +3 SP — it can move for the rest of the game. Three casts maximum.",
+      text: "Lose 9 HP. Permanently gain +3 DMG and +3 SP — it can move for the rest of the game. Three casts maximum.",
     },
   },
   {
@@ -4367,10 +4373,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 8,
-    dmg: 4,
+    // 5x2 / 24 HP / 10 SP (owner's call), from 4x2 / 25 / 11: 10 + 24 + 3x2 + 10
+    // = 50, still exactly the cost-8 budget. It read tier D.
+    dmg: 5,
     hits: 2,
-    hp: 25,
-    sp: 11,
+    hp: 24,
+    sp: 10,
     shields: 3,
     keywords: {},
     // Freezer Burn: SCALD any FROZEN enemy for 2 each Cleanup (pairs with the Special).
@@ -6937,23 +6945,25 @@ export const CARDS: CardDef[] = [
     dmg: 5,
     hits: 1,
     hp: 15,
-    sp: 5,
+    // SP 5 -> 6 (owner's call): 5 + 15 + 3x2 + 6 = 32, two over the cost-4
+    // budget and at the edge of the +/-2. It read tier D.
+    sp: 6,
     shields: 3,
     keywords: {},
     tribe: "Ice",
     // Cold Snap: basic attacks deal +2 DMG to a FROZEN opponent.
     passiveNames: { vsStatus: "Cold Snap" },
     vsStatus: { status: "FREEZE", bonusDmg: 2 },
-    // Mega Icicle: 5 DMG to a 2×2 area; a target already FROZEN has its remaining
-    // FREEZE doubled (Cryo Freeze).
+    // Mega Icicle: 5 DMG to a 2×2 area; a target already FROZEN takes double
+    // damage (owner's call) and has its remaining FREEZE doubled (Cryo Freeze).
     special: {
       name: "Mega Icicle",
       cost: 2,
       handler: "areaBlast",
-      params: { dmg: 5, freezeDouble: 1 },
+      params: { dmg: 5, freezeDouble: 1, vsFrozenMult: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Throw an icicle dealing 5 DMG to a 2×2 area; a FROZEN target's FREEZE is doubled.",
+      text: "Throw an icicle dealing 5 DMG to a 2×2 area; a FROZEN target takes double damage and its FREEZE is doubled.",
     },
   },
   {
@@ -8837,16 +8847,19 @@ export const CARDS: CardDef[] = [
     onHitByMelee: { dmg: 1, status: { kind: "DOT", duration: 2, power: 1 } },
     // Razor Guard: the weed lurches a space forward (it's SP 0, so this is the
     // only way it advances), THEN rakes everything in range for 3 + BLEED 1.
+    // It may be cast with nobody in range, for the step alone (owner's call,
+    // `moveIfNoTarget`): a Special that needed a target to fire left an SP-0
+    // card stuck wherever it was summoned.
     special: {
       name: "Razor Guard",
       cost: 3,
       handler: "barrage",
       params: {
-        dmg: 3, targets: 3, charge: 1, chargeFirst: 1,
+        dmg: 3, targets: 3, charge: 1, chargeFirst: 1, moveIfNoTarget: 1,
         statusKind: "BLEED", statusPower: 1, statusDuration: 2,
       },
       targetSide: "enemy",
-      text: "Move forward one space, then deal 3 DMG and apply BLEED 1 (2 rounds) to opponents in range.",
+      text: "Move forward one space, then deal 3 DMG and apply BLEED 1 (2 rounds) to opponents in range. Usable with nobody in range, just to move.",
     },
   },
   {
@@ -9040,10 +9053,11 @@ export const CARDS: CardDef[] = [
       name: "Bloody Waters",
       cost: 2,
       handler: "bloodyWaters",
-      params: { dmg: 4, healOnKill: 5 },
+      // 4 -> 8 DMG and the kill's heal 5 -> 8 (owner's call; it read tier D).
+      params: { dmg: 8, healOnKill: 8 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 4 DMG to the lowest-HP opponent. On a kill: heal +5 HP and re-enter Lurk (STEALTH).",
+      text: "Deal 8 DMG to the lowest-HP opponent. On a kill: heal +8 HP and re-enter Lurk (STEALTH).",
     },
   },
   {

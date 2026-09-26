@@ -956,7 +956,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.intimidate)
     named(
       "intimidate",
-      `Aura: opponents within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
+      `Aura: opponents ${def.intimidate.rows >= 99 ? "anywhere on the board" : `within ${def.intimidate.rows === 1 ? "one row" : `${def.intimidate.rows} rows`}`} whose DMG is lower than this card's CURRENT DMG lose ${def.intimidate.dmg} DMG from their basic attacks.`,
     );
   if (def.blindingStar)
     named("blindingStar", `Blinding Star (Aura): while it lives, every opponent's basic attacks have a ${BLINDING_STAR_MISS_PCT}% chance to miss.`);

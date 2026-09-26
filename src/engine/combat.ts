@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, shoveTarget, slotIsImpassable, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -4318,6 +4318,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const chargeFirst = num(params, "chargeFirst") > 0;
     if (chargeFirst && num(params, "charge") > 0)
       chargeForward(draft, attacker, num(params, "charge"));
+    // Cast for the step alone (`moveIfNoTarget`, see canFireSpecial): nothing
+    // was in range where it stood, so it rakes whatever the step brought into
+    // range, which is what "move forward, then deal DMG to opponents in range"
+    // says.
+    if (chargeFirst && targets.length === 0 && num(params, "moveIfNoTarget") > 0)
+      targets = specialTargets(draft, attacker.instanceId);
     // Timberer (Lumberjack): scope the volley to the row directly ahead — the
     // tree falls forward, it doesn't scatter across the board.
     // Wildfire (Scorch): scope the volley to the enemy's own home row.
@@ -5284,7 +5290,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       );
       if (!victim) continue;
       hit.add(victim.instanceId);
-      resolveHit(draft, attacker, victim, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+      // `vsFrozenMult` (Cryo's Mega Icicle): a target already FROZEN takes the
+      // icicle at that multiple. Read before the hit, so it is the freeze the
+      // target was standing in, not one this throw adds.
+      const mult = hasStatus(victim, "FREEZE") ? Math.max(1, num(params, "vsFrozenMult", 1)) : 1;
+      resolveHit(draft, attacker, victim, { kind: "special", dmg: dmg * mult, hits: 1, pen: false, crit: false });
       if (num(params, "freezeDouble") > 0 && draft.cards[victim.instanceId] && victim.curHp > 0) {
         const fz = victim.statuses.find((s) => s.kind === "FREEZE");
         if (fz) { fz.duration *= 2; draft.log.push(`${label(draft, victim)}'s freeze deepens (${fz.duration}r).`); }
