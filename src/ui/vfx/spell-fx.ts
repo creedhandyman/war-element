@@ -28,13 +28,16 @@ import type { LookVariant } from "./looks/types";
 export type At = { row: number; col: number };
 
 export type SpellFx =
-  | { kind: "impact"; at: At; element: Element; strength: number }
+  | { kind: "impact"; at: At; element: Element; strength: number; variant?: LookVariant }
   | { kind: "heal"; at: At; element: Element; strength: number }
-  | { kind: "shield"; at: At; element: Element }
+  | { kind: "shield"; at: At; element: Element; variant?: LookVariant }
   | { kind: "status"; at: At; status: StatusKind; element: Element }
   | { kind: "buff" | "debuff"; at: At; element: Element }
   | { kind: "move"; from: At; to: At; element: Element }
-  | { kind: "wall"; row: number; element: Element }
+  | { kind: "wall"; row: number; element: Element; variant?: LookVariant }
+  /** A card crossing an enemy wall and paying for it (Ice Wall's 2 DMG and
+   *  freeze), in the wall's look. */
+  | { kind: "wallBite"; at: At; element: Element; variant?: LookVariant }
   | { kind: "field"; element: Element }
   | { kind: "trapSet" | "trapSprung"; at: At; element: Element }
   /** A spell that changed nothing on the board (Power Rebate, Recon Ping,
@@ -135,11 +138,20 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
   const spell = getSpell(cast.spellId);
   const element = spell.element;
   const { changes, reached } = cardChanges(before, after, element, cast.seat);
-  const out: SpellFx[] = changes.map((c) => c.fx);
+  // An ice spell's damage shatters in ice, like an icy card's shot, and the
+  // plating it gives is ice (Glacial Wave) — except Chill's `allyShield`: its
+  // art pairs an ice strike with a WATER shield, and the modal keeps that.
+  const variant = spellVariant(spell);
+  const iced = (fx: SpellFx): SpellFx =>
+    !variant ? fx
+    : fx.kind === "impact" ? { ...fx, variant }
+    : fx.kind === "shield" && !spell.allyShield ? { ...fx, variant }
+    : fx;
+  const out: SpellFx[] = changes.map((c) => iced(c.fx));
 
   for (const w of after.walls)
     if (!before.walls.some((b) => b.row === w.row && b.owner === w.owner && b.spellId === w.spellId))
-      out.push({ kind: "wall", row: w.row, element: w.element });
+      out.push({ kind: "wall", row: w.row, element: w.element, variant: spellVariant(getSpell(w.spellId)) });
 
   for (const f of after.fields)
     if (!before.fields.some((b) => b.spellId === f.spellId && b.owner === f.owner))
@@ -189,7 +201,7 @@ export interface CardAttack {
 
 /** Names that are plainly the cold: a cold word opening a name ("Frostveil",
  *  "Glacius", "Polar King") or closing one ("Blackice", "Permafrost"). */
-const ICY_NAME = /\b(ice|icy|frost|frozen|glaci|snow|cryo|polar|arcti|blizzard|hail|hoar)|(ice|frost)\b/i;
+const ICY_NAME = /\b(ice|icy|frost|frozen|glaci|snow|cryo|polar|arcti|blizzard|hail|hoar|chill)|(ice|frost)\b/i;
 
 /** Its kit freezes something — its hit, its Special, whoever strikes it, a
  *  round tick, its death. Read from the definition's own fields rather than a
@@ -286,7 +298,10 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
           special: a.special, variant: a.variant });
       continue;
     }
-    if (opposing || fx.kind !== "debuff") out.push(fx);
+    // The attacker's own plating in its look: an icy card taking the Frozen
+    // Flow as it lands is armoured in ice, not water.
+    if (fx.kind === "shield" && !opposing && a.variant) out.push({ ...fx, variant: a.variant });
+    else if (opposing || fx.kind !== "debuff") out.push(fx);
   }
   if (a.arriving && reached.length > 0) out.unshift({ kind: "arrive", at: a.at, element, variant: a.variant });
   return out;
@@ -302,6 +317,38 @@ export function boardSpell(before: GameState, after: GameState): BoardFx | null 
   if (!cast) return null;
   const fx = spellEffects(before, after, cast.seat).find((f): f is BoardFx => f.kind === "board");
   return fx ?? null;
+}
+
+/** An AQUA SPELL is ice by its NAME alone — Ice Wall, Frost Patch, Glacial
+ *  Wave, Chill. Not by whether it freezes: Tsunami and Maelstrom freeze too,
+ *  and a tidal wave and a whirlpool are water. */
+export function spellVariant(spell: { element: Element; name: string }): LookVariant | undefined {
+  return spell.element === "AQUA" && ICY_NAME.test(spell.name) ? "ice" : undefined;
+}
+
+/** Cards that crossed an enemy wall between two states and paid for it — the
+ *  engine's rule (`triggerWallsOnMove`): the wall's row lies in the span the
+ *  card moved through, FLYING soars over one that does not stop it, and a
+ *  wall that only buffs its own side bites no one. Drawn in the wall's look. */
+export function wallsCrossed(before: GameState, after: GameState): SpellFx[] {
+  const out: SpellFx[] = [];
+  for (const [id, was] of Object.entries(before.cards)) {
+    const now = after.cards[id];
+    if (!was.pos || !now?.pos || now.pos.row === was.pos.row) continue;
+    const hurt = now.curHp < was.curHp || now.curShields < was.curShields || now.statuses.length > was.statuses.length ||
+      (now.fxDmgSeq ?? 0) > (was.fxDmgSeq ?? 0);
+    if (!hurt) continue;
+    const flying = !!getDef(was.defId).keywords.FLYING;
+    const from = was.pos.row, to = now.pos.row;
+    for (const w of before.walls) {
+      if (w.owner === was.owner || (!w.dmg && !w.status && !w.push && !w.stripShields)) continue;
+      if (flying && !w.stopsFlying) continue;
+      if (w.row === from || (w.row - from) * (w.row - to) > 0) continue;
+      out.push({ kind: "wallBite", at: now.pos, element: w.element, variant: spellVariant(getSpell(w.spellId)) });
+      break; // one bite drawn per card, however many walls it ran
+    }
+  }
+  return out;
 }
 
 /** A trap that went off between two states: it is gone from the board, and

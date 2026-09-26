@@ -20,7 +20,10 @@
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
-import { boardSpell, cardAttack, cardAttackEffects, roundEndEffects, spellEffects, trapsSprung, type At, type BoardFx, type SpellFx } from "./spell-fx";
+import {
+  boardSpell, cardAttack, cardAttackEffects, roundEndEffects, spellEffects, trapsSprung, wallsCrossed,
+  type At, type BoardFx, type SpellFx,
+} from "./spell-fx";
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
@@ -200,7 +203,7 @@ function fire(fx: SpellFx[]) {
           const r = squareRect(f.at);
           if (!r) break;
           const k = f.kind === "impact" ? f.strength * (boardWide ? 0.5 : 1) : 1.2;
-          l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k);
+          l.impact(r.x + r.w / 2, r.y + r.h / 2, f.element, k, f.kind === "impact" ? f.variant : undefined);
           hardest = Math.max(hardest, k);
           break;
         }
@@ -216,7 +219,7 @@ function fire(fx: SpellFx[]) {
         }
         case "wall": {
           const r = rowRect(f.row);
-          if (r) l.play({ kind: "wall", rect: r, element: f.element });
+          if (r) l.play({ kind: "wall", rect: r, element: f.element, variant: f.variant });
           break;
         }
         case "pulse": {
@@ -274,7 +277,8 @@ export function useSpellImpacts(game: GameState | null, inMatch: boolean, hold: 
     // a diff taken against it there is against the last match.
     if (!game || !before || !inMatch || game.phase === "mulligan" || !effectsOn()) return;
     const fx = [
-      ...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...cardAttackEffects(before, game),
+      ...spellEffects(before, game, viewer), ...trapsSprung(before, game), ...wallsCrossed(before, game),
+      ...cardAttackEffects(before, game),
       ...roundEndEffects(before, game),
     ];
     if (fx.length === 0) return;

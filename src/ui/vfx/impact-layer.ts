@@ -35,11 +35,13 @@ export interface Rect { x: number; y: number; w: number; h: number }
  *  each one is drawn. */
 export type LayerFx =
   | { kind: "heal"; rect: Rect; element: Element; strength: number }
-  | { kind: "shield"; rect: Rect; element: Element }
+  | { kind: "shield"; rect: Rect; element: Element; variant?: LookVariant }
   | { kind: "status"; rect: Rect; status: StatusKind; element: Element }
   | { kind: "buff" | "debuff"; rect: Rect; element: Element }
   | { kind: "move"; from: Rect; to: Rect; element: Element }
-  | { kind: "wall"; rect: Rect; element: Element }
+  | { kind: "wall"; rect: Rect; element: Element; variant?: LookVariant }
+  /** A card crossing an enemy wall and paying for it, in the wall's look. */
+  | { kind: "wallBite"; rect: Rect; element: Element; variant?: LookVariant }
   | { kind: "field"; rect: Rect; element: Element }
   | { kind: "trapSet"; rect: Rect; element: Element }
   | { kind: "pulse"; rect: Rect; element: Element }
@@ -1093,7 +1095,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         look.heal(t, fx.rect, fx.strength);
         break;
       case "shield":
-        look.shield(t, fx.rect);
+        lookFor(fx.element, fx.variant).shield(t, fx.rect);
         break;
       case "status":
         status(fx.rect, fx.status, el);
@@ -1111,8 +1113,14 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         look.move(t, fx.from, fx.to);
         break;
       case "wall":
-        look.wall(t, fx.rect);
+        lookFor(fx.element, fx.variant).wall(t, fx.rect);
         break;
+      case "wallBite": {
+        const lk = lookFor(fx.element, fx.variant);
+        if (lk.wallBite) lk.wallBite(t, fx.rect);
+        else impactAt(fx.rect.x + fx.rect.w / 2, fx.rect.y + fx.rect.h / 2, fx.element, 1.1, fx.variant);
+        break;
+      }
       case "field":
         look.field(t, fx.rect);
         break;
@@ -1214,42 +1222,45 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   }
   app.ticker.add(update);
 
+  /** A damage burst at a point — the element's own, or an icy card's ice. */
+  function impactAt(x: number, y: number, element: Element, strength = 1, variant?: LookVariant) {
+    const st = variant === "ice" && element === "AQUA" ? ICE_STYLE : STYLES[element] ?? STYLES.VOID;
+    const k = Math.max(0.5, Math.min(2.4, strength));
+    if (st.implode) {
+      // Gather first, burst when they arrive — the one element whose hit
+      // has a wind-up, because shadow collapsing IN is what DUSK is.
+      const n = Math.round(st.sparks * 0.5 * k);
+      for (let i = 0; i < n; i++) spawnSpark(x, y, st, k, rand(0, Math.PI * 2), true);
+      const later = new Graphics();
+      bursts.addChild(later);
+      effects.push({
+        node: later, age: 0, delay: 0.26, tick: () => {
+          burst(x, y, st, k, Math.round(st.sparks * k));
+          addFlash(x, y, st, k);
+          addRing(x, y, st, k);
+          return false;
+        },
+      });
+    } else {
+      burst(x, y, st, k, Math.round(st.sparks * k));
+      addFlash(x, y, st, k);
+      addRing(x, y, st, k);
+      addRing(x, y, st, k * 0.6, 0.08);
+    }
+    if (st.arcs) addArcs(x, y, st, k, st.arcs);
+    if (st.rays) addRays(x, y, st, k, st.rays);
+    if (st.embers) {
+      // The second wave: slow, rising, long-lived. It is what a hit leaves
+      // behind, and it is most of why the burst feels like it had weight.
+      const ember: Style = { ...st, speed: [40, 160], gravity: -120, life: [0.8, 1.6], size: [7, 2], streak: false };
+      burst(x, y, ember, k, Math.round(st.embers * k));
+    }
+    lookFor(element, variant).impactAccent?.(toolsFor(element), { x, y }, k);
+    if (!app.ticker.started) app.ticker.start();
+  }
+
   return {
-    impact(x, y, element, strength = 1, variant) {
-      const st = variant === "ice" && element === "AQUA" ? ICE_STYLE : STYLES[element] ?? STYLES.VOID;
-      const k = Math.max(0.5, Math.min(2.4, strength));
-      if (st.implode) {
-        // Gather first, burst when they arrive — the one element whose hit
-        // has a wind-up, because shadow collapsing IN is what DUSK is.
-        const n = Math.round(st.sparks * 0.5 * k);
-        for (let i = 0; i < n; i++) spawnSpark(x, y, st, k, rand(0, Math.PI * 2), true);
-        const later = new Graphics();
-        bursts.addChild(later);
-        effects.push({
-          node: later, age: 0, delay: 0.26, tick: () => {
-            burst(x, y, st, k, Math.round(st.sparks * k));
-            addFlash(x, y, st, k);
-            addRing(x, y, st, k);
-            return false;
-          },
-        });
-      } else {
-        burst(x, y, st, k, Math.round(st.sparks * k));
-        addFlash(x, y, st, k);
-        addRing(x, y, st, k);
-        addRing(x, y, st, k * 0.6, 0.08);
-      }
-      if (st.arcs) addArcs(x, y, st, k, st.arcs);
-      if (st.rays) addRays(x, y, st, k, st.rays);
-      if (st.embers) {
-        // The second wave: slow, rising, long-lived. It is what a hit leaves
-        // behind, and it is most of why the burst feels like it had weight.
-        const ember: Style = { ...st, speed: [40, 160], gravity: -120, life: [0.8, 1.6], size: [7, 2], streak: false };
-        burst(x, y, ember, k, Math.round(st.embers * k));
-      }
-      lookFor(element, variant).impactAccent?.(toolsFor(element), { x, y }, k);
-      if (!app.ticker.started) app.ticker.start();
-    },
+    impact: impactAt,
     play,
     get live() { return live.length; },
     fps: () => app.ticker.FPS,

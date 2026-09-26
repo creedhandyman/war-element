@@ -195,6 +195,9 @@ export interface ElementLook {
   heal(t: FxTools, r: Rect, k: number): void;
   /** A wall raised along a row. */
   wall(t: FxTools, r: Rect): void;
+  /** A card crossing this element's wall and paying for it. Optional: without
+   *  one, the element's standard damage burst plays on the card. */
+  wallBite?(t: FxTools, r: Rect): void;
   /** The whole board's weather changing. */
   field(t: FxTools, r: Rect): void;
   /** A card moved (pushed, pulled, swapped) from one square to another. */

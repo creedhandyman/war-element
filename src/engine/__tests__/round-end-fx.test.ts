@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { advance } from "../phases";
+import { advance, applyIntent } from "../phases";
+import { getSpell } from "../spells";
 import type { GameState, StatusEffect } from "../types";
-import { cardAttack, cardAttackEffects, lookVariant, roundEndEffects, type SpellFx } from "../../ui/vfx/spell-fx";
+import {
+  cardAttack, cardAttackEffects, lookVariant, roundEndEffects, spellEffects, spellVariant, wallsCrossed, type SpellFx,
+} from "../../ui/vfx/spell-fx";
 import { atBattle, place, prepState } from "./helpers";
 
 type Tick = Extract<SpellFx, { kind: "tick" }>;
@@ -105,3 +108,64 @@ describe("an icy AQUA card attacks in ice", () => {
     expect(hits[0]).toMatchObject({ variant: "ice" });
   });
 });
+
+describe("the ice spells look like ice", () => {
+  it("are ice by their NAME — Tsunami and Maelstrom freeze too, but they are water", () => {
+    const ice = ["aqua_ice_wall", "aqua_frost_patch", "aqua_glacial_wave", "aqua_chill"];
+    const water = ["aqua_tsunami", "aqua_maelstrom", "aqua_downpour", "aqua_steam_vent"];
+    for (const id of ice) expect(spellVariant(getSpell(id)), id).toBe("ice");
+    for (const id of water) expect(spellVariant(getSpell(id)), id).toBeUndefined();
+  });
+
+  it("Ice Wall goes up as ice", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 9;
+    s.players.P2.spellbook = [{ defId: "aqua_ice_wall", used: false }];
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_ice_wall", row: 2 });
+    expect(after.walls).toHaveLength(1);
+    expect(spellEffects(s, after, "P1").find((f) => f.kind === "wall")).toMatchObject({ row: 2, variant: "ice" });
+  });
+
+  it("Chill's strike shatters in ice; its shield mode keeps the water shield of its art", () => {
+    const cast = (mode: "attack" | "shield") => {
+      const s = prepState(1, "P2");
+      s.players.P2.magicPool = 9;
+      s.players.P2.spellbook = [{ defId: "aqua_chill", used: false }];
+      const foe = place(s, "leaf_greegon", "P1", 2, 0);
+      const ally = place(s, "aqua_misty", "P2", 0, 0);
+      const targetId = mode === "attack" ? foe.instanceId : ally.instanceId;
+      return spellEffects(s, applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_chill", targetId, mode }), "P1");
+    };
+    expect(cast("attack").find((f) => f.kind === "impact")).toMatchObject({ variant: "ice" });
+    const shield = cast("shield").find((f) => f.kind === "shield");
+    expect(shield).toBeDefined();
+    expect(shield).not.toHaveProperty("variant");
+  });
+
+  it("Glacial Wave plates its AQUA allies in ice", () => {
+    const s = prepState(1, "P2");
+    s.players.P2.magicPool = 9;
+    s.players.P2.spellbook = [{ defId: "aqua_glacial_wave", used: false }];
+    place(s, "aqua_misty", "P2", 1, 0);
+    place(s, "leaf_greegon", "P1", 2, 0);
+    const after = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 1 });
+    expect(spellEffects(s, after, "P1").find((f) => f.kind === "shield")).toMatchObject({ variant: "ice" });
+  });
+
+  it("a card that crosses an enemy Ice Wall and pays is bitten by ice — its own side's wall never bites it", () => {
+    const s = prepState(1);
+    const mover = place(s, "leaf_greegon", "P1", 3, 0);
+    const friend = place(s, "leaf_greegon", "P2", 0, 3);
+    s.walls = [
+      { owner: "P2", spellId: "aqua_ice_wall", element: "AQUA", row: 2, dmg: 2, status: status("FREEZE", 1), roundsLeft: 3 },
+      { owner: "P2", spellId: "aqua_ice_wall", element: "AQUA", row: 1, dmg: 2, status: status("FREEZE", 1), roundsLeft: 3 },
+    ];
+    const after = structuredClone(s);
+    after.cards[mover.instanceId].pos = { row: 2, col: 0 };
+    after.cards[mover.instanceId].curHp -= 2;
+    after.cards[mover.instanceId].statuses = [status("FREEZE", 1)];
+    after.cards[friend.instanceId].pos = { row: 1, col: 3 }; // crosses its own side's wall: nothing
+    expect(wallsCrossed(s, after)).toEqual([{ kind: "wallBite", at: { row: 2, col: 0 }, element: "AQUA", variant: "ice" }]);
+  });
+});
+

@@ -6,7 +6,11 @@
  *  a Siren. Polar King threw splashes. So these cards get ice: an icicle, not
  *  a droplet; a crack, not a wave; frost forming, not water drawn up. Who is
  *  icy is decided game-side (spell-fx.ts `lookVariant`); this is only how ice
- *  looks. Everything a SPELL draws stays AQUA's — spells are not characters. */
+ *  looks. A SPELL is ice by its name (`spellVariant`: Ice Wall, Frost Patch,
+ *  Glacial Wave, Chill): its damage shatters in ice and Ice Wall goes up as
+ *  ice (`wall`, `wallBite`), and the plating an ice spell or an icy card gives
+ *  is ice (`shield`) — but not Chill's shield mode, the water shield of its
+ *  art. Every other spell hook stays AQUA's. */
 import type { Graphics } from "pixi.js";
 import { AQUA } from "./aqua";
 import { centre, rand } from "./base";
@@ -48,6 +52,15 @@ function snowflake(g: Graphics, c: Pt, r: number, rot: number, alpha: number, wi
       g.moveTo(bx, by).lineTo(bx + Math.cos(ba) * b, by + Math.sin(ba) * b).stroke({ width: width * 0.8, color: FROST, alpha });
     }
   }
+}
+
+/** A spike of ice standing on `base`: a tall faceted triangle, glassy fill,
+ *  bright edges and a white facet line up its middle. */
+function iceSpike(g: Graphics, x: number, base: number, w: number, h: number, lean: number, alpha: number) {
+  const tip = { x: x + lean * h, y: base - h };
+  const pts = [x - w, base, tip.x, tip.y, x + w, base];
+  g.poly(pts, true).fill({ color: ICE, alpha: 0.3 * alpha }).poly(pts, true).stroke({ width: 1.6, color: FROST, alpha: 0.95 * alpha });
+  g.moveTo(x + w * 0.15, base).lineTo(tip.x, tip.y).stroke({ width: 1, color: WHITE, alpha: 0.75 * alpha });
 }
 
 /** A jagged, straight-sided crack: ice breaks in facets, not curves. */
@@ -207,6 +220,67 @@ export const AQUA_ICE: ElementLook = {
     t.ring(r, FROST, 0.3, 1.25, 0.45, 3);
     t.glow(r, ICE, 0.5, 0.4, 1.2);
     t.emit({ count: 8, palette: MIST.palette, from: r, speed: [20, 60], gravity: -30, drag: 0.4, life: [0.5, 0.8], size: [8, 15] });
+  },
+
+  shield(t, r) {
+    // Ice plating: six crystal facets close in round the card and lock into a
+    // hexagonal shell — a white flash runs its edges as it seals — then it
+    // frosts over and fades to the shield pips the board draws.
+    const c = centre(r), R = Math.max(r.w, r.h) * 0.62;
+    t.draw(0.9, (g, u) => {
+      const close = easeOut(clamp01(u / 0.3)), a = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
+      const rr = R * (1.35 - 0.35 * close), inner = rr * 0.8;
+      for (let i = 0; i < 6; i++) {
+        const a0 = (i / 6) * TAU - Math.PI / 2, a1 = a0 + TAU / 6;
+        const pts = [
+          c.x + Math.cos(a0) * rr, c.y + Math.sin(a0) * rr, c.x + Math.cos(a1) * rr, c.y + Math.sin(a1) * rr,
+          c.x + Math.cos(a1) * inner, c.y + Math.sin(a1) * inner, c.x + Math.cos(a0) * inner, c.y + Math.sin(a0) * inner,
+        ];
+        g.poly(pts, true).fill({ color: ICE, alpha: 0.2 * a }).poly(pts, true).stroke({ width: 1.4, color: FROST, alpha: 0.85 * a });
+      }
+    });
+    t.later(0.27, () => t.ring(r, WHITE, 1.22, 1.26, 0.3, 3));
+    t.emit({ count: 10, palette: GLINT.palette, from: r, at: "ring", speed: [30, 70], gravity: 0, drag: 0.9, life: [0.4, 0.7],
+      size: [5, 2] });
+  },
+
+  wall(t, r) {
+    // ICE WALL: a rampart of ice spikes grows up out of the row in a quick
+    // ripple from one end to the other, cold breath rolling along its foot and
+    // frost hanging over it — then it settles to the brackets the board draws.
+    const n = Math.max(6, Math.round(r.w / 24)), base = r.y + r.h * 0.96;
+    const spikes = Array.from({ length: n }, (_, i) => ({
+      x: r.x + (r.w * (i + 0.5)) / n + rand(-3, 3), h: r.h * rand(0.45, 0.82) * (i % 2 ? 0.8 : 1),
+      w: (r.w / n) * rand(0.38, 0.52), lean: rand(-0.12, 0.12), d: (i / n) * 0.22,
+    }));
+    t.draw(1.1, (g, u) => {
+      const fade = u < 0.65 ? 1 : 1 - (u - 0.65) / 0.35;
+      for (const sp of spikes) {
+        const q = clamp01((u - sp.d) / 0.16);
+        if (q > 0) iceSpike(g, sp.x, base, sp.w, sp.h * easeOut(q), sp.lean, fade);
+      }
+    });
+    t.band(r, ICE, 0.9);
+    t.emit({ count: Math.round(r.w / 14), palette: MIST.palette, from: { x: r.x, y: r.y + r.h * 0.72, w: r.w, h: r.h * 0.22 },
+      dir: [-125, -55], speed: [15, 45], gravity: -30, drag: 0.4, life: [0.6, 1.0], size: [8, 15] });
+    t.later(0.25, () => t.emit({ count: Math.round(r.w / 18), palette: GLINT.palette, from: { x: r.x, y: r.y, w: r.w, h: r.h * 0.75 },
+      speed: [5, 25], gravity: 20, drag: 0.4, life: [0.4, 0.8], size: [5, 2] }));
+  },
+
+  wallBite(t, r) {
+    // Crossing it: the ice spikes up under the card — three spears closing on
+    // it from its footing — splinters fly, and the cold takes it.
+    const c = centre(r), s = Math.min(r.w, r.h), base = r.y + r.h * 0.95;
+    const spears = [-0.3, 0, 0.3].map((f, i) => ({ x: c.x + f * s, h: s * (i === 1 ? 0.72 : 0.5), lean: -f * 0.55 }));
+    t.draw(0.6, (g, u) => {
+      const grow = easeOut(clamp01(u / 0.12)), fade = u < 0.45 ? 1 : 1 - (u - 0.45) / 0.55;
+      for (const sp of spears) iceSpike(g, sp.x, base, s * 0.09, sp.h * grow, sp.lean, fade);
+    });
+    for (let i = 0; i < 12; i++) {
+      const a = (rand(-150, -30) * Math.PI) / 180, v = rand(120, 240);
+      t.spark(c.x + rand(-s * 0.3, s * 0.3), base - rand(0, s * 0.3), Math.cos(a) * v, Math.sin(a) * v, rand(0.35, 0.6), SHARD);
+    }
+    t.glow(r, ICE, 0.4, 0.4, 1.05);
   },
 
   impactAccent(t, at, k) {
