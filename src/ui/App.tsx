@@ -5133,15 +5133,17 @@ export function App() {
           // with nothing but Leave, so a rematch could only ever be started by
           // one of the two players.
           //
-          // ...and NEVER AFTER A BOSS (owner's call). A rematch re-deals the two
-          // remembered decks and nothing else, so it brought back the boss's
-          // summons without the boss, the gates or a tamed ally: an ordinary
-          // slot race that still settled as the trial, paying the refight and
-          // taming an enraged boss for beating its deck alone. A boss is fought
-          // again from the Arena, where New Match leaves it seated and Start
-          // Match seats it properly. Read off the finished match, the way its
-          // table pay is: `voidTower` is stamped on a boss fight and nothing else.
-          onRematch={(online || setupRef.current) && !game.voidTower ? askRematch : undefined}
+          // ...and NEVER AFTER AN EVENT (owner's call): Darkest Night, Brightest
+          // Day, or a Void Tower boss. A rematch re-deals the two remembered
+          // decks and nothing else. It drops the event's scripted opening, and
+          // after a boss fight it brings back the summons without the boss, the
+          // gates or a tamed ally. It still settled as the event, so an easier
+          // refight could clear it, pay the boss refight, or tame an enraged
+          // boss for beating its deck alone. An event is fought again from the
+          // Arena, where New Match leaves it seated and Start Match deals it
+          // properly. Gated on `eventRun`, the deck in the chair, which is the
+          // same read that makes a result settle as the event.
+          onRematch={(online || setupRef.current) && !eventRun ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           next={nextUp ?? undefined}
           // Online is the only mode that pays on the result screen's own terms

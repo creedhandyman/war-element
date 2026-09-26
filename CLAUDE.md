@@ -3393,6 +3393,11 @@ What holds it together (all pinned in `arena-flow.test.ts`):
 - **An event belongs to Quick match.** `seatEventFight` lands there; entering
   any other screen with an event seated gives the P2 seat back and clears
   `bossRun`, so an event can never park a run.
+- **No Rematch after an event** (owner, 2026-09-26): Darkest Night, Brightest
+  Day and every Void Tower boss. `dealRematch` deals the two decks and nothing
+  else (no scripted opening, no boss, gates or tamed ally), but the result
+  would still settle as the event, which is read off the deck in the chair
+  (`eventRun`). New Match leaves the event seated; Start Match deals it properly.
 - **Remembered per device** under `we_arena_v1` — the screen, the last duel
   board, the last friend screen, each scored mode's format — and NOT in `SAVE_KEYS`. Restored at boot by
   re-running `enterArenaView`, so what is stored is the screen and everything it

@@ -291,16 +291,21 @@ describe("the wiring in App.tsx", () => {
     expect(code.match(/\bbossRun\??\.\w+/g), "every read goes through bossFight").toEqual(["bossRun.cardId"]);
   });
 
-  it("a boss fight's result screen offers no Rematch", () => {
-    // Owner's call. Only startArenaMatch seats a boss; a rematch re-deals the
-    // remembered decks and nothing else, so it was the boss's summons alone —
-    // and it still settled as the trial (refight shards, an enraged taming).
-    expect(fn("startArenaMatch")).toContain("fresh.voidTower = true;");
-    expect(fn("dealRematch")).not.toContain("summonCard");
-    // The result screen is the one place the button is handed out, and it
-    // reads the finished match.
+  it("an event's result screen offers no Rematch, boss fight or not", () => {
+    // Owner's call. Only startArenaMatch scripts an event's opening or seats a
+    // boss; a rematch re-deals the remembered decks and nothing else.
+    const start = fn("startArenaMatch");
+    expect(start).toContain("scriptedP2 ? { P2: scriptedP2 } : undefined,");
+    expect(start).toContain("fresh.voidTower = true;");
+    const rematch = fn("dealRematch");
+    expect(rematch).toContain("createInitialState(newSeed(), s.p1, s.p2, s.humans, s.p1s, s.p2s, s.board);");
+    expect(rematch).not.toContain("summonCard");
+    // ...yet it settled as the event, which is read off the deck in the chair.
+    expect(APP).toContain("const event = eventForDeck(p2DeckId);");
+    expect(APP).toContain("const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;");
+    // The result screen is the one place the button is handed out.
     expect(APP.match(/onRematch=\{[^\n]*/g)).toEqual([
-      "onRematch={(online || setupRef.current) && !game.voidTower ? askRematch : undefined}",
+      "onRematch={(online || setupRef.current) && !eventRun ? askRematch : undefined}",
     ]);
   });
 
