@@ -13225,7 +13225,11 @@ export const CARDS: CardDef[] = [
     keywords: { CRIT: true },
     tribe: "Sand Village",
     passiveNames: { onKill: "Bounty" },
-    onKill: { buffDmg: 1, buffDmgMax: 3, gainShields: 2 },
+    // SHIELDS CAPPED AT +4 (owner's call). Uncapped, +2 a kill made this the
+    // #1 card in the set for kills against its cost (3.3x a typical cost-5)
+    // while its win rate read fair: it banked 8+ shields on half its boards
+    // and 38 at worst, and every shield comes off every hit it takes.
+    onKill: { buffDmg: 1, buffDmgMax: 3, gainShields: 2, gainShieldsMax: 4 },
     special: {
       name: "Dust Devil",
       cost: 3,

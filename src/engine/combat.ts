@@ -3520,7 +3520,19 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     const h = healCard(draft, killer, def.healSelf, killer);
     if (h > 0) draft.log.push(`${name} heals ${h} on the kill.`);
   }
-  if (def.gainShields) killer.curShields += def.gainShields;
+  if (def.gainShields) {
+    // ...UP TO ITS CEILING, the same way `buffDmgMax` stops the DMG ramp. The
+    // win rate never showed this one either: Badlands Bandits' Bounty banked
+    // +2 a kill with no ceiling, reached 8+ shields on half its boards and 38
+    // at worst, and in AI matches it changed a third of the games it was in
+    // while flipping almost none of the results. A player it made untouchable.
+    const room = Math.max(0, (def.gainShieldsMax ?? Infinity) - (killer.killShields ?? 0));
+    const gain = Math.min(def.gainShields, room);
+    if (gain > 0) {
+      killer.curShields += gain;
+      killer.killShields = (killer.killShields ?? 0) + gain;
+    }
+  }
   // Perpetual Fog (Driftwraith): a kill cloaks it and same-row kin in STEALTH.
   if (def.grantStealth) {
     applyStatus(draft, killer, "STEALTH", def.grantStealth, 0, getDef(killer.defId).element);

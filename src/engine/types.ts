@@ -168,6 +168,11 @@ export interface OnKillDef {
   buffMaxHp?: number; // permanent +max HP (Pyrogon)
   healSelf?: number; // heal self N
   gainShields?: number;
+  /** CEILING on the shields `gainShields` can bank over a game, like
+   *  `buffDmgMax` for DMG. Every shield point takes that much off EVERY hit, so
+   *  an uncapped shield-per-kill snowballs into a body nothing can hurt:
+   *  Badlands Bandits measured a peak of 38. Absent = uncapped. */
+  gainShieldsMax?: number;
   aoeDmg?: number; // deal N to every reachable enemy
   blindInRange?: number; // Star Blaster (Zenith): BLIND nearby enemies N rounds
   /** Perpetual Fog (Driftwraith): a kill cloaks it (and same-row same-element
@@ -1783,6 +1788,10 @@ export interface CardInstance {
   maxHp: number; // can grow/shrink via DRAIN
   curShields: number;
   dmgBonus: number; // permanent DMG modifiers (DRAIN, on-kill buffs)
+  /** Shields this body has banked from its own on-kill `gainShields`, for
+   *  `gainShieldsMax`. Its own counter: `curShields` is spent and refilled by
+   *  everything, so it cannot say how much the kills have already paid out. */
+  killShields?: number;
   dmgBonusRound: number; // DMG buff that resets each Cleanup (on-kill "for the round")
   spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
   /** Level Up grants taken, for `randomStatMax`. Its own counter rather than

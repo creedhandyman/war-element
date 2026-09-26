@@ -455,7 +455,7 @@ export function describePassives(def: CardDef): string[] {
       k.randomStat &&
         `+${k.randomStat} to ONE stat at random — DMG, max HP or SP — permanently${k.randomStatMax ? `, up to +${k.randomStatMax} in all` : ""}`,
       k.healSelf && `heal ${k.healSelf} HP`,
-      k.gainShields && `+${k.gainShields} shields`,
+      k.gainShields && `+${k.gainShields} shields${k.gainShieldsMax != null ? ` (up to +${k.gainShieldsMax} in all)` : ""}`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.blindInRange && `BLIND nearby opponents for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,
       k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
