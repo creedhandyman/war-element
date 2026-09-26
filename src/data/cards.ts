@@ -5134,9 +5134,10 @@ export const CARDS: CardDef[] = [
       // A sweep now, not a loaded blade: one swing across everything in reach
       // rather than two charges spent one target at a time.
       handler: "barrage",
-      params: { dmg: 4, targets: 99, statusKind: "BURN", statusPower: 4, statusDuration: 2 },
+      // 4 -> 5 DMG (owner's call).
+      params: { dmg: 5, targets: 99, statusKind: "BURN", statusPower: 4, statusDuration: 2 },
       targetSide: "enemy",
-      text: "Slash every opponent in range for 4 DMG and BURN 4 for 2 rounds.",
+      text: "Slash every opponent in range for 5 DMG and BURN 4 for 2 rounds.",
     },
   },
   {
