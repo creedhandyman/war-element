@@ -528,7 +528,7 @@ describe("cleanup does not kill a card twice", () => {
     // away and still get caught, because KaBoooom hit the whole board; now the
     // blast has a radius, so the position has to match what this test says it is.
     const victim = place(s, "bore_armadillo", "P2", 2, 0, {
-      curHp: 3, maxHp: 15, curShields: 0,
+      curHp: 1, maxHp: 15, curShields: 0, // KaBoooom is 3 now; 1 HP keeps it lethal
       status: { kind: "BLEED", duration: 3, power: 1, source: "DUSK" },
     });
     const next = advance(atCleanup(s));

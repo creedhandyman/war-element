@@ -1426,7 +1426,7 @@ describe("medium-tier passives (audit batch)", () => {
     const pyroAlly = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // PYRO — spared
     const enemy = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // adjacent — hit
     defeatCard(s, s.cards[canister.instanceId], "test");
-    expect(s.cards[enemy.instanceId].curHp).toBe(15); // 20 - 5
+    expect(s.cards[enemy.instanceId].curHp).toBe(17); // 20 - 3 (KaBoooom 5 -> 3)
     expect(s.cards[pyroAlly.instanceId].curHp).toBe(20); // PYRO spared
   });
 
@@ -1439,7 +1439,7 @@ describe("medium-tier passives (audit batch)", () => {
     const beside = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // diagonal
     const across = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // far corner
     defeatCard(s, s.cards[canister.instanceId], "test");
-    expect(s.cards[beside.instanceId].curHp).toBe(15); // diagonals are adjacent
+    expect(s.cards[beside.instanceId].curHp).toBe(17); // diagonals are adjacent
     expect(s.cards[across.instanceId].curHp).toBe(20); // untouched
   });
 

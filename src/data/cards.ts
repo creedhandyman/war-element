@@ -3694,7 +3694,9 @@ export const CARDS: CardDef[] = [
     cost: 2,
     dmg: 0,
     hits: 1,
-    hp: 20,
+    // 20 -> 18 (owner's call): 18 against a cost-2 budget of 20, two under. The
+    // second ledger reading had it tier S (+13.6 on fresh seeds).
+    hp: 18,
     sp: 0,
     shields: 0,
     keywords: {},
@@ -10180,14 +10182,16 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Forged Tech",
-    // KaBoooom (On Death): 5 DMG to every non-PYRO card within one square.
+    // KaBoooom (On Death): 3 DMG to every non-PYRO card within one square.
+    // 5 -> 3 (owner's call): the second ledger reading had Canister tier S
+    // (+10.0 on fresh seeds).
     // Was 6 to the ENTIRE board, which is why a 1-cost body was one of the
     // scariest cards in the game: it cost nothing, it wanted to die, and the
     // payout was the same whether you placed it thoughtfully or parked it in a
     // corner and forgot about it. A radius makes the placement the play — which
     // is what Rollout below was always for.
     passiveNames: { onDeath: "KaBoooom" },
-    onDeath: { dmg: 0, boardBlast: { dmg: 5, exceptElement: "PYRO", radius: 1 } },
+    onDeath: { dmg: 0, boardBlast: { dmg: 3, exceptElement: "PYRO", radius: 1 } },
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     // Rollout: the canister rolls off the back line, striking then phasing PAST
     // bodies to the first open slot toward the enemy home — parking the bomb in
