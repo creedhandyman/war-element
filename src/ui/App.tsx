@@ -211,7 +211,7 @@ import { SpeedQueue } from "./SpeedQueue";
 import { SpellTray } from "./SpellTray";
 import { ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
 import {
-  BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, isDomView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
+  BOARD_LABEL, VIEW_HEAD, VIEW_SETUP, boardForView, isDomView, loadArenaPrefs, openingDeck, saveArenaPrefs, viewForEntry,
   type ArenaPrefs, type ArenaView, type Board as ArenaBoard, type DomView, type HubStatus, type ModeView,
 } from "./arena-nav";
 import { announces, SummonAnnounce } from "./SummonAnnounce";
@@ -701,8 +701,8 @@ export function App() {
    *  picked at that moment — which is the whole thing a lobby exists to let you
    *  change. Refreshed every render, so it is never stale. */
   const deckNowRef = useRef<{
-    cards: string[]; spells?: string[]; name: string;
-  }>({ cards: [], name: "" });
+    id: string; cards: string[]; spells?: string[]; name: string;
+  }>({ id: "", cards: [], name: "" });
   const onlineStartedRef = useRef(false);
   /** A match this device was in when the app last closed, offered back until it
    *  is taken, left or expired — see `net/resume.ts`. Read once, at boot: the
@@ -882,7 +882,14 @@ export function App() {
   // Each side defaults to a different premade so a match is one tap away.
   // Seeded from the STANDARD builds — boardSize starts at 4, and the remap
   // effect below re-points these if the player switches battlefield.
-  const [p1DeckId, setP1DeckId] = useState(premadeDecksFor(4)[0].id);
+  // ...except YOUR chair, which opens on the squad you last took into an Arena
+  // fight on this device (owner's call; `rememberMyDeck` writes it), as long as
+  // it is still a premade or a squad you have not deleted.
+  const [p1DeckId, setP1DeckId] = useState(() => openingDeck(
+    loadArenaPrefs().deck,
+    [...PREMADE_DECKS, ...customDecks].map((d) => d.id),
+    premadeDecksFor(4)[0].id,
+  ));
   const [p2DeckId, setP2DeckId] = useState(premadeDecksFor(4)[1].id);
   // THE THIRD AND FOURTH SEATS (Domination only). They used to be chosen FOR
   // the player — the first two premades not already seated — so a free-for-all
@@ -1168,6 +1175,7 @@ export function App() {
   // Refreshed every render so the room callbacks never deal a stale deck — see
   // `deckNowRef`. Cheap: three lookups against an array already in memory.
   deckNowRef.current = {
+    id: mySeatDeckId,
     cards: resolveDeckCards(mySeatDeckId),
     spells: resolveDeckSpells(mySeatDeckId),
     name: deckLabel(mySeatDeckId),
@@ -1988,6 +1996,22 @@ export function App() {
     });
   }
 
+  /** Remember the squad YOU just took into an Arena fight, so the Arena opens
+   *  on it next time (owner's call). Called where a fight is dealt, never at a
+   *  pick: it is the team you battled with, not the last one you looked at.
+   *  A draft run's deck is skipped (it owns the chair only while its run plays)
+   *  and so is an event deck, which is never yours. Reads nothing from the
+   *  render, so a room callback's stale closure can call it safely. */
+  function rememberMyDeck(id: string) {
+    if (!id || id === DRAFT_DECK_ID || eventForDeck(id)) return;
+    setArenaPrefs((p) => {
+      if (p.deck === id) return p;
+      const next: ArenaPrefs = { ...p, deck: id };
+      saveArenaPrefs(next);
+      return next;
+    });
+  }
+
   /** GO TO A SCREEN OF THE ARENA, and set up what that screen implies: who is in
    *  the other seat, the kind of match, and a battlefield it offers. Every way
    *  into a mode screen comes through here — the list, the back button, the
@@ -2139,6 +2163,7 @@ export function App() {
       : 2;
     const p1Cards = resolveDeckCards(p1DeckId);
     const p2Cards = resolveDeckCards(p2DeckId);
+    rememberMyDeck(p1DeckId);
     // Remembered so Rematch can run the same two decks back — under the same
     // rules, which is the part it used to lose.
     setupRef.current = {
@@ -2594,6 +2619,7 @@ export function App() {
     const hostCards = deckNowRef.current.cards;
     const hostSpells = deckNowRef.current.spells;
     const hostName = deckNowRef.current.name;
+    rememberMyDeck(deckNowRef.current.id);
     const seats: PlayerId[] = ["P1", ...lobby.map((e) => e.seat)];
     const g = createInitialState(
       newSeed(), hostCards, lobby[0].cards, seats,
@@ -2733,6 +2759,9 @@ export function App() {
         setSel(null); setPending(null); setPicks([]); setMullToss([]);
         setHint("Connected! Mulligan: click cards to send back, then confirm.");
         setOnline({ role: "guest", code, myId: mySeatRef.current });
+        // The deck this guest announced last, from the ref: the lobby let it
+        // change after joining, and this closure is from the join.
+        rememberMyDeck(deckNowRef.current.id);
         setStarted(true);
         setMatchIntro(true);
       }

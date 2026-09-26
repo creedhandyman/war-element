@@ -3402,6 +3402,13 @@ What holds it together (all pinned in `arena-flow.test.ts`):
   board, the last friend screen, each scored mode's format — and NOT in `SAVE_KEYS`. Restored at boot by
   re-running `enterArenaView`, so what is stored is the screen and everything it
   implies is derived.
+- **Your chair opens on the squad you last fought with** (owner, 2026-09-26):
+  `ArenaPrefs.deck`, written by `rememberMyDeck` where a fight is DEALT
+  (`startArenaMatch`, `hostStartMatch`, a guest's first state), never at a pick,
+  a rejoin or a rematch. It skips the draft deck and event decks. `p1DeckId`
+  seeds from it through `openingDeck`, which falls back to the first premade
+  when the squad has been deleted. Arena fights only: a story fight passes a card
+  list, not a squad id.
 - **Back**: a mode screen is a `useBackLayer` over the list — the
   `homeCollection` pattern. Re-tapping the Arena tab returns to the list, wired
   in BottomNav's `onTab` and deliberately NOT in `goTab`: the back stack restores

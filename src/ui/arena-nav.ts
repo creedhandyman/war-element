@@ -194,10 +194,13 @@ export interface ArenaPrefs {
   friend: "local" | "online";
   /** Whether each scored mode was last played on the 7x7, from its own screen. */
   dom: Record<DomView, boolean>;
+  /** The squad you last took into an Arena fight, by deck id. YOUR chair opens
+   *  on it (see `openingDeck`). Null until the first fight. */
+  deck: string | null;
 }
 
 export const DEFAULT_ARENA_PREFS: ArenaPrefs = {
-  view: "hub", duel: 4, friend: "online", dom: { streak: false, gauntlet: false },
+  view: "hub", duel: 4, friend: "online", dom: { streak: false, gauntlet: false }, deck: null,
 };
 
 type Store = Pick<Storage, "getItem" | "setItem">;
@@ -231,7 +234,19 @@ export function loadArenaPrefs(store: Store | null = browserStore()): ArenaPrefs
     // Per mode, and only a real `true` turns it on: a missing or garbled entry
     // is a duel, which is what every player had before the toggle existed.
     dom: { streak: dom.streak === true, gauntlet: dom.gauntlet === true },
+    // Any non-empty id is kept here. Whether it is still a deck you can pick
+    // is asked where the chair is filled (`openingDeck`), against the decks
+    // this device holds at that moment.
+    deck: typeof o.deck === "string" && o.deck !== "" ? o.deck : null,
   };
+}
+
+/** WHICH SQUAD YOUR CHAIR OPENS ON (owner's call): the one you last fought
+ *  with, while it is still a deck you can pick (a premade, or a squad you have
+ *  not deleted), else the fallback. A premade from the other board's shelf is
+ *  fine here: the lobby re-points it to this board's build. */
+export function openingDeck(last: string | null, pickable: readonly string[], fallback: string): string {
+  return last !== null && pickable.includes(last) ? last : fallback;
 }
 
 export function saveArenaPrefs(p: ArenaPrefs, store: Store | null = browserStore()): void {

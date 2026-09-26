@@ -11,7 +11,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
   ARENA_PREFS_KEY, DEFAULT_ARENA_PREFS, HUB_ENTRIES, VIEW_HEAD, VIEW_SETUP,
-  boardForView, entryForView, hubBadge, isDomView, loadArenaPrefs, saveArenaPrefs, viewForEntry,
+  boardForView, entryForView, hubBadge, isDomView, loadArenaPrefs, openingDeck, saveArenaPrefs, viewForEntry,
   type HubStatus, type ModeView,
 } from "../../ui/arena-nav";
 
@@ -158,7 +158,9 @@ describe("the choice remembered between visits", () => {
 
   it("round-trips", () => {
     const s = mem();
-    const prefs = { view: "gauntlet", duel: 5, friend: "local", dom: { streak: true, gauntlet: false } } as const;
+    const prefs = {
+      view: "gauntlet", duel: 5, friend: "local", dom: { streak: true, gauntlet: false }, deck: "sq_mine",
+    } as const;
     saveArenaPrefs(prefs, s);
     expect(loadArenaPrefs(s)).toEqual(prefs);
   });
@@ -166,7 +168,9 @@ describe("the choice remembered between visits", () => {
   it("repairs a bad field without losing the good ones", () => {
     const s = mem();
     s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "nowhere", duel: 7, friend: "local" }));
-    expect(loadArenaPrefs(s)).toEqual({ view: "hub", duel: 4, friend: "local", dom: { streak: false, gauntlet: false } });
+    expect(loadArenaPrefs(s)).toEqual({
+      view: "hub", duel: 4, friend: "local", dom: { streak: false, gauntlet: false }, deck: null,
+    });
     s.setItem(ARENA_PREFS_KEY, "{not json");
     expect(loadArenaPrefs(s)).toEqual(DEFAULT_ARENA_PREFS);
   });
@@ -179,6 +183,31 @@ describe("the choice remembered between visits", () => {
     expect(loadArenaPrefs(s).dom).toEqual({ streak: false, gauntlet: true });
     s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "streak", duel: 5, friend: "online", dom: 1 }));
     expect(loadArenaPrefs(s).dom).toEqual({ streak: false, gauntlet: false });
+  });
+
+  it("remembers the squad you last fought with, and reads a garbled one as none", () => {
+    // Prefs written before this have no `deck`: those players open on the
+    // first premade, exactly as they always did.
+    expect(DEFAULT_ARENA_PREFS.deck).toBeNull();
+    const s = mem();
+    for (const bad of [42, "", null, { id: "x" }]) {
+      s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "quick", deck: bad }));
+      expect(loadArenaPrefs(s).deck, JSON.stringify(bad)).toBeNull();
+    }
+    s.setItem(ARENA_PREFS_KEY, JSON.stringify({ view: "quick", deck: "sq_mine" }));
+    expect(loadArenaPrefs(s)).toMatchObject({ view: "quick", deck: "sq_mine" });
+  });
+
+  it("your chair opens on that squad while you can still pick it", () => {
+    const pickable = ["inferno_blitz", "stormcall_5", "sq_mine"];
+    expect(openingDeck("sq_mine", pickable, "inferno_blitz")).toBe("sq_mine");
+    // A premade from the other board's shelf is still yours; the lobby's
+    // remap re-points it to this board's build.
+    expect(openingDeck("stormcall_5", pickable, "inferno_blitz")).toBe("stormcall_5");
+    // A squad deleted since, a draft run's deck, or no fight yet: the old default.
+    expect(openingDeck("sq_deleted", pickable, "inferno_blitz")).toBe("inferno_blitz");
+    expect(openingDeck("__draft__", pickable, "inferno_blitz")).toBe("inferno_blitz");
+    expect(openingDeck(null, pickable, "inferno_blitz")).toBe("inferno_blitz");
   });
 
   it("survives storage that refuses to be used", () => {
@@ -289,6 +318,28 @@ describe("the wiring in App.tsx", () => {
     // own `bossRun.cardId` is the only field read off it anywhere in App.tsx.
     const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
     expect(code.match(/\bbossRun\??\.\w+/g), "every read goes through bossFight").toEqual(["bossRun.cardId"]);
+  });
+
+  it("the Arena opens YOUR chair on the squad you last fought with", () => {
+    expect(APP).toContain(
+      "const [p1DeckId, setP1DeckId] = useState(() => openingDeck(\n"
+      + "    loadArenaPrefs().deck,\n"
+      + "    [...PREMADE_DECKS, ...customDecks].map((d) => d.id),\n"
+      + "    premadeDecksFor(4)[0].id,\n"
+      + "  ));",
+    );
+    // Written where a fight is DEALT, with the deck it was dealt from: offline
+    // (Quick match, the scored modes, events), the online host, and a guest's
+    // first state. Never at a pick, and never on a rejoin or a rematch, which
+    // re-seat a match rather than choose a team.
+    expect(fn("startArenaMatch")).toContain("rememberMyDeck(p1DeckId);");
+    expect(fn("hostStartMatch")).toContain("rememberMyDeck(deckNowRef.current.id);");
+    expect(fn("guestOnState")).toContain("rememberMyDeck(deckNowRef.current.id);");
+    const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
+    expect(code.match(/rememberMyDeck\(/g)).toHaveLength(4); // the definition + three calls
+    expect(APP).toContain("id: mySeatDeckId,");
+    // A draft run's deck and an event deck are never remembered as yours.
+    expect(fn("rememberMyDeck")).toContain("if (!id || id === DRAFT_DECK_ID || eventForDeck(id)) return;");
   });
 
   it("an event's result screen offers no Rematch, boss fight or not", () => {
