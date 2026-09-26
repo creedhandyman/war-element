@@ -1290,6 +1290,44 @@ export function specialIsZone(special: CardDef["special"] | undefined): boolean 
   return special?.handler === "smite" || special?.handler === "surfsUp";
 }
 
+/** Specials that choose their OWN victims. The handler is handed a target list
+ *  and reads none of it (a charge down the caster's own column, the nearest-N
+ *  spray, a board-wide status extension), or rolls among whatever it is handed
+ *  (FireFly's RANDOM shots). A pick means nothing to these. */
+const SELF_AIMED_HANDLERS = new Set([
+  "battleCharge", "bloodyWaters", "extendStatusAll", "grandFinally",
+  "lacingKnots", "sprayWeapon", "sweep", "flameStrike",
+]);
+
+/** From this many shots up, `targets` means "everyone it reaches" rather than a
+ *  count to place: Vernal's Root Spring is written as 8 and roots the board. */
+const EVERYONE_SHOTS = 8;
+
+/** DOES THE PLAYER CHOOSE WHERE THIS SPECIAL'S SHOTS GO? (owner's call)
+ *
+ *  Yes for every Special that aims at cards and fires a counted number of
+ *  shots, and it stays yes when there are no more targets in reach than shots.
+ *  That case used to be treated as an area, each target hit once on a Confirm,
+ *  which took the choice away where it matters most: every shot on the one card
+ *  that has to die.
+ *
+ *  No for a Special with nothing to place: a self-buff, a zone, an anchored
+ *  area (aimed by its own one-pick flow), one that hits everyone it reaches,
+ *  and one whose handler picks its own victims. Those keep the one-tap Confirm. */
+export function specialIsPicked(special: CardDef["special"] | undefined): boolean {
+  if (!special || special.targetSide === "self") return false;
+  if (specialIsZone(special) || specialAreaShape(special) !== null) return false;
+  if (TARGETLESS_HANDLERS.has(special.handler) || SELF_AIMED_HANDLERS.has(special.handler)) return false;
+  return Number(special.params?.targets ?? 1) < EVERYONE_SHOTS;
+}
+
+/** Can more than one of its shots land on the SAME card? Yes for every picked
+ *  Special but a status nova, which puts its status on each card once: a second
+ *  pick on the same card would be a shot thrown away. */
+export function specialShotsStack(special: CardDef["special"] | undefined): boolean {
+  return specialIsPicked(special) && special!.handler !== "statusNova";
+}
+
 /** The squares `casterId`'s Special would cover if anchored on `anchor` — drawn
  *  under the player's finger BEFORE they commit, which is the whole point.
  *

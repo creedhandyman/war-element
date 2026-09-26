@@ -37,6 +37,8 @@ import {
   previewSpecialWaveRow,
   specialIsZone,
   specialAreaShape,
+  specialIsPicked,
+  specialShotsStack,
   aoeRowsHit,
   previewOnSummonArea,
   spellEnemyTargets,
@@ -3279,6 +3281,9 @@ export function App() {
     // this Airburst's `targets: 99` became a one-click-per-body volley.
     if (pending === "special" && specialAreaShape(def.special)) return 1;
     const cap = Number(def.special?.params?.targets ?? 1);
+    // Shots that stack can all go on one card, so the cap is the shot count
+    // itself rather than how many cards are in reach.
+    if (pending === "special" && specialShotsStack(def.special)) return Math.max(1, cap);
     return Math.max(1, Math.min(cap, legalTargetIds.length));
   })();
 
@@ -3364,13 +3369,21 @@ export function App() {
         return;
       }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
+        const armed = pending === "special" ? getDef(game.cards[awaitingId].defId).special : undefined;
+        // A status nova lands once per card, so a second pick on the same card
+        // would be a shot thrown away.
+        if (armed && picks.includes(clicked.instanceId) && !specialShotsStack(armed)) {
+          setHint("Already picked: this one lands once per card. Pick another, or press <b>Fire</b>.");
+          return;
+        }
         const next = [...picks, clicked.instanceId];
         if (next.length >= maxPicks) {
           firePicks(next);
         } else {
           setPicks(next);
-          setHint(
-            `<b>${next.length}/${maxPicks}</b> hits assigned — click more targets (repeat to stack), or press <b>Fire</b>.`,
+          setHint(armed
+            ? `<b>${next.length}/${maxPicks}</b> shots placed. Tap more targets${specialShotsStack(armed) ? " (tap one again to stack)" : ""}, or press <b>Fire</b> to send the rest to the nearest others.`
+            : `<b>${next.length}/${maxPicks}</b> hits assigned — click more targets (repeat to stack), or press <b>Fire</b>.`,
           );
         }
       } else if (clicked) {
@@ -3719,10 +3732,16 @@ export function App() {
   // directly ahead and reads no pick, yet it asked the player to choose one.
   // `specialIsZone` is the one list of zones, shared with the engine.
   const zoneSpecial = specialIsZone(activeDef?.special);
+  // EVERY SHOT IS THE PLAYER'S TO PLACE (owner's call). This used to read "an
+  // area whenever it has as many shots as there are targets": three shots and
+  // three opponents in reach meant each of them hit once on a Confirm, so the
+  // one choice that mattered, all three on the card that has to die, could not
+  // be made. Now only a Special with nothing to place is a Confirm
+  // (`specialIsPicked`); everything else is picked, shot by shot.
   const specialAoE =
     !aimedCorridor && !aimedArea &&
     !!activeDef?.special &&
-    (zoneSpecial || Number(activeDef.special.params?.targets ?? 1) >= specialValid.length);
+    (zoneSpecial || !specialIsPicked(activeDef.special) || specialValid.length === 0);
   /** THE FOOTPRINT UNDER THE ARMED SPECIAL — every square it covers, drawn
    *  before it fires.
    *
@@ -3809,14 +3828,22 @@ export function App() {
       // Second press = fire. Area Specials hit the whole previewed zone;
       // targeted ones fire the picks assigned so far.
       if (specialAoE) {
+        // The whole lit set, when the Special can take it as picks. One that
+        // picks its own victims is sent none: it reads no list, and naming more
+        // cards than its `targets` is refused as too many.
+        const cap = Number(spec.params?.targets ?? 1);
         dispatchStrike({
           type: "BATTLE_ACTION", player: activeCard.owner, action: "special",
-          targetIds: specialValid.map((t) => t.instanceId),
+          targetIds: zoneSpecial || specialValid.length <= cap ? specialValid.map((t) => t.instanceId) : [],
         });
       } else if (picks.length > 0) {
-        firePicks(picks);
+        firePicks(withUnplacedShots(picks));
       } else if (aimedArea) {
         setHint("⚠ Aim it first — tap a glowing target to place the burst.");
+      } else {
+        setHint(aimedCorridor
+          ? "Pick a glowing target first: it points the blast."
+          : "Tap a glowing target first: each tap places one shot.");
       }
       return;
     }
@@ -3837,8 +3864,29 @@ export function App() {
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
         : aimedCorridor
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick a glowing target to <b>aim</b> it; the blast fires down that lane.`
-          : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick up to ${cap} glowing target${cap > 1 ? "s (repeat to stack), or Fire early" : ""}.`,
+          : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — ${cap > 1
+            ? `up to ${cap} shots: tap a glowing target for each${specialShotsStack(spec) ? " (tap one again to stack)" : ""}, or press <b>Fire</b> after the first to send the rest to the nearest others.`
+            : "tap a glowing target."}`,
     );
+  }
+
+  /** FIRE before every shot is placed: the rest go to the others in reach,
+   *  nearest first, one each. Never stacked FOR the player (which card deserves
+   *  two is their call). A lone pick already spread this way in the engine, so
+   *  this makes two picks behave like one. */
+  function withUnplacedShots(placed: string[]): string[] {
+    const spec = activeDef?.special;
+    const from = activeCard?.pos;
+    if (!spec || !from || !specialIsPicked(spec)) return placed;
+    const spare = Number(spec.params?.targets ?? 1) - placed.length;
+    if (spare <= 0) return placed;
+    const dist = (p: Pos) => Math.abs(p.row - from.row) + Math.abs(p.col - from.col);
+    const rest = specialValid
+      .filter((t) => t.pos && !placed.includes(t.instanceId))
+      .sort((a, b) => dist(a.pos!) - dist(b.pos!))
+      .slice(0, spare)
+      .map((t) => t.instanceId);
+    return [...placed, ...rest];
   }
 
   function actPlummet() {

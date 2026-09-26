@@ -40,6 +40,8 @@ export {
   previewSpecialWaveRow,
   specialIsZone,
   specialAreaShape,
+  specialIsPicked,
+  specialShotsStack,
   summonLandingRow,
   openHomeSlots,
   canMove,
