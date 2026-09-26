@@ -7851,3 +7851,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Invisible — the effects play through it. At the toast rung, where the cast
    flash and the summon announcement already block input for the same reason. */
 .input-shield { position: fixed; inset: 0; z-index: var(--z-toast); }
+
+/* ── When a screen cannot open (Recover.tsx) ─────────────────────────────────
+   Over `.overlay.on-top`: the screen that failed is covered, not the game —
+   a match or menu underneath carries on. */
+.recover-card {
+  width: min(340px, calc(100vw - 32px)); padding: 20px 18px 16px; border-radius: 14px;
+  border: 1px solid var(--gold-line); background: linear-gradient(180deg, #191622, #0c0b13);
+  color: var(--ink); text-align: center; display: flex; flex-direction: column; gap: 10px;
+}
+.recover-card h2 { font-size: 18px; color: var(--gold-lit); }
+.recover-card p { font-size: 13px; line-height: 1.45; color: var(--ink-dim); }
+.recover-card code { font-size: 11px; color: var(--ink-faint); word-break: break-word; }
+.recover-row { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+.bbtn.gold { border-color: var(--gold-line); color: var(--gold-lit); background: rgba(201, 162, 75, .12); }

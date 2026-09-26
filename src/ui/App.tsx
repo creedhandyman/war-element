@@ -73,6 +73,8 @@ import {
   clearOnlineMatch, loadOnlineMatch, saveOnlineMatch, savedMatchLabel, type SavedOnlineMatch,
 } from "../net/resume";
 import { Board } from "./Board";
+import { ScreenBoundary } from "./Recover";
+import { resilient, setMatchLive } from "./stale-chunks";
 /** SCREENS THAT SHIP IN THEIR OWN CHUNK.
  *
  *  Everything below is a whole screen you reach by tapping something — the
@@ -92,13 +94,23 @@ import { Board } from "./Board";
  *  The loaders are `async`, not `import(...).then(...)`: `then`'s second type
  *  parameter is the REJECTION result, and against a generic target it infers
  *  from the target instead of defaulting to never, so every call came out as a
- *  union with `(props: never)` in it and failed to type. */
+ *  union with `(props: never)` in it and failed to type.
+ *
+ *  A CHUNK CAN BE GONE. Every deploy renames them, and a phone that loaded the
+ *  game before one asks for last build's name and gets a 404 — which, with
+ *  nothing to catch it, unmounted the whole app to the page's bare background
+ *  ("selecting Collection or Draft, this screen covers it"). So the load is
+ *  `resilient` (reloads onto the new build when that is safe) and the screen
+ *  sits in a `ScreenBoundary` (says so, with a button, when it is not) — see
+ *  stale-chunks.ts and Recover.tsx. */
 function deferred<P extends object>(load: () => Promise<{ default: (props: P) => ReactNode }>) {
-  const Inner = lazy(load);
+  const Inner = lazy(resilient(load));
   return (props: P) => (
-    <Suspense fallback={null}>
-      <Inner {...props} />
-    </Suspense>
+    <ScreenBoundary onClose={(props as { onClose?: () => void }).onClose}>
+      <Suspense fallback={null}>
+        <Inner {...props} />
+      </Suspense>
+    </ScreenBoundary>
   );
 }
 
@@ -127,7 +139,7 @@ async function loadRoomApi(): Promise<{ joinRoom: typeof import("../net/online")
   if (roomApiLoading) return { joinRoom: null };
   roomApiLoading = true;
   try {
-    return { joinRoom: (await import("../net/online")).joinRoom };
+    return { joinRoom: (await resilient(() => import("../net/online"))()).joinRoom };
   } finally {
     roomApiLoading = false;
   }
@@ -1578,6 +1590,12 @@ export function App() {
     if (seatFoils) return { P1: new Set(seatFoils.P1), P2: new Set(seatFoils.P2) };
     return view === "P1" ? { P1: foilIds, P2: new Set() } : { P1: new Set(), P2: foilIds };
   }, [seatFoils, view, foilIds]);
+
+  // A reload onto a new build (stale-chunks.ts) must never end a match: a
+  // local one lives only in memory.
+  useEffect(() => {
+    setMatchLive(started && game.phase !== "gameover");
+  }, [started, game.phase]);
 
   // Auto-advance the non-interactive steps. Local: whoever's driving advances
   // whenever no human is needed. Online: ONLY the host advances the shared

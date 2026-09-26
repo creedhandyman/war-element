@@ -1,6 +1,7 @@
 import { StrictMode, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
+import { AppBoundary } from "./ui/Recover";
 import "./ui/styles.css";
 
 /** Takes down the boot splash (index.html) once the real UI is committed.
@@ -18,8 +19,12 @@ function Boot() {
   return <App />;
 }
 
+// The last line: an error nothing nearer caught shows a way back, instead of
+// unmounting the app to the page's empty background (Recover.tsx).
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <Boot />
+    <AppBoundary>
+      <Boot />
+    </AppBoundary>
   </StrictMode>,
 );

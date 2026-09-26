@@ -29,9 +29,17 @@ let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
  *  the game is on time rather than a network round-trip late. */
 function loadLayer(): Promise<ImpactLayer> {
-  layer ??= import("./impact-layer").then((m) => m.createImpactLayer());
+  // A chunk gone after a deploy (see ui/stale-chunks.ts) — or any failure to
+  // load — plays on without effects, rather than rejecting every hit from here
+  // on. The game underneath is complete without them.
+  layer ??= import("./impact-layer").then((m) => m.createImpactLayer()).catch((err: unknown) => {
+    console.warn("[vfx] effects unavailable:", err);
+    return NO_LAYER;
+  });
   return layer;
 }
+
+const NO_LAYER: ImpactLayer = { impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, destroy() {} };
 
 function effectsOn(): boolean {
   // prefers-reduced-motion switches the whole layer off, not down: a softer
