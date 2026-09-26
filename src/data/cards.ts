@@ -8203,7 +8203,7 @@ export const CARDS: CardDef[] = [
     rarity: "legendary",
     element: "BOLT",
     cardClass: "Assassin",
-    attackType: "Melee",
+    attackType: "Ranged", // was Melee (owner's call): a ranged assassin
     cost: 6,
     dmg: 7,
     hits: 1,
