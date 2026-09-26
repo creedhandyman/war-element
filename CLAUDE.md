@@ -1081,6 +1081,37 @@ nerf, but do not expect reverting it to buy GALE anything.
 Premade-deck (not solo-core) numbers are stale — they predate the Warthog /
 Rollo / Zombination / Doom changes and everything since.
 
+### Who dodges, and why — read from the hit loop, not the log
+
+"DUSK dodges too much" (owner, 2026-09) was checked by counting the per-hit
+dodge branches of `resolveHit` (combat.ts) directly: a worktree-only probe
+after the two `break`s at the loop top (an attempt) and beside every
+`result.dodgedHits++` (labelled by the log line that follows it), then the
+canonical harness above, 20 seeds (2,240 matches). Share of NON-reflect basics
+that whiffed, by the TARGET's element:
+
+```
+before  dusk 21.6 · gale 15.1 · dawn 6.9 · aqua 6.2 · leaf 4.6 · bore 3.8 · pyro 1.8 · bolt 0.9
+after   dusk 18.3 · gale 15.1 · dawn 6.8 · aqua 6.2 · leaf 4.5 · bore 3.7 · pyro 1.8 · bolt 0.9
+```
+
+Half of DUSK's was **Midnight Shade** (11.0 of 21.6), and the shade sat at its
+25% ceiling on 35.5% of every swing at a DUSK card. The stack shared ONE window
+that each fresh death pushed forward, so shadows from cards lost rounds ago kept
+counting for as long as one more fell — and a DUSK deck loses a cheap body nearly
+every round. Each death now keeps its own round (`PlayerState.shadeUntil`, one
+entry per shadow): one death a round is two live shadows, 10%, never a ramp to
+25%. After: shade 7.9 of 18.3, ceiling on 10.5% of swings, DUSK 55.2 -> 53.2
+win (n=560, inside ±4.1). The rest of DUSK's dodge is what the cards print:
+Nightfall 3.6, innate EVASION 2.5 (Duet, Hoax; Ravven and Silkstalker on the
+enemy side), Veil 1.9, granted EVASION 1.6, Ender 0.5.
+
+Two text-vs-engine gaps found on the way: Spectra's Opaque Realm cloaked the
+whole row behind it ("the ally directly behind it") — now that one square —
+and Nightfall promised a sure dodge where the engine rolls the EVASION coin, so
+the text now says 50%. GALE's 15.1 is its identity (Slipstream 7.1, innate 4.2,
+Untouchable vs BORE 3.5) and was not touched.
+
 ## Working style
 
 - **Commits land directly on `main`.** No PRs. Push triggers the deploy.

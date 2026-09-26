@@ -610,7 +610,10 @@ export const SPELLS: SpellDef[] = [
     // alone — and drainBonus does nothing at all for a card without the DRAIN
     // keyword, so a DUSK team drafted without drainers stood on terrain that did
     // literally nothing. The narrowest of the eight regions by a distance.
-    text: "Field (3 rounds): your DUSK allies dodge the FIRST hit they take each round, deal +1 DMG, and every DRAIN steals 1 extra max HP.",
+    // "a 50% chance to dodge", not "dodge": the first hit each round gets the
+    // EVASION coin, spent whether or not it comes good (combat.ts, fieldEva).
+    // The text promised a sure dodge the engine has never given.
+    text: "Field (3 rounds): your DUSK allies have a 50% chance to dodge the FIRST hit they take each round, deal +1 DMG, and every DRAIN steals 1 extra max HP.",
     field: { rounds: 3, evasion: true, drainBonus: 1, dmgBonus: 1 },
   },
   {

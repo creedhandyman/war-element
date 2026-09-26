@@ -13,7 +13,7 @@ import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
   slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow, DUSK_DRAIN } from "../auras";
-import { applyStatus, basicAttack, defeatCard, shadeDodgePct, slipstreamDodgePct } from "../combat";
+import { applyStatus, basicAttack, defeatCard, shadeDodgePct, shadeStacksLive, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
 import { boardCards, effectiveDmg, effectiveMaxHp, effectiveSp } from "../state";
@@ -330,7 +330,8 @@ describe("DUSK — Midnight Shade", () => {
     const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
     s.round = 1;
     kill(s, 1);
-    expect(s.players.P1.shadeStacks).toBe(1);
+    expect(shadeStacksLive(s, "P1")).toBe(1);
+    expect(s.players.P1.shadeUntil, "covers this round and the next").toEqual([2]);
     expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
@@ -341,7 +342,8 @@ describe("DUSK — Midnight Shade", () => {
     const seen: number[] = [];
     for (let i = 1; i <= 7; i++) { kill(s, i); seen.push(shadeDodgePct(s, s.cards[survivor.instanceId])); }
     expect(seen).toEqual([5, 10, 15, 20, 25, 25, 25].map((n) => (n / 5) * DUSK_SHADE_PCT));
-    expect(s.players.P1.shadeStacks).toBe(DUSK_SHADE_MAX_STACKS);
+    expect(shadeStacksLive(s, "P1")).toBe(DUSK_SHADE_MAX_STACKS);
+    expect(s.players.P1.shadeUntil, "nothing past the ceiling is kept").toHaveLength(DUSK_SHADE_MAX_STACKS);
   });
 
   it("starts over at +5% once the shadow has lifted", () => {
@@ -362,21 +364,39 @@ describe("DUSK — Midnight Shade", () => {
 
     // One death now is ONE stack, not the old ceiling.
     kill(s, 6);
-    expect(s.players.P1.shadeStacks).toBe(1);
+    expect(shadeStacksLive(s, "P1")).toBe(1);
+    expect(s.players.P1.shadeUntil).toEqual([6]);
     expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
-  it("keeps stacking while the shadow is still up", () => {
-    // The reset is on the shadow LAPSING, not on the round turning — deaths in
-    // consecutive rounds still compound, which is the aura working as written.
+  it("two shadows overlap while both are still up", () => {
+    // A death in round 1 covers rounds 1–2 and one in round 2 covers 2–3, so
+    // round 2 has both.
     const s = prepState();
     const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
     s.round = 1;
     kill(s, 1);
-    s.round = 2; // still inside the window (shadeUntilRound === 2)
+    s.round = 2; // the first shadow's last round
     kill(s, 2);
-    expect(s.players.P1.shadeStacks).toBe(2);
+    expect(shadeStacksLive(s, "P1")).toBe(2);
     expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(2 * DUSK_SHADE_PCT);
+  });
+
+  it("each shadow lifts on its own — a new death never keeps an old one up", () => {
+    // The bug this pins: the stack shared ONE window that every fresh death
+    // pushed forward, so the shadows of cards lost rounds ago kept counting for
+    // as long as one more DUSK card fell. A DUSK deck loses a cheap body nearly
+    // every round, so it sat at the 25% ceiling on 35.5% of every hit aimed at
+    // one (2,240 AI matches). One death a round is two live shadows at most.
+    const s = prepState();
+    const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
+    const seen: number[] = [];
+    for (let r = 1; r <= 8; r++) {
+      s.round = r;
+      kill(s, r);
+      seen.push(shadeDodgePct(s, s.cards[survivor.instanceId]));
+    }
+    expect(seen).toEqual([1, 2, 2, 2, 2, 2, 2, 2].map((n) => n * DUSK_SHADE_PCT));
   });
 });
 

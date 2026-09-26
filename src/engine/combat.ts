@@ -51,15 +51,20 @@ export function hasEvasion(card: CardInstance, boardSize: number): boolean {
   return def.evasionEnemySideOnly ? onEnemySide(card, boardSize) : true;
 }
 
+/** How many of `owner`'s fallen DUSK cards still cast a shadow this round —
+ *  each one whose own round has not yet passed — capped at the ceiling. */
+export function shadeStacksLive(draft: GameState, owner: PlayerId): number {
+  const live = (draft.players[owner].shadeUntil ?? []).filter((u) => u >= draft.round).length;
+  return Math.min(DUSK_SHADE_MAX_STACKS, live);
+}
+
 /** Midnight Shade's dodge chance for one card, as a percentage: 5 per fallen
- *  DUSK ally inside the live window, and 0 for anything that isn't DUSK or is
+ *  DUSK ally whose shadow is still up, and 0 for anything that isn't DUSK or is
  *  standing after the shadows have lifted. Single source of truth so the roll
  *  and the card inspector can't disagree about what a card's odds are. */
 export function shadeDodgePct(draft: GameState, card: CardInstance): number {
   if (!hasElementAura(getDef(card.defId), "DUSK")) return 0;
-  const pl = draft.players[card.owner];
-  if (draft.round > (pl.shadeUntilRound ?? -1)) return 0;
-  return Math.min(DUSK_SHADE_MAX_STACKS, pl.shadeStacks ?? 0) * DUSK_SHADE_PCT;
+  return shadeStacksLive(draft, card.owner) * DUSK_SHADE_PCT;
 }
 
 /** Slipstream (GALE): a card's dodge chance from its own speed. Single source
@@ -503,17 +508,21 @@ export function defeatCard(
   // so a Tail Drop, a revive or a Butler unmasking is not a "death" that pays.
   if (hasElementAura(def, "DUSK")) {
     const pl = draft.players[card.owner];
-    // The count RESETS once the shadow has lifted. It used to only ever climb,
-    // so `shadeStacks` was a lifetime tally of every DUSK card that had ever
-    // died: after the fifth, the aura stopped being "+5% per death" and became
-    // "+25%, on any death, for the rest of the match" — a single loss ten
-    // rounds later restored the full ceiling. The dodge correctly fell to 0
-    // between deaths, which is what hid it; the STACKS behind it never moved.
-    const lapsed = draft.round > (pl.shadeUntilRound ?? -1);
-    pl.shadeStacks = lapsed ? 1 : Math.min(DUSK_SHADE_MAX_STACKS, (pl.shadeStacks ?? 0) + 1);
-    pl.shadeUntilRound = draft.round + 1;
+    // EACH SHADOW KEEPS ITS OWN ROUND. The stack used to share one window that
+    // every fresh death pushed forward, so the shadows of cards lost rounds ago
+    // kept counting for as long as one more DUSK card fell — and a DUSK deck
+    // loses a cheap body nearly every round. Measured over 2,240 AI matches, the
+    // shade sat at its 25% ceiling on 35.5% of all hits aimed at a DUSK card,
+    // and was half of the 21.6% of basics DUSK dodged (every other element but
+    // GALE: 1–7%). The aura reads "+5% dodge for a round" per fallen card, and
+    // now that is what each one gives. (Before THAT the count never reset at
+    // all — a lifetime tally that handed back the full 25% on any death.)
+    const live = (pl.shadeUntil ?? []).filter((u) => u >= draft.round);
+    live.push(draft.round + 1);
+    // Past the ceiling an older shadow adds nothing, and the newest last longest.
+    pl.shadeUntil = live.slice(-DUSK_SHADE_MAX_STACKS);
     draft.log.push(
-      `The shadows thicken — ${card.owner}'s DUSK cards dodge +${pl.shadeStacks * DUSK_SHADE_PCT}% for a round.`,
+      `The shadows thicken — ${card.owner}'s DUSK cards dodge +${shadeStacksLive(draft, card.owner) * DUSK_SHADE_PCT}%.`,
     );
   }
   // Mark of Hoax: a marked target's fall banks a guaranteed dodge for the Hoax
@@ -5437,12 +5446,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(`Silk Chase: ${swarm.length} ${tribe || "ally"}(s) strike (${hits} hit(s)).`);
   },
   /** Opaque Realm (Spectra): cloak the caster and whoever stands directly behind
-   *  it in EVASION for a couple of rounds. */
+   *  it in EVASION for a couple of rounds.
+   *
+   *  ONE ally: the square behind, in Spectra's own column. It used to match the
+   *  whole row behind, so a cost-3 card put a 50% dodge on every body in that
+   *  row at once while printing "the ally directly behind it". */
   veilBehind(draft, attacker, _targets, params) {
     const rounds = num(params, "rounds", 2);
     const behindRow = attacker.pos ? attacker.pos.row + (attacker.owner === "P1" ? 1 : -1) : -99;
+    const col = attacker.pos?.col;
     const crew = boardCards(draft, attacker.owner).filter(
-      (a) => a.curHp > 0 && (a.instanceId === attacker.instanceId || a.pos?.row === behindRow),
+      (a) => a.curHp > 0 && (a.instanceId === attacker.instanceId || (a.pos?.row === behindRow && a.pos?.col === col)),
     );
     for (const a of crew) applyStatus(draft, a, "EVASION", rounds, 0, getDef(attacker.defId).element);
     draft.log.push(`${label(draft, attacker)} draws the Opaque Realm over ${crew.length} all(y/ies) (EVASION ${rounds}r).`);

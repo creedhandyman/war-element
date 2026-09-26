@@ -3,7 +3,7 @@
 // abilities in cards.ts.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
+import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, shadeStacksLive, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
 import { weakenStacks } from "../auras";
 import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
@@ -3196,6 +3196,28 @@ describe("element auras", () => {
     expect(next.cards[victim.instanceId].statuses.some((x) => x.kind === "STUN")).toBe(false);
   });
 
+  it("Opaque Realm (Spectra) cloaks the ONE ally directly behind it, not the whole row", () => {
+    // It matched the whole row behind: a 50% dodge on every body there, from a
+    // cost-3 card that prints "the ally directly behind it". Both facings —
+    // behind is toward a side's own Home row (P1 row 3, P2 row 0).
+    for (const [owner, row, back, front] of [["P1", 2, 3, 1], ["P2", 2, 1, 3]] as const) {
+      const s = prepState();
+      const spectra = place(s, "dusk_spectra", owner, row, 1);
+      const behind = place(s, "dusk_reaper", owner, back, 1);
+      const diagonal = place(s, "dusk_reaper", owner, back, 0);
+      const alsoInRow = place(s, "dusk_reaper", owner, back, 2);
+      const ahead = place(s, "dusk_reaper", owner, front, 1);
+      SPECIAL_HANDLERS.veilBehind(s, s.cards[spectra.instanceId], [], { rounds: 2 });
+      const cloaked = (c: { instanceId: string }) =>
+        s.cards[c.instanceId].statuses.some((x) => x.kind === "EVASION");
+      expect(cloaked(spectra), `${owner}: itself`).toBe(true);
+      expect(cloaked(behind), `${owner}: directly behind`).toBe(true);
+      expect(cloaked(diagonal), `${owner}: diagonal`).toBe(false);
+      expect(cloaked(alsoInRow), `${owner}: same row, other column`).toBe(false);
+      expect(cloaked(ahead), `${owner}: in front`).toBe(false);
+    }
+  });
+
   it("Midnight Shade: a fallen DUSK card thickens the shadows over its DUSK allies", () => {
     const s = prepState();
     const killer = place(s, "gale_duster", "P1", 2, 0, { curHp: 20 });
@@ -3203,7 +3225,7 @@ describe("element auras", () => {
     const vamp = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
     expect(shadeDodgePct(s, ally)).toBe(0); // nothing has fallen yet
     basicAttack(s, killer.instanceId, vamp.instanceId);
-    expect(s.players.P2.shadeStacks).toBe(1);
+    expect(shadeStacksLive(s, "P2")).toBe(1);
     expect(shadeDodgePct(s, s.cards[ally.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
@@ -3215,7 +3237,7 @@ describe("element auras", () => {
       const body = place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 });
       defeatCard(s, body, "test");
     }
-    expect(s.players.P2.shadeStacks).toBe(DUSK_SHADE_MAX_STACKS);
+    expect(shadeStacksLive(s, "P2")).toBe(DUSK_SHADE_MAX_STACKS);
     expect(shadeDodgePct(s, s.cards[ally.instanceId])).toBe(DUSK_SHADE_MAX_STACKS * DUSK_SHADE_PCT);
   });
 
@@ -3252,11 +3274,11 @@ describe("element auras", () => {
     const s = prepState();
     const ally = place(s, "dusk_reaper", "P2", 1, 1);
     defeatCard(s, place(s, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
-    expect(s.players.P2.shadeStacks).toBe(1);
+    expect(shadeStacksLive(s, "P2")).toBe(1);
     const lapsed = advance(atCleanup(advance(atCleanup(s))));
-    expect(lapsed.players.P2.shadeStacks ?? 0).toBe(0);
+    expect(lapsed.players.P2.shadeUntil, "Cleanup clears a lifted shadow").toBeUndefined();
     defeatCard(lapsed, place(lapsed, "dusk_vamp", "P2", 2, 1, { curHp: 1 }), "test");
-    expect(lapsed.players.P2.shadeStacks).toBe(1);
+    expect(shadeStacksLive(lapsed, "P2")).toBe(1);
     expect(shadeDodgePct(lapsed, lapsed.cards[ally.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
@@ -3269,8 +3291,7 @@ describe("element auras", () => {
       for (let seed = 0; seed < 200; seed++) {
         const s = prepState();
         s.rngState = seed;
-        s.players.P2.shadeStacks = stacks;
-        s.players.P2.shadeUntilRound = s.round + 1;
+        s.players.P2.shadeUntil = Array.from({ length: stacks }, () => s.round + 1);
         const attacker = place(s, "gale_duster", "P1", 2, 0);
         const target = place(s, "dusk_reaper", "P2", 2, 1, { curHp: 40, curShields: 0 });
         basicAttack(s, attacker.instanceId, target.instanceId);
