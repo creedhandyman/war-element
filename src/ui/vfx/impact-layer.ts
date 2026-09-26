@@ -23,6 +23,8 @@
  *  Pixi. */
 import { Application, Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import type { Element, StatusKind } from "../../engine";
+import { LOOKS } from "./looks";
+import type { Emit, FxTools, Pt, Shot, SparkStyle } from "./looks/types";
 
 /** A screen rectangle, CSS px — a square, a row, the board. */
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -342,25 +344,6 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   // bottom edge, or on a ring around it), moving in a direction band, and the
   // rest is the same physics the impacts use — gravity, drag, swirl, palette.
 
-  interface Emit {
-    count: number;
-    palette: number[];
-    /** Where sparks are born: anywhere in the rect, along its bottom edge, on
-     *  a ring around its centre moving INWARD (a gathering), or on its edges
-     *  moving inward (something closing in). */
-    from: Rect;
-    at?: "area" | "bottom" | "ring" | "edge";
-    /** Direction band in degrees (0 = right, -90 = up). Default: all round. */
-    dir?: [number, number];
-    speed: [number, number];
-    gravity: number;
-    drag: number;
-    life: [number, number];
-    size: [number, number];
-    streak?: boolean;
-    swirl?: number;
-  }
-
   function emit(e: Emit) {
     const st: Style = {
       palette: e.palette, sparks: 0, speed: e.speed, gravity: e.gravity, drag: e.drag,
@@ -544,25 +527,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   // numbers do. The FINALE plays with the landing, over each card's own
   // impact. One set piece per element; the spell's cost sets the weight.
 
-  type Pt = { x: number; y: number };
   const centre = (r: Rect): Pt => ({ x: r.x + r.w / 2, y: r.y + r.h / 2 });
-
-  interface Shot {
-    from: Pt;
-    to: Pt;
-    seconds: number;
-    delay?: number;
-    /** "in" accelerates (a meteor, a rock), "out" slows (a root creeping). */
-    ease?: "in" | "out" | "linear";
-    head: number;
-    headSize: number;
-    /** Stretch the head along its motion — a streaking meteor. */
-    stretch?: boolean;
-    /** Lob it: how high, in px, the path bows above the straight line. */
-    arc?: number;
-    trail: { palette: number[]; rate: number; size: [number, number]; life: [number, number]; drift: number; gravity?: number };
-    onArrive?: () => void;
-  }
 
   /** A projectile: a glowing head from `from` to `to` in exactly `seconds`,
    *  shedding a trail as it goes. */
@@ -930,89 +895,31 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   // that long: a ranged card winds up and throws, a melee card winds up while
   // the hook lunges its token, and either arrives on the landing frame. The
   // HIT plays at the landing: a burst where a shot lands, a SLASH where a
-  // melee card struck. A Special winds up visibly and lands heavier.
-
-  /** How each element's attacks look: what its ranged cards throw, and the
-   *  mark its melee cards leave. */
-  interface AttackLook {
-    head: number;
-    trail: number[];
-    /** orb: a ball of it; streak: a fast dart; lob: thrown in an arc; zap:
-     *  lightning does not travel — it crackles, then strikes. */
-    shape: "orb" | "streak" | "lob" | "zap";
-    /** arc: one sweeping cut; claw: three parallel rakes; cuts: several thin
-     *  wind-cuts; smash: a blow into the ground. */
-    mark: "arc" | "claw" | "cuts" | "smash";
-    markColor: number;
-  }
-  const LOOKS: Record<Element, AttackLook> = {
-    PYRO: { head: 0xffa050, trail: [0xfff4d6, 0xffc14a, 0xff6a2a, 0xc2261a], shape: "orb", mark: "arc", markColor: 0xff8a3a },
-    AQUA: { head: 0xbfeaff, trail: [0xf0fbff, 0x9fe3ff, 0x4d94e8], shape: "orb", mark: "arc", markColor: 0x6ec3ff },
-    BOLT: { head: 0xe3d8ff, trail: [0xffffff, 0xe3d8ff, 0x9575ff], shape: "zap", mark: "arc", markColor: 0xb9a6ff },
-    GALE: { head: 0xffe8c8, trail: [0xfffaf0, 0xffd9a0, 0xffa040], shape: "streak", mark: "cuts", markColor: 0xffd9a0 },
-    BORE: { head: 0xd9b48a, trail: [0xfff1dc, 0xd9b48a, 0xa1887f], shape: "lob", mark: "smash", markColor: 0xd9b48a },
-    DAWN: { head: 0xfff1b3, trail: [0xffffff, 0xfff1b3, 0xffd54f], shape: "streak", mark: "arc", markColor: 0xffe38a },
-    DUSK: { head: 0xc9a6ff, trail: [0xf3e8ff, 0xc9a6ff, 0x7b4fb0], shape: "orb", mark: "claw", markColor: 0xb07cff },
-    LEAF: { head: 0xb6f27a, trail: [0xf4ffe6, 0xb6f27a, 0x4caf6d], shape: "streak", mark: "arc", markColor: 0x8fd66a },
-    VOID: { head: 0xe3e7f1, trail: [0xffffff, 0xe3e7f1, 0xc2c8d8], shape: "orb", mark: "arc", markColor: 0xc2c8d8 },
-  };
+  // melee card struck. A Special winds up visibly and lands heavier. WHAT each
+  // of those looks like — what a PYRO card throws, the mark a BORE blow leaves
+  // — is the element's own, in looks/.
 
   const lerpPt = (a: Pt, b: Pt, t: number): Pt => ({ x: a.x + (b.x - a.x) * t, y: a.y + (b.y - a.y) * t });
 
   function attackIn(fx: Extract<LayerFx, { kind: "attack" }>) {
     const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const t = toolsFor(fx.element);
     const T = fx.seconds;
     const wind = T * (fx.special ? 0.45 : 0.35);
     const travel = T - wind;
     const from = centre(fx.from);
     const size = Math.min(fx.from.w, fx.from.h);
-    if (fx.arriving) {
-      // Arriving: the square it will land on is still empty, so the element
-      // GATHERS there — drawn in from around it, building — and the strike
-      // comes out of that.
-      charge(from, size * (fx.special ? 1.9 : 1.4), look.head, fx.special ? 0.95 : 0.6, T);
-      emit({ count: fx.special ? 40 : 24, palette: look.trail, from: fx.from, at: "ring", speed: [100, 180], gravity: 0,
-        drag: 1, life: [0.2, wind], size: [10, 3] });
-    } else {
-      // The wind-up: the attacker gathers itself — visibly more for a Special,
-      // which also draws its element in around it, and least for a basic melee
-      // swing, where the lunge itself is the wind-up.
-      const basicMelee = fx.melee && !fx.special;
-      charge(from, size * (fx.special ? 1.7 : basicMelee ? 0.8 : 1.1), look.head,
-        fx.special ? 0.85 : basicMelee ? 0.22 : 0.4, wind + travel * 0.3);
-      if (fx.special)
-        emit({ count: 28, palette: look.trail, from: fx.from, at: "ring", speed: [110, 190], gravity: 0, drag: 1,
-          life: [0.2, wind], size: [9, 3] });
-    }
-    for (const t of fx.targets) {
-      const to = centre(t);
-      if (fx.melee) {
-        // The swing's path, shadowing the token as the hook lunges it — or,
-        // for a card arriving with no token yet, the whole pounce.
-        shot({
-          from, to: fx.arriving ? to : lerpPt(from, to, 0.55), seconds: travel, delay: wind, ease: "in",
-          // A basic swing's trail is a whisper of it: the token's lunge is the
-          // motion, and a basic happens every turn.
-          head: look.head, headSize: size * (fx.special ? 0.2 : 0.1),
-          trail: { palette: look.trail, rate: fx.special ? 130 : 26, size: fx.special ? [10, 3] : [7, 2], life: [0.15, 0.3], drift: 16 },
+    const d = { rect: fx.from, at: from, size, T, wind, special: fx.special, melee: fx.melee };
+    if (fx.arriving) look.gather(t, d);
+    else look.windUp(t, d);
+    for (const r of fx.targets) {
+      const to = centre(r);
+      if (fx.melee)
+        look.swing(t, {
+          from, to: fx.arriving ? to : lerpPt(from, to, 0.55), target: to, arriving: !!fx.arriving,
+          delay: wind, seconds: travel, special: fx.special, size,
         });
-        continue;
-      }
-      if (look.shape === "zap") {
-        // Lightning does not fly: it crackles on the caster, then strikes on
-        // the landing frame.
-        addArcs(from.x, from.y, STYLES.BOLT, fx.special ? 0.8 : 0.5, 3);
-        later(Math.max(0, T - 0.06), () => bolt(from, to, 0xffffff, 0x9575ff, fx.special ? 0.35 : 0.22));
-        continue;
-      }
-      const dist = Math.hypot(to.x - from.x, to.y - from.y);
-      shot({
-        from, to, seconds: travel, delay: wind,
-        ease: look.shape === "lob" ? "linear" : "in",
-        arc: look.shape === "lob" ? dist * 0.35 : 0,
-        head: look.head, headSize: size * (fx.special ? 0.42 : 0.26), stretch: look.shape === "streak",
-        trail: { palette: look.trail, rate: fx.special ? 170 : 80, size: fx.special ? [13, 4] : [9, 3], life: [0.2, 0.45], drift: 18 },
-      });
+      else look.projectile(t, { from, to, delay: wind, seconds: travel, special: fx.special, size });
     }
   }
 
@@ -1070,19 +977,14 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     });
   }
 
-  /** A summon materialising on its square as its strike lands: a burst of its
-   *  element outward from where it gathered. */
+  /** A summon materialising on its square as its strike lands. */
   function arrive(fx: Extract<LayerFx, { kind: "arrive" }>) {
-    const look = LOOKS[fx.element] ?? LOOKS.VOID;
-    const c = centre(fx.rect);
-    glow(fx.rect, look.head, 0.8, 0.45, 1.25);
-    ring(fx.rect, look.markColor, 0.3, 1.3, 0.45, 5);
-    emit({ count: 34, palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 }, speed: [120, 300],
-      gravity: 0, drag: 0.3, life: [0.25, 0.5], size: [10, 3] });
+    (LOOKS[fx.element] ?? LOOKS.VOID).arrive(toolsFor(fx.element), fx.rect);
   }
 
   function slash(fx: Extract<LayerFx, { kind: "slash" }>) {
     const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const t = toolsFor(fx.element);
     const c = centre(fx.rect);
     const k = Math.max(0.6, Math.min(2.2, fx.strength));
     if (!fx.special) {
@@ -1091,66 +993,82 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       // direction the blow came from — tilted to the line of attack, a
       // diagonal blow turned it into a plus. Deliberately small and plain: it
       // happens every turn, and the element's signature mark is saved for a
-      // Special.
+      // Special. The owner asked for exactly this, for every element: only the
+      // few sparks it throws are the element's own.
       const arm = Math.min(fx.rect.w, fx.rect.h) * 0.2 * (0.9 + k * 0.1);
       rakes(c, arm, Math.PI / 4, look.markColor, 1, 0, 3.5);
       later(0.05, () => rakes(c, arm, -Math.PI / 4, look.markColor, 1, 0, 3.5));
-      emit({ count: Math.round(7 * k), palette: look.trail, from: { x: c.x - 4, y: c.y - 4, w: 8, h: 8 },
-        speed: [90, 220], gravity: 300, drag: 0.4, life: [0.15, 0.3], size: [6, 2], streak: true });
+      look.xSparks(t, c, Math.round(7 * k));
       return;
     }
-    // A Special keeps its element's signature mark — a little smaller than it
-    // was, so the card it lands on still reads underneath it.
+    // A Special gets its element's signature mark, sized to sit inside the
+    // square so the card it lands on still reads underneath it. The cut runs
+    // ACROSS the line of attack, a little off square so it reads as a swing
+    // rather than a plus sign.
     const reach = Math.min(fx.rect.w, fx.rect.h) * 0.5 * (0.85 + k * 0.15);
-    // The cut runs ACROSS the line of attack, a little off square so it
-    // reads as a swing rather than a plus sign.
-    const across = fx.angle + Math.PI / 2 + 0.45;
-    const width = 6;
-    switch (look.mark) {
-      case "arc":
-        arcCut(c, reach, across, look.markColor, width, 0.09, 0.28);
-        arcCut(c, reach, across + Math.PI / 2, look.markColor, width, 0.09, 0.32, -0.35);
-        break;
-      case "claw":
-        rakes(c, reach * 0.9, across, look.markColor, 4, reach * 0.3, width * 0.7);
-        break;
-      case "cuts":
-        for (let i = 0; i < 5; i++)
-          arcCut(c, reach * rand(0.7, 1.05), across + rand(-0.5, 0.5), look.markColor, width * 0.55, 0.07, 0.25, rand(-0.3, 0.3));
-        break;
-      case "smash":
-        ring(fx.rect, look.markColor, 0.25, 1.15, 0.4, 6);
-        emit({ count: Math.round(28 * k), palette: look.trail, from: { x: c.x - 8, y: c.y - 8, w: 16, h: 16 },
-          dir: [-160, -20], speed: [120, 300], gravity: 900, drag: 0.5, life: [0.35, 0.7], size: [11, 5] });
-        break;
+    look.mark(t, { rect: fx.rect, c, reach, angle: fx.angle, across: fx.angle + Math.PI / 2 + 0.45, k });
+  }
+
+  // ── WHAT A LOOK DRAWS WITH ────────────────────────────────────────────────
+  // The primitives above, handed to an element's look (looks/types.ts) — one
+  // set per element, built once, so a look never reaches the stage itself.
+
+  /** A spark style as the particle system wants it — cached per style
+   *  object, so a look spraying a hundred sparks from one constant does not
+   *  allocate a hundred. */
+  const sparkStyles = new WeakMap<SparkStyle, Style>();
+  function asStyle(s: SparkStyle): Style {
+    let st = sparkStyles.get(s);
+    if (!st) {
+      st = { ...s, sparks: 0, speed: [0, 0], life: [0, 0] };
+      sparkStyles.set(s, st);
     }
-    // Sparks thrown off the blow, in the element's colours.
-    emit({ count: Math.round(28 * k), palette: look.trail, from: { x: c.x - 6, y: c.y - 6, w: 12, h: 12 },
-      speed: [120, 300], gravity: 300, drag: 0.4, life: [0.2, 0.4], size: [8, 2], streak: true });
-    glow(fx.rect, look.markColor, 0.45, 0.35, 1.15);
-    ring(fx.rect, look.markColor, 0.4, 1.15, 0.45, 4);
+    return st;
+  }
+
+  /** Something drawn by hand for `seconds`, cleared and redrawn each frame. */
+  function draw(seconds: number, fn: (g: Graphics, t: number, dt: number) => void, opts?: { delay?: number; dark?: boolean }) {
+    const g = new Graphics();
+    (opts?.dark ? shade : bursts).addChild(g);
+    effects.push({
+      node: g, age: 0, delay: opts?.delay ?? 0, tick: (age, dt) => {
+        const t = Math.min(1, age / seconds);
+        g.clear();
+        fn(g, t, dt);
+        return t < 1;
+      },
+    });
+  }
+
+  const tools = new Map<Element, FxTools>();
+  function toolsFor(element: Element): FxTools {
+    let t = tools.get(element);
+    if (t) return t;
+    const st = STYLES[element] ?? STYLES.VOID;
+    t = {
+      element, style: st,
+      emit, shot, glow, ring, band, charge, later, arcCut, rakes, bolt, draw,
+      spark: (x, y, vx, vy, life, style, origin) =>
+        spawnRaw(x, y, vx, vy, life, asStyle(style), origin?.x ?? x, origin?.y ?? y),
+      flash: (at, color, strength, delay = 0) => addFlash(at.x, at.y, { ...st, palette: [color, color] }, strength, delay),
+      arcs: (at, palette, strength, n) => addArcs(at.x, at.y, { ...st, palette }, strength, n),
+      rays: (at, palette, strength, n) => addRays(at.x, at.y, { ...st, palette }, strength, n),
+    };
+    tools.set(element, t);
+    return t;
   }
 
   function play(fx: LayerFx) {
     const el = STYLES[fx.element] ?? STYLES.VOID;
+    const look = LOOKS[fx.element] ?? LOOKS.VOID;
+    const t = toolsFor(fx.element);
     switch (fx.kind) {
-      case "heal": {
-        // Light rising off the card — gentle, and in the caster's colour over
-        // a living green, so a DAWN heal is gold and a LEAF one is leaf.
-        const k = Math.max(0.7, Math.min(2.2, fx.strength));
-        emit({ count: Math.round(28 * k), palette: [0xffffff, 0xe4ffd2, el.palette[2]], from: fx.rect, at: "bottom",
-          dir: [-105, -75], speed: [50, 140], gravity: -90, drag: 0.5, life: [0.8, 1.4], size: [11, 3] });
-        glow(fx.rect, 0xc8ffb0, 0.45, 0.8);
+      case "heal":
+        look.heal(t, fx.rect, fx.strength);
         break;
-      }
-      case "shield": {
-        const color = el.palette[1];
-        ring(fx.rect, color, 1.35, 0.95, 0.35, 5);
-        later(0.18, () => ring(fx.rect, 0xffffff, 1.0, 1.05, 0.6, 3));
-        emit({ count: 18, palette: [0xffffff, color], from: fx.rect, at: "ring", speed: [40, 80], gravity: 0,
-          drag: 0.9, life: [0.4, 0.6], size: [8, 3] });
+      case "shield":
+        look.shield(t, fx.rect);
         break;
-      }
       case "status":
         status(fx.rect, fx.status, el);
         break;
@@ -1163,51 +1081,17 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         emit({ count: 22, palette: [0xc070ff, 0x8a48d0, 0x5a2a90], from: { ...fx.rect, h: fx.rect.h * 0.2 },
           dir: [85, 95], speed: [160, 280], gravity: 0, drag: 0.2, life: [0.35, 0.6], size: [10, 3], streak: true });
         break;
-      case "move": {
-        // Dissolve where it stood, gather where it lands, a thread between.
-        emit({ count: 26, palette: el.palette, from: fx.from, speed: [60, 160], gravity: 0, drag: 0.3,
-          life: [0.3, 0.6], size: [10, 3] });
-        const g = new Graphics();
-        bursts.addChild(g);
-        const a = { x: fx.from.x + fx.from.w / 2, y: fx.from.y + fx.from.h / 2 };
-        const b = { x: fx.to.x + fx.to.w / 2, y: fx.to.y + fx.to.h / 2 };
-        effects.push({
-          node: g, age: 0, delay: 0, tick: wrap((t) => {
-            g.clear().moveTo(a.x, a.y).lineTo(a.x + (b.x - a.x) * Math.min(1, t * 2), a.y + (b.y - a.y) * Math.min(1, t * 2))
-              .stroke({ width: 3, color: el.palette[1], alpha: 0.7 * (1 - t) });
-            return t < 1;
-          }, 0.5),
-        });
-        later(0.18, () => emit({ count: 30, palette: el.palette, from: fx.to, at: "ring", speed: [120, 200],
-          gravity: 0, drag: 0.9, life: [0.3, 0.5], size: [10, 3] }));
+      case "move":
+        look.move(t, fx.from, fx.to);
         break;
-      }
-      case "wall": {
-        // A curtain rising off the whole row, in the wall's element.
-        band(fx.rect, el.palette[2], 0.9);
-        emit({ count: Math.round(fx.rect.w / 5), palette: el.palette, from: fx.rect, at: "bottom", dir: [-100, -80],
-          speed: [140, 380], gravity: el.gravity > 0 ? 200 : -100, drag: 0.3, life: [0.4, 0.9], size: [12, 3],
-          streak: el.streak });
+      case "wall":
+        look.wall(t, fx.rect);
         break;
-      }
-      case "field": {
-        // The weather changes: three waves across the whole board.
-        band(fx.rect, el.palette[2], 1.2);
-        const rain = el.gravity > 500; // AQUA, BORE: it comes down
-        for (let w = 0; w < 3; w++)
-          later(w * 0.25, () => emit({
-            count: 70, palette: el.palette, from: fx.rect,
-            dir: rain ? [80, 100] : el.gravity < 0 ? [-110, -70] : [0, 360],
-            speed: rain ? [300, 520] : [30, 120], gravity: rain ? 600 : el.gravity * 0.3, drag: 0.4,
-            life: [0.6, 1.2], size: rain ? [9, 3] : [10, 3], streak: rain || el.streak, swirl: el.swirl,
-          }));
+      case "field":
+        look.field(t, fx.rect);
         break;
-      }
       case "trapSet":
-        // Sinking into the square: gathered in, then a ring that closes.
-        emit({ count: 22, palette: [0xffffff, el.palette[1], el.palette[2]], from: fx.rect, at: "ring",
-          speed: [100, 170], gravity: 0, drag: 0.9, life: [0.3, 0.5], size: [9, 3] });
-        later(0.3, () => ring(fx.rect, el.palette[2], 0.9, 0.2, 0.4, 3));
+        look.trapSet(t, fx.rect);
         break;
       case "attack":
         attackIn(fx);
@@ -1225,9 +1109,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         boardFinale(fx);
         break;
       case "pulse":
-        band(fx.rect, el.palette[1], 0.8);
-        emit({ count: 40, palette: el.palette, from: fx.rect, speed: [80, 200], gravity: 0, drag: 0.3,
-          life: [0.4, 0.8], size: [10, 3] });
+        look.pulse(t, fx.rect);
         break;
     }
     if (!app.ticker.started) app.ticker.start();
@@ -1329,6 +1211,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         const ember: Style = { ...st, speed: [40, 160], gravity: -120, life: [0.8, 1.6], size: [7, 2], streak: false };
         burst(x, y, ember, k, Math.round(st.embers * k));
       }
+      (LOOKS[element] ?? LOOKS.VOID).impactAccent?.(toolsFor(element), { x, y }, k);
       if (!app.ticker.started) app.ticker.start();
     },
     play,
