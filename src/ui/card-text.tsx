@@ -624,10 +624,13 @@ export function describePassives(def: CardDef): string[] {
           : `Revives on EVERY death at ${def.onRevive.heal} HP, losing ${def.onRevive.decay} from each stat each time — when a stat would reach 0 it stays down.`
         : `Revives when defeated at ${def.onRevive.heal} HP${def.onRevive.shields ? ` with ${def.onRevive.shields} shields` : ""}${def.onRevive.secondChance ? `, with a ${def.onRevive.secondChance}% chance to revive a second time` : " once"}${def.onRevive.sleep ? `, then sleeps ${rounds(def.onRevive.sleep)}` : ""}.`,
     );
+  // No "Tail Drop:" label in the copy (owner, 2026-09). Both carriers name the
+  // passive themselves — Gecko's "Drop the Tail", Sunstalker's "Second Sunrise"
+  // — so the label only doubled it: "Second Sunrise — Tail Drop: …".
   if (def.deathSave)
     named(
       "deathSave",
-      `Tail Drop: the first lethal hit leaves it at 1 HP${def.deathSave.stealth ? ` with STEALTH ${rounds(def.deathSave.stealth)}` : ""}${def.deathSave.regen ? ` and REGEN ${def.deathSave.regen.power} for ${rounds(def.deathSave.regen.rounds)}` : ""}. Once per game.`,
+      `The first lethal hit leaves it at 1 HP${def.deathSave.stealth ? ` with STEALTH ${rounds(def.deathSave.stealth)}` : ""}${def.deathSave.regen ? ` and REGEN ${def.deathSave.regen.power} for ${rounds(def.deathSave.regen.rounds)}` : ""}. Once per game.`,
     );
   if (def.onLowHp) {
     const l = def.onLowHp;

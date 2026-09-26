@@ -8080,10 +8080,10 @@ export const CARDS: CardDef[] = [
     hits: 1,
     hp: 7,
     sp: 0,
-    // 3 shields and no Arc poke (13 of a cost-1's 15, the aura carries the rest).
-    // After the AI fix Rodd still ran +14.0 over same-cost BOLT peers — the
-    // strongest card in the set. Dropping the 2-DMG round poke alone left +6.2;
-    // with one shield less it lands at +4.5 (672 matches a line, paired seeds).
+    // 3 shields (13 of a cost-1's 15, the aura carries the rest). After the AI
+    // fix Rodd ran +14.0 over same-cost BOLT peers — the strongest card in the
+    // set. Dropping the 2-DMG Arc poke alone left +6.2; with one shield less it
+    // landed at +4.5 (672 matches a line, paired seeds).
     shields: 3,
     keywords: {},
     // Conduction: adjacent BOLT allies (of the 8 surrounding slots) gain +1 DMG.
@@ -8092,8 +8092,13 @@ export const CARDS: CardDef[] = [
     // BOLT only. A conduit powers the grid it belongs to; buffing whatever
     // happened to stand next to it made Rodd a colourless +1 for any deck that
     // could afford a 1-cost body, which is not what a pylon is for.
-    passiveNames: { aura: "Conduction" },
+    //
+    // Arc (End of Round): 1 DMG to the closest opponent, anywhere on the board
+    // (owner, 2026-09). Back at HALF the strength it was cut at — the 2-DMG
+    // version was most of that +14.0 — and not re-measured since.
+    passiveNames: { aura: "Conduction", roundTick: "Arc" },
     aura: { scope: "adjacent", dmg: 1, element: "BOLT" },
+    roundTick: { pokeDmg: 1 },
   },
   {
     id: "bolt_zipp",
@@ -12887,7 +12892,9 @@ export const CARDS: CardDef[] = [
     shields: 1,
     keywords: { FLYING: true },
     passiveNames: { deathSave: "Second Sunrise" },
-    deathSave: { stealth: 2, regen: { power: 3, rounds: 3 } },
+    // STEALTH 1 round, down from 2 (owner, 2026-09): it rises and is hidden for
+    // the rest of the round it was struck in, not the next one as well.
+    deathSave: { stealth: 1, regen: { power: 3, rounds: 3 } },
     special: {
       name: "Solar Pounce",
       cost: 3,

@@ -434,7 +434,12 @@ export function defeatCard(
       card.regenPower = def.deathSave.regen.power;
       card.regenRoundsLeft = def.deathSave.regen.rounds;
     }
-    draft.log.push(`${label(draft, card)} drops its tail and slips away at 1 HP!`);
+    // Named by the CARD's own passive, not by the gecko it was written for: the
+    // log told Sunstalker — a winged panther — that it "drops its tail".
+    const saveName = def.passiveNames?.deathSave;
+    draft.log.push(saveName
+      ? `${label(draft, card)}'s ${saveName} — it slips away at 1 HP!`
+      : `${label(draft, card)} slips away at 1 HP!`);
     return false;
   }
   // Reanimation (Zombie Husk): comes back on EVERY death, each time weaker by
