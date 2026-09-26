@@ -5132,7 +5132,16 @@ export function App() {
           // guest only has to ask. Gating this on `setupRef` left the guest
           // with nothing but Leave, so a rematch could only ever be started by
           // one of the two players.
-          onRematch={online || setupRef.current ? askRematch : undefined}
+          //
+          // ...and NEVER AFTER A BOSS (owner's call). A rematch re-deals the two
+          // remembered decks and nothing else, so it brought back the boss's
+          // summons without the boss, the gates or a tamed ally: an ordinary
+          // slot race that still settled as the trial, paying the refight and
+          // taming an enraged boss for beating its deck alone. A boss is fought
+          // again from the Arena, where New Match leaves it seated and Start
+          // Match seats it properly. Read off the finished match, the way its
+          // table pay is: `voidTower` is stamped on a boss fight and nothing else.
+          onRematch={(online || setupRef.current) && !game.voidTower ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           next={nextUp ?? undefined}
           // Online is the only mode that pays on the result screen's own terms

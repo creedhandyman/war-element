@@ -291,6 +291,19 @@ describe("the wiring in App.tsx", () => {
     expect(code.match(/\bbossRun\??\.\w+/g), "every read goes through bossFight").toEqual(["bossRun.cardId"]);
   });
 
+  it("a boss fight's result screen offers no Rematch", () => {
+    // Owner's call. Only startArenaMatch seats a boss; a rematch re-deals the
+    // remembered decks and nothing else, so it was the boss's summons alone —
+    // and it still settled as the trial (refight shards, an enraged taming).
+    expect(fn("startArenaMatch")).toContain("fresh.voidTower = true;");
+    expect(fn("dealRematch")).not.toContain("summonCard");
+    // The result screen is the one place the button is handed out, and it
+    // reads the finished match.
+    expect(APP.match(/onRematch=\{[^\n]*/g)).toEqual([
+      "onRematch={(online || setupRef.current) && !game.voidTower ? askRematch : undefined}",
+    ]);
+  });
+
   // ── Domination in Streak and Gauntlet ─────────────────────────────────────
   it("a scored mode remembers its own 7x7 when the battlefield is picked", () => {
     expect(fn("enterArenaView")).toContain("boardForView(v, boardSize, duel, arenaView, isDomView(v) && arenaPrefs.dom[v])");
