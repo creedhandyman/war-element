@@ -5,7 +5,8 @@
 // Fallow's aura sat behind a crit roll it could almost never win.
 
 import { describe, expect, it } from "vitest";
-import { applyStatus, basicAttack, defeatCard } from "../combat";
+import { applyStatus, basicAttack, defeatCard, effectiveBasicHits } from "../combat";
+import { getDef } from "../../data/cards";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, legalMoves } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
@@ -299,6 +300,28 @@ describe("wave 2: Zephyra, WarPhant, RIP, Scorch", () => {
     const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
     basicAttack(s, wista.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].pos!.row).toBe(0); // blown back toward its own home
+  });
+
+  it("Zephyra's basic is three hits of 2 (owner's call, from 2x4)", () => {
+    const def = getDef("gale_wista");
+    expect({ dmg: def.dmg, hits: def.hits }).toEqual({ dmg: 2, hits: 3 });
+    // On its Home row, where no King-of-the-Hill hit is added on top.
+    const s = prepState();
+    const wista = place(s, "gale_wista", "P1", 3, 1);
+    expect(effectiveBasicHits(s.cards[wista.instanceId])).toBe(3);
+  });
+
+  it("Liquark's Bloody Waters waits 3 rounds between casts, and says so", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const liq = place(s, "aqua_liquark", "P1", 2, 1, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 60, maxHp: 60, curShields: 0 });
+    const next = applyIntent(battleFor(s, liq.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(60 - next.cards[foe.instanceId].curHp, "it did cast").toBe(8);
+    expect(next.cards[liq.instanceId].specialCooldown, "3, +1 for this round's Cleanup").toBe(4);
+    expect(getDef("aqua_liquark").special!.text).toContain("3-round cooldown");
   });
 
   it("WarPhant arrives armoured, plates up crossing into the middle, once", () => {

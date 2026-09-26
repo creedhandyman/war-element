@@ -5629,10 +5629,11 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 5,
-    // 2x4 (owner's call), from 4x2: the same 8. Wind Wake shoves on every
-    // landed hit, so four hits are four shoves.
+    // 2x3 (owner's call, 2026-09), from 2x4, which was itself 4x2 before that.
+    // Wind Wake shoves on every landed hit, so this is one shove fewer as well
+    // as 2 DMG fewer — and it leaves the line at 33, two under 5*cost+10.
     dmg: 2,
-    hits: 4,
+    hits: 3,
     hp: 15,
     sp: 10,
     shields: 1,
@@ -9076,12 +9077,14 @@ export const CARDS: CardDef[] = [
     special: {
       name: "Bloody Waters",
       cost: 2,
+      // 3 rounds between casts, up from the default 2 (owner's call, 2026-09).
+      cooldown: 3,
       handler: "bloodyWaters",
       // 4 -> 8 DMG and the kill's heal 5 -> 8 (owner's call; it read tier D).
       params: { dmg: 8, healOnKill: 8 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 8 DMG to the lowest-HP opponent. On a kill: heal +8 HP and re-enter Lurk (STEALTH).",
+      text: "Deal 8 DMG to the lowest-HP opponent. On a kill: heal +8 HP and re-enter Lurk (STEALTH). 3-round cooldown.",
     },
   },
   {
