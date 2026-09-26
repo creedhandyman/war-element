@@ -1490,29 +1490,29 @@ describe("medium-tier passives (audit batch)", () => {
   // Both of these keep Firecrack on its HOME row (3) on purpose. King of the
   // Hill hands any card standing in a Mid row +1 DMG, which quietly turns its
   // printed 5 into a 6 and every figure below into an off-by-one.
-  it("Shell Cracker: Firecrack's basic doubles into a shielded target", () => {
+  it("Shell Cracker: Firecrack's hit strips up to 3 more shields (owner's call)", () => {
+    // It used to hit double into a shielded target. Now the hit goes through the
+    // armour as it is, and then cracks 3 more shields off whatever is left.
     const s = prepState();
     const fc = place(s, "pyro_firecrack", "P1", 3, 0);
-    // 2 shields subtract flat from the hit, so the doubling shows in HP: 5 DMG
-    // would put 3 through, 10 puts 8. No statuses, so Bloodfire Detonator is not
-    // also firing; shielded, so the CRIT coin can't fire either.
-    const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
+    const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 5 });
     basicAttack(s, fc.instanceId, t.instanceId);
-    expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2)
+    expect(s.cards[t.instanceId].curHp, "5 into 5 shields: nothing through").toBe(40);
+    // The 5-damage hit strips 1 on its own (5 -> 4); Shell Cracker takes 3.
+    expect(s.cards[t.instanceId].curShields).toBe(1);
   });
 
-  it("...and it does NOT compound with Bloodfire Detonator — the best one wins", () => {
-    // Both amplifiers apply here (bleeding + burning + shielded). Multiplying
-    // them gave 5 -> 10 -> 20, the largest single basic in the game off a 2-cost
-    // 4 HP body. Amplifiers now take the largest instead of the product, so this
-    // is 2x, the same as either one alone.
+  it("...and against thinner armour it simply leaves the target bare", () => {
+    // Bleeding + burning + 2 shields: Bloodfire Detonator doubles the hit (10),
+    // 8 goes through, and there is nothing left for Shell Cracker to crack.
     const s = prepState();
     const fc = place(s, "pyro_firecrack", "P1", 3, 0);
     const t = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 2 });
     applyStatus(s, s.cards[t.instanceId], "BLEED", 3, 1, "DUSK");
     applyStatus(s, s.cards[t.instanceId], "BURN", 3, 1, "PYRO");
     basicAttack(s, fc.instanceId, t.instanceId);
-    expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2), not 5×2×2
+    expect(s.cards[t.instanceId].curHp).toBe(32); // 40 − (5×2 − 2)
+    expect(s.cards[t.instanceId].curShields).toBe(0);
   });
 
   it("Explosive Power is 2x vs a shielded target OR a Tank, never 4x for both", () => {

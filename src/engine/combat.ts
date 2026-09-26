@@ -2293,6 +2293,15 @@ export function basicAttack(
       attacker.struckThisRound[t.instanceId] = struckBefore + r.landedHits;
       if (firstStrike) attacker.struckEver.push(t.instanceId);
       applyOnHitRider(draft, attacker, t, struckBefore, r.landedHits);
+      // Shell Cracker (Firecrack, `onHitStripShields`): the hit cracks up to N
+      // more shields off the target, after the hit itself has gone through
+      // whatever armour it had.
+      if (aDef.onHitStripShields && t.curHp > 0 && t.curShields > 0 && draft.cards[t.instanceId]) {
+        const cracked = Math.min(t.curShields, aDef.onHitStripShields);
+        t.curShields -= cracked;
+        notePassive(draft, attacker, "onHitStripShields");
+        draft.log.push(`${label(draft, attacker)} cracks ${cracked} shield(s) off ${label(draft, t)}.`);
+      }
       // Spread (Weeds): a landed basic may put another body up beside this one.
       // Rolled ONCE per attack rather than per hit — a multi-hit carrier would
       // otherwise get several rolls off one action — and only on a hit that

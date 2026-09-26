@@ -1164,6 +1164,9 @@ export interface CardDef {
   /** Diamond's Edge (Kimberlite): basic attacks multiply their damage by this vs a
    *  SHIELDED target. */
   bonusVsShield?: number;
+  /** Shell Cracker (Firecrack): a landed basic strips up to N more shields off
+   *  the target, after the hit itself. */
+  onHitStripShields?: number;
   /** Explosive Power (Dynomight): basics deal `mult`× damage vs any listed
    *  cardClass (e.g. Warrior/Tank). Stacks with bonusVsShield. */
   bonusVsClass?: { classes: string[]; mult: number };

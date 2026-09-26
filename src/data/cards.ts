@@ -6354,10 +6354,12 @@ export const CARDS: CardDef[] = [
     cardClass: "Assassin",
     attackType: "Melee",
     cost: 2,
+    // HP 4 -> 6, SP 11 -> 9 (owner's call): 5 + 6 + 9 = 20, the same total.
+    // It read tier E.
     dmg: 5,
     hits: 1,
-    hp: 4,
-    sp: 11,
+    hp: 6,
+    sp: 9,
     shields: 0,
     keywords: {},
     tribe: "Goblin",
@@ -6365,18 +6367,12 @@ export const CARDS: CardDef[] = [
     // a target already BLEEDING and BURNING — the payoff for the blood engine
     // and the fire engine landing on the same body. Amplify, not consume: the
     // DOTs keep ticking, so a fast Firecrack can cash in every round.
-    passiveNames: { vsStatus: "Bloodfire Detonator", bonusVsShield: "Shell Cracker" },
+    passiveNames: { vsStatus: "Bloodfire Detonator", onHitStripShields: "Shell Cracker" },
     vsStatus: { status: "BURN", bloodfire: true, dmgMult: 2 },
-    // Shell Cracker: basics hit DOUBLE against a shielded target. A firecracker
-    // packed into a seam does more than one lit in the open.
-    //
-    // Does NOT compound with Bloodfire Detonator above. Against a target that is
-    // bleeding, burning AND shielded both amplifiers match, and the engine takes
-    // the LARGEST rather than the product — so that is 2x, the same as either
-    // one alone, not the 5 -> 10 -> 20 the two would multiply to. Firecrack
-    // picks whichever opening the board gives it; it does not get paid twice for
-    // finding both. See the amplifier block in combat.ts.
-    bonusVsShield: 2,
+    // Shell Cracker: a landed basic strips up to 3 more shields off the target,
+    // after the hit (owner's call). It used to hit DOUBLE into a shielded
+    // target; now it opens the armour for everything that comes after it.
+    onHitStripShields: 3,
   },
   {
     id: "pyro_taper",

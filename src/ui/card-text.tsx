@@ -761,6 +761,8 @@ export function describePassives(def: CardDef): string[] {
     named("blockVsClasses", `Iron Ore: takes half damage from ${def.blockVsClasses.join(" and ")} attackers.`);
   if (def.bonusVsShield)
     named("bonusVsShield", `Diamond's Edge: basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
+  if (def.onHitStripShields)
+    named("onHitStripShields", `Shell Cracker: a landed basic strips up to ${def.onHitStripShields} more shields off the target.`);
   if (def.onSpecialUse) {
     // Two shapes on one trigger: Lithara's permanent shields/DMG, and Burnout's
     // rented SP. Written as a list so a card carrying only one of them does not
