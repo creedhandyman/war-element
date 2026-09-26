@@ -767,7 +767,7 @@ describe("legendaries", () => {
       player: "P2",
       action: "special",
     });
-    expect(next.cards[t.instanceId].curHp).toBe(12); // 17 − 5
+    expect(next.cards[t.instanceId].curHp).toBe(9); // 17 − 8 (Blunt Bash 5 -> 8)
     expect(next.cards[t.instanceId].statuses[0]?.kind).toBe("SLEEP");
   });
 });

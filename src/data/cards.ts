@@ -923,10 +923,11 @@ export const CARDS: CardDef[] = [
       name: "Blunt Bash",
       cost: 5,
       handler: "barrage",
-      // printed "5 DMG to opponents in the row directly ahead and SLEEP 2r"
-      params: { dmg: 5, targets: 3, statusKind: "SLEEP", statusDuration: 2 },
+      // 8 DMG and SLEEP to EVERY opponent in range (owner's call; it was 5 to
+      // up to 3).
+      params: { dmg: 8, targets: 99, statusKind: "SLEEP", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Deal 5 DMG and SLEEP up to 3 opponents for 2 rounds.",
+      text: "Deal 8 DMG and SLEEP all opponents in range for 2 rounds.",
     },
   },
 
@@ -2226,13 +2227,15 @@ export const CARDS: CardDef[] = [
     roundTick: { pushEnemies: 1 },
     special: {
       name: "Mighty Winds",
-      cost: 3,
-      handler: "statusNova",
-      // Push all back 2, WEAKEN, and −8 SP for the round.
-      params: { statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1 },
+      cost: 4, // 3 -> 4 with the damage (owner's call)
+      // `barrage`, not `statusNova`: it deals 4 DMG now (owner's call), and
+      // barrage carries the same riders (WEAKEN, the push, the -SP) per target.
+      handler: "barrage",
+      // 4 DMG, push all back 2, WEAKEN, and −8 SP for the round.
+      params: { dmg: 4, statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1 },
       targetSide: "enemy",
       ranged: true, // reaches the whole board
-      text: "Push every opponent back 2, WEAKEN them (2r), and −8 SP for the round.",
+      text: "Deal 4 DMG, push every opponent back 2, WEAKEN them (2r), and −8 SP for the round.",
     },
   },
   {

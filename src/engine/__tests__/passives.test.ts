@@ -2584,13 +2584,15 @@ describe("timed team buffs & −SP debuffs", () => {
     expect(effectiveSp(r1, r1.cards[ally.instanceId])).toBe(7); // expired
   });
 
-  it("Mighty Winds pushes enemies back and −8 SP for the round", () => {
+  it("Mighty Winds deals 4, pushes enemies back and −8 SP for the round", () => {
+    // Fired with the CARD's own handler and params (it moved from statusNova to
+    // barrage when it gained its 4 DMG), so the data and the test cannot drift.
     const s = prepState();
     const galeon = place(s, "gale_galeon", "P1", 3, 0);
-    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20 }); // mid row
-    SPECIAL_HANDLERS.statusNova(s, galeon, [foe], {
-      statusKind: "WEAKEN", statusDuration: 2, targets: 99, push: 2, spDebuff: 8, spDebuffRounds: 1,
-    });
+    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, curShields: 0 }); // mid row
+    const sp = getDef("gale_galeon").special!;
+    SPECIAL_HANDLERS[sp.handler](s, galeon, [foe], sp.params!);
+    expect(s.cards[foe.instanceId].curHp).toBe(16); // 20 − 4
     expect(s.cards[foe.instanceId].pos!.row).toBe(0); // pushed back 2 → P2 home row
     // Derived: this read a flat 0 with "8 - 8" written beside it, which is the
     // DUMMY's printed speed hand-copied into a test about Galeon.
