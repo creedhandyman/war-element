@@ -8690,10 +8690,12 @@ export const CARDS: CardDef[] = [
       // 99 is this codebase's idiom for "does not expire" (Velvolt Knight's Live
       // Current, Voltis' arrival volley), and card text renders it as "the rest
       // of the match" rather than printing the number.
-      params: { statusKind: "SEAL", statusDuration: 99 },
+      // markKillDmg (owner's call): each marked death also pays +2 DMG,
+      // permanently, beside the banked dodge.
+      params: { statusKind: "SEAL", statusDuration: 99, markKillDmg: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT, and they cannot be healed for the rest of the match. When a marked target dies, Blur banks a one-time auto-dodge.",
+      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT, and they cannot be healed for the rest of the match. When a marked target dies, Blur banks a one-time auto-dodge and +2 DMG.",
     },
   },
   {

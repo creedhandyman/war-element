@@ -526,12 +526,14 @@ export function defeatCard(
     );
   }
   // Mark of Hoax: a marked target's fall banks a guaranteed dodge for the Hoax
-  // that marked it (if it still lives).
+  // that marked it (if it still lives), and `markKillDmg` permanent DMG.
   if (card.hoaxMarked && card.hoaxMarkedBy) {
     const marker = draft.cards[card.hoaxMarkedBy];
     if (marker && marker.curHp > 0) {
       marker.guaranteedDodge = (marker.guaranteedDodge ?? 0) + 1;
-      draft.log.push(`${label(draft, marker)}'s mark pays off — Blur banks a guaranteed dodge.`);
+      const gain = Number(getDef(marker.defId).special?.params?.markKillDmg ?? 0);
+      if (gain > 0) marker.dmgBonus += gain;
+      draft.log.push(`${label(draft, marker)}'s mark pays off — Blur banks a guaranteed dodge${gain > 0 ? ` and +${gain} DMG` : ""}.`);
     }
   }
   // KaBoooom (Canister): as it dies, blast every card on the board (both sides)

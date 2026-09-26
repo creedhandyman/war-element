@@ -235,6 +235,7 @@ describe("medium-tier passives (audit batch)", () => {
     });
     defeatCard(s, s.cards[marked.instanceId], "test");
     expect(s.cards[hoax.instanceId].guaranteedDodge).toBe(1);
+    expect(s.cards[hoax.instanceId].dmgBonus, "and +2 DMG (owner's call)").toBe(2);
     // The banked dodge eats the next incoming attack outright (checked BEFORE
     // EVASION, so it can't be the coin that saved it), then is spent.
     const atkr = place(s, "dusk_gool", "P2", 2, 0);
