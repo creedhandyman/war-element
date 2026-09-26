@@ -18,7 +18,8 @@
  *
  *  COST WHEN IDLE IS ZERO. The ticker only runs while something is alive and
  *  stops on the frame the last spark dies, so between spells there is no
- *  render loop at all. The module itself is a lazy chunk (see
+ *  render loop at all — and the canvas is hidden, out of the compositor, until
+ *  something draws again (see `wake`). The module itself is a lazy chunk (see
  *  use-spell-impacts.ts): a player who never sees a spell hit never downloads
  *  Pixi. */
 import { Application, Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
@@ -237,6 +238,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
   const canvas = app.canvas;
   canvas.className = "vfx-layer";
   canvas.setAttribute("aria-hidden", "true");
+  canvas.style.visibility = "hidden"; // idle until the first effect wakes it
   document.body.appendChild(canvas);
 
   const tex = dotTexture();
@@ -880,18 +882,23 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       }
       case "DUSK": {
         // Night closing in from every edge of the board — real darkness, on
-        // the normal-blend layer, deepening until the spell lands.
+        // the normal-blend layer, deepening until the spell lands — and
+        // lifting once it has. It used to be taken away at its darkest, the
+        // instant the spell landed: the board snapped from near-black straight
+        // back to lit. It fades over LIFT instead.
         const dark = new Sprite(vignette);
         dark.anchor.set(0.5);
         dark.position.set(mid.x, mid.y);
         dark.alpha = 0;
         shade.addChild(dark);
+        const LIFT = 0.4;
         effects.push({
-          node: dark, age: 0, delay: 0, tick: wrap((t) => {
-            dark.alpha = 0.9 * t;
+          node: dark, age: 0, delay: 0, tick: (age) => {
+            const t = Math.min(1, age / T), lift = Math.max(0, (age - T) / LIFT);
+            dark.alpha = 0.9 * t * Math.max(0, 1 - lift);
             dark.scale.set((R.w * (1.6 - 0.45 * t)) / 128, (R.h * (1.6 - 0.45 * t)) / 128);
-            return t < 1;
-          }, T),
+            return lift < 1;
+          },
         });
         for (let i = 0; i < 3; i++)
           later((T * i) / 3, () => emit({ count: Math.round(60 * k), palette: el.palette.slice(1), from: R, at: "edge",
@@ -1201,7 +1208,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
           speed: [180, 320], gravity: 0, drag: 0.2, life: [0.35, 0.6], size: [10, 3], streak: true });
         break;
       case "debuff":
-        // Purple, not grey: under additive blending a dark colour is no colour.
+        // Purple, not grey: a grey on this layer is a dull wash, not a colour.
         emit({ count: 22, palette: [0xc070ff, 0x8a48d0, 0x5a2a90], from: { ...fx.rect, h: fx.rect.h * 0.2 },
           dir: [85, 95], speed: [160, 280], gravity: 0, drag: 0.2, life: [0.35, 0.6], size: [10, 3], streak: true });
         break;
@@ -1255,10 +1262,31 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
         break;
       }
     }
-    if (!app.ticker.started) app.ticker.start();
+    wake();
   }
 
   let lastCount = 0;
+
+  /** SHOWN ONLY WHILE IT DRAWS. Idle, the canvas is hidden: between actions it
+   *  has nothing to show, and a full-screen WebGL canvas left in the compositor
+   *  with no fresh frame is a known source of a one-frame BLACK flash on phones
+   *  — its drawing buffer is discarded after every present
+   *  (`preserveDrawingBuffer: false`), so a re-composite of the page with no new
+   *  frame drawn can put an empty buffer on screen. Keeping the buffer instead
+   *  would cost a full-screen copy every frame an effect runs; hiding it costs
+   *  nothing. A frame is drawn BEFORE it is shown, so it never comes back on a
+   *  stale or discarded one, whenever in the frame this is called. */
+  function wake() {
+    if (app.ticker.started) return;
+    if (live.length !== lastCount) {
+      sparks.update();
+      lastCount = live.length;
+    }
+    app.render();
+    canvas.style.visibility = "visible";
+    app.ticker.start();
+  }
+
   function update() {
     adapt(app.ticker.deltaMS);
     const dt = Math.min(app.ticker.deltaMS / 1000, 1 / 20); // a hitch must not teleport sparks
@@ -1315,10 +1343,13 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       sparks.update();
       lastCount = live.length;
     }
-    // Idle -> no render loop at all. This frame still renders (the render
-    // listener runs after this one), so the canvas is left empty, not frozen
-    // on the last sparks.
-    if (live.length === 0 && effects.length === 0) app.ticker.stop();
+    // Idle -> no render loop at all, and out of the compositor (see `wake`).
+    // This frame still renders (the render listener runs after this one), so
+    // the canvas is left empty, not frozen on the last sparks.
+    if (live.length === 0 && effects.length === 0) {
+      app.ticker.stop();
+      canvas.style.visibility = "hidden";
+    }
   }
   app.ticker.add(update);
 
@@ -1356,7 +1387,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       burst(x, y, ember, k, Math.round(st.embers * k));
     }
     lookFor(element, variant).impactAccent?.(toolsFor(element), { x, y }, k);
-    if (!app.ticker.started) app.ticker.start();
+    wake();
   }
 
   return {

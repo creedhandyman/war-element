@@ -2916,17 +2916,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    18px circle clipped it, so it grows sideways and stays a pill. */
 .db-spell-mark.many { width: auto; min-width: 22px; padding: 0 5px; border-radius: 9px; font-size: 10px; }
 
-/* ── Spell cast flash — full-screen art for ~2s, then the effect resolves ── */
+/* ── Spell cast flash — full-screen art for ~2s, then the effect resolves ──
+   INVISIBLE AT REST (opacity: 0 on every piece): only the running animation
+   shows them. A near-black full-screen scrim whose transparency lived only in
+   its keyframes was one early paint away from a black frame on a phone. The
+   length is --flash (default 2s), which a shorter flash sets to its own timer
+   — a sprung trap's is 1.4s — so it has faded out when it is taken down,
+   rather than cut off while still dark. */
 .castflash {
   position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; pointer-events: auto;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 28%, rgba(4,4,8,0.82)), rgba(4,4,8,0.93));
-  animation: castflash-scrim 2s ease-out both;
+  opacity: 0;
+  animation: castflash-scrim var(--flash, 2s) ease-out both;
 }
 @keyframes castflash-scrim { 0% { opacity: 0; } 9% { opacity: 1; } 82% { opacity: 1; } 100% { opacity: 0; } }
 .castflash-burst {
   position: absolute; width: min(78vw, 460px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,255,255,0.92), color-mix(in srgb, var(--el, #7d92e8) 60%, transparent) 42%, transparent 68%);
-  filter: blur(6px); animation: castflash-burst 2s ease-out both;
+  filter: blur(6px); opacity: 0; animation: castflash-burst var(--flash, 2s) ease-out both;
 }
 @keyframes castflash-burst {
   0% { transform: scale(0.2); opacity: 0; }
@@ -2939,7 +2946,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 2px solid var(--el, var(--gold-lit));
   background: linear-gradient(180deg, #12131f, #0a0b12);
   box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.7), 0 0 46px color-mix(in srgb, var(--el, #7d92e8) 55%, transparent);
-  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  opacity: 0;
+  animation: castflash-card var(--flash, 2s) cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 @keyframes castflash-card {
   0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
@@ -4041,21 +4049,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Mirrors .castflash's timing exactly (2s, same scrim/burst/card curves) so a
    summon announcement and a spell flash feel like the same game. The one extra
    is --rar, the rarity colour, which rings the card and tints the label — a
-   MYTHIC should not read the same as a LEGEND. */
+   MYTHIC should not read the same as a LEGEND. Invisible at rest, like the
+   cast flash, so its scrim can never paint as a black frame. */
 .announce {
   position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; pointer-events: auto;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 30%, rgba(4,4,8,0.84)), rgba(4,4,8,0.94));
+  opacity: 0;
   animation: castflash-scrim 2s ease-out both;
 }
 .announce-burst {
   position: absolute; width: min(86vw, 520px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,255,255,0.9), color-mix(in srgb, var(--rar, #ffb02e) 62%, transparent) 44%, transparent 70%);
-  filter: blur(7px); animation: castflash-burst 2s ease-out both;
+  filter: blur(7px); opacity: 0; animation: castflash-burst 2s ease-out both;
 }
 /* Badge + card scale in together — the entrance animation lives on the stack,
    not the card, now that the two are siblings. */
 .announce-stack {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
+  opacity: 0;
   animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
 .announce-card {
@@ -4094,6 +4105,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .announce-who {
   position: absolute; bottom: max(9vh, 54px); font-family: var(--head); font-size: 12px;
   font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim);
+  opacity: 0;
   animation: castflash-scrim 2s ease-out both;
 }
 
@@ -6111,8 +6123,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   @keyframes fxCoinHold { 0%, 80% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; transform: translateX(-50%); } }
 
   /* Spell cast — cut to nothing rather than removed, so the state change the
-     flash announces still gets its beat. */
-  .castflash, .castflash-burst, .castflash-card { animation-duration: 0.01s; }
+     flash announces still gets its beat. No animation at all: at rest they are
+     invisible (opacity 0). The old 0.01s run was FULLY DARK from 0.9 to 8.2ms,
+     and a 120Hz screen's second frame lands at 8.3ms — one black frame. */
+  .castflash, .castflash-burst, .castflash-card { animation: none; }
   /* The attack telegraphs are motion and nothing else; drop them rather than
      jolt the board. */
   .token.lunging, .token.recoiling { animation: none; }

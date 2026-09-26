@@ -321,6 +321,10 @@ const TARGET_HOLD_MS = 600;
 const CAST_FLASH_MS = 2000;
 /** A legendary summon's announcement — the same 2s a player's own gets. */
 const ANNOUNCE_MS = 2000;
+/** A sprung trap's flash is shorter. Its animation is handed the same length
+ *  (SpellCastFlash `ms`): at the 2s default it was taken down at 1.4s while its
+ *  scrim was still fully dark — the screen snapped from black to the board. */
+const TRAP_FLASH_MS = 1400;
 /** A LEGENDARY+ card that arrived in the step, from a seat `whose` accepts —
  *  the summon that gets announced before it lands. */
 function bigArrival(before: GameState, next: GameState, whose: (seat: PlayerId) => boolean): StageShow | null {
@@ -433,7 +437,7 @@ export function App() {
   // Spell cast animation: when I cast, we hold the intent, flash the spell art
   // full-screen for ~2s, then dispatch so the effect resolves. `castTimerRef`
   // guards against a second cast landing mid-flash + clears on unmount.
-  const [castFlash, setCastFlash] = useState<{ spellId: string } | null>(null);
+  const [castFlash, setCastFlash] = useState<{ spellId: string; ms?: number } | null>(null);
   /** A row/column attack about to land — lit on the board while its step is
    *  held. See `strikeZone` and the auto-advance effect. */
   const [strike, setStrike] = useState<StrikeZone | null>(null);
@@ -1888,11 +1892,11 @@ export function App() {
     if (!started || trapFlashTimerRef.current !== null) return;
     const sprung = gone.map((k) => k.split(":")[1]).find(Boolean);
     if (!sprung) return;
-    setCastFlash({ spellId: sprung });
+    setCastFlash({ spellId: sprung, ms: TRAP_FLASH_MS });
     trapFlashTimerRef.current = window.setTimeout(() => {
       trapFlashTimerRef.current = null;
       setCastFlash(null);
-    }, 1400);
+    }, TRAP_FLASH_MS);
   }, [game.traps, started]);
   useEffect(() => () => {
     if (trapFlashTimerRef.current !== null) window.clearTimeout(trapFlashTimerRef.current);
@@ -4149,11 +4153,14 @@ export function App() {
    *  pixels — one that goes wrong the next time a tier is retuned. The slot
    *  knows where it is; ask it.
    *
-   *  Re-measured whenever the acting card changes or the viewport does. The
-   *  rAF is because the class lands in the same commit that mounts the ring, so
-   *  querying immediately can find the PREVIOUS acting slot. */
+   *  Re-measured whenever the acting card changes or the viewport does — in a
+   *  LAYOUT effect, before the browser paints. In a passive one, the commit
+   *  that handed the turn from one of my cards to the next was painted first
+   *  with the ring still at the PREVIOUS card's square: its dark disc flashed
+   *  there for a frame at every hand-off, and the frame a ring first went up
+   *  showed the tall action bar it replaces. */
   const [wheelAt, setWheelAt] = useState<{ x: number; y: number } | null>(null);
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!iActBattle || !awaitingId) { setWheelAt(null); return; }
     let live = true;
     const measure = () => {
@@ -4163,7 +4170,7 @@ export function App() {
       const r = el.getBoundingClientRect();
       setWheelAt({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
     };
-    // Measure NOW, not in a rAF. useEffect already runs after the DOM is
+    // Measure NOW, not in a rAF. A layout effect already runs after the DOM is
     // committed, so the acting slot is there — and rAF does not fire at all
     // while the page is not painting (a backgrounded tab, or a devtools pane
     // that is not compositing), which would leave the ring unpositioned and
@@ -5164,7 +5171,7 @@ export function App() {
         <ActionWheel verbs={wheelVerbs} at={wheelAt} armedKey={pending} cancel={cancelVerb} />
       )}
 
-      {castFlash && <SpellCastFlash spellId={castFlash.spellId} />}
+      {castFlash && <SpellCastFlash spellId={castFlash.spellId} ms={castFlash.ms} />}
       {delivering && <div className="input-shield" aria-hidden="true" />}
       {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
 

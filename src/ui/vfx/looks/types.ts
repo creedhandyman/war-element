@@ -108,9 +108,12 @@ export interface FxTools {
   /** Long radiant spokes out of a point, turning slowly. `palette[1]` colours them. */
   rays(at: Pt, palette: number[], strength: number, n: number): void;
   /** Anything else, drawn by hand: `fn` runs every frame for `seconds` with
-   *  `t` in 0..1, on a Graphics cleared before each call. ADDITIVE by default
-   *  (light: a dark colour draws nothing); `dark: true` draws on the normal-
-   *  blend layer beneath, which is the only way to put shadow on the board. */
+   *  `t` in 0..1, on a Graphics cleared before each call. ADDITIVE by default:
+   *  light, which adds up where it overlaps other light. Keep its colours
+   *  light — the canvas is transparent, so where nothing else is drawn under
+   *  it, additive colour lands on the board at its alpha, and a DARK colour
+   *  paints dark (black adds alpha and no light: opaque black). `dark: true`
+   *  draws on the normal-blend layer beneath, for shadow on purpose. */
   draw(seconds: number, fn: (g: Graphics, t: number, dt: number) => void, opts?: { delay?: number; dark?: boolean }): void;
 }
 

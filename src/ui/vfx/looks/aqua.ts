@@ -20,29 +20,26 @@ const MARK = 0x7fd4ff;
 const clamp01 = (x: number) => (x < 0 ? 0 : x > 1 ? 1 : x);
 const easeOut = (x: number) => 1 - (1 - x) * (1 - x);
 
-/** A palette for sparks born INSIDE a running effect (a trail, a splash on a
- *  timer). The layer places such a spark before it has sized it, so a fresh
- *  particle shows for one frame at the dot texture's full 64px; starting it
- *  black — which draws nothing under additive light — hides that frame.
- *  Stretched to 12 steps so the black is only the first ~8% of its life. */
-function aquaLate(p: number[]): number[] {
-  const out = [0x000000];
-  for (let i = 0; i < 11; i++) out.push(p[Math.floor((i / 11) * p.length)]);
-  return out;
-}
-
 const WATER = [WHITE, PALE, BLUE, DEEP];
 /** A drop thrown off a splash: round, heavy, cooling white -> deep as it falls. */
 const DROP: SparkStyle = { palette: WATER, gravity: 1150, drag: 0.6, size: [7, 3], streak: false };
-const DROP_LATE: SparkStyle = { ...DROP, palette: aquaLate(WATER) };
+/** The _LATE styles are for sparks born INSIDE a running effect (a trail, a
+ *  splash on a timer). They used to start BLACK, to hide the one frame such a
+ *  spark showed at the dot's full 64px before it was sized — on the belief
+ *  that black draws nothing under additive light. On this layer it does not:
+ *  the canvas is transparent, so additive black adds alpha and no light, and
+ *  paints opaque BLACK over the board — every AQUA shot left black specks.
+ *  The layer sizes such sparks at birth now (impact-layer.ts `sizeAtBirth`),
+ *  so they are plain water. */
+const DROP_LATE: SparkStyle = DROP;
 /** A drip shed by something in flight: smaller, and falling off behind it. */
-const DRIP_LATE: SparkStyle = { palette: aquaLate(WATER), gravity: 900, drag: 0.5, size: [6, 2], streak: false };
+const DRIP_LATE: SparkStyle = { palette: WATER, gravity: 900, drag: 0.5, size: [6, 2], streak: false };
 /** The basic X's droplets: tiny, flicked up and straight back down. */
 const FLICK: SparkStyle = { palette: WATER, gravity: 1300, drag: 0.5, size: [5, 2], streak: false };
 /** Water drawn in to a point: brightening as it gathers. */
 const RISE: SparkStyle = { palette: [BLUE, PALE, WHITE], gravity: 0, drag: 1, size: [4, 7], streak: false };
 /** Rain: thin, fast, slanted streaks. */
-const RAIN_LATE: SparkStyle = { palette: aquaLate([WHITE, PALE, BLUE]), gravity: 900, drag: 0.9, size: [5, 3], streak: true };
+const RAIN_LATE: SparkStyle = { palette: [WHITE, PALE, BLUE], gravity: 900, drag: 0.9, size: [5, 3], streak: true };
 /** Heal fizz: fine bubbles lifting. */
 const FIZZ: SparkStyle = { palette: [WHITE, 0xc8fff0, PALE], gravity: -70, drag: 0.6, size: [5, 2], streak: false };
 
