@@ -3213,7 +3213,9 @@ function doRoundTicks(draft: GameState): void {
     // Meltdown's sustained blast. Scoped to its own block so the rest of the
     // tick (Scorched Fury) runs regardless of whether the Special is lit.
     if (rt.channel && card.channelOn) {
-      if (hasStatus(card, "FREEZE") || hasStatus(card, "ROOT")) {
+      // FREEZE puts it out. ROOT used to as well; it no longer does (owner's
+      // call): a rooted volcano still erupts where it stands.
+      if (hasStatus(card, "FREEZE")) {
         card.channelOn = false;
         draft.log.push(`${label(draft, card)}'s meltdown is smothered.`);
       } else if (card.curHp <= rt.channel.hpCost) {

@@ -330,9 +330,10 @@ export interface RoundTickDef {
    *  suicide timer. */
   selfBurnForDmg?: { hp: number; dmg: number };
   /** Meltdown (Magmadon): a SUSTAINED Special. Runs only while the card is
-   *  channelling, costs `hpCost` every round it continues, and breaks on death,
-   *  FREEZE or ROOT — the Special says "until frozen or rooted", so hard control
-   *  is the counterplay it is priced against.
+   *  channelling, costs `hpCost` every round it continues, and breaks on death
+   *  or FREEZE — the Special says "until frozen", so hard control is the
+   *  counterplay it is priced against. (ROOT broke it too, until the owner took
+   *  that off: rooted, it still erupts where it stands.)
    *
    *  Its own field rather than a flag over the whole roundTick: Magmadon's
    *  Scorched Fury lives in that same tick and must keep running whether or not

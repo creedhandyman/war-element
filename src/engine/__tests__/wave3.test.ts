@@ -318,6 +318,19 @@ describe("Magmadon", () => {
     expect(frozen.cards[mag.instanceId].channelOn).toBe(false);
   });
 
+  it("...but ROOT no longer does: rooted, it erupts where it stands (owner's call)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const mag = place(s, "pyro_magmadon", "P1", 3, 0, { curHp: 38, maxHp: 38 });
+    place(s, "bore_clubber", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const lit = fire(s, mag.instanceId);
+    lit.cards[mag.instanceId].statuses.push({ kind: "ROOT", duration: 2, power: 0, source: "LEAF" });
+    const foeBefore = boardCards(lit, "P2")[0].curHp;
+    const ticked = advance(atCleanup(lit));
+    expect(ticked.cards[mag.instanceId].channelOn).toBe(true);
+    expect(boardCards(ticked, "P2")[0].curHp).toBeLessThan(foeBefore);
+  });
+
   it("Volcanic charges the line 1 max HP for +2 DMG", () => {
     // Replaces Trial by Fire, which did this ONCE on arrival for a single round.
     // As a standing aura it is the same trade, always on, and — being the first

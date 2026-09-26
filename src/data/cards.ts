@@ -2751,7 +2751,7 @@ export const CARDS: CardDef[] = [
     aura: { scope: "tribe", match: "Volcanic", dmg: 2, maxHp: -1 },
     special: {
       name: "Meltdown",
-      cost: 4,
+      cost: 3, // 4 -> 3 (owner's call)
       // No handler damage of its own: startsChannel fires the row-ahead blast
       // immediately and then hands the attack to the roundTick above. `spawn`
       // with no token is the codebase's existing no-op handler for a Special
@@ -2759,7 +2759,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { startsChannel: 1 },
       targetSide: "self",
-      text: "Deal 5 DMG (+ Magmadon's bonus DMG) to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies, or is FROZEN or ROOTED. Scorched Fury makes each eruption hotter than the last.",
+      text: "Deal 5 DMG (+ Magmadon's bonus DMG) to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies or is FROZEN. Scorched Fury makes each eruption hotter than the last.",
     },
   },
   {
