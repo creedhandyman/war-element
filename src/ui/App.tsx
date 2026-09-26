@@ -74,7 +74,7 @@ import {
 } from "../net/resume";
 import { Board } from "./Board";
 import { ScreenBoundary } from "./Recover";
-import { resilient, setMatchLive } from "./stale-chunks";
+import { rememberPlace, resilient, resumePlace, setMatchLive, warmLater } from "./stale-chunks";
 /** SCREENS THAT SHIP IN THEIR OWN CHUNK.
  *
  *  Everything below is a whole screen you reach by tapping something — the
@@ -102,8 +102,22 @@ import { resilient, setMatchLive } from "./stale-chunks";
  *  ("selecting Collection or Draft, this screen covers it"). So the load is
  *  `resilient` (reloads onto the new build when that is safe) and the screen
  *  sits in a `ScreenBoundary` (says so, with a button, when it is not) — see
- *  stale-chunks.ts and Recover.tsx. */
-function deferred<P extends object>(load: () => Promise<{ default: (props: P) => ReactNode }>) {
+ *  stale-chunks.ts and Recover.tsx.
+ *
+ *  ...but that reload landed the player on Home instead of the screen they
+ *  tapped ("the game restarts instead of going where you want"). So each screen
+ *  is also queued for a background fetch once the menu is up (`warmLater`,
+ *  started by main.tsx), which puts every chunk in the page before a deploy can
+ *  rename it — and a reload that happens anyway goes back to where the player
+ *  was going (`rememberPlace` / `resumePlace` below).
+ *
+ *  `warm: false` for the two screens that pull in the Supabase SDK (chat, via
+ *  `net/online`; the account panel, via `net/account`). Loading `net/online`
+ *  creates a live client, and the SDK is the 204 KB kept off the page until a
+ *  player actually goes online — a background fetch for everyone would undo
+ *  that. Those two still resume after a reload like the rest. */
+function deferred<P extends object>(load: () => Promise<{ default: (props: P) => ReactNode }>, warm = true) {
+  if (warm) warmLater(load);
   const Inner = lazy(resilient(load));
   return (props: P) => (
     <ScreenBoundary onClose={(props as { onClose?: () => void }).onClose}>
@@ -114,7 +128,7 @@ function deferred<P extends object>(load: () => Promise<{ default: (props: P) =>
   );
 }
 
-const ChatPanel = deferred(async () => ({ default: (await import("./ChatPanel")).ChatPanel }));
+const ChatPanel = deferred(async () => ({ default: (await import("./ChatPanel")).ChatPanel }), false);
 const DraftScreen = deferred(async () => ({ default: (await import("./DraftScreen")).DraftScreen }));
 const ProfilePanel = deferred(async () => ({ default: (await import("./ProfilePanel")).ProfilePanel }));
 const VoidTower = deferred(async () => ({ default: (await import("./VoidTower")).VoidTower }));
@@ -123,7 +137,7 @@ const CardGallery = deferred(async () => ({ default: (await import("./CardGaller
 const StoryCollection = deferred(async () => ({ default: (await import("./StoryCollection")).StoryCollection }));
 const StoryMap = deferred(async () => ({ default: (await import("./StoryMap")).StoryMap }));
 const StoryPrep = deferred(async () => ({ default: (await import("./StoryPrep")).StoryPrep }));
-const AccountPanel = deferred(async () => ({ default: (await import("./AccountPanel")).AccountPanel }));
+const AccountPanel = deferred(async () => ({ default: (await import("./AccountPanel")).AccountPanel }), false);
 const Shop = deferred(async () => ({ default: (await import("./Shop")).Shop }));
 
 const LoadedDeckBuilder = deferred(async () => ({ default: (await import("./DeckBuilder")).DeckBuilder }));
@@ -329,6 +343,19 @@ function condenseLog(lines: string[]): { text: string; count: number; chatter: b
     else out.push({ text, count: 1, chatter: LOG_CHATTER.test(text) });
   }
   return out;
+}
+
+/** Where the player is in the menus — as much of it as an update reload can
+ *  put back (stale-chunks.ts `resumePlace`). */
+interface ResumePlace {
+  tab: Tab;
+  homeCollection: boolean;
+  shopTab: "packs" | "crafter";
+  profileOpen: boolean;
+  rulesOpen: boolean;
+  galleryOpen: boolean;
+  accountOpen: boolean;
+  builderOpen: boolean;
 }
 
 export function App() {
@@ -4302,6 +4329,38 @@ export function App() {
   useLayoutEffect(() => {
     browserBackStack().tab(shownTab);
   }, [shownTab]);
+
+  // ── WHERE THE PLAYER IS, for an update reload that could not be avoided ────
+  // A screen whose code is gone after a deploy reloads the page onto the new
+  // build (stale-chunks.ts). The screen that failed is the one just opened, so
+  // what this reports at that moment IS where the player was going, and the
+  // boot after the reload puts them there instead of on Home. Only the menus: a
+  // match is never reloaded away, and a draft is on the save already.
+  const placeRef = useRef<ResumePlace | null>(null);
+  useLayoutEffect(() => {
+    placeRef.current = {
+      tab: shownTab, homeCollection, shopTab,
+      profileOpen, rulesOpen, galleryOpen, accountOpen, builderOpen,
+    };
+  });
+  useLayoutEffect(() => {
+    rememberPlace(() => placeRef.current);
+  }, []);
+  useEffect(() => {
+    const p = resumePlace<ResumePlace>();
+    if (!p) return;
+    goTab(p.tab);
+    // goTab lands on each tab's front door; put back what was open over it.
+    if (p.tab === "home" && p.homeCollection) setHomeCollection(true);
+    if (p.tab === "shop") setShopTab(p.shopTab);
+    if (p.profileOpen) setProfileOpen(true);
+    if (p.rulesOpen) setRulesOpen(true);
+    if (p.galleryOpen) setGalleryOpen(true);
+    if (p.accountOpen) setAccountOpen(true);
+    if (p.builderOpen) setBuilderOpen(true);
+    // Once, at boot: the note is spent on first read (see resumePlace).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // A MATCH is sticky: back never walks out of one. Mid-match it opens the match
   // menu, where Surrender sits behind its own confirm. Once the result screen is
