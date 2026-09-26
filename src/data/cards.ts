@@ -13418,9 +13418,11 @@ export const CARDS: CardDef[] = [
       // The Special it had, at the rung that allows one. A Rare carries no
       // repeatable Special; cost 3 is the only rung a Talent may sit on, and
       // Preventive Maintenance above is the passive that keeps it from blank.
-      text: "Once per game, free: plate every nearby ally — itself included — with +2 shields and repair 4 HP.",
+      // Every ally in RANGE now (owner's call), not just the 8 squares around
+      // it: `inRange` is Handyman's own attack reach.
+      text: "Once per game, free: plate every ally in range — itself included — with +2 shields and repair 4 HP.",
       handler: "grantShield",
-      params: { amount: 2, heal: 4, nearby: 1 },
+      params: { amount: 2, heal: 4, inRange: 1 },
     },
   },
   {

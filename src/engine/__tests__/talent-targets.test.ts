@@ -127,7 +127,8 @@ describe("the no-target list is derived, not remembered", () => {
         expect(
           TALENT_NEEDS_NO_TARGET.has(d.talent.handler)
             || Number(d.talent.params?.rollThrough ?? 0) > 0
-            || Number(d.talent.params?.nearby ?? 0) > 0,
+            || Number(d.talent.params?.nearby ?? 0) > 0
+            || Number(d.talent.params?.inRange ?? 0) > 0, // Patch Job plates allies in range
           `${d.id} skips the gate for no stated reason`,
         ).toBe(true);
     }

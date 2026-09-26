@@ -1883,15 +1883,15 @@ export const TALENT_NEEDS_NO_TARGET: ReadonlySet<string> = new Set([
  *    with nothing to hit". Gating it would delete the half of the ability its
  *    own text promises.
  *
- *    `nearby` — Patch Job. `grantShield` recomputes its crew from the caster's
- *    OWN side and never reads the list it was handed, so an empty enemy list
- *    says nothing about whether there are allies to plate. */
+ *    `nearby` / `inRange` — Patch Job. `grantShield` recomputes its crew from
+ *    the caster's OWN side and never reads the list it was handed, so an empty
+ *    enemy list says nothing about whether there are allies to plate. */
 export function talentNeedsTarget(def: CardDef): boolean {
   const t = def.talent;
   if (!t) return false;
   if (TALENT_NEEDS_NO_TARGET.has(t.handler)) return false;
   if (Number(t.params?.rollThrough ?? 0) > 0) return false;
-  if (Number(t.params?.nearby ?? 0) > 0) return false;
+  if (Number(t.params?.nearby ?? 0) > 0 || Number(t.params?.inRange ?? 0) > 0) return false;
   return true;
 }
 

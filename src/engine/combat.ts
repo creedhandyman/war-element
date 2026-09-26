@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -5645,11 +5645,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const buffDmg = num(params, "buffDmg");
     const buffRounds = num(params, "buffRounds", 1);
     // nearby: the 8 slots around the caster (itself included — it forged the
-    // plates, it wears some too). Otherwise the single chosen ally.
+    // plates, it wears some too). inRange: every ally within the caster's own
+    // attack reach, the king-steps its basic sees (`rangedReachFor`; 1 for a
+    // melee card). Otherwise the single chosen ally.
+    const inRange = num(params, "inRange") > 0;
+    const reach = inRange
+      ? (getDef(attacker.defId).attackType === "Ranged" ? rangedReachFor(draft, attacker) : 1)
+      : num(params, "nearby") > 0 ? 1 : 0;
     const crew =
-      num(params, "nearby") > 0 && attacker.pos
+      reach > 0 && attacker.pos
         ? boardCards(draft, attacker.owner).filter(
-            (a) => a.curHp > 0 && a.pos && chebyshev(attacker.pos!, a.pos) <= 1,
+            (a) => a.curHp > 0 && a.pos && chebyshev(attacker.pos!, a.pos) <= reach,
           )
         : [targets[0] ?? attacker]; // self-shield specials pass no enemy
     for (const target of crew) {
@@ -5657,7 +5663,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       if (heal > 0) healCard(draft, target, heal, attacker); // Roosting Wing Shield
       if (buffDmg > 0) applyTimedBuff(target, buffDmg, 0, buffRounds);
     }
-    const who = crew.length === 1 ? label(draft, crew[0]) : `${crew.length} nearby ally(ies)`;
+    const who = crew.length === 1 ? label(draft, crew[0]) : `${crew.length} ${inRange ? "ally(ies) in range" : "nearby ally(ies)"}`;
     draft.log.push(
       `${label(draft, attacker)} grants +${amount} shields${heal > 0 ? ` and +${heal} HP` : ""}${buffDmg > 0 ? ` and +${buffDmg} DMG for ${buffRounds}r` : ""} to ${who}.`,
     );
