@@ -402,8 +402,9 @@ describe("Falconer — the bird comes with the cowboy", () => {
     // Kobra's note prescribes.
     const d = getDef("gale_goldspur");
     const body = d.dmg * d.hits + d.hp + d.shields * 2 + d.sp;
-    expect(body, "six under").toBeLessThan(5 * d.cost + 10);
-    expect(d.cost, "and recosted into the Legendary band").toBe(6);
+    expect(body, "eleven under").toBeLessThan(5 * d.cost + 10);
+    // 6 -> 7 (owner's call) bought Both Barrels' 7-damage shots, no stat gain.
+    expect(d.cost, "and recosted into the Legendary band").toBe(7);
     expect(d.rarity).toBe("legendary");
   });
 });

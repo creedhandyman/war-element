@@ -6532,7 +6532,9 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "AQUA",
     cardClass: "Warrior",
-    attackType: "Melee",
+    // RANGED (owner's call): the tide reaches in from where it stands. Stat
+    // line unchanged: 4 + 13 + 3x2 + 2 = 25 = 5*3+10.
+    attackType: "Ranged",
     cost: 3,
     dmg: 4,
     hits: 1,
@@ -8253,13 +8255,15 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Warrior",
     attackType: "Melee",
-    cost: 7,
+    // 7 -> 8 (owner's call), paid out as +4 HP and +1 SP:
+    // 9 + 29 + 12 = 50 = 5*8+10, exactly on budget as it was at 7.
+    cost: 8,
     dmg: 9,
     hits: 1,
-    hp: 25,
+    hp: 29,
     // Traded its 2 shields straight across for +4 SP — a GALE flier should be
     // fast rather than armoured, and 4 shield-points = 4 SP keeps it on budget.
-    sp: 11,
+    sp: 12,
     shields: 0,
     // FLYING, and the movement half is already paid for: SP 11 clears
     // SP_MID_MAX, so Eagon ALREADY moved like a king and cut corners. What this
@@ -12984,13 +12988,15 @@ export const CARDS: CardDef[] = [
     // 25-point body with FLYING and PLUMMET on it, and Kobra's note says plainly
     // that shaving a few points off a printed line "nowhere near pays for" a
     // free body — the extra gold is what does.
-    cost: 6,
-    // 4*2 + 15 + 12 = 35 = 5*5+10.
+    //
+    // 6 -> 7 (owner's call), with NO stat gain: the extra gold buys Both
+    // Barrels' 7-damage shots, not a bigger body.
+    cost: 7,
+    // 4*2 + 14 + 12 = 34, eleven under the cost-7 budget of 45.
     dmg: 4,
     hits: 2,
-    // ...and six points under the cost-6 budget of 40 on top of the recost, the
-    // same shape as Kobra sitting four under at cost 7. Trimmed from HP rather
-    // than DMG so the guns still read as the card's point.
+    // Trimmed from HP rather than DMG so the guns still read as the card's
+    // point.
     hp: 14,
     sp: 12,
     shields: 0,
@@ -13014,9 +13020,10 @@ export const CARDS: CardDef[] = [
       // gunslinger's Special ought to be.
       // The shove is the GALE half: Zephyr is speed and displacement, so the
       // shots move the line as well as hurt it.
-      params: { dmg: 5, targets: 2, closest: 1, crit: 1, push: 1 },
+      // 7 a shot, up from 5 with the recost to 7.
+      params: { dmg: 7, targets: 2, closest: 1, crit: 1, push: 1 },
       targetSide: "enemy",
-      text: "5 DMG to the 2 nearest opponents, both shots rolling for a CRIT.",
+      text: "7 DMG to the 2 nearest opponents, both shots rolling for a CRIT.",
     },
   },
   {

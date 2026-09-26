@@ -92,13 +92,14 @@ describe("setup", () => {
       // was trimmed (HP 16 -> 15) rather than raised to the new ceiling so the
       // extra gold is not handed straight back.
       "bore_kobra",
-      // Ability-carried, downward: 34 against a Cost-6 budget of 40. Falconer
+      // Ability-carried, downward: 34 against a Cost-7 budget of 45. Falconer
       // puts a FALCON on the board the moment Goldspur lands — a cost-3 Rare
       // worth 25 points of body, carrying FLYING and PLUMMET, which is a finisher
-      // that deletes anything under its DMG outright. Six points off the printed
-      // line does not pay for that on its own; the recost 5 -> 6 (and with it
-      // Epic -> Legendary, since the bands tie those together) is what does,
-      // exactly as Kobra's note above describes.
+      // that deletes anything under its DMG outright. The printed line does not
+      // pay for that on its own; the recost 5 -> 6 (and with it Epic ->
+      // Legendary, since the bands tie those together) is what does, exactly as
+      // Kobra's note above describes. 6 -> 7 then bought Both Barrels' 7-damage
+      // shots with no stat gain, which is why it now sits eleven under.
       "gale_goldspur",
 
       // (Sparkle and ToxHawk both used to sit here as "SP-heavy glass cannons"

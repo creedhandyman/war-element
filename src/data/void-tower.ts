@@ -339,7 +339,7 @@ export const VOID_BOSSES: VoidBoss[] = [
     tribeElement: "PYRO",
     mechanicElement: "DAWN",
     tribe: "Dragon",
-    // 10 + 9 + 7 + 5 + 5 = 36, exact. Five heavies rather than a swarm, which
+    // 10 + 9 + 8 + 6 + 3 = 36, exact. Five bodies rather than a swarm, which
     // is what a floor-4 formation should feel like next to floor 3's packs of
     // seven — and Dragon is the one tribe deep enough in BIG cards to do it.
     //
@@ -347,8 +347,13 @@ export const VOID_BOSSES: VoidBoss[] = [
     // behaving normally rather than a compromise; it is led by the PYRO and
     // DAWN mythics the boss is named after either half of. Pyrogon STAYS here:
     // Cryovex takes the AQUA dragons, not the fire one.
+    //
+    // It was 10 + 9 + 7 + 5 + 5 with Emberclaw and Fenrir, until Eagon went to
+    // cost 8. No Dragon costs 7 or 4, so no single swap gets back to 36, and
+    // Phrost + Greegon is the only five-body flight that does with both mythics
+    // and Eagon kept. Phrost is the one Dragon this floor now shares with Cryovex.
     summons: [
-      "pyro_pyrogon", "dawn_supernova", "gale_eagon", "pyro_sseerr", "pyro_fenrir",
+      "pyro_pyrogon", "dawn_supernova", "gale_eagon", "aqua_phrost", "leaf_greegon",
     ],
     puzzle: "The rain: position buys nothing — outlast it or outrun it.",
   },
