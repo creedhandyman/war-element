@@ -4941,7 +4941,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   lacingKnots(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg", 8);
     const roped = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && (e.specialLockedRounds ?? 0) > 0);
-    for (const e of roped) resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
+    // `pen` read from the card, the way `barrage` reads it (Tether's knots cut
+    // straight through shields).
+    const pen = num(params, "pen") > 0;
+    for (const e of roped) resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen, crit: false });
     draft.log.push(`${label(draft, attacker)} yanks the knots — ${dmg} DMG to ${roped.length} bound foe(s).`);
   },
   /** Sweep (Brute): swing at every opponent in the row directly ahead with a

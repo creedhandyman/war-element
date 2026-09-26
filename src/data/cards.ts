@@ -1637,14 +1637,20 @@ export const CARDS: CardDef[] = [
     tribe: "Stars",
     attackType: "Melee",
     cost: 1,
-    // 3 + 4 + 9 = 16, one over 5*1+10 and inside the +/-2. Up from 2 HP and
-    // SP 10: it buys a second point of body with a point of speed, and the
-    // speed is the cheaper of the two here because it changes nothing. Both
-    // tiers sit either side of nothing — moveReach is 2 anywhere above SP 5,
-    // and the king-move tier starts ABOVE SP_MID_MAX (10), which 10 itself
-    // does not clear. So 10 and 9 are the same card to the rules, while 2 HP
-    // and 4 HP are the difference between dying to a 3-damage basic and not.
-    dmg: 3,
+    // 4 + 4 + 9 = 17, two over 5*1+10 and at the edge of the +/-2.
+    //
+    // DMG 3 -> 4 (owner's call). The ledger's second reading put it at the
+    // bottom of the set: -9.4 against its cost-1 DAWN peers on fresh seeds,
+    // tier F, one of only two cards confirmed that weak.
+    //
+    // (Earlier: up from 2 HP and SP 10. It bought a second point of body with
+    // a point of speed, and the speed is the cheaper of the two here because it
+    // changes nothing. Both tiers sit either side of nothing — moveReach is 2
+    // anywhere above SP 5, and the king-move tier starts ABOVE SP_MID_MAX (10),
+    // which 10 itself does not clear. So 10 and 9 are the same card to the
+    // rules, while 2 HP and 4 HP are the difference between dying to a
+    // 3-damage basic and not.)
+    dmg: 4,
     hits: 1,
     hp: 4,
     sp: 9,
@@ -5559,12 +5565,12 @@ export const CARDS: CardDef[] = [
       // body: firstOnlyStatus (which limited the ROOT to the first target) is
       // gone, so every opponent in the corridor is rooted.
       params: {
-        dmg: 6, pen: 1, targets: 99, forwardDepth: 3, spread: 0, // dmg 4 -> 6
+        dmg: 8, pen: 1, targets: 99, forwardDepth: 3, spread: 0, // dmg 4 -> 6 -> 8 (owner's call)
         statusKind: "ROOT", statusDuration: 2,
         selfShields: 3, selfShieldsMax: 9,
       },
       targetSide: "enemy",
-      text: "Fell a tree straight down your own column: 6 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT them all for 2 rounds and gain 3 shield.",
+      text: "Fell a tree straight down your own column: 8 DMG (PEN) to every opponent in the 3 slots ahead, reaching into their summoning row. ROOT them all for 2 rounds and gain 3 shield.",
     },
   },
   {
@@ -7266,15 +7272,16 @@ export const CARDS: CardDef[] = [
     // disabled for the coming round.
     passiveNames: { roundTick: "Magic Ropes" },
     roundTick: { lockEnemySpecials: 2 },
-    // Lacing Knots: 8 DMG to every opponent still bound by Magic Ropes.
+    // Lacing Knots: 9 DMG (PEN) to every opponent still bound by Magic Ropes.
+    // 8 -> 9 and PEN (owner's call): the ropes are already holding them.
     special: {
       name: "Lacing Knots",
       cost: 3,
       handler: "lacingKnots",
-      params: { dmg: 8 },
+      params: { dmg: 9, pen: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 8 DMG to all opponents bound by Magic Ropes (locked Specials) this round.",
+      text: "Deal 9 DMG (PEN) to all opponents bound by Magic Ropes (locked Specials) this round.",
     },
   },
   {
