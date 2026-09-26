@@ -10417,10 +10417,10 @@ export const CARDS: CardDef[] = [
       params: {
         targets: 99,
         statusKind: "SLEEP", statusDuration: 1,
-        debuffStatus: "WEAKEN", debuffStatusRounds: 2,
+        debuffStatus: "WEAKEN", debuffStatusRounds: 3, // 2 -> 3 (owner's call)
       },
       targetSide: "enemy",
-      text: "Every opponent in range falls asleep for a round and is WEAKENed for 2. No damage — waking them is the opponent's problem.",
+      text: "Every opponent in range falls asleep for a round and is WEAKENed for 3. No damage — waking them is the opponent's problem.",
     },
   },
   {
