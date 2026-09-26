@@ -8658,9 +8658,11 @@ export const CARDS: CardDef[] = [
       name: "Magnetic Steel",
       cost: 5,
       handler: "barrage",
-      params: { dmg: 3, targets: 99, stealShields: 3, stealRowAheadOnly: 1 },
+      // magnetPull (owner's call): the rank it robs is dragged in beside it,
+      // never onto Ironclad's own home row.
+      params: { dmg: 3, targets: 99, stealShields: 3, stealRowAheadOnly: 1, magnetPull: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents, and steal up to 3 shields each from opponents in the row directly ahead and equip them.",
+      text: "Deal 3 DMG to all opponents, and steal up to 3 shields each from opponents in the row directly ahead, equip them, and pull those opponents in beside Ironclad (never onto its home row).",
     },
   },
   {

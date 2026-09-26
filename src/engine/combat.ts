@@ -4544,6 +4544,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         }
       }
       if (stolen) draft.log.push(`${label(draft, attacker)} magnetizes ${stolen} shield(s) away.`);
+      // ...and (`magnetPull`) drags what it reached in toward the caster, until
+      // they stand beside it. `reelToCaster` never lands an enemy on the
+      // caster's own home row: it steps around it, the way it steps around a
+      // body, so the magnet cannot hand the opponent a capture.
+      if (num(params, "magnetPull") > 0 && attacker.curHp > 0)
+        for (const t of pool.slice(0, n)) {
+          if (reach !== null && t.pos?.row !== reach) continue;
+          if (draft.cards[t.instanceId] && t.curHp > 0) reelToCaster(draft, t, draft.boardSize, attacker);
+        }
     }
     // spawnToken (SkullKing's King's SkullDrake): raise a token alongside the volley.
     if (typeof params.spawnToken === "string" && params.spawnToken)

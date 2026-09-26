@@ -516,6 +516,19 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[steel.instanceId].curShields).toBe(10);
   });
 
+  it("...and pulls the rank it robs in beside it, never onto its own home row (owner's call)", () => {
+    const s = prepState();
+    const steel = place(s, "bore_steel", "P1", 3, 0); // P1 home row 3; row ahead = 2
+    const wide = place(s, "dusk_gool", "P2", 2, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    const far = place(s, "dusk_gool", "P2", 1, 3, { curHp: 40, maxHp: 40, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[steel.instanceId],
+      [s.cards[wide.instanceId], s.cards[far.instanceId]], getDef("bore_steel").special!.params!);
+    // The straight line runs diagonally down onto row 3 — Ironclad's home row —
+    // so the pull slides along row 2 instead, and stops once it is adjacent.
+    expect(s.cards[wide.instanceId].pos).toEqual({ row: 2, col: 1 });
+    expect(s.cards[far.instanceId].pos, "out of the magnet's reach").toEqual({ row: 1, col: 3 });
+  });
+
   it("...and takes only what a foe actually has, never more", () => {
     const s = prepState();
     const steel = place(s, "bore_steel", "P1", 3, 0);
