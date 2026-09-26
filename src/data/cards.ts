@@ -14246,9 +14246,11 @@ export const CARDS: CardDef[] = [
       // the standard 4x4 board that is every opponent, a deliberate call
       // (2026-09-25) over the clipped two-row sliver it used to land.
       // `targets: 99` because the square decides the count now, not the cap.
-      params: { dmg: 6, targets: 99, blastSize: 4, vsFlyingDmg: 4, statusKind: "ROOT", statusDuration: 2 },
+      // STUN rather than ROOT, on a 3-round cooldown (owner's call).
+      cooldown: 3,
+      params: { dmg: 6, targets: 99, blastSize: 4, vsFlyingDmg: 4, statusKind: "STUN", statusDuration: 2 },
       targetSide: "enemy",
-      text: "6 DMG and ROOT 2 rounds to every opponent in a 4×4 burst — 10 instead against anything FLYING, which the shell brings down.",
+      text: "6 DMG and STUN 2 rounds to every opponent in a 4×4 burst — 10 instead against anything FLYING, which the shell brings down. 3-round cooldown.",
     },
   },
   {
