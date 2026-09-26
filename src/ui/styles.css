@@ -1588,15 +1588,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    the JSX order stays tray-then-queue for that path. */
 @media (min-width: 761px) and (min-height: 541px) {
   .rightcol .spelltray.vertical { order: 2; }
-  .rightcol .rail.queue-rail { order: 1; }
+  .rightcol .rail.queue-rail { order: 1; min-height: 120px; }
+}
+/* THE TRAY FITS ITS COLUMN, on every tier that shows it there. It was
+   `flex: none`, so an eight-spell 5x5 book stood 631px tall in a 582px column
+   at 1280x800 — it squeezed the Speed Queue to its title and ran on down OVER
+   the action bar, the last spell sitting on top of Pass Priority — and 736px
+   in a 286px column on a phone held sideways, off the bottom of the screen.
+   Now the tray shrinks and its list scrolls inside it; the queue keeps a
+   minimum on each tier (120px above, 64px on the short one). */
+.rightcol .spelltray.vertical { flex: 0 1 auto; min-height: 0; }
+.rightcol .spelltray.vertical .spelltray-row {
+  min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  scrollbar-width: thin; scrollbar-color: var(--gold-line) transparent;
 }
 /* Vertical spell tray — a rune panel of horizontal spell bars. */
 .spelltray.vertical { flex: none; background: linear-gradient(180deg, rgba(30,26,20,0.92), rgba(20,17,13,0.92)); border: 1px solid var(--gold-line); border-radius: 10px; padding: 10px; box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 0 40px rgba(201,162,75,0.05); }
 .spelltray.vertical .spelltray-label { color: var(--gold-lit); font-size: 11px; letter-spacing: 0.16em; margin-bottom: 3px; }
 .spelltray.vertical .spelltray-row { flex-direction: column; gap: 8px; }
-.spelltray.vertical .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; }
-.spelltray.vertical .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
-.spelltray.vertical .spellchip-art { width: 26px; height: 26px; flex: none; }
+/* THE ART IS A PICTURE, NOT A BULLET. It was a 26px square — spell art is 720px
+   and square, and at that size every spell read as the same smudge. 52px shows
+   the picture, with the cost on its corner (as the draft does) instead of in a
+   30px gutter of its own, so the rules column keeps its width. */
+.spelltray.vertical .spellchip { width: 100%; flex: none; flex-direction: row; align-items: flex-start; gap: 9px; padding: 7px 10px 7px 7px; }
+.spelltray.vertical .spellchip-cost { top: 3px; left: 3px; transform: none; }
+.spelltray.vertical .spellchip-art { width: 52px; height: 52px; flex: none; }
+/* The NAME is the one thing on the row you must be able to read, so it wraps
+   rather than clipping to "Embe…" — and the state note ("NEEDS 3 MAGIC") drops
+   under it when the two do not fit on one line. */
+.spelltray.vertical .spellchip-head { flex-wrap: wrap; row-gap: 2px; }
+.spelltray.vertical .spellchip-head .spellchip-name { white-space: normal; }
 .spelltray.vertical .spellchip-body { flex: 1; align-items: flex-start; }
 .spelltray.vertical .spellchip-name { text-align: left; font-size: 11.5px; }
 .spelltray.vertical .spellchip-text { display: block; text-align: left; font-size: 9.5px; line-height: 1.3; font-weight: 500; color: var(--ink-dim); white-space: normal; }
@@ -1665,16 +1686,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   bottom: calc(100% + 8px); transform: none; max-height: 58vh;
 }
 .spellbook-pop .spelltray-row { flex-direction: column; gap: 8px; }
-.spellbook-pop .spellchip { width: 100%; flex: none; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; min-width: 148px; }
-.spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); }
-.spellbook-pop .spellchip-art { width: 26px; height: 26px; flex: none; }
+.spellbook-pop .spellchip { width: 100%; flex: none; flex-direction: row; align-items: flex-start; gap: 9px; padding: 7px 10px 7px 7px; min-width: 148px; }
+.spellbook-pop .spellchip-cost { top: 3px; left: 3px; transform: none; }
+.spellbook-pop .spellchip-art { width: 52px; height: 52px; flex: none; }
 .spellbook-pop .spellchip-body { flex: 1; align-items: flex-start; }
 .spellbook-pop .spellchip-name { text-align: left; font-size: 11.5px; }
 /* The phone's only route to a spell's rules. Wider than the old 148px chip so
    the text has somewhere to go, and capped in height so five spells still fit
    above the fold — long text scrolls with the popover. */
 .spellbook-pop .spellchip { min-width: 240px; max-width: 78vw; align-items: flex-start; }
-.spellbook-pop .spellchip-art { margin-top: 2px; }
 .spellbook-pop .spellchip-text { display: block; text-align: left; font-size: 9.5px; line-height: 1.32; font-weight: 500; color: var(--ink-dim); white-space: normal; }
 .spellbook-pop { max-height: 62vh; overflow-y: auto; overscroll-behavior: contain; }
 
@@ -1705,7 +1725,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spellchip.poor, .spellchip.used { opacity: 1; }           /* the note carries it now */
 .spellchip.poor .spellchip-name, .spellchip.used .spellchip-name { color: #6f6a5a; }
 .spellchip.poor .spellchip-text, .spellchip.used .spellchip-text { color: #4f4b42; }
-.spellchip.poor .spellchip-art, .spellchip.used .spellchip-art { opacity: 0.3; }
+/* Dimmed, not blacked out. 30% was set against a 26px thumbnail; at the size
+   the art is shown now it turned most of a round-one book into dark squares,
+   and the row's own note ("NEEDS 3 MAGIC", "ALREADY CAST") already says why. */
+.spellchip.poor .spellchip-art, .spellchip.used .spellchip-art { opacity: 0.5; filter: grayscale(0.55); }
 .spellchip.used { filter: none; }
 .spellchip.armed { background: rgba(201, 162, 75, 0.14); }
 
@@ -1728,9 +1751,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    source): keep the book's popover a tidy vertical stack that pops UP, not a row
    that runs off the screen. */
 .panel-spells .spellbook-pop .spelltray-row { flex-direction: column; gap: 7px; }
-.panel-spells .spellbook-pop .spellchip { flex: none; width: 100%; flex-direction: row; align-items: center; gap: 9px; padding: 7px 10px 7px 30px; }
-.panel-spells .spellbook-pop .spellchip-cost { top: 50%; left: 6px; transform: translateY(-50%); width: 18px; height: 18px; font-size: 10px; }
-.panel-spells .spellbook-pop .spellchip-art { width: 24px; height: 24px; flex: none; }
+.panel-spells .spellbook-pop .spellchip { flex: none; width: 100%; flex-direction: row; align-items: flex-start; gap: 9px; padding: 7px 10px 7px 7px; }
+.panel-spells .spellbook-pop .spellchip-cost { top: 3px; left: 3px; transform: none; width: 18px; height: 18px; font-size: 10px; }
+.panel-spells .spellbook-pop .spellchip-art { width: 52px; height: 52px; flex: none; }
 .panel-spells .spellbook-pop .spellchip-name { text-align: left; flex: 1; font-size: 11.5px; white-space: normal; }
 
 .controls { display: flex; flex-direction: column; gap: 6px; align-items: stretch; flex: none; width: 238px; }
@@ -3874,10 +3897,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .spelltray.vertical { padding: 6px; }
   .spelltray.vertical .spelltray-label { font-size: 9px; margin-bottom: 2px; }
   .spelltray.vertical .spelltray-row { gap: 4px; }
-  .spelltray.vertical .spellchip { padding: 4px 6px 4px 24px; gap: 6px; }
-  .spelltray.vertical .spellchip-cost { left: 5px; width: 15px; height: 15px; font-size: 9px; }
-  .spelltray.vertical .spellchip-art { width: 17px; height: 17px; }
+  .spelltray.vertical .spellchip { padding: 4px 6px 4px 4px; gap: 6px; }
+  .spelltray.vertical .spellchip-cost { top: 2px; left: 2px; width: 15px; height: 15px; font-size: 9px; }
+  /* The picture, at the size this rail can spare: double the old 17px, and the
+     cost on its corner rather than in a 24px gutter, so the rules keep their
+     width. */
+  .spelltray.vertical .spellchip-art { width: 34px; height: 34px; }
   .spelltray.vertical .spellchip-name { font-size: 10px; }
+  .rightcol .rail.queue-rail { min-height: 64px; }
   .queue-scale { gap: 3px; }
   .qrow { padding: 3px 5px; font-size: 10px; margin-bottom: 3px; }
   .queue-help { display: none; }
