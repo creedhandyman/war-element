@@ -1002,8 +1002,17 @@ export function describePassives(def: CardDef): string[] {
     passives.push(
       `End of round: deals ${def.roundTick.aoeParalyzedDmg} DMG to every PARALYZED opponent in range.`,
     );
-  if (def.onHitByMelee?.doubleBurn)
-    named("onHitByMelee", `Hot Hot: when hit by melee, doubles the BURN already on the attacker.`);
+  if (def.onHitByMelee?.doubleBurn || def.onHitByMelee?.burnRounds) {
+    const h = def.onHitByMelee;
+    const does = [
+      h.doubleBurn && "doubles the BURN already on the attacker",
+      h.burnRounds && `makes it burn ${rounds(h.burnRounds)} longer`,
+    ].filter(Boolean).join(" and ");
+    named("onHitByMelee", `Hot Hot: when hit by melee, ${does}.`);
+  }
+  if (def.burnBoost)
+    named("burnBoost",
+      `Hot Hot: its hits burn hotter. Scorch's BURN lands +${def.burnBoost.power} stronger and lasts ${rounds(def.burnBoost.rounds)} longer.`);
 
   if (def.tribeDmgAura)
     named("tribeDmgAura",

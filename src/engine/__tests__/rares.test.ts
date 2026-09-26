@@ -83,6 +83,21 @@ describe("rare passives", () => {
     applyStatus(s, s.cards[attacker.instanceId], "BURN", 2, 2, "PYRO"); // power 2
     basicAttack(s, attacker.instanceId, ingit.instanceId);
     expect(statusOf(s.cards[attacker.instanceId], "BURN")?.power).toBe(4);
+    // ...and it burns a round longer (owner's call).
+    expect(statusOf(s.cards[attacker.instanceId], "BURN")?.duration).toBe(3);
+  });
+
+  it("PYRO Ingit — Hot Hot makes its own hits burn hotter and longer", () => {
+    // Scorch alone is BURN 1 for 2 rounds; Ingit's is BURN 2 for 3.
+    const s = prepState();
+    const ingit = place(s, "pyro_ingit", "P1", 2, 0);
+    const fresh = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    basicAttack(s, ingit.instanceId, fresh.instanceId);
+    expect(statusOf(s.cards[fresh.instanceId], "BURN")).toMatchObject({ power: 2, duration: 3 });
+    // A burning target stacks +2 a hit, still under the Scorch cap of 5.
+    s.cards[fresh.instanceId].statuses.find((x) => x.kind === "BURN")!.power = 4;
+    basicAttack(s, ingit.instanceId, fresh.instanceId);
+    expect(statusOf(s.cards[fresh.instanceId], "BURN")?.power).toBe(5);
   });
 
   it("DAWN Glimmer — +2 barrier that surges (+1 DMG/+1 SP) when it breaks", () => {

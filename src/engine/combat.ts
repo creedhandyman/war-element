@@ -2319,15 +2319,22 @@ export function basicAttack(
       // each other. Stacking ADDS to whatever is there rather than replacing it,
       // so a stronger card BURN is still never overwritten, only built on.
       if (hasElementAura(aDef, "PYRO") && t.curHp > 0) {
+        // Hot Hot (Ingit, `burnBoost`): this card's own burn lands stronger
+        // and lasts longer. Everyone else's is BURN +1 for PYRO_BURN_DURATION.
+        const add = 1 + (aDef.burnBoost?.power ?? 0);
+        const rounds = PYRO_BURN_DURATION + (aDef.burnBoost?.rounds ?? 0);
         const burning = t.statuses.find((x) => x.kind === "BURN");
-        if (!burning) applyStatus(draft, t, "BURN", PYRO_BURN_DURATION, 1, "PYRO");
+        if (!burning) applyStatus(draft, t, "BURN", rounds, add, "PYRO");
         else if (burning.power < PYRO_BURN_STACK_CAP) {
-          burning.power += 1;
+          burning.power = Math.min(PYRO_BURN_STACK_CAP, burning.power + add);
           // REFRESHED to the full duration, not merely kept alive at 1. Stacking
           // a burn that is about to expire and leaving it about to expire is
           // most of why Scorch did nothing once the attacker stopped swinging.
-          burning.duration = Math.max(burning.duration, PYRO_BURN_DURATION);
+          burning.duration = Math.max(burning.duration, rounds);
           draft.log.push(`${label(draft, t)}'s burn deepens (BURN ${burning.power}).`);
+        } else if (aDef.burnBoost) {
+          // At the cap it cannot burn hotter, but Hot Hot still keeps it lit.
+          burning.duration = Math.max(burning.duration, rounds);
         }
       }
       // Electrify (BOLT aura), second half: a basic hit leaves the target
@@ -3231,11 +3238,16 @@ function applyOnHitByMelee(
     attacker.spBonus -= def.spDrain;
     draft.log.push(`${label(draft, defender)}'s fountain saps ${def.spDrain} SP from ${getDef(attacker.defId).name}.`);
   }
-  // Hot Hot (Spitfire): double the power of every BURN already on the attacker.
-  if (def.doubleBurn && attacker.curHp > 0) {
+  // Hot Hot (Ingit): double the power of every BURN already on the attacker,
+  // and (`burnRounds`) keep it burning that much longer.
+  if ((def.doubleBurn || def.burnRounds) && attacker.curHp > 0) {
     let boosted = false;
-    for (const st of attacker.statuses) if (st.kind === "BURN") { st.power *= 2; boosted = true; }
-    if (boosted) draft.log.push(`${getDef(defender.defId).name}'s heat doubles the BURN on ${getDef(attacker.defId).name}.`);
+    for (const st of attacker.statuses) if (st.kind === "BURN") {
+      if (def.doubleBurn) st.power *= 2;
+      if (def.burnRounds) st.duration += def.burnRounds;
+      boosted = true;
+    }
+    if (boosted) draft.log.push(`${getDef(defender.defId).name}'s heat stokes the BURN on ${getDef(attacker.defId).name}.`);
   }
   return killed;
 }

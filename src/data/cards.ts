@@ -4834,15 +4834,20 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 1,
-    dmg: 1,
+    // 2 DMG / SP 3 (owner's call), from 1 / 4: 2 + 8 + 2x2 + 3 = 17, the same
+    // total. It read tier E.
+    dmg: 2,
     hits: 1,
     hp: 8,
-    sp: 4,
+    sp: 3,
     shields: 2,
     keywords: {},
-    // Hot Hot (On Hit by Melee): double the BURN stacked on the attacker.
-    passiveNames: { onHitByMelee: "Hot Hot" },
-    onHitByMelee: { doubleBurn: true },
+    // Hot Hot, both ways (owner's call): its own hits burn hotter (Scorch's
+    // BURN +1 stronger, 1 round longer), and a melee attacker's BURN is doubled
+    // AND burns a round longer.
+    passiveNames: { onHitByMelee: "Hot Hot", burnBoost: "Hot Hot" },
+    onHitByMelee: { doubleBurn: true, burnRounds: 1 },
+    burnBoost: { power: 1, rounds: 1 },
   },
   {
     id: "dawn_glime",

@@ -148,7 +148,8 @@ export interface OnHitByMeleeDef {
   dmg?: number; // direct damage back to the attacker
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
-  doubleBurn?: boolean; // Hot Hot (Spitfire): double the attacker's BURN power
+  doubleBurn?: boolean; // Hot Hot (Ingit): double the attacker's BURN power
+  burnRounds?: number; // Hot Hot (Ingit): ...and add N rounds to that BURN
   spDrain?: number; // Fountain (Oxin): sap N SP from the melee attacker
 }
 
@@ -800,6 +801,10 @@ export interface CardDef {
   keywords: Partial<Record<Keyword, number | true>>;
   /** Status applied by basic attacks that land at least one hit. */
   onHitStatus?: OnHitStatusDef;
+  /** Hot Hot (Ingit): its own basics burn hotter. Scorch's BURN lands `power`
+   *  stronger and lasts `rounds` longer (still under the stack cap). PYRO only:
+   *  it reads Scorch, and a card without the aura has no burn to boost. */
+  burnBoost?: { power: number; rounds: number };
   /** Spread (Weeds): a landed basic has `chance`% to put another body on the
    *  board beside the attacker.
    *
