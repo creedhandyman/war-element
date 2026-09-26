@@ -13,7 +13,7 @@
 // would have made a quarter of the rolls silently worth double.
 import { describe, expect, it } from "vitest";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
-import { basicAttack } from "../combat";
+import { basicAttack, SPECIAL_HANDLERS } from "../combat";
 import { chanceProblems } from "../../data/void-tower";
 import { bigPrepState, place } from "./helpers";
 import type { CardDef, GameState } from "../types";
@@ -217,5 +217,20 @@ describe("Level Up", () => {
     // this one pins is that nothing is dropped on the way there.
     expect(a.dmg + a.hp + a.sp, "six kills, six points").toBe(KILLS);
     expect(run(), "same seed, same growth").toEqual(a);
+  });
+});
+
+describe("FireFly's Flying Flame Strike", () => {
+  it("is NINE 1-DMG shots — a lone target catches all of them", () => {
+    // Rolled with replacement, so against one opponent every shot lands on it:
+    // the total is exactly the shot count. Pinned because the count is the
+    // whole ability (it was 12; the owner set it to 9).
+    const s = bigPrepState();
+    const fly = place(s, "pyro_firefly", "P1", 4, 2);
+    const foe = place(s, "dusk_gool", "P2", 0, 2, { curHp: 99, maxHp: 99, curShields: 0 });
+    const p = getDef("pyro_firefly").special!.params!;
+    expect(p).toMatchObject({ dmg: 1, targets: 9 });
+    SPECIAL_HANDLERS.flameStrike(s, s.cards[fly.instanceId], [s.cards[foe.instanceId]], p);
+    expect(99 - s.cards[foe.instanceId].curHp).toBe(9);
   });
 });

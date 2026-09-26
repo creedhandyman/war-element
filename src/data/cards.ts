@@ -7413,17 +7413,17 @@ export const CARDS: CardDef[] = [
     // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
     onKill: { randomStat: 1, randomStatMax: 8 },
     firePassiveSpecial: { onKill: true, grantFlyingRounds: 2 },
-    // Flying Flame Strike: TWELVE 1-DMG shots, each rolled independently at a
+    // Flying Flame Strike: NINE 1-DMG shots, each rolled independently at a
     // random opponent in range, then a reposition. `targets` is the SHOT count,
     // not a victim cap — see the handler.
     special: {
       name: "Flying Flame Strike",
       cost: 2,
       handler: "flameStrike",
-      params: { dmg: 1, targets: 12, move: 3 },
+      params: { dmg: 1, targets: 9, move: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "Fire 12 shots for 1 DMG each at RANDOM opponents in range, then move up to 3 spaces.",
+      text: "Fire 9 shots for 1 DMG each at RANDOM opponents in range, then move up to 3 spaces.",
     },
   },
   {
