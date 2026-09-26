@@ -55,7 +55,7 @@ export type SpellFx =
    *  aims at — meteors land on them, bolts strike them, roots reach them.
    *  `strength` comes from the spell's cost, so a cost-5 Ashfall is a flurry
    *  and a cost-10 Volcanic Eruption is the sky falling. */
-  | { kind: "board"; element: Element; strength: number; targets: At[]; caster: PlayerId; casterRow: number }
+  | { kind: "board"; element: Element; strength: number; targets: At[]; caster: PlayerId; casterRow: number; status?: StatusKind }
   /** THE END OF THE ROUND, one card at a time: a status biting or running
    *  out, a heal-over-time, an element aura paying out (ticks.ts draws each).
    *  `delay` staggers them in the order Cleanup runs them. */
@@ -165,7 +165,7 @@ export function spellEffects(before: GameState, after: GameState, viewer: Player
   if (spell.kind === "aoe" && spell.area === "board")
     out.unshift({
       kind: "board", element, strength: boardStrength(spell.cost), targets: reached,
-      caster: cast.seat, casterRow: homeRow(cast.seat, after.boardSize),
+      caster: cast.seat, casterRow: homeRow(cast.seat, after.boardSize), status: spell.status?.kind,
     });
 
   if (out.length === 0) out.push({ kind: "pulse", row: homeRow(cast.seat, after.boardSize), element });

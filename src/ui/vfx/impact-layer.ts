@@ -49,8 +49,8 @@ export type LayerFx =
    *  exactly `seconds` before the spell lands, FINALE with the landing. The
    *  targets are the cards it reaches; `fromTop` is which edge the caster's
    *  side is on, for anything that should come from them. */
-  | { kind: "boardIncoming"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; seconds: number; strength: number }
-  | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number }
+  | { kind: "boardIncoming"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; seconds: number; strength: number; status?: StatusKind }
+  | { kind: "boardFinale"; rect: Rect; element: Element; targets: Rect[]; fromTop: boolean; strength: number; status?: StatusKind }
   /** A card's attack being DELIVERED — the wind-up and the throw, or the
    *  swing — for exactly `seconds`, so it arrives as the turn lands. */
   | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number;
@@ -789,7 +789,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     });
     const own = LOOKS[fx.element]?.boardIncoming;
     if (own) {
-      own(toolsFor(fx.element), { rect: R, aims, seconds: T, strength: k, fromTop: fx.fromTop });
+      own(toolsFor(fx.element), { rect: R, aims, seconds: T, strength: k, fromTop: fx.fromTop, status: fx.status });
       return;
     }
     switch (fx.element) {
@@ -905,7 +905,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const R = fx.rect, k = fx.strength;
     const own = LOOKS[fx.element]?.boardFinale;
     if (own) {
-      own(toolsFor(fx.element), { rect: R, targets: fx.targets, strength: k, fromTop: fx.fromTop });
+      own(toolsFor(fx.element), { rect: R, targets: fx.targets, strength: k, fromTop: fx.fromTop, status: fx.status });
       return;
     }
     const el = STYLES[fx.element] ?? STYLES.VOID;

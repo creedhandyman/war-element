@@ -104,7 +104,7 @@ export function playBoardIncoming(before: GameState, after: GameState, ms: numbe
   if (!fx) return;
   void loadLayer().then((l) => {
     const g = boardGeometry(fx);
-    if (g) l.play({ kind: "boardIncoming", ...g, element: fx.element, seconds: ms / 1000, strength: fx.strength });
+    if (g) l.play({ kind: "boardIncoming", ...g, element: fx.element, seconds: ms / 1000, strength: fx.strength, status: fx.status });
   });
   // The ground gives warning before the mountain falls: a low rumble through
   // the board for as long as the rocks are in the air.
@@ -259,7 +259,7 @@ function fire(all: SpellFx[]) {
       switch (f.kind) {
         case "board": {
           const g = boardGeometry(f);
-          if (g) l.play({ kind: "boardFinale", ...g, element: f.element, strength: f.strength });
+          if (g) l.play({ kind: "boardFinale", ...g, element: f.element, strength: f.strength, status: f.status });
           hardest = Math.max(hardest, 1 + f.strength);
           break;
         }

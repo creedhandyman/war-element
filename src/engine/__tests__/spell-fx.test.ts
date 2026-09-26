@@ -168,6 +168,15 @@ describe("whole-board spells get a set piece of their own", () => {
     expect(spellEffects(s, after, "P1").filter((f) => f.kind === "impact")).toHaveLength(2);
   });
 
+  it("carries what the spell inflicts: Bloodroot Surge's BLEED grows blood roots, Heart of the Forest's ROOT green", () => {
+    for (const [id, status] of [["leaf_bloodroot_surge", "BLEED"], ["leaf_heart_of_the_forest", "ROOT"]] as const) {
+      const s = armed(id);
+      place(s, "leaf_greegon", "P2", 0, 1, { curHp: 9 });
+      const after = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: id });
+      expect(boardSpell(s, after), id).toMatchObject({ kind: "board", element: "LEAF", status });
+    }
+  });
+
   it("the weight runs from a cost-5 flurry to a cost-10 ultimate", () => {
     expect(boardStrength(5)).toBe(0.6);
     expect(boardStrength(9)).toBeCloseTo(1.2);

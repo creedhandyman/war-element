@@ -8,6 +8,7 @@
  *  around them, and they curl too. */
 import type { Graphics } from "pixi.js";
 import { centre, rand } from "./base";
+import type { StatusKind } from "../../../engine";
 import type { Delivery, ElementLook, FxTools, Pt, SparkStyle, Swing, Throw } from "./types";
 
 type Box = Delivery["rect"];
@@ -404,6 +405,106 @@ function leafWhip(t: FxTools, s: Swing) {
 
 // ── The look ────────────────────────────────────────────────────────────────
 
+// ── The whole-board spell: real roots ────────────────────────────────────────
+// LEAF's board set piece drew its "roots" as glowing dots flown from the
+// caster's edge on sparkle trails — nothing a player could read as a root. So
+// they are drawn as roots: tapered bodies (thick where they came up, a point
+// at the growing tip), dark as bark on the normal-blend layer with a glowing
+// vein down them, rootlets feeling out and thorns along their flanks, snaking
+// across the board to each card. What the spell INFLICTS tints them: a spell
+// that bleeds (Bloodroot Surge) grows BLOOD roots — crimson in the vein,
+// dripping as they come, and drinking at the landing — where Heart of the
+// Forest's ROOT grows green ones that bind.
+
+interface RootTint { body: number; vein: number; tip: number; blood: boolean }
+// Bark a step lighter than the board, or a root over empty squares is only
+// its vein: the body has to read as a body.
+const BLOOD_ROOT: RootTint = { body: 0x5a1a1e, vein: 0xd8283c, tip: 0xff4a58, blood: true };
+const BARK_ROOT: RootTint = { body: 0x3a5226, vein: LIME, tip: LIME, blood: false };
+const rootTint = (status?: StatusKind): RootTint => (status === "BLEED" ? BLOOD_ROOT : BARK_ROOT);
+/** Blood off a blood root: dark drops that run and fall. */
+const DRIP: SparkStyle = { palette: [0xffb0b0, 0xe02a3a, 0x8a0a14], gravity: 700, drag: 0.7, size: [6, 3], streak: false };
+/** Earth thrown up where a root breaks the ground. */
+const SOIL = [0xd8c8a0, 0xa8906a, 0x6e5a40];
+
+interface RootPath {
+  pts: number[]; cum: number[]; total: number; w: number;
+  rootlets: { at: number; ang: number; len: number }[];
+  thorns: { at: number; side: number }[];
+}
+
+/** A root's course from `s` to `e`: a meander of two waves that dies out at
+ *  both ends, so it leaves the ground and reaches its card dead on. */
+function leafRootPath(s: Pt, e: Pt, w: number): RootPath {
+  const dx = e.x - s.x, dy = e.y - s.y, L = Math.hypot(dx, dy) || 1, nx = -dy / L, ny = dx / L;
+  const a1 = rand(0.06, 0.13) * L * flip(), a2 = rand(0.015, 0.04) * L, f1 = rand(1.2, 2.2), f2 = rand(3, 5), ph = rand(0, TWO_PI);
+  const N = 22, pts: number[] = [], cum: number[] = [0];
+  for (let i = 0; i <= N; i++) {
+    const f = i / N, env = Math.sin(Math.PI * f);
+    const off = (a1 * Math.sin(f * Math.PI * f1 + ph) + a2 * Math.sin(f * Math.PI * f2 * 2 + ph * 2)) * env;
+    pts.push(s.x + dx * f + nx * off, s.y + dy * f + ny * off);
+    if (i) cum.push(cum[i - 1] + Math.hypot(pts[i * 2] - pts[i * 2 - 2], pts[i * 2 + 1] - pts[i * 2 - 1]));
+  }
+  const total = cum[N];
+  return {
+    pts, cum, total, w,
+    rootlets: [0.28, 0.5, 0.7].map((at) => ({ at: at * total, ang: flip() * rand(0.6, 1.1), len: rand(12, 24) })),
+    thorns: Array.from({ length: 5 }, (_, i) => ({ at: ((i + 0.7) / 5.6) * total, side: i % 2 ? 1 : -1 })),
+  };
+}
+
+/** Where arc length `u` lies along a root, and which way it runs there. */
+function leafRootAt(p: RootPath, u: number, out: { x: number; y: number; a: number }) {
+  let i = 1;
+  while (i < p.cum.length - 1 && p.cum[i] < u) i++;
+  const f = Math.max(0, Math.min(1, (u - p.cum[i - 1]) / (p.cum[i] - p.cum[i - 1] || 1)));
+  const x0 = p.pts[(i - 1) * 2], y0 = p.pts[(i - 1) * 2 + 1], x1 = p.pts[i * 2], y1 = p.pts[i * 2 + 1];
+  out.x = x0 + (x1 - x0) * f;
+  out.y = y0 + (y1 - y0) * f;
+  out.a = Math.atan2(y1 - y0, x1 - x0);
+}
+
+/** The root's half-width at `u`: thick where it came up, thinning along its
+ *  length, and drawn to a point over the last few px behind a growing tip. */
+const rootHalf = (p: RootPath, u: number, upto: number) =>
+  p.w * 0.5 * Math.max(0.22, 1 - 0.78 * (u / p.total)) * Math.min(1, (upto - u) / 12 + 0.08);
+
+const RA = { x: 0, y: 0, a: 0 };
+
+/** A root grown `upto` px along its path. The BODY (normal blend: dark as
+ *  bark, with its thorns and rootlets) or, with `vein`, the glowing line down
+ *  its middle (additive) — two passes, because light and shadow live on
+ *  different layers. */
+function leafDrawRoot(g: Graphics, p: RootPath, upto: number, tint: RootTint, alpha: number, vein: boolean) {
+  if (upto < 2 || alpha <= 0.02) return;
+  const steps = Math.max(4, Math.round(upto / 8)), left: number[] = [], right: number[] = [];
+  for (let i = 0; i <= steps; i++) {
+    const u = (upto * i) / steps;
+    leafRootAt(p, u, RA);
+    const hw = rootHalf(p, u, upto) * (vein ? 0.3 : 1), nx = -Math.sin(RA.a), ny = Math.cos(RA.a);
+    left.push(RA.x + nx * hw, RA.y + ny * hw);
+    right.push(RA.x - nx * hw, RA.y - ny * hw);
+  }
+  for (let i = right.length - 2; i >= 0; i -= 2) left.push(right[i], right[i + 1]);
+  g.poly(left, true).fill({ color: vein ? tint.vein : tint.body, alpha: (vein ? 0.75 : 0.92) * alpha });
+  for (const r of p.rootlets) {
+    if (r.at > upto) continue;
+    leafRootAt(p, r.at, RA);
+    const len = r.len * Math.min(1, (upto - r.at) / 20), ang = RA.a + r.ang;
+    g.moveTo(RA.x, RA.y).lineTo(RA.x + Math.cos(ang) * len, RA.y + Math.sin(ang) * len)
+      .stroke({ width: vein ? 1 : Math.max(1.5, p.w * 0.28), color: vein ? tint.vein : tint.body, alpha: (vein ? 0.55 : 0.9) * alpha });
+  }
+  if (vein) return;
+  for (const th of p.thorns) {
+    if (th.at > upto - 6) continue;
+    leafRootAt(p, th.at, RA);
+    const hw = rootHalf(p, th.at, upto), ux = Math.cos(RA.a), uy = Math.sin(RA.a);
+    const nx = -uy * th.side, ny = ux * th.side, bx = RA.x + nx * hw, by = RA.y + ny * hw;
+    g.poly([bx - ux * 3, by - uy * 3, bx + nx * 6 + ux * 4, by + ny * 6 + uy * 4, bx + ux * 3, by + uy * 3], true)
+      .fill({ color: tint.body, alpha: 0.95 * alpha });
+  }
+}
+
 export const LEAF: ElementLook = {
   markColor: 0x9fe874,
 
@@ -700,5 +801,96 @@ export const LEAF: ElementLook = {
     t.band(r, DEEP, 0.8);
     t.emit({ count: 36, palette: [PALE, LIME, GREEN], from: { x: r.x, y: y - amp, w: r.w, h: amp * 2 }, speed: [20, 70],
       gravity: -20, drag: 0.5, life: [0.5, 0.9], size: [7, 2] });
+  },
+
+  boardIncoming(t, a) {
+    // THE ROOTS COME: out of the ground under the caster's edge, earth thrown
+    // up where they break it, snaking across the board to every card the spell
+    // takes — rootlets feeling out, thorns along their flanks — and arriving on
+    // the landing frame. Blood roots drip as they come.
+    const tint = rootTint(a.status), R = a.rect, T = a.seconds, HOLD = 0.55;
+    const edgeY = a.fromTop ? R.y : R.y + R.h;
+    const w = Math.max(9, Math.min(R.w, R.h) * 0.045) * (0.8 + 0.3 * a.strength);
+    const roots = a.aims.map((aim) => {
+      const c = centre(aim);
+      return leafRootPath({ x: c.x + rand(-0.12, 0.12) * R.w, y: edgeY }, c, w * rand(0.85, 1.15));
+    });
+    // Fast out of the ground, slowing as it reaches: whole on the landing frame.
+    const grown = (time: number, p: RootPath) => p.total * (time < T ? 1 - Math.pow(1 - time / T, 2.2) : 1);
+    const fade = (time: number) => (time < T ? 1 : Math.max(0, 1 - (time - T) / HOLD));
+    t.draw(T + HOLD, (g, u) => {
+      const time = u * (T + HOLD);
+      for (const p of roots) leafDrawRoot(g, p, grown(time, p), tint, fade(time), false);
+    }, { dark: true });
+    let acc = 0;
+    const at = { x: 0, y: 0, a: 0 };
+    t.draw(T + HOLD, (g, u, dt) => {
+      const time = u * (T + HOLD);
+      for (const p of roots) {
+        const up = grown(time, p);
+        leafDrawRoot(g, p, up, tint, fade(time), true);
+        if (time < T) {
+          leafRootAt(p, up, at);
+          g.circle(at.x, at.y, w * 0.55).fill({ color: tint.tip, alpha: 0.7 });
+        }
+      }
+      if (!tint.blood || time > T + 0.2 || !roots.length) return;
+      acc += 14 * roots.length * t.quality * dt;
+      while (acc >= 1) {
+        acc -= 1;
+        const p = roots[Math.floor(Math.random() * roots.length)];
+        leafRootAt(p, rand(0, grown(time, p)), at);
+        t.spark(at.x, at.y, rand(-15, 15), rand(0, 30), rand(0.35, 0.6), DRIP);
+      }
+    });
+    for (const p of roots)
+      t.emit({ count: 8, palette: SOIL, from: { x: p.pts[0] - 8, y: p.pts[1] - 4, w: 16, h: 8 }, dir: a.fromTop ? [30, 150] : [-150, -30],
+        speed: [60, 160], gravity: 700, drag: 0.6, life: [0.3, 0.55], size: [6, 3] });
+  },
+
+  boardFinale(t, a) {
+    // THE ROOTS TAKE HOLD: they coil round every card they reached, thorns
+    // stabbing in. Blood roots then DRINK — blood drawn off each card and
+    // carried back to the caster's side, which is the heal its LEAF allies
+    // get. Green roots bind, and leaves burst from the knot.
+    const tint = rootTint(a.status);
+    const edgeY = a.fromTop ? a.rect.y : a.rect.y + a.rect.h;
+    const coils = a.targets.map((r) => ({ c: centre(r), rad: Math.min(r.w, r.h) * 0.55, a0: rand(0, TWO_PI), dir: flip() }));
+    const D = 0.95;
+    const coil = (vein: boolean) => (g: Graphics, u: number) => {
+      const grow = Math.min(1, u / 0.3), a = u < 0.6 ? 1 : 1 - (u - 0.6) / 0.4;
+      for (const k of coils) {
+        const rad = k.rad * (1 - 0.12 * grow);
+        for (let j = 0; j < 3; j++) {
+          const a0 = k.a0 + (j * TWO_PI) / 3, a1 = a0 + Math.PI * 1.15 * grow * k.dir;
+          g.moveTo(k.c.x + Math.cos(a0) * rad, k.c.y + Math.sin(a0) * rad).arc(k.c.x, k.c.y, rad, a0, a1, k.dir < 0)
+            .stroke({ width: vein ? 2.2 : 8, color: vein ? tint.vein : tint.body, alpha: (vein ? 0.8 : 0.9) * a });
+          if (vein || grow < 1) continue;
+          // A thorn driven in where each coil ends.
+          const ex = k.c.x + Math.cos(a1) * rad, ey = k.c.y + Math.sin(a1) * rad;
+          g.moveTo(ex, ey).lineTo(ex + (k.c.x - ex) * 0.28, ey + (k.c.y - ey) * 0.28).stroke({ width: 3, color: tint.body, alpha: 0.95 * a });
+        }
+      }
+    };
+    t.draw(D, coil(false), { dark: true });
+    t.draw(D, coil(true));
+    if (tint.blood) {
+      for (const k of coils) {
+        t.emit({ count: 10, palette: DRIP.palette, from: { x: k.c.x - 8, y: k.c.y - 8, w: 16, h: 16 }, dir: [-160, -20], speed: [60, 170],
+          gravity: 700, drag: 0.7, life: [0.35, 0.6], size: [6, 3] });
+        for (let i = 0; i < 3; i++)
+          t.later(0.3 + i * 0.08, () => t.shot({
+            from: k.c, to: { x: k.c.x + rand(-40, 40), y: edgeY }, seconds: 0.55, ease: "in", arc: rand(18, 45) * flip(),
+            head: 0xff4a58, headSize: 8,
+            trail: { palette: [0xffb0b0, 0xe02a3a, 0x8a0a14], rate: 50, size: [6, 2], life: [0.2, 0.4], drift: 6 },
+          }));
+      }
+      t.glow(a.rect, 0xa01828, 0.22 * a.strength, 0.8, 1.2);
+    } else {
+      for (const k of coils)
+        t.emit({ count: 10, palette: [PALE, LIME, GREEN], from: { x: k.c.x - 10, y: k.c.y - 10, w: 20, h: 20 }, speed: [50, 140],
+          gravity: 40, drag: 0.5, life: [0.6, 1.0], size: [8, 3], swirl: 200 });
+      t.glow(a.rect, GREEN, 0.3 * a.strength, 0.8, 1.2);
+    }
   },
 };

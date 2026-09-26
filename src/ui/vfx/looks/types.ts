@@ -8,7 +8,7 @@
  *  draws goes through `FxTools`, so the layer can still count, cap and dispose
  *  of it, and an idle board still costs nothing. */
 import type { Graphics } from "pixi.js";
-import type { Element } from "../../../engine";
+import type { Element, StatusKind } from "../../../engine";
 import type { Rect } from "../impact-layer";
 
 export type Pt = { x: number; y: number };
@@ -205,10 +205,12 @@ export interface ElementLook {
   /** The INCOMING half of this element's whole-board spell, if the look draws
    *  its own (otherwise impact-layer.ts's set piece plays): lasting exactly
    *  `seconds`, landing on `aims` — the cards it reaches, or a few points of
-   *  the far half when it reaches none. `fromTop`: the caster's edge. */
-  boardIncoming?(t: FxTools, a: { rect: Rect; aims: Rect[]; seconds: number; strength: number; fromTop: boolean }): void;
+   *  the far half when it reaches none. `fromTop`: the caster's edge.
+   *  `status`: what the spell inflicts, when it does — Bloodroot Surge's
+   *  BLEED grows blood roots where Heart of the Forest's ROOT grows green. */
+  boardIncoming?(t: FxTools, a: { rect: Rect; aims: Rect[]; seconds: number; strength: number; fromTop: boolean; status?: StatusKind }): void;
   /** ...and its FINALE, with the landing, over each card's own impact. */
-  boardFinale?(t: FxTools, a: { rect: Rect; targets: Rect[]; strength: number; fromTop: boolean }): void;
+  boardFinale?(t: FxTools, a: { rect: Rect; targets: Rect[]; strength: number; fromTop: boolean; status?: StatusKind }): void;
   /** The whole board's weather changing. */
   field(t: FxTools, r: Rect): void;
   /** A card moved (pushed, pulled, swapped) from one square to another. */
