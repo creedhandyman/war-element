@@ -12,6 +12,7 @@ import { boardCards, effectiveDmg, effectiveSp, healCard, isBloodfire, notePassi
 import { CARDS, CORES, TOKENS, getDef } from "../../data/cards";
 import { DEFAULT_SPECIAL_COOLDOWN } from "../types";
 import { announces } from "../../ui/SummonAnnounce";
+import { describeOwnPassives, liveDef } from "../../ui/card-text";
 import { atBattle, atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { createInitialState } from "../state";
 import type { GameState } from "../types";
@@ -2761,6 +2762,17 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     // through `spawnCapped` and are untouched by any of this.
     expect(getDef("gale_kloud").special!.params!.onSummonDmg).toBe(8);
     expect(getDef(STORM).onSummon!.params!.dmg, "the token's own is unchanged").toBe(15);
+  });
+
+  it("and its card, tapped on the board, says the 8 it hit for", () => {
+    // The Hurricane's printed card is the full storm Skybreaker raises, 15 on
+    // arrival. Kloud's storm read that 15 when tapped, after landing for 8.
+    const arrival = (lines: string[]) => lines.find((l) => l.includes("On summon"))!;
+    const { storms } = cast();
+    expect(storms[0].arrivalDmg).toBe(8);
+    expect(arrival(describeOwnPassives(liveDef(storms[0])))).toContain("deal 8 DMG");
+    expect(arrival(describeOwnPassives(getDef(STORM))), "the printed card keeps its 15")
+      .toContain("deal 15 DMG");
   });
 
   it("arrives on the caster's side at HALF its card", () => {

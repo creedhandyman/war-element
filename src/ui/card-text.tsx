@@ -12,7 +12,7 @@
  *  here fails that test rather than shipping a blank card panel.
  */
 import type { ReactNode } from "react";
-import type { CardDef, StatusKind } from "../engine";
+import type { CardDef, CardInstance, StatusKind } from "../engine";
 import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, SP_SLOW_MAX, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
@@ -1305,6 +1305,16 @@ export function talentEffect(text: string): string {
 
 export function describeOwnPassives(def: CardDef): string[] {
   return describePassives(def).slice(describeSharedPassives(def).length);
+}
+
+/** The card as THIS body plays it. A token raised at a fraction of its card
+ *  lands with its raiser's arrival number (`CardInstance.arrivalDmg`), so its
+ *  on-summon line reads that one: Kloud's storm says 8, not the Hurricane's 15. */
+export function liveDef(card: CardInstance): CardDef {
+  const def = getDef(card.defId);
+  const os = def.onSummon;
+  if (card.arrivalDmg == null || os?.params?.dmg == null) return def;
+  return { ...def, onSummon: { ...os, params: { ...os.params, dmg: card.arrivalDmg } } };
 }
 
 // Plain-language blurb for each status kind, shown under a card's active effects.

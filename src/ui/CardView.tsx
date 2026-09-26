@@ -39,7 +39,7 @@ import { cardArtSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, RARITY_STYLE, STATUS_STYL
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
-import { chipify, describeOwnPassives, describeSharedPassives, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
+import { chipify, describeOwnPassives, describeSharedPassives, liveDef, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
 import { foilBonusFor, FOIL_STAT_LABEL } from "../data/foils";
 
 export type CardViewProps =
@@ -82,7 +82,7 @@ type ViewModel = {
 };
 
 function inspectModel(game: GameState, card: CardInstance, viewer: PlayerId): ViewModel {
-  const def = getDef(card.defId);
+  const def = liveDef(card);
   const mine = card.owner === viewer;
   const hpMax = effectiveMaxHp(game, card);
   const flags: string[] = [];

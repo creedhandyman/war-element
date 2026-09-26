@@ -2726,6 +2726,9 @@ function spawnCapped(
     // spawner that wants a different number says so with `onSummonDmg` — which
     // is then the final figure, not something to halve again.
     for (const b of born) fireSpawnArrival(draft, b, onSummonDmg);
+    // Remembered on the body, because its card still prints the token's own
+    // number, and a storm that hit for 8 should not read 15 when tapped.
+    if (onSummonDmg != null) for (const b of born) b.arrivalDmg = onSummonDmg;
     if (scale != null && scale !== 1) for (const b of born) scaleInstance(b, scale);
   }
 }

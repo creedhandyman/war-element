@@ -1830,6 +1830,11 @@ export interface CardInstance {
    *
    *  Used by BOSS TAMING (0.5) and by an ENRAGED boss (>1). */
   statScale?: number;
+  /** The arrival damage this body actually landed with, when whatever raised
+   *  it overrode its card's own: Kloud's half-strength Thundering Hurricane
+   *  lands for 8, not the full storm's 15. Absent = the card's own number.
+   *  Read by the card view, so the storm's card says what it did. */
+  arrivalDmg?: number;
   /** This body is a TAMED boss fighting for the player — a loaner, not a
    *  captured card. It is never in the collection.
    *
