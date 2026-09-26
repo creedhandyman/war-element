@@ -5624,8 +5624,10 @@ export const CARDS: CardDef[] = [
     cardClass: "Support",
     attackType: "Ranged",
     cost: 5,
-    dmg: 4,
-    hits: 2,
+    // 2x4 (owner's call), from 4x2: the same 8. Wind Wake shoves on every
+    // landed hit, so four hits are four shoves.
+    dmg: 2,
+    hits: 4,
     hp: 15,
     sp: 10,
     shields: 1,
