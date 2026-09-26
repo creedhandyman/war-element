@@ -348,7 +348,7 @@ export const BOLT: ElementLook = {
     const sp = s.special;
     boltStrike(t, s.from, s.to, {
       delay: s.delay, lead: s.seconds, flick: sp ? 0.4 : 0.26, after: sp ? 0.5 : 0.32,
-      width: sp ? 3.4 : 2.4, forks: sp ? 5 : 2, forkLen: sp ? 0.22 : 0.15, spit: sp ? 14 : 6,
+      width: (sp ? 3.4 : 2.4) * s.power, forks: sp ? 5 : 2, forkLen: sp ? 0.22 : 0.15, spit: sp ? 14 : 6,
       leadAlpha: sp ? 0.6 : 0.42, crackle: sp ? 3 : 2,
     });
     t.later(s.delay + s.seconds, () => boltFlash(t, s.from, s.size * (sp ? 1.1 : 0.7), LAV, sp ? 0.6 : 0.35, 0.16));

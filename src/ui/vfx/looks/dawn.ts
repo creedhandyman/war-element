@@ -241,7 +241,7 @@ export const DAWN: ElementLook = {
       // The release: a flare on the caster as the light leaves it.
       const cf = clamp01(1 - age / (s.special ? 0.3 : 0.14));
       if (s.special) {
-        const w = (3 + 9 * e) * (0.4 + 0.6 * fade);
+        const w = (3 + 9 * e) * (0.4 + 0.6 * fade) * s.power;
         dawnBeam(g, tail, head, w, 0.85 * fade);
         dawnLance(g, back, head, w * 2, PALE, 0.65 * fade);
         dawnFlare(g, head.x, head.y, s.size * 0.22, fade);
@@ -251,9 +251,9 @@ export const DAWN: ElementLook = {
             .stroke({ width: 3 * cf + 1, color: WARM, alpha: 0.6 * cf });
         }
       } else {
-        g.moveTo(tail.x, tail.y).lineTo(head.x, head.y).stroke({ width: 5, color: GOLD, alpha: 0.14 * fade });
-        g.moveTo(tail.x, tail.y).lineTo(head.x, head.y).stroke({ width: 1.5, color: PALE, alpha: 0.6 * fade });
-        dawnLance(g, back, head, 5, WHITE, 0.85 * fade);
+        g.moveTo(tail.x, tail.y).lineTo(head.x, head.y).stroke({ width: 5 * s.power, color: GOLD, alpha: 0.14 * fade });
+        g.moveTo(tail.x, tail.y).lineTo(head.x, head.y).stroke({ width: 1.5 * s.power, color: PALE, alpha: 0.6 * fade });
+        dawnLance(g, back, head, 5 * s.power, WHITE, 0.85 * fade);
         dawnFlare(g, head.x, head.y, s.size * 0.13, fade);
         if (cf > 0) dawnFlare(g, s.from.x, s.from.y, s.size * 0.24, 0.7 * cf);
       }

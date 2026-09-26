@@ -54,6 +54,9 @@ export type LayerFx =
   /** A card's attack being DELIVERED — the wind-up and the throw, or the
    *  swing — for exactly `seconds`, so it arrives as the turn lands. */
   | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number;
+      /** Each target's shot size, aligned with `targets` — its damage as a
+       *  scale (spell-fx.ts `shotPower`). */
+      power?: number[];
       /** A summon striking as it lands: `from` is its square, still empty — the
        *  element gathers THERE, and a melee card pounces the whole way. */
       arriving?: boolean; variant?: LookVariant }
@@ -1000,15 +1003,19 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const d = { rect: fx.from, at: from, size, T, wind, special: fx.special, melee: fx.melee };
     if (fx.arriving) look.gather(t, d);
     else look.windUp(t, d);
-    for (const r of fx.targets) {
+    fx.targets.forEach((r, i) => {
       const to = centre(r);
-      if (fx.melee)
+      if (fx.melee) {
         look.swing(t, {
           from, to: fx.arriving ? to : lerpPt(from, to, 0.55), target: to, arriving: !!fx.arriving,
-          delay: wind, seconds: travel, special: fx.special, size,
+          delay: wind, seconds: travel, special: fx.special, size, power: 1,
         });
-      else look.projectile(t, { from, to, delay: wind, seconds: travel, special: fx.special, size });
-    }
+        return;
+      }
+      // A projectile's size is its damage (spell-fx.ts `shotPower`).
+      const power = fx.power?.[i] ?? 1;
+      look.projectile(t, { from, to, delay: wind, seconds: travel, special: fx.special, size: size * power, power });
+    });
   }
 
   /** A curved cut drawn quickly through a point, then fading: a sweeping arc

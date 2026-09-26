@@ -21,7 +21,7 @@ import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
 import {
-  boardSpell, cardAttack, cardAttackEffects, roundEndEffects, spellEffects, trapsSprung, wallsCrossed,
+  boardSpell, cardAttack, cardAttackEffects, roundEndEffects, shotPower, spellEffects, trapsSprung, wallsCrossed,
   type At, type BoardFx, type SpellFx,
 } from "./spell-fx";
 
@@ -139,15 +139,17 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
   const act = cardAttack(before, after);
   if (!act) return;
   const from = squareRect(act.actor);
-  const targets = act.targets.map(squareRect).filter((r): r is Rect => r !== null);
-  if (!from || targets.length === 0) return;
+  // Paired before filtering, so each target keeps its own damage.
+  const aimed = act.targets.map((at, i) => ({ r: squareRect(at), dmg: act.damage[i] ?? 0 }))
+    .filter((a): a is { r: Rect; dmg: number } => a.r !== null);
+  if (!from || aimed.length === 0) return;
   void loadLayer().then((l) => l.play({
-    kind: "attack", from, targets, element: act.element, melee: act.melee, special: act.special,
-    arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
+    kind: "attack", from, targets: aimed.map((a) => a.r), power: aimed.map((a) => shotPower(a.dmg, act.special)), element: act.element,
+    melee: act.melee, special: act.special, arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
   }));
   // A summon striking as it lands has no token to lunge yet — it is not on the
   // board until the step lands — so its delivery comes from its square alone.
-  if (act.melee && !act.arriving) lunge(act.actor, from, targets, ms);
+  if (act.melee && !act.arriving) lunge(act.actor, from, aimed.map((a) => a.r), ms);
 }
 
 /** A melee card closing the distance: its token draws back, then drives most

@@ -17,6 +17,7 @@
  *  Only the viewer's own trap placement gets an effect. */
 import type { CardDef, CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
 import { chebyshev, effectiveSp } from "../../engine/state";
+import { FX_DMG_KEEP } from "../../engine/combat";
 import { getSpell } from "../../engine/spells";
 import { DUSK_DRAIN, hasElementAura } from "../../engine/auras";
 import { getDef } from "../../data/cards";
@@ -199,6 +200,33 @@ export interface CardAttack {
   targets: At[];
   /** It attacks in a look unlike its element's (see `lookVariant`). */
   variant?: LookVariant;
+  /** What each target takes, aligned with `targets` (see `damageAt`) — a
+   *  projectile is drawn in proportion to it. */
+  damage: number[];
+}
+
+/** A PROJECTILE'S SIZE IS ITS DAMAGE: its area in proportion to what it
+ *  deals, so a 2-point chip is a pellet and a 16-point shot twice as wide as a
+ *  4-point one. Measured against a typical hit of its kind — 4 from a basic,
+ *  8 from a Special — because every look already draws a Special about √2 its
+ *  basic; with those as the 1s, size follows damage the same way across both.
+ *  A miss still flies, small. */
+export function shotPower(damage: number, special: boolean): number {
+  return Math.max(0.55, Math.min(2, Math.sqrt(Math.max(0, damage) / (special ? 8 : 4))));
+}
+
+/** The damage a step dealt to the card that stood at `at`: the HP it lost as
+ *  the floating numbers show it (the tail of `fxDmgHits` this step added — a
+ *  volley's hits summed), or, when a hit only broke shields or killed it
+ *  outright, what it lost, whichever is more. 0 for a card that dodged. */
+export function damageAt(before: GameState, after: GameState, at: At): number {
+  const card = Object.values(before.cards).find((c) => c.pos?.row === at.row && c.pos?.col === at.col);
+  if (!card) return 0;
+  const now = after.cards[card.instanceId];
+  const lost = card.curHp + card.curShields - (now?.pos ? now.curHp + now.curShields : 0);
+  const fresh = Math.min(FX_DMG_KEEP, Math.max(0, (now?.fxDmgSeq ?? 0) - (card.fxDmgSeq ?? 0)));
+  const noted = fresh ? (now?.fxDmgHits ?? []).slice(-fresh).reduce((n, d) => n + d, 0) : 0;
+  return Math.max(0, lost, noted);
 }
 
 /** Names that are plainly the cold: a cold word opening a name ("Frostveil",
@@ -275,6 +303,7 @@ export function cardAttack(before: GameState, after: GameState): CardAttack | nu
   return {
     seat: a.seat, actor: a.at, element: a.def.element,
     melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets, variant: a.variant,
+    damage: targets.map((at) => damageAt(before, after, at)),
   };
 }
 
