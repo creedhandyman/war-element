@@ -8276,12 +8276,12 @@ export const CARDS: CardDef[] = [
     // loses 2 HP.
     special: {
       name: "Grand Finally",
-      cost: 4,
+      cost: 3, // 4 -> 3, and the far blast 4 -> 5 (owner's call)
       handler: "grandFinally",
-      params: { nearDmg: 6, farDmg: 4, selfDamage: 2 },
+      params: { nearDmg: 6, farDmg: 5, selfDamage: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 6 DMG to opponents in the adjacent row and 4 DMG to the rest. Dynomight loses 2 HP.",
+      text: "Deal 6 DMG to opponents in the adjacent row and 5 DMG to the rest. Dynomight loses 2 HP.",
     },
   },
   {
