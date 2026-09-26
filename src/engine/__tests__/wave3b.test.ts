@@ -69,23 +69,31 @@ describe("Magalogoon", () => {
     expect(getDef("aqua_magalogoon").stealthWhenIdle).toBe(true);
   });
 
-  it("Bog Ambush drags a foe into Magalogoon's row, hits for 10, and mires −4 SP permanently", () => {
+  it("Bog Ambush drags a foe into Magalogoon's row, hits for 10, and ROOTs it 3 rounds", () => {
+    // Owner's call: ROOT 3 rounds, where it used to mire a permanent -4 SP.
     const s = prepState();
     s.players.P1.magicPool = 9;
     const mag = place(s, "aqua_magalogoon", "P1", 2, 0);
     const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
-    const spBefore = effectiveSp(s, foe);
     const next = applyIntent(battleWith(s, mag.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
     });
     const hit = next.cards[foe.instanceId];
     expect(hit.pos?.row).toBe(2); // hauled into the bog
     expect(hit.curHp).toBe(40 - 10);
-    // Permanent SP cut — a spBonus modifier, not a timed buff, so no round entry.
-    expect(hit.spBonus).toBe(-4);
-    expect(effectiveSp(next, hit)).toBe(Math.max(0, spBefore - 4));
-    expect(hit.buffs.filter((b) => b.sp !== 0)).toHaveLength(0); // not a timed buff
-    expect(hit.statuses.length).toBe(0); // no status tag
+    expect(hit.statuses.find((x) => x.kind === "ROOT")?.duration).toBe(3);
+    expect(hit.spBonus, "no more permanent mire").toBe(0);
+  });
+
+  it("...but never onto Magalogoon's own home row: from there it lands one row short", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const mag = place(s, "aqua_magalogoon", "P1", 3, 0); // P1's home row
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, mag.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(next.cards[foe.instanceId].pos?.row).toBe(2);
   });
 
   it("...and it reaches TWO rows away to pull a foe closer (ranged special)", () => {

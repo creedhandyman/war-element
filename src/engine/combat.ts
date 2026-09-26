@@ -4170,7 +4170,12 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Bog Ambush: haul the target into the caster's row BEFORE anything that
     // reads position, then blind it. Both riders are statusless on purpose.
     if (num(params, "dragToCaster") > 0 && attacker.pos && draft.cards[target.instanceId] && target.curHp > 0) {
-      if (dragInto(draft, target, attacker.pos.row))
+      // Never onto the caster's OWN home row (owner's call, as for Ironclad's
+      // magnet): an enemy parked there is a capture the caster handed over.
+      // From its home row the drag lands one row short, directly in front.
+      const home = stopsAtOwnHomeRow(draft, target, attacker.owner);
+      const into = attacker.pos.row === home ? rowAhead(attacker.owner, home) : attacker.pos.row;
+      if (dragInto(draft, target, into))
         draft.log.push(`${label(draft, attacker)} drags ${getDef(target.defId).name} into the bog.`);
     }
     // Bog Ambush: a PERMANENT speed cut — the muck clings. spBonus is the

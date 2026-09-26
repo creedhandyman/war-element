@@ -2689,15 +2689,15 @@ export const CARDS: CardDef[] = [
     tribe: ["SeaC", "Reptile"],
     special: {
       name: "Bog Ambush",
-      cost: 3,
+      cost: 2, // 3 -> 2 (owner's call)
       handler: "strike",
       ranged: true, // 2-space reach — drags a foe from up to 2 rows away
-      // Drag first, then 8 DMG, then the murk. The accuracy debuff is a flat
-      // 25% whiff carried on the card rather than a status — nothing cleanses
-      // water in the eyes.
-      params: { dmg: 10, dragToCaster: 1, spDebuffPerm: 4 },
+      // Drag first, then 10 DMG, then ROOT for 3 rounds (owner's call; it was a
+      // permanent -4 SP mire). The drag never lands an enemy on Magalogoon's
+      // own home row: from there it stops one row short.
+      params: { dmg: 10, dragToCaster: 1, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Drag an opponent from up to two rows away into this row, deal 10 DMG, and mire them — 4 SP, permanently.",
+      text: "Drag an opponent from up to two rows away into this row (never onto its home row), deal 10 DMG, and root them for 3 rounds.",
     },
   },
   {
