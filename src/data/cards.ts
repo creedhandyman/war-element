@@ -13147,10 +13147,12 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       // Ballast dropped from above lands as weight AND wind — the shove is what
       // makes it read as GALE rather than as a generic row-nuke.
-      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "STUN", statusDuration: 1,
+      // Up to 3 opponents anywhere in range (owner's call), no longer the whole
+      // row directly ahead.
+      params: { dmg: 6, targets: 3, statusKind: "STUN", statusDuration: 1,
                 push: 1, selfShields: 2 },
       targetSide: "enemy",
-      text: "6 DMG and STUN 1 to every opponent in the row directly ahead; brace for +2 shields.",
+      text: "6 DMG and STUN 1 to up to 3 opponents in range; brace for +2 shields.",
     },
   },
   {
