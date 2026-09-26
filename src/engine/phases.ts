@@ -322,16 +322,9 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         // it has no idea the thing it just made intends to leave immediately.
         for (const b of born) chargeOnArrival(draft, b);
       }
-      // A permanent element grant already in force covers cards summoned after
-      // it resolved — otherwise "for the rest of the game" would quietly mean
-      // "for the cards that happened to be out".
-      const permOnSummon = draft.players[inst.owner].elementPerm;
-      if (permOnSummon && def.element === permOnSummon.element && permOnSummon.sp)
-        inst.spBonus += permOnSummon.sp;
-      if (permOnSummon && def.element === permOnSummon.element && permOnSummon.maxHp)
-        gainMaxHp(inst, permOnSummon.maxHp);
-      const dmgPerm = draft.players[inst.owner].elementDmgBuff;
-      if (dmgPerm && def.element === dmgPerm.element) inst.dmgBonus += dmgPerm.amount;
+      // (A permanent element grant already in force — Heart of the Forest's size,
+      // a +SP or +DMG field — is stamped by `summonCard` itself now, so tokens a
+      // card spawns get it too, not only the card summoned from the hand.)
       if (arrived) applyElementSummonAura(draft, inst);
       // On-opponent-summon reactions: existing enemies zap the newcomer as it
       // enters the battlefield (Cave Guard, Shocker).

@@ -7,7 +7,7 @@ import { applyIntent, advance } from "../phases";
 import { canCastSpell, canTarget } from "../rules";
 import { SPELLS, spellPickKind, getSpell } from "../spells";
 import { CARDS, getDef } from "../../data/cards";
-import { boardCards, effectiveDmg, effectiveSp } from "../state";
+import { boardCards, effectiveDmg, effectiveSp, spawnTokens } from "../state";
 import { atCleanup, bigPrepState, giveHand, place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
 
@@ -1146,6 +1146,23 @@ describe("area spells do the whole of what they say", () => {
     const late = boardCards(next, "P1").find((c) => c.pos?.col === 2)!;
     expect(late.maxHp, "the latecomer is grown too").toBe(getDef("leaf_alpha").hp + 8);
     expect(late.curHp, "and arrives full").toBe(late.maxHp);
+  });
+
+  it("...and the LEAF tokens its cards SPAWN afterwards (owner-reported)", () => {
+    // The grant was stamped in the SUMMON reducer — the hand's door only — so a
+    // spawned body came in without it while a summoned one beside it had it.
+    // It lives in `summonCard` now, where every card comes into being.
+    const s = prepState();
+    armSpell(s, "leaf_heart_of_the_forest", 10);
+    const spawner = place(s, "leaf_alpha", "P1", 3, 0);
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "leaf_heart_of_the_forest" });
+    const [weed] = spawnTokens(next, next.cards[spawner.instanceId], "leaf_weeds", 1);
+    expect(weed, "a token was spawned").toBeTruthy();
+    expect(weed.maxHp, "the spawn is grown").toBe(getDef("leaf_weeds").hp + 8);
+    expect(weed.curHp, "and arrives full").toBe(weed.maxHp);
+    // Another element's token on the same side is not the forest's to grow.
+    const [drone] = spawnTokens(next, next.cards[spawner.instanceId], "bolt_drone_tok", 1);
+    expect(drone.maxHp).toBe(getDef("bolt_drone_tok").hp);
   });
 
   it("...but never past a card's own ceiling", () => {

@@ -1151,6 +1151,20 @@ export function summonCard(
     inst.maxHp = mask.hp;
     inst.curShields = mask.shields;
   }
+  // A PERMANENT ELEMENT GRANT ALREADY IN FORCE covers everything that arrives
+  // after it resolved — spawned tokens included. This lived in the SUMMON
+  // reducer, which is the hand's door only, so a body a card SPAWNED came in
+  // without Heart of the Forest's +8 max HP (or a +SP / +DMG grant) while the
+  // card beside it, summoned from the hand, had it. Here, at the one place
+  // every card comes into being, like the foil above. After the disguise, which
+  // would otherwise overwrite the size it adds.
+  const perm = draft.players[player].elementPerm;
+  if (perm && def.element === perm.element) {
+    if (perm.sp) inst.spBonus += perm.sp;
+    if (perm.maxHp) gainMaxHp(inst, perm.maxHp);
+  }
+  const dmgPerm = draft.players[player].elementDmgBuff;
+  if (dmgPerm && def.element === dmgPerm.element) inst.dmgBonus += dmgPerm.amount;
   draft.cards[inst.instanceId] = inst;
   // The new body may BE an aura holder, or may stand under one already up:
   // either way the board's ceilings just moved, so settle them now rather than
