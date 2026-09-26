@@ -75,7 +75,7 @@ describe("a Special is weighed on what it carries, not only what it hits for", (
 
   it("a Special that only matches the basic, and carries nothing, still loses to it (Lazor)", () => {
     const s = battle();
-    const me = place(s, "dawn_lazor", "P2", 1, 2); // basic 7; Special 7, no rider
+    const me = place(s, "dawn_lazor", "P2", 1, 2); // basic 7; Special 7 (ranged, but this target is adjacent), no rider
     place(s, "leaf_greegon", "P1", 2, 2, { curHp: 900, maxHp: 900, curShields: 0 });
     expect(chooseBattleAction(s, me.instanceId).action).toBe("basic");
   });

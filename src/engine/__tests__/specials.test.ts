@@ -28,7 +28,7 @@ describe("firing specials", () => {
   it("strike: damage + status + self-heal, and the pool is spent", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
-    const a = place(s, "leaf_sumerose", "P1", 2, 0, { curHp: 8, maxHp: 13 }); // Siphoning Slash cost 3
+    const a = place(s, "leaf_sumerose", "P1", 2, 0, { curHp: 8, maxHp: 13 }); // Siphoning Slash cost 1
     const t = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 15, curShields: 4 });
     const next = applyIntent(battleWith(s, a.instanceId), {
       type: "BATTLE_ACTION",
@@ -42,7 +42,7 @@ describe("firing specials", () => {
     expect(target.curShields).toBe(4);
     expect(target.statuses[0]?.kind).toBe("BLEED");
     expect(next.cards[a.instanceId].curHp).toBe(13); // lifesteal 8, capped at maxHp 13 (was 8)
-    expect(next.players.P1.magicPool).toBe(2);
+    expect(next.players.P1.magicPool).toBe(4);
   });
 
   it("strike lifesteal: Nightbriar's Dark Hunting heals for the damage dealt + ROOT 2r", () => {
@@ -729,10 +729,10 @@ describe("legendaries", () => {
       player: "P1",
       action: "special",
     });
-    // 5 hits of 2 vs 4 shields: hits 1-3 gated to 0, hit 4 lands 1, hit 5 lands 2;
-    // all 4 shields stripped. 3 total to HP.
+    // 5 hits of 3 vs 4 shields: hits 1-2 gated to 0, hit 3 lands 1, hit 4 lands 2,
+    // hit 5 lands 3; all 4 shields stripped. 6 total to HP.
     expect(next.cards[t.instanceId].curShields).toBe(0);
-    expect(next.cards[t.instanceId].curHp).toBe(12);
+    expect(next.cards[t.instanceId].curHp).toBe(9);
     expect(next.players.P1.magicPool).toBe(2);
   });
 
@@ -1047,7 +1047,7 @@ describe("Volcanon — Bad Temper + Eruption riders", () => {
     const vc = next.cards[v.instanceId];
     expect(vc.curHp).toBe(19); // paid 2 HP (was 1 — the brake on free recasts)
     expect(vc.dmgBonus).toBe(1); // Bad Temper's per-use growth
-    expect(next.cards[t.instanceId].curHp).toBe(30); // 2×5 = 10 dealt
+    expect(next.cards[t.instanceId].curHp).toBe(25); // 3×5 = 15 dealt
   });
 
   it("On Kill: Eruption grants a free recast (ignores cost + cooldown)", () => {
@@ -1062,7 +1062,7 @@ describe("Volcanon — Bad Temper + Eruption riders", () => {
       targetId: t.instanceId,
     });
     const vc = next.cards[v.instanceId];
-    expect(next.cards[t.instanceId]).toBeUndefined(); // 10 dmg killed the 6-HP foe
+    expect(next.cards[t.instanceId]).toBeUndefined(); // 15 dmg killed the 6-HP foe
     expect(vc.freeSpecial).toBe(true);
     expect(next.players.P1.magicPool).toBe(0); // first use paid its 3
     // A fresh foe: even with 0 magic AND on cooldown, the free recast can fire.

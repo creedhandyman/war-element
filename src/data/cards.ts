@@ -47,7 +47,7 @@ export const CARDS: CardDef[] = [
     onHitStatus: { kind: "BLEED", duration: 2, power: 1 },
     special: {
       name: "Siphoning Slash",
-      cost: 3,
+      cost: 1, // owner's call (was 3)
       handler: "strike",
       params: { dmg: 10, pen: 1, lifesteal: 1, statusKind: "BLEED", statusPower: 3, statusDuration: 2 },
       targetSide: "enemy",
@@ -627,7 +627,9 @@ export const CARDS: CardDef[] = [
       name: "Eruption",
       cost: 3,
       handler: "strike",
-      // printed "5×2 DMG" = 5 hits of 2 — a shield shredder (strips up to 5).
+      // printed "5×3 DMG" = 5 hits of 3 — a shield shredder (strips up to 5).
+      // It was 5 hits of 2: 10 against a 13-damage basic, for 3 magic and 2 HP,
+      // so it was almost never worth firing. 15 beats the basic (owner's call).
       // selfDamage 2 = "loses 2 HP per use" (was 1); selfDmg 1 = Bad Temper's
       // "+1 DMG permanently after each Eruption", now capped at +5 total;
       // freeRecastOnKill = "On Kill, use Eruption again next round at no cost."
@@ -635,10 +637,10 @@ export const CARDS: CardDef[] = [
       // The HP toll is the brake that free recasts were outrunning: a kill chain
       // let Eruption fire round after round for nothing, and 1 HP a cast on a
       // 19 HP body was not a cost worth counting.
-      params: { dmg: 2, hits: 5, selfDamage: 2, selfDmg: 1, freeRecastOnKill: 1 },
+      params: { dmg: 3, hits: 5, selfDamage: 2, selfDmg: 1, freeRecastOnKill: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 2 DMG × 5 hits to one opponent at range (shreds shields). Costs 2 HP; +1 DMG per use (Bad Temper, max +5); On Kill, recast free next round.",
+      text: "Deal 3 DMG × 5 hits to one opponent at range (shreds shields). Costs 2 HP; +1 DMG per use (Bad Temper, max +5); On Kill, recast free next round.",
     },
   },
 
@@ -1913,7 +1915,11 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       params: { dmg: 7 },
       targetSide: "enemy",
-      text: "Deal 7 DMG to one opponent.",
+      // A RAY reaches (owner's call). Melee, it was the basic attack exactly —
+      // the same 7 at the same reach, for 2 magic — so it was never worth
+      // firing. Ranged, it lands where the basic cannot.
+      ranged: true,
+      text: "Deal 7 DMG to one opponent at range.",
     },
   },
   {
@@ -9048,14 +9054,16 @@ export const CARDS: CardDef[] = [
     passiveNames: { onKill: "Dragon's Fury", onHitStatus: "Frozen Serpent" },
     onHitStatus: { kind: "FREEZE", duration: 1, power: 0, chance: 50 },
     shatterFrozen: 3,
-    // Icy Storm: 3 DMG to 2 opponents, then vanish into STEALTH for 2 rounds.
+    // Icy Storm: 4 DMG that can CRIT to 2 opponents, then vanish into STEALTH
+    // for 2 rounds (owner's call; was 3 DMG with no CRIT, less than its own
+    // basic on a single target).
     special: {
       name: "Icy Storm",
       cost: 2,
       handler: "barrage",
-      params: { dmg: 3, targets: 2, stealthRounds: 2 },
+      params: { dmg: 4, targets: 2, crit: 1, stealthRounds: 2 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to 2 opponents, then gain STEALTH for 2 rounds.",
+      text: "Deal 4 DMG (CRIT) to 2 opponents, then gain STEALTH for 2 rounds.",
     },
   },
   {
@@ -9997,9 +10005,11 @@ export const CARDS: CardDef[] = [
     pushImmune: true,
     roundTick: { healHomeRowElement: 2 },
     // Petal Storm: 3 DMG to every opponent in the row directly ahead + ROOT 3.
+    // Costs 2 (owner's call; was 3): at 3, Sakuroot had no magic for it on
+    // 43% of its turns.
     special: {
       name: "Petal Storm",
-      cost: 3,
+      cost: 2,
       handler: "barrage",
       params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
