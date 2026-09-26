@@ -4301,10 +4301,25 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  shunting a stack, so it travels only as far as bodies are actually
    *  touching, not down the whole column. */
   battleCharge(draft, attacker, _targets, params) {
+    const startRow = attacker.pos?.row ?? null;
     if (num(params, "charge") > 0) chargeForward(draft, attacker, num(params, "charge"));
     const pos = attacker.pos;
     if (!pos) return;
     const dir = attacker.owner === "P1" ? -1 : 1; // toward the enemy home row
+    // `flankDmg` (Equestrian's Solar Horse Power): every opponent in a column
+    // BESIDE the charge that it actually rode past takes this. Only the rows it
+    // moved through: what stood beside its starting square was not passed, and
+    // nothing beyond where the charge stopped was reached.
+    const flank = num(params, "flankDmg");
+    if (flank > 0 && startRow !== null) {
+      for (let r = startRow + dir; (r - pos.row) * dir <= 0; r += dir)
+        for (const c of [pos.col - 1, pos.col + 1]) {
+          if (c < 0 || c >= draft.boardSize) continue;
+          const e = cardAt(draft, r, c);
+          if (e && e.owner !== attacker.owner && e.curHp > 0)
+            directDamage(draft, attacker, e, flank, num(params, "pen") > 0);
+        }
+    }
     // Everything ahead in this column, nearest first.
     const lane = enemyCards(draft, attacker.owner)
       .filter((e) => e.pos && e.pos.col === pos.col && (e.pos.row - pos.row) * dir > 0)

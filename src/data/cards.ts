@@ -10255,14 +10255,15 @@ export const CARDS: CardDef[] = [
     statDropImmuneAura: true,
     aura: { scope: "tribe", match: "Suns", dmg: 1, shields: 1, maxHp: 1 },
     // Solar Horse Power: charge the column ahead, 15 DMG to opponents hit and
-    // shove the lead one to the farthest slot.
+    // shove the lead one to the farthest slot. flankDmg (owner's call): what it
+    // rides past in the columns either side takes 4.
     special: {
       name: "Solar Horse Power",
       cost: 4,
       handler: "battleCharge",
-      params: { charge: 4, dmg: 15, chainDmg: 15, push: 5 },
+      params: { charge: 4, dmg: 15, chainDmg: 15, push: 5, flankDmg: 4 },
       targetSide: "self",
-      text: "Charge straight ahead, dealing 15 DMG to opponents in the column and pushing the leader to the farthest slot.",
+      text: "Charge straight ahead, dealing 15 DMG to opponents in the column and pushing the leader to the farthest slot. Opponents it passes in the columns beside it take 4 DMG.",
     },
   },
 
