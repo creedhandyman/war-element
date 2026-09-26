@@ -4161,9 +4161,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Liquid",
-    // Liquification: heal +1 HP per landed basic hit.
-    passiveNames: { healPerHit: "Liquification" },
-    healPerHit: 1,
+    // LIQUIFICATION IS GONE (owner's call). Healing 1 on each of two hits a
+    // turn kept a fast ranged finisher alive to keep finishing: 1.6 kills a
+    // board, 2.6x a typical cost-3. Without it, 2.3x for 1.1 points of win
+    // rate. Tsunami was tested too and moved nothing: the kills were basics.
     special: {
       name: "Tsunami",
       // cost 3 -> 4 and a printed 3-round cooldown. It measured 24 burst for 3
@@ -4630,9 +4631,13 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 1,
-    dmg: 5,
+    // DMG 5 -> 4, HP 7 -> 8 (owner's call): 4 + 8 + 4 = 16, the same total.
+    // Each kill feeds Quadruple Strike, which chains into the next, and at 5 it
+    // killed 0.73 a board, 2.6x a typical cost-1. Trimming the swing rather than
+    // the volley keeps all four strikes; it measured 2.2x at no cost in wins.
+    dmg: 4,
     hits: 1,
-    hp: 7,
+    hp: 8,
     sp: 4,
     shields: 0,
     keywords: {},
@@ -6276,10 +6281,15 @@ export const CARDS: CardDef[] = [
     // change here, and it is the right one for this card — Spread puts copies
     // wherever Weeds is standing, so a Weeds that can reach further is a Weeds
     // that seeds further, and the thing being bought is spread rather than legs.
+    //
+    // DMG 3 -> 2, HP 7 -> 8 (owner's call): 2 + 8 + 6 = 16, the same total. It
+    // killed 0.90 a board, 3.2x a typical cost-1 and the most of any 1-drop,
+    // with its copies' kills counted in. Spread at 8% or 5% barely moved that;
+    // the 3-damage shot was the finisher. At 2 it measured 2.3x.
     cost: 1,
-    dmg: 3,
+    dmg: 2,
     hits: 1,
-    hp: 7,
+    hp: 8,
     sp: 6,
     shields: 0,
     keywords: {},
@@ -6532,13 +6542,16 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "AQUA",
     cardClass: "Warrior",
-    // RANGED (owner's call): the tide reaches in from where it stands. Stat
-    // line unchanged: 4 + 13 + 3x2 + 2 = 25 = 5*3+10.
+    // RANGED (owner's call): the tide reaches in from where it stands.
+    //
+    // ...and DMG 4 -> 3, HP 13 -> 14 to pay for it (owner's call): 3 + 14 +
+    // 3x2 + 2 = 25 = 5*3+10, still exact. Going Ranged took it to 1.6 kills a
+    // board, 2.6x a typical cost-3; at 3 it measured 2.2x at no cost in wins.
     attackType: "Ranged",
     cost: 3,
-    dmg: 4,
+    dmg: 3,
     hits: 1,
-    hp: 13,
+    hp: 14,
     sp: 2,
     shields: 3,
     keywords: {},
@@ -7955,11 +7968,16 @@ export const CARDS: CardDef[] = [
     element: "DAWN",
     cardClass: "Mage",
     attackType: "Ranged",
-    // 15 + 17 + 6 + 12 = 50, exactly the cost-8 budget.
+    // 2*4 + 24 + 3*2 + 12 = 50, exactly the cost-8 budget.
+    //
+    // 3x5 -> 2x4, the seven points into HP (owner's call). Its own Stars aura
+    // adds +1 a hit, so it fired 4x5 = 20 a turn and killed 2.9 a board, 3.1x a
+    // typical cost-8. At (2+1)x4 = 12 it measured 2.6x for 0.7 points of win
+    // rate. The aura itself stays: it feeds the whole tribe, Ballista included.
     cost: 8,
-    dmg: 3,
-    hits: 5,
-    hp: 17,
+    dmg: 2,
+    hits: 4,
+    hp: 24,
     sp: 12,
     shields: 3,
     keywords: {},
@@ -9883,9 +9901,13 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Grove",
     // Moving Forest (End of Round): march forward one space if it's open (this
-    // overrides its SP 0), and drop fruit — 2 DMG to the nearest opponent and
-    // +2 HP to the lowest-HP ally.
+    // overrides its SP 0), and drop fruit — 1 DMG to an opponent and +2 HP to
+    // the lowest-HP ally.
     // Undergrowth: a landed basic ROOTs for 2 rounds.
+    //
+    // DMG 2 -> 1 (owner's call). An unconditional hit every round finished off
+    // whatever the rest of the board had softened: 1.6 kills a board, 2.6x a
+    // typical cost-3. At 1 it measured 2.4x at no cost in wins.
     //
     // Down from 3 and 3. Moving Forest is unconditional, needs no target, no
     // magic and no cooldown, and fires EVERY round from a cost-3 body that also
@@ -9895,7 +9917,7 @@ export const CARDS: CardDef[] = [
     // of every card ranked in mixed decks and the highest with a sample that
     // size.
     passiveNames: { roundTick: "Moving Forest", healReceivedMult: "Root Growth", onHitStatus: "Undergrowth" },
-    roundTick: { advance: 1, randomEnemyDmg: 2, healLowestAlly: 2 },
+    roundTick: { advance: 1, randomEnemyDmg: 1, healLowestAlly: 2 },
     onHitStatus: { kind: "ROOT", duration: 2, power: 0 },
     // Root Growth: drinks in 2× from every healing source.
     healReceivedMult: 2,
@@ -13214,12 +13236,16 @@ export const CARDS: CardDef[] = [
     cardClass: "Mage",
     attackType: "Ranged",
     cost: 5,
-    // 3*3 + 12 + 2*2 + 10 = 35 = 5*5+10. Three guns, each rolling CRIT
+    // 3*2 + 15 + 2*2 + 10 = 35 = 5*5+10. Two guns now, each rolling CRIT
     // separately -- the gang is MULTI-HIT rather than a token spawner, which
     // keeps it one card instead of a card plus a token plus a second render.
+    //
+    // 3 hits -> 2, the third gun's 3 points moved to HP (owner's call). Even
+    // with Bounty's shields capped it killed 3.0 a board, 3.3x a typical
+    // cost-5; two guns measured 1.9 (2.2x) for 1.8 points of win rate.
     dmg: 3,
-    hits: 3,
-    hp: 12,
+    hits: 2,
+    hp: 15,
     sp: 10,
     shields: 2,
     keywords: { CRIT: true },
@@ -13974,14 +14000,19 @@ export const CARDS: CardDef[] = [
     tribe: "Stars",
     attackType: "Ranged",
     cost: 2,
-    // 8 + 8 + 2*2 + 0 = 20 = 5*2+10.
+    // 6 + 10 + 2*2 + 0 = 20 = 5*2+10, still exact.
+    //
+    // DMG 8 -> 6, HP 8 -> 10 (owner's call). 8 PEN, and a free 8 PEN the
+    // moment it lands (DAWN's Awakening, below), killed 1.7 a board: 2.7x a
+    // typical cost-2. 7 barely moved that (2.6x); 6 measured 2.2x for 1.8
+    // points of win rate.
     //
     // SP -2 / SHIELDS +2 IS NOT AN EVEN SWAP, which is why the HP moved too:
     // shields cost DOUBLE in the budget and SP costs single, so the trade as
     // asked lands at 22 against a 20 line. The general guard tolerates +/-2, but
     // the cards from this pass are held EXACT by forty-pass-engine.test.ts, so
     // two points had to come off -- and HP is the only place they could, with
-    // 8 DMG PEN being the card's whole identity and the shields being the point
+    // DMG PEN being the card's whole identity and the shields being the point
     // of the change.
     //
     // IN PLAY IT IS PROBABLY STILL A NERF, which is the more interesting half.
@@ -13991,9 +14022,9 @@ export const CARDS: CardDef[] = [
     // and it is a 2-cost body that can be walked around rather than one that
     // can reposition. Two shields on something that can never move is worth
     // less than two shields on something that can.
-    dmg: 8,
+    dmg: 6,
     hits: 1,
-    hp: 8,
+    hp: 10,
     sp: 0,
     shields: 2,
     keywords: { PEN: true },
@@ -14003,7 +14034,7 @@ export const CARDS: CardDef[] = [
     reachBonus: 1,
     // ...and the price of that range. Note what it does NOT restrain: DAWN's
     // Awakening aura strikes for full DMG the instant the card lands, and that
-    // is not this card's turn, so 8 PEN still arrives free on a 2-cost body.
+    // is not this card's turn, so 6 PEN still arrives free on a 2-cost body.
     attackEveryOtherRound: true,
   },
   {

@@ -3389,12 +3389,22 @@ describe("element auras", () => {
 });
 
 describe("partial-effect fixes (Epic sweep)", () => {
-  it("Bahari's Liquification heals +1 per landed basic hit", () => {
-    const s = prepState();
-    const b = place(s, "aqua_bahari", "P1", 3, 0, { curHp: 5, maxHp: 12 }); // 2×2 Ranged, home row
-    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
-    basicAttack(s, b.instanceId, foe.instanceId);
-    expect(s.cards[b.instanceId].curHp).toBe(7); // +1 × 2 landed hits
+  it("Liquification heals +1 per landed basic hit", () => {
+    // Bahari printed it until it killed 2.6x a typical cost-3 a board, and no
+    // card prints it now. The mechanic stays for the next card that wants it,
+    // so it is lent to Bahari for this test only.
+    expect(getDef("aqua_bahari").healPerHit, "Bahari no longer carries it").toBeUndefined();
+    const def = getDef("aqua_bahari") as { healPerHit?: number };
+    def.healPerHit = 1;
+    try {
+      const s = prepState();
+      const b = place(s, "aqua_bahari", "P1", 3, 0, { curHp: 5, maxHp: 12 }); // 2×2 Ranged, home row
+      const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, curShields: 0 });
+      basicAttack(s, b.instanceId, foe.instanceId);
+      expect(s.cards[b.instanceId].curHp).toBe(7); // +1 × 2 landed hits
+    } finally {
+      delete def.healPerHit;
+    }
   });
 
   it("Twins' Rager halves its basic DMG while below 12 HP", () => {
