@@ -21,7 +21,7 @@ import {
   CHEAP_COST, CHEAP_OFFERS, GROUP_SIZE, OFFER_SIZE, SINGLE_OFFER, SINGLE_PICKS,
   TARGET_CURVE, cardsComplete, costBucket, curveDeficit, draftComplete, draftSize,
   draftSpellCap, groupCards, inGroupPhase, inSinglePhase, picksLeft, pickCard,
-  pickGroup, pickSpell, rollCardOffer, rollGroups, spellsComplete, startDraft,
+  pickGroup, pickSpell, rollCardOffer, rollGroups, rollSpellOffer, spellsComplete, startDraft,
   type DraftRun,
 } from "../../data/draft";
 
@@ -209,20 +209,57 @@ describe("then the spellbook", () => {
     }
   });
 
-  it("leans toward the elements the deck actually plays", () => {
-    // A book for elements you did not draft is the incoherent book the derived
-    // one at least avoided. Off-element still appears — a splash is a real
-    // choice — so this is a lean, measured over many drafts, not a rule.
-    let on = 0, total = 0;
-    for (let seed = 0; seed < 60; seed++) {
-      const run = autoDraft(seed * 17 + 3);
-      const mine = new Set(run.picks.map((id) => getDef(id).element));
-      for (const id of run.spells!) {
-        total++;
-        if (mine.has(SPELLS.find((s) => s.id === id)!.element)) on++;
+  const spellEl = (id: string) => SPELLS.find((s) => s.id === id)!.element;
+
+  it("offers only the elements the squad plays — every offer, every draft", () => {
+    // Off-element spells used to turn up at a quarter of the weight. A spell no
+    // card of its element backs is a pick wasted, so the offer is now a RULE:
+    // the team's elements and nothing else, on both boards.
+    for (const board of [4, 5]) {
+      for (let seed = 0; seed < 40; seed++) {
+        const rand = seeded(seed * 17 + 3);
+        let run = startDraft(board, rand);
+        while (!cardsComplete(run)) run = takeAny(run, rand);
+        const mine = new Set(run.picks.map((id) => getDef(id).element));
+        while (!spellsComplete(run)) {
+          for (const id of run.spellOffer!)
+            expect(mine.has(spellEl(id)), `${id} (${spellEl(id)}) offered to ${[...mine].join("/")}`).toBe(true);
+          run = pickSpell(run, run.spellOffer![Math.floor(rand() * run.spellOffer!.length)], rand);
+        }
       }
     }
-    expect(on / total, `${(100 * on / total).toFixed(0)}% on-element`).toBeGreaterThan(0.6);
+  });
+
+  it("offers each element in proportion to how much of the squad plays it", () => {
+    // Sixteen PYRO and two LEAF: LEAF is in the team, so it can be offered, but
+    // the book should read as a PYRO squad's, not half and half.
+    const pyro = CARDS.filter((c) => c.element === "PYRO" && !c.boss).slice(0, 16).map((c) => c.id);
+    const leaf = CARDS.filter((c) => c.element === "LEAF" && !c.boss).slice(0, 2).map((c) => c.id);
+    const run: DraftRun = { ...startDraft(4, seeded(1)), picks: [...pyro, ...leaf] };
+    const rand = seeded(99);
+    const seen: Record<string, number> = {};
+    for (let i = 0; i < 400; i++)
+      for (const id of rollSpellOffer(run, rand)) seen[spellEl(id)] = (seen[spellEl(id)] ?? 0) + 1;
+    const total = Object.values(seen).reduce((a, b) => a + b, 0);
+    expect(Object.keys(seen).sort(), "only the two elements in the squad").toEqual(["LEAF", "PYRO"]);
+    expect(seen.PYRO / total, `PYRO ${(100 * seen.PYRO / total).toFixed(0)}%`).toBeGreaterThan(0.7);
+    expect(seen.LEAF, "the minority element is still offered").toBeGreaterThan(0);
+  });
+
+  it("a one-element squad still fills the biggest book", () => {
+    // Every element has a spell at each cost 1-10, so eight fit inside the
+    // cost-tier law with nothing borrowed — the last offers are just narrower.
+    const board = 5;
+    const dusk = CARDS.filter((c) => c.element === "DUSK" && !c.boss).slice(0, deckSizeFor(board)).map((c) => c.id);
+    const rand = seeded(7);
+    let run: DraftRun = { ...startDraft(board, rand), picks: dusk, offer: [], cardOffer: [], spells: [] };
+    run = { ...run, spellOffer: rollSpellOffer(run, rand) };
+    while (!spellsComplete(run)) {
+      expect(run.spellOffer!.length, "an offer is never empty").toBeGreaterThan(0);
+      for (const id of run.spellOffer!) expect(spellEl(id)).toBe("DUSK");
+      run = pickSpell(run, run.spellOffer![0], rand);
+    }
+    expect(run.spells).toHaveLength(spellCapForBoard(board));
   });
 
   it("comes out castable, not ornamental", () => {

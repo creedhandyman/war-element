@@ -99,3 +99,28 @@ describe("the draft pick screen", () => {
     expect(/\.dr-[a-z]+[^{]*\{[^}]*animation:/.test(block), "a .dr- rule animates").toBe(false);
   });
 });
+
+describe("a drafted spell shows its art and its rules", () => {
+  // The offer wore the battle tray's chip: its art a full-width strip 24px
+  // tall — spell art is SQUARE, so a drafter saw a sliver of it — and its rules
+  // hidden. Comments stripped, so a rule named only in prose cannot pass.
+  const RULES = CSS.replace(/\r\n/g, "\n").replace(/\/\*[\s\S]*?\*\//g, "");
+  const rule = (sel: string) => {
+    const at = RULES.indexOf(`${sel} {`);
+    expect(at, `${sel} is styled`).toBeGreaterThan(-1);
+    return RULES.slice(at, RULES.indexOf("}", at));
+  };
+
+  it("the whole square art, not a strip", () => {
+    const art = rule(".dr-spell .spellchip-art");
+    const w = Number(/width:\s*(\d+)px/.exec(art)?.[1]);
+    const h = Number(/height:\s*(\d+)px/.exec(art)?.[1]);
+    expect(w, "square, like the art itself").toBe(h);
+    expect(h).toBeGreaterThanOrEqual(80);
+  });
+
+  it("and the rules beside it", () => {
+    expect(rule(".dr-spell .spellchip-text")).toMatch(/display:\s*block/);
+    expect(SCREEN).toContain('<span className="spellchip-text">{sp.text}</span>');
+  });
+});

@@ -107,6 +107,9 @@ describe("card text covers every mechanic", () => {
     "id", "name", "rarity", "element", "cardClass", "attackType", "cost",
     "dmg", "hits", "hp", "sp", "shields", "tribe", "art", "lore", "boss",
     "keywords", "special", "talent", "passiveNames",
+    // How many copies a STORY FORMATION fields (story.ts `copyCapFor`) — the
+    // map's business, not something the card does in a match.
+    "formationCap",
     // Not structural, but deliberately silent: it is the STEALTH half of a
     // `lurk`/`spWhileStealthed` pair whose visible half already prints the
     // number, so a second line would say it twice.

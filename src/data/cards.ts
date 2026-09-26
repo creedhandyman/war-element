@@ -15337,7 +15337,12 @@ export const TOKENS: CardDef[] = [
   {
     id: "gale_totem_pole",
     name: "Totem Pole",
-    rarity: "legendary",
+    // A planted ward, not a Legendary (owner, 2026-09): Rare, like almost every
+    // token. Legendary was also what kept Stormwatch Cliffs to ONE Pole — a
+    // Rare add is copied as filler up to three times — so the one Totem's one
+    // Pole is now stated outright rather than implied by the rarity.
+    rarity: "rare",
+    formationCap: 1,
     element: "GALE",
     cardClass: "Support",
     attackType: "Ranged",

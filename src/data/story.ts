@@ -617,7 +617,7 @@ const GALE: StoryRegion = {
     { id: "G11", name: "Stormwatch Cliffs: The Totem", kind: "landmark", tribe: "Avian", at: { x: 84, y: 52 },
       requires: ["G9", "G10"], roster: ["gale_eagon", "gale_tempest", "gale_totem"],
       adds: ["gale_totem_pole"],
-      note: "The wind elemental shrine. The only node in the game whose filler is a Legendary-rarity token.",
+      note: "The wind elemental shrine. The Totem's one Pole stands with it — a single ward, not rank and file.",
       lore: "Stormwatch keeps no calendar of years. It counts the totems the cliffs have taken, and counts separately the ones standing again before anyone climbed up — Eagon does not explain the second number."
      },
     { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 60, y: 80 },
@@ -2334,6 +2334,9 @@ export const doublesEpics = (node: StoryNode): boolean =>
  * everywhere. Legendary and Mythic never double at all.
  */
 export function copyCapFor(defId: string, deckCap: number, epicsMayDouble = false): number {
+  // A card that states its own cap keeps it, whatever its rarity says.
+  const fixed = getDef(defId).formationCap;
+  if (fixed != null) return fixed;
   const rarity = getDef(defId).rarity ?? "";
   if (rarity === "epic")
     return deckCap >= EPIC_DUPLICATE_FROM_CAP || epicsMayDouble ? DUPLICATE_CAP.epic : 1;

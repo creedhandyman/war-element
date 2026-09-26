@@ -7811,6 +7811,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .dr-single .dr-card { cursor: pointer; }
 .dr-spells { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .dr-spell { width: 100%; text-align: left; }
+/* A DRAFTED SPELL IS READ BEFORE IT IS TAKEN, so it gets a card's room rather
+   than the battle tray's chip. The tray shows its art as a full-width strip 24px
+   tall, and spell art is SQUARE — a drafter saw a sliver of each picture and none
+   of its rules (`.spellchip-text` is hidden by default). Here: the whole art as a
+   square, the cost on its corner, and the name and rules beside it. */
+.spellchip.dr-spell {
+  flex: none; flex-direction: row; align-items: center; gap: 12px;
+  padding: 8px 12px 8px 8px;
+}
+.dr-spell .spellchip-art { width: 96px; height: 96px; flex: none; border-radius: 7px; }
+.dr-spell .spellchip-cost { top: 4px; left: 4px; transform: none; }
+.dr-spell .spellchip-body { flex: 1; align-items: flex-start; gap: 4px; }
+.dr-spell .spellchip-name { font-size: 13.5px; text-align: left; white-space: normal; }
+.dr-spell .spellchip-text {
+  display: block; font-size: 11.5px; line-height: 1.35; font-weight: 500;
+  color: var(--ink-dim); text-align: left; white-space: normal;
+}
 .dr-book { display: flex; flex-wrap: wrap; gap: 5px; }
 .dr-book-spell {
   font-size: 10px; padding: 3px 7px; border-radius: 999px;

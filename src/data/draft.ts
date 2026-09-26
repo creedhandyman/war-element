@@ -36,9 +36,9 @@
  *  which is the right default for a deck somebody built on purpose and the
  *  wrong one for a draft: the book is half of what a deck does, and having it
  *  handed to you is a decision taken away. Same shape as the cards — one of
- *  three, until the board's book is full — and every offer is filtered through
- *  the cost-tier law, so a draft can only ever assemble a book the deck builder
- *  would also have allowed.
+ *  three, until the board's book is full — offered only from the elements the
+ *  squad plays, and every offer is filtered through the cost-tier law, so a
+ *  draft can only ever assemble a book the deck builder would also have allowed.
  *
  *  PURE, with `rand` injected, exactly like the half it replaces.
  */
@@ -444,14 +444,29 @@ export const SPELL_COST_PULL: readonly number[] = [
 
 /** Roll the three spells a pick chooses between.
  *
- *  Weighted toward the ELEMENTS the drafted deck actually plays, because a
- *  book of spells for elements you did not draft is the incoherent book the
- *  derived one at least avoided. Off-element spells still appear — a splash is
- *  a real choice — they are simply rarer. */
+ *  ONLY THE TEAM'S ELEMENTS (owner, 2026-09). Off-element spells used to turn
+ *  up at a quarter of the weight, as "a splash is a real choice" — but a spell
+ *  the squad has no card of its element to back is not a splash, it is a pick
+ *  wasted, and a book for elements you did not draft is the incoherent book the
+ *  derived one at least avoided. So the offer is the team's elements and
+ *  nothing else, each weighted by how much of the squad plays it: a twenty-card
+ *  PYRO core with two LEAF strays is offered mostly PYRO, not half LEAF.
+ *
+ *  It always completes. Every element holds a spell at each cost 1-10, so even
+ *  a one-element squad can fill the biggest book (eight) inside the cost-tier
+ *  law — its last offers are simply narrower than three. Only if a future spell
+ *  list ever left the team's elements with nothing legal would it widen to the
+ *  whole legal pool, rather than stall a run that cannot be finished. */
 export function rollSpellOffer(run: DraftRun, rand: () => number = Math.random): string[] {
-  const mine = new Set(run.picks.map((id) => getDef(id).element));
-  const pool = legalSpellOffer(run.spells ?? []);
-  const weightOf = (s: SpellDef) => (mine.has(s.element) ? 4 : 1) * SPELL_COST_PULL[s.cost - 1]!;
+  const share = new Map<Element, number>();
+  for (const id of run.picks) {
+    const el = getDef(id).element;
+    share.set(el, (share.get(el) ?? 0) + 1);
+  }
+  const legal = legalSpellOffer(run.spells ?? []);
+  const mine = legal.filter((s) => share.has(s.element));
+  const pool = mine.length ? mine : legal;
+  const weightOf = (s: SpellDef) => (share.get(s.element) ?? 1) * SPELL_COST_PULL[s.cost - 1]!;
   const out: string[] = [];
   const left = [...pool];
   while (out.length < OFFER_SIZE && left.length) {

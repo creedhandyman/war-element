@@ -769,6 +769,11 @@ export interface CardDef {
   /** Collector rarity. Cosmetic today (drives a deck-builder badge); no engine
    *  effect. Older alpha cards leave it undefined. */
   rarity?: "mythic" | "legendary" | "epic" | "rare" | "common";
+  /** The most copies of this card one story FORMATION fields, overriding the
+   *  rarity's `DUPLICATE_CAP` (story.ts `copyCapFor`). For a token whose copy
+   *  count its rarity used to set by accident: the Totem Pole was Legendary, and
+   *  that is what kept Stormwatch Cliffs to the one Pole its one Totem plants. */
+  formationCap?: number;
   element: Element;
   cardClass: CardClass;
   attackType: AttackType; // derived from class, stored for clarity

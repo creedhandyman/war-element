@@ -2557,3 +2557,33 @@ describe("a Throne opens with its Mythic already standing", () => {
     }
   });
 });
+
+// THE TOTEM POLE IS A WARD, NOT A LEGENDARY (owner, 2026-09). It is a token the
+// Totem plants on summon, and it wore a Legendary frame. Legendary was also what
+// kept Stormwatch Cliffs (G11) to ONE Pole: a Rare add is copied as filler up to
+// DUPLICATE_CAP.rare, which would have tripled the Poles in that fight. The one
+// Totem's one Pole is now stated outright (`formationCap`).
+describe("story: the Totem Pole", () => {
+  it("is Rare, like almost every token", () => {
+    expect(getDef("gale_totem_pole").rarity).toBe("rare");
+    expect(TOKENS.some((t) => t.id === "gale_totem_pole"), "still a token, never a draftable card").toBe(true);
+  });
+
+  it("still stands alone at Stormwatch Cliffs, however far the campaign has come", () => {
+    const g11 = nodeById("G11")!;
+    const region = regionOfNode("G11")!;
+    expect(g11.adds).toContain("gale_totem_pole");
+    const before = ALL_NODES.map((n) => n.id).filter((id) => id !== "G11");
+    for (const n of [4, 12, before.length]) {
+      const squad = buildFormation({ ...newSave(), cleared: before.slice(0, n) }, region, g11);
+      expect(squad.filter((id) => id === "gale_totem_pole"), `${n} nodes cleared`).toHaveLength(1);
+    }
+  });
+
+  it("a card's own formation cap beats its rarity's", () => {
+    expect(DUPLICATE_CAP.rare, "what a Rare add would otherwise reach").toBeGreaterThan(1);
+    expect(copyCapFor("gale_totem_pole", 30, true)).toBe(1);
+    // ...and a card without one still follows its rarity.
+    expect(copyCapFor("dusk_zombie_husk", 30, true)).toBe(DUPLICATE_CAP[getDef("dusk_zombie_husk").rarity ?? ""]);
+  });
+});
