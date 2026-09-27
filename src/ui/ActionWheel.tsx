@@ -127,9 +127,19 @@ export function ActionWheel(props: {
   // from the board edge so the ring never falls off-screen" — on a 5x5 board a
   // card in the corner column is 35px from the edge and a 130px ring centred on
   // it would hang half off, so the centre is clamped rather than trusted.
-  const R = 66;
-  const x = Math.min(Math.max(props.at.x, R + 4), window.innerWidth - R - 4);
-  const y = Math.min(Math.max(props.at.y, R + 4), window.innerHeight - R - 4);
+  //
+  // THE CHIPS, NOT JUST THE RING. The side chips overhang the ring by
+  // --wheel-over-x and the top/bottom ones by --wheel-over-y (styles.css
+  // `.wheel`), so clamping the 132px ring alone left a card in the edge column
+  // with its TALENT and CANCEL chips 6px off the glass. The desktop ring is a
+  // bigger set of the same numbers (180px, 14px, 6px) behind the same 1180px
+  // line the stylesheet uses.
+  const desktop = window.innerWidth >= 1180;
+  const R = desktop ? 90 : 66;
+  const OVER_X = desktop ? 14 : 10;
+  const OVER_Y = desktop ? 6 : 4;
+  const x = Math.min(Math.max(props.at.x, R + OVER_X + 4), window.innerWidth - R - OVER_X - 4);
+  const y = Math.min(Math.max(props.at.y, R + OVER_Y + 4), window.innerHeight - R - OVER_Y - 4);
 
   return (
     <div

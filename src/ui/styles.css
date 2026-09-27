@@ -2070,7 +2070,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-actions .lockin { flex: 1; }
 
 /* Flow Change choice (AQUA summon) */
-.flow-modal { max-width: 440px; }
+.flow-modal { max-width: min(440px, 94vw); }
 .flow-opts { display: flex; gap: 10px; margin-top: 4px; }
 .flow-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 10px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); cursor: pointer; transition: 0.15s; }
 .flow-opt:hover { transform: translateY(-2px); border-color: var(--accent); }
@@ -3901,6 +3901,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .board-area { padding: 0; gap: 2px; }
 }
 
+/* THE PHASE STRIP ON A PHONE: the round, the phase you are IN, and whose
+   priority it is — the three things read mid-match — and nothing clipped.
+   Measured at 375x812: the round chip, five pills and the priority chip wanted
+   435px of a 367px row, so the pills were cut (CLEANUP showed as "CL"), their
+   words were 8px (under the 10px floor), the priority chip hung 4px off the
+   glass, and the fixed mute toggle at 6..34px sat on top of "ROUND 1". Now the
+   phase you are in keeps its word at 10px and the four around it become dots —
+   still a row of five, still showing where in the round you stand — and the
+   row starts past the mute toggle, the 34px the other headers clear. */
+@media (max-width: 499px) {
+  .phase-ribbon { padding-left: 34px; }
+  .phase {
+    font-size: 0; letter-spacing: 0; padding: 0; margin: 0 2px;
+    width: 6px; height: 6px; flex: none; background: var(--ink-faint); opacity: 0.55;
+  }
+  .phase.active {
+    font-size: 10px; letter-spacing: 0.08em; padding: 2px 8px; margin: 0 3px;
+    width: auto; height: auto; opacity: 1;
+    background: linear-gradient(180deg, var(--gold-lit), #b8903a);
+  }
+}
+
 @media (max-height: 540px) and (min-width: 500px) {
   /* THIN the side rails + maximize the battlefield. --board-size is set on .wrap
      (not :root) so it can read the collapse-aware horizontal reserve --hreserve.
@@ -4669,7 +4691,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 
 /* Story Mode — post-battle recruitment card. */
-.story-result { max-width: 460px; text-align: left; }
+.story-result { max-width: min(460px, 94vw); text-align: left; }
 .story-result h1 { text-align: center; }
 .story-result > p { text-align: center; }
 .sr-label { font-size: 10px; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-faint); font-weight: 700; margin: 14px 0 6px; }
@@ -4867,7 +4889,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-result h1.sr-lost { color: var(--illegal); }
 /* Widens only once the report is open, so the two side columns and the 9-column
    roster table are not fighting over 460px on a phone. */
-.story-result.wide { max-width: 560px; }
+.story-result.wide { max-width: min(560px, 94vw); }
 .sr-toggle { display: flex; align-items: baseline; justify-content: center; gap: 6px; width: 100%;
   margin-top: 14px; padding: 8px 10px; border-radius: 8px; cursor: pointer;
   background: rgba(0,0,0,0.28); border: 1px solid var(--panel-line);
@@ -6656,6 +6678,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .vt-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
 .vt-head h1 { margin: 0; font-size: 22px; letter-spacing: .12em; }
+/* On a phone the title starts hard against the top-left corner, where the mute
+   button floats — its "V" sat under the speaker. The screen's own 14px plus
+   this is the 44px the story header clears. */
+@media (max-width: 480px) { .vt-head { padding-left: 30px; } }
 .vt-progress { font-size: 12px; color: var(--ink-dim, #9aa); white-space: nowrap; }
 .vt-floors { display: flex; flex-direction: column; gap: 12px; }
 .vt-floor {
@@ -7847,7 +7873,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    (see `.slot-glow`): a modal the player reads for a few seconds does not need
    a shadow repainting behind it at 60fps. The badge lands with ONE transform
    keyframe and then stops. */
-.lvl-up { max-width: 420px; text-align: center; }
+/* min(…, 94vw), as `.modal` itself has: a plain 420px on a 375px phone ran the card edge to edge. */
+.lvl-up { max-width: min(420px, 94vw); text-align: center; }
 .lvl-badge {
   width: 84px; height: 84px; margin: 2px auto 14px; border-radius: 50%;
   display: grid; place-items: center;

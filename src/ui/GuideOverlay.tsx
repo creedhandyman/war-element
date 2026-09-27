@@ -143,6 +143,11 @@ export function GuideOverlay(props: {
   /** The button that DOES the thing — takes you there, never merely points. */
   cta: string;
   onCta: () => void;
+  /** Hide the button while its target is ringed on screen. A core step's
+   *  button only TAKES you to the control ("Take me to it", "Go to the map");
+   *  once you are there the ringed control is the thing to press, and a second
+   *  button beside it that does nothing reads as the one to tap. */
+  ctaOffTargetOnly?: boolean;
   /** Absent = this step cannot be skipped yet. The guide is mandatory through
    *  the first pack and the first fight; after that this is a function. */
   onSkip?: () => void;
@@ -300,7 +305,9 @@ export function GuideOverlay(props: {
         <div className="gd-title">{props.title}</div>
         <p className="gd-body">{props.body}</p>
         <div className="gd-actions">
-          <button className="lockin gd-go" onClick={props.onCta}>{props.cta}</button>
+          {!(props.ctaOffTargetOnly && ring) && (
+            <button className="lockin gd-go" onClick={props.onCta}>{props.cta}</button>
+          )}
           {props.onSkip
             ? (
               <button className="gd-skip" onClick={props.onSkip} title="Hide this — How to play is always in the menu">

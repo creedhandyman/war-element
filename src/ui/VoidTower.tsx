@@ -28,7 +28,7 @@
  *  trials' first-clear pack. The mode-rules doc that defines them was never
  *  written; the floor ladder is the half the boss doc does specify.
  */
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useBackLayer } from "./use-back-layer";
 import { Check, Flame, Lock, Swords } from "lucide-react";
 import type { StorySave } from "../data/story";
@@ -82,6 +82,20 @@ export function VoidTower(props: {
   // Top-down: highest first.
   const descending = [...floors].reverse();
 
+  // OPEN ON THE FLOOR BEING CLIMBED. Top-down is the tower's shape, but it put
+  // a new save's first sight at sixteen locked bosses, with Floor 1 — the only
+  // one it can fight — about 1900px down a phone. The frontier (the highest
+  // floor open and not yet cleared) is brought to the top once, on arrival;
+  // never when the screen opened onto a boss, and never again after, so it
+  // cannot fight a player who has scrolled.
+  const frontier = descending.find((f) => floorOpen(done, f) && !floorCleared(done, f));
+  const frontierRef = useRef<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!mountOpen) frontierRef.current?.scrollIntoView({ block: "start" });
+    // Once, on arrival — see above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
     <div className="vt-screen">
       <header className="vt-head">
@@ -97,7 +111,8 @@ export function VoidTower(props: {
           const cleared = floorCleared(done, floor);
           const below = floors.filter((f) => f < floor).pop();
           return (
-            <section key={floor} className={`vt-floor ${open ? "" : "locked"} ${cleared ? "cleared" : ""}`}>
+            <section key={floor} className={`vt-floor ${open ? "" : "locked"} ${cleared ? "cleared" : ""}`}
+              ref={floor === frontier ? frontierRef : undefined}>
               <div className="vt-floor-head">
                 <span className="vt-floor-name">
                   {open ? null : <Lock size={14} aria-hidden="true" />}

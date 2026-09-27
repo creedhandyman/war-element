@@ -364,6 +364,10 @@ function NodePanel(props: {
           )}
           <button
             className="lockin np-fight"
+            // The walkthrough's first-battle step rings THIS, not the Story tab
+            // it came in by: pointing at the nav while the map was up docked the
+            // card on top of the one button the step was asking for.
+            data-guide="story-fight"
             disabled={!gate.ok}
             title={gate.ok ? undefined : "This gate wants a finished deck"}
             onClick={() => props.onFight(node)}

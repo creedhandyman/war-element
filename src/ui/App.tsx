@@ -58,6 +58,7 @@ import {
   seatsOf, effectiveSummonCost,
 } from "../engine";
 import { spellCapForBoard } from "../engine/spells";
+import { OPENING_HAND } from "../engine/types";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, runRewardOf, seatExtras, seatFoes, settleArena, startRun,
 } from "../data/gauntlet";
@@ -4050,8 +4051,11 @@ export function App() {
     setPicks([]);
     setHint(
       effectiveBasicHits(activeCard) > 1
-        ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Attack</b> again to auto-fire.`
-        : "Tap a glowing target, or tap <b>Basic Attack</b> again to auto-fire the nearest.",
+        // "Auto" because that is what the armed button SAYS — AUTO on the ring,
+        // "Auto-fire" on the bar. This named "Basic Attack", a label neither
+        // shows once armed, and "the nearest", which is not how it picks.
+        ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Auto</b> to spread them for you.`
+        : "Tap a glowing target, or tap <b>Auto</b> and it picks one for you.",
     );
   }
 
@@ -5041,7 +5045,7 @@ export function App() {
                 the coach step went away (see TutorialCoach.tsx). */}
             <p>
               {twoPlayer ? `Player ${me}: hand the device over. ` : ""}
-              Click any cards to send back — you'll reshuffle and redraw to 4. Send back
+              Tap any card to send it back — you'll reshuffle and redraw to {OPENING_HAND}. Send back
               anything you cannot afford yet: Gold arrives slowly, so a hand of expensive
               cards is a hand of cards you watch instead of play.
             </p>
@@ -6541,6 +6545,7 @@ export function App() {
           body={guideStep.body}
           cta={guideCta(guideStep, guideOnTab)}
           onCta={runGuideStep}
+          ctaOffTargetOnly={guideStep.core}
           onSkip={canSkipGuide(story) ? skipGuide : undefined}
           skipLockedNote={skipLockedNote(story)}
           stepIndex={onboardingIndex(guideStep)}

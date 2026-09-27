@@ -110,12 +110,17 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
   },
   {
     id: "fight",
-    anchor: "nav-story",
+    // The node panel's Fight button (StoryMap.tsx), not the Story tab: once the
+    // map is up, ringing the nav docked this card over the button it describes.
+    anchor: "story-fight",
     tab: "story",
     title: "Fight Spring Village Outskirts",
-    body: "Your first battle, and the one the game is built to teach you on: you place "
-      + "your whole squad before it starts, and it is sized to whatever you bring. "
-      + "The coach explains each idea as you meet it.",
+    // "Lead with one card": the opening deployment is ONE free card
+    // (OPENING_SLOTS, phases.ts). This used to promise "you place your whole
+    // squad before it starts", which stopped being true when that cap landed.
+    body: "Your first battle, and the one the game is built to teach you on: you lead "
+      + "with one card, then summon the rest as your Gold comes in — and the enemy is "
+      + "sized to whatever you bring. The coach explains each idea as you meet it.",
     cta: "Go to the map",
     core: true,
   },
