@@ -14,6 +14,8 @@
 import type { ReactNode } from "react";
 import type { CardDef, CardInstance, StatusKind } from "../engine";
 import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, SP_SLOW_MAX, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
+import { DUSK_DEATH_HIT_TEXT } from "../engine/auras";
+import { RANGED_REACH } from "../engine/rules";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -236,7 +238,14 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   // The card's own element aura, plus any it borrows (SirCrest's PYRO + AQUA).
   for (const el of [def.element, ...(def.elementAuras ?? [])]) {
     const a = ELEMENT_AURA[el];
-    shared.push({ kind: "aura", label: `${el} aura — ${a.name}`, desc: a.desc });
+    // A DUSK card with an on-death of its OWN never makes Midnight Shade's death
+    // hit — combat.ts runs one or the other, never both — so on those eight the
+    // shared line drops that clause instead of promising a hit that never lands.
+    // The shadows still thicken; that half fires on every DUSK death.
+    const desc = el === "DUSK" && def.onDeath
+      ? `${a.desc.replace(DUSK_DEATH_HIT_TEXT, "")} Its own on-death ability replaces the hit back at its killer.`
+      : a.desc;
+    shared.push({ kind: "aura", label: `${el} aura — ${a.name}`, desc });
   }
   if (hasArcDischarge(def))
     shared.push({
@@ -260,7 +269,11 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   if (kw.REGEN) shared.push({ kind: "keyword", label: kwLabel("REGEN", `REGEN ${kw.REGEN}`), desc: `heals ${kw.REGEN} HP at the end of each round.` });
   if (kw.LIFESTEAL) shared.push({ kind: "keyword", label: kwLabel("LIFESTEAL", "LIFESTEAL"), desc: "basic attacks heal it for the damage dealt." });
   if (kw.DRAIN)
-    shared.push({ kind: "keyword", label: kwLabel("DRAIN", "DRAIN"), desc: "basic attacks heal it for the damage dealt AND steal 1 max HP from the target — it grows as it feeds (DUSK lifesteal)." });
+    // HALF, not the whole: DRAIN feeds at half rate, rounded down, and only
+    // LIFESTEAL alongside it lifts that to the full amount (combat.ts). This
+    // said "heal it for the damage dealt" — LIFESTEAL's sentence — while the
+    // rules book already had the half right.
+    shared.push({ kind: "keyword", label: kwLabel("DRAIN", "DRAIN"), desc: "basic attacks steal 1 max HP from the target — it grows as it feeds — and heal it for half the damage dealt, rounded down (the full amount if it also carries LIFESTEAL)." });
   if (kw.BLOCK) shared.push({ kind: "keyword", label: kwLabel("BLOCK", `BLOCK ${kw.BLOCK}`), desc: `every incoming hit is reduced by ${kw.BLOCK} — before shields, and even against PEN.` });
   if (kw.REFLECT) shared.push({ kind: "keyword", label: kwLabel("REFLECT", `REFLECT ${kw.REFLECT}`), desc: `returns ${kw.REFLECT} DMG to attackers.` });
   if (kw.EVASION) shared.push({ kind: "keyword", label: kwLabel("EVASION", "EVASION"), desc: "~50% chance to dodge each incoming hit." });
@@ -271,7 +284,10 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
       desc: (def.tramplesAnything
         ? "in Prep it can step onto ANY adjacent opponent and take the square, whatever it weighs — in any direction."
         : "in Prep it can step onto an adjacent opponent with less max HP and take the square — in any direction.")
-        + " The victim is driven a slot straight back, or knocked aside into any free square further from you if the slot behind it is blocked." });
+        // Any free square BESIDE the victim (not the one you are leaving), the
+        // furthest from you first — `shoveTarget` prefers further but settles
+        // for sideways, which "any free square further from you" denied.
+        + " The victim is driven a slot straight back, or knocked into another free square beside it (furthest from you first) if the slot behind it is blocked." });
   // THE FOUR THAT SAID NOTHING. This list stopped at TRAMPLE, so FLYING, CRIT,
   // PEN and STEALTH rendered as dead grey chips — a word on the card and no
   // rule anywhere on the surface a player reads mid-fight. FLYING is the
@@ -359,8 +375,15 @@ export function describePassives(def: CardDef): string[] {
   if (def.onHitStatus) {
     const h = def.onHitStatus;
     const gate = h.chance != null ? `${h.chance}% chance to ` : h.firstHitOnly ? "first hit: " : h.onSecondHit ? "2nd hit: " : "";
-    named("onHitStatus", 
-      `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${rounds(h.duration)}.`,
+    named("onHitStatus", h.stack
+      // A STACKING rider ADDS its power once per landed hit, up to its cap
+      // (`stackStatus` in combat.ts) — Sticky's three jabs build one wound. The
+      // plain sentence below read as a single BLEED 1 that each jab refreshed.
+      ? `Each landed basic hit ${h.chance != null ? `has a ${h.chance}% chance to add` : "adds"} `
+        + `${h.kind} ${h.power} (${rounds(h.duration)}), stacking`
+        + `${h.stackCap != null ? ` up to ${h.kind} ${h.stackCap}` : " without limit"}`
+        + `${h.firstHitOnly ? " — on the first attack at a target each round only" : h.onSecondHit ? " — from the 2nd hit on a target in a round" : ""}.`
+      : `Basic hits ${gate}apply ${h.kind}${h.power ? ` (${h.power})` : ""} for ${rounds(h.duration)}.`,
     );
   }
   if (def.onHitSpawn) {
@@ -393,9 +416,14 @@ export function describePassives(def: CardDef): string[] {
     const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind, m.spDrain && `−${m.spDrain} SP`].filter(Boolean).join(" + ");
     // anyAttacker cards (Jolt, Windsor) answer shooters too — saying "by melee"
     // there would be a straight lie on the card face.
-    named("onHitByMelee", 
-      `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
-    );
+    //
+    // Only when there IS a retaliation to list. Ingit's melee answer is purely
+    // Hot Hot's BURN rider, which has its own sentence below, and this line
+    // rendered "When hit by melee: retaliate — ;" in front of it.
+    if (bits)
+      named("onHitByMelee",
+        `When hit${m.anyAttacker ? " (melee or ranged)" : " by melee"}${m.chance ? ` (${m.chance}%)` : ""}: retaliate — ${bits}.`,
+      );
   }
   if (def.onHitByRangedAdvance) {
     const hp = def.onHitByRangedAdvance;
@@ -435,7 +463,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.onKill) {
     const k = def.onKill;
     const bits = [
-      k.buffDmg && `+${k.buffDmg} DMG`,
+      // The ceiling is printed the way the shield one below is — Bounty stops
+      // at +3 DMG, and an unprinted cap reads as a ramp that never ends.
+      k.buffDmg && `+${k.buffDmg} DMG${k.buffDmgMax != null ? ` (up to +${k.buffDmgMax} in all)` : ""}`,
       k.buffDmgRound && `+${k.buffDmgRound} DMG (round)`,
       k.buffHits && `+${k.buffHits} hit`,
       k.buffSp && `+${k.buffSp} SP`,
@@ -716,10 +746,18 @@ export function describePassives(def: CardDef): string[] {
     named("attackTrade", 
       `Every attack (basic & Special) deals +${def.attackTrade.bonusDmg} DMG, but costs ${def.attackTrade.hpCost} HP.`,
     );
-  if (def.onHitSelfBuff?.dmg)
-    named("onHitSelfBuff", 
-      `Bad Temper: permanently gains +${def.onHitSelfBuff.dmg} DMG each time a basic attack lands.`,
+  if (def.onHitSelfBuff?.dmg) {
+    // The CEILING is part of the ability (`cappedSelfGrowth`, combat.ts), and on
+    // a card whose Special also grows it (Volcanon's Eruption, `selfDmg`) the
+    // two triggers fill ONE cap between them. No hardcoded "Bad Temper:" either
+    // — that is Volcanon's name, and Twins and Infernus Rex were wearing it.
+    const sb = def.onHitSelfBuff;
+    const sharedWith = Number(def.special?.params?.selfDmg ?? 0) > 0 ? def.special!.name : "";
+    named("onHitSelfBuff",
+      `Permanently gains +${sb.dmg} DMG each time a basic attack lands`
+      + `${sb.max != null ? `, up to +${sb.max} in all${sharedWith ? ` (shared with ${sharedWith})` : ""}` : ""}.`,
     );
+  }
   if (def.incinerate)
     named("incinerate",
       `Incinerate: consecutive hits on the same target within a round deal +1 DMG each.`,
@@ -762,8 +800,12 @@ export function describePassives(def: CardDef): string[] {
     named("jackpot", `Jackpot: a basic CRIT fires its Special for free; ${def.jackpot.critsForBonus} crits in one round grant +${def.jackpot.bonusHp} HP and +${def.jackpot.bonusDmg} DMG.`);
   if (def.blockVsClasses)
     named("blockVsClasses", `Iron Ore: takes half damage from ${def.blockVsClasses.join(" and ")} attackers.`);
+  // No hardcoded ability names on shared renderers (here and Twin Strike
+  // below): "Diamond's Edge" is Kimberlite's and "Twin Strike" is Twinbolt's, and
+  // `named` prefixes each carrier's own — so Dynomight read "Explosive Power —
+  // Diamond's Edge: …" and Goldspur "Fan the Hammer — Twin Strike: …".
   if (def.bonusVsShield)
-    named("bonusVsShield", `Diamond's Edge: basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
+    named("bonusVsShield", `Basic attacks deal ${def.bonusVsShield}× damage against a shielded target.`);
   if (def.onHitStripShields)
     named("onHitStripShields", `Shell Cracker: a landed basic strips up to ${def.onHitStripShields} more shields off the target.`);
   if (def.onSpecialUse) {
@@ -783,7 +825,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onCritDebuff)
     named("onCritDebuff", `Brutal: a basic CRIT saps ${def.onCritDebuff} DMG off the target's own attacks for the round.`);
   if (def.onCritBonus)
-    named("onCritBonus", `Twin Strike: on a CRIT, chain a bonus ${def.onCritBonus.hits}×${def.onCritBonus.dmg} CRIT strike at the same target — once per round.`);
+    named("onCritBonus", `On a CRIT, chain a bonus ${def.onCritBonus.hits}×${def.onCritBonus.dmg} CRIT strike at the same target — once per round.`);
   if (def.evadeVsSlower)
     named("evadeVsSlower", `Unpredictable: a slower attacker (lower SP) has only a 50% chance to hit it.`);
   if (def.summonSelfBuff)
@@ -872,7 +914,12 @@ export function describePassives(def: CardDef): string[] {
       `End of round: deals ${def.roundTick.inRangeDmg} DMG to every opponent in range${def.roundTick.inRangeDmgPen ? " (pierces shields)" : ""}.`,
     );
   if (def.roundTick?.selfShields)
-    namedAny(["selfShields", "roundTick"], `Gains +${def.roundTick.selfShields} shield at the end of each round.`);
+    // The cap is a TOTAL — the tick stops once its shields reach it (phases.ts)
+    // — and all six carriers declare one. Unprinted, Kore read as a reactor
+    // that plates up forever.
+    namedAny(["selfShields", "roundTick"],
+      `Gains +${def.roundTick.selfShields} shield at the end of each round`
+      + `${def.roundTick.selfShieldsMax != null ? ` (up to ${def.roundTick.selfShieldsMax})` : ""}.`);
   if (def.roundTick?.allyInRangeShields)
     namedAny(["allyInRangeShields", "roundTick"],
       `End of round: grants +${def.roundTick.allyInRangeShields} shield` +
@@ -904,8 +951,10 @@ export function describePassives(def: CardDef): string[] {
     namedAny(["healAlliesInRange", "roundTick"],
       `End of round: heals every other ally within range +${def.roundTick.healAlliesInRange} HP.`,
     );
+  // No "Seed Roll:" in the text — that is Acorn's name for this gait, and
+  // `named` gives it back to Acorn; the other six carriers were wearing it.
   if (def.roundTick?.advance)
-    named("roundTick", `Seed Roll: rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked)`
+    named("roundTick", `Rolls ${def.roundTick.advance} slot${def.roundTick.advance === 1 ? "" : "s"} forward toward the enemy home at the end of each round (until blocked)`
       // THE WALL CLAUSE. A siege engine that will not move until your masonry
       // falls is telling the player what their gates are FOR, so it has to be
       // on the card rather than only in the log.
@@ -933,7 +982,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.speedDmgTiered)
     named("speedDmgTiered", `Apex Predator: +1 DMG for every ${def.speedDmgTiered.per} SP above ${def.speedDmgTiered.above}.`);
   if (def.lurk)
-    named("lurk", `Lurk: while hidden in STEALTH, +${def.lurk.dmg} DMG and +${def.lurk.sp} SP. Attacking breaks STEALTH (Lurk ends); Bloody Waters' kill re-enters it.`);
+    // A BASIC breaks cover — `basicAttack` strips the STEALTH — while firing the
+    // Special from hiding does not, which is the whole reason to hold it.
+    named("lurk", `Lurk: while hidden in STEALTH, +${def.lurk.dmg} DMG and +${def.lurk.sp} SP. Only a basic attack breaks STEALTH (Lurk ends); Bloody Waters' kill re-enters it.`);
   if (def.onHitRampUntilSpecial)
     named("onHitRampUntilSpecial", `Volcanic Fury: each landed basic grants +${def.onHitRampUntilSpecial} DMG, building until the Special is used (then it resets).`);
   if (def.stealthWhenIdle)
@@ -981,7 +1032,9 @@ export function describePassives(def: CardDef): string[] {
         : `Aura: while it lives, allied basic attacks also clip one extra adjacent target for full damage.`,
     );
   if (def.statDropImmuneAura)
-    named("statDropImmuneAura", `Aura: while it lives, allies are immune to stat reduction (WEAKEN).`);
+    // WEAKEN and nothing else — `applyStatus` refuses that one kind. "Stat
+    // reduction" promised immunity to SP cuts and sapped attacks too.
+    named("statDropImmuneAura", `Aura: while it lives, allies are immune to WEAKEN.`);
   if (def.purelightAura)
     named("purelightAura", `Purelight (Aura): while it lives, DAWN allies are immune to BLIND and their attacks pierce enemy EVASION.`);
   if (def.totemSpiritAura)
@@ -998,8 +1051,10 @@ export function describePassives(def: CardDef): string[] {
       : `${nm}: ${def.blocksRangedChance}% chance to deflect a ranged attacker's hit.`);
   }
   if (def.critIfFaster)
-    named("critIfFaster", 
-      `Hastened Assault: basic attacks CRIT while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,
+    // "CAN crit", not "crit": being faster only makes the hit CRIT-eligible —
+    // it still rolls the usual coin, and still needs a target with no shields.
+    named("critIfFaster",
+      `Hastened Assault: basic attacks can CRIT (50%, unshielded targets only) while faster than the target${def.healPerCrit ? `, healing +${def.healPerCrit} HP per crit` : ""}.`,
     );
   if (def.roundTick?.rootedDmg)
     passives.push(
@@ -1111,6 +1166,16 @@ export function describePassives(def: CardDef): string[] {
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
+    // The range gate is the difference between "never kill it" and "kill it from
+    // two slots away", so it has to be on the card, not just in the code — and
+    // it rides the clauses aimed at the KILLER, because those are the only ones
+    // it gates (`reachable` in combat.ts). It used to trail the whole line, so
+    // Aerostat's Burst read as a STUN that needed its killer close, when the
+    // STUN always fires and it is the 6 back that needs the killer within 2.
+    // Stated as the number the engine measures: 1 for melee, RANGED_REACH else.
+    const deathReach = def.attackType === "Melee" ? 1 : RANGED_REACH;
+    const gate = od.inRangeOnly
+      ? ` if the killer is within ${deathReach} space${deathReach === 1 ? "" : "s"}` : "";
     if (od.inRangeDmg)
       parts.push(`deals ${od.inRangeDmg} damage to every opponent within its reach`);
     // Only claim damage when there IS damage — WarPhant carries dmg 0 purely to
@@ -1119,7 +1184,7 @@ export function describePassives(def: CardDef): string[] {
       parts.push(
         od.rowAhead
           ? `blasts the enemy row ahead for ${od.dmg}${od.pen ? " (PEN)" : ""}`
-          : `deals ${od.dmg}${od.pen ? " piercing" : ""} damage back to its killer`,
+          : `deals ${od.dmg}${od.pen ? " piercing" : ""} damage back to its killer${gate}`,
       );
     if (od.spawnToken)
       parts.push(
@@ -1140,18 +1205,17 @@ export function describePassives(def: CardDef): string[] {
     if (od.roundEndAoe) parts.push(`calls down a meteor — ${od.roundEndAoe} DMG to every opponent at the end of next round`);
     if (od.passEnchant) parts.push("hands its armed Enchantment to the ally with the highest DMG");
     if (od.frightenInRange) parts.push(`FRIGHTENs nearby enemies for ${rounds(od.frightenInRange)}`);
+    // ADJACENT, whatever the card's own reach: the burst catches the squares
+    // around where it fell (chebyshev 1, combat.ts), and fires however it died.
     if (od.inRangeStatus)
-      parts.push(`bursts open — ${od.inRangeStatus.kind} for ${rounds(od.inRangeStatus.duration)} on every opponent in range`);
+      parts.push(`bursts open — ${od.inRangeStatus.kind} for ${rounds(od.inRangeStatus.duration)} on every adjacent opponent`);
     if (od.allyTribeBuffDmg)
       parts.push(`gives surviving ${od.allyTribeBuffDmg.tribe}s +${od.allyTribeBuffDmg.dmg} DMG permanently`);
     if (od.killerStatus)
       parts.push(
-        `leaves its killer with ${od.killerStatus.kind} ${od.killerStatus.power} for ${rounds(od.killerStatus.duration)}`,
+        `leaves its killer with ${od.killerStatus.kind} ${od.killerStatus.power} for ${rounds(od.killerStatus.duration)}${gate}`,
       );
-    // The range gate is the difference between "never kill it" and "kill it from
-    // two slots away", so it has to be on the card, not just in the code.
-    const gate = od.inRangeOnly ? " if the killer is within its reach" : "";
-    if (parts.length) named("onDeath", `On death, ${parts.join(" · ")}${gate}.`);
+    if (parts.length) named("onDeath", `On death, ${parts.join(" · ")}.`);
   }
   // ── passives that previously rendered NOTHING at all ──────────────────────
   if (def.meleeBonusDmg)
@@ -1163,10 +1227,13 @@ export function describePassives(def: CardDef): string[] {
     );
   if (def.onEnterMidRow)
     named("onEnterMidRow", `On moving into a Mid row: gain +${def.onEnterMidRow.shields} shield.`);
+  // Once per ATTACK on each target, not per hit: the shove sits at the end of
+  // `resolveHit`, after the whole volley has landed. Zephyra's three jabs move
+  // a body one slot, not three.
   if (def.onHitPush)
     named("onHitPush", def.onHitPush >= 5
-      ? "Every landed hit blows the target all the way back to its own Home row (as far as open slots allow)."
-      : `Every landed hit shoves the victim back ${def.onHitPush} slot (if open).`);
+      ? "Each attack that lands blows the target all the way back to its own Home row (as far as open slots allow)."
+      : `Each attack that lands shoves the target back ${def.onHitPush} slot${def.onHitPush === 1 ? "" : "s"} (if open).`);
   if (def.roundTick?.enemyHomeRowStatus) {
     const st = def.roundTick.enemyHomeRowStatus;
     // Keyed on `roundTick`, which is what the DATA declares (Scorch names its
@@ -1183,7 +1250,9 @@ export function describePassives(def: CardDef): string[] {
       "aoeElectrifiedDmg",
       `End of round: deals ${def.roundTick.aoeElectrifiedDmg} DMG to every ELECTRIFIED opponent in range.`,
     );
-  if (def.statusImmune) named("statusImmune", "Immune to negative statuses.");
+  // ALL of them: `applyStatus` refuses every kind on these cards before it even
+  // asks whether the status is negative, so a granted STEALTH fizzles too.
+  if (def.statusImmune) named("statusImmune", "Immune to all statuses.");
   if (def.ignoresHomeRule)
     named("ignoresHomeRule", "Can target the enemy Home row from anywhere.");
   // A MISS CHANCE THE CARD OWNS. Havoc buys its board-wide reach with a shakier
@@ -1339,25 +1408,37 @@ export function liveDef(card: CardInstance): CardDef {
 export const STATUS_TEXT: Record<StatusKind, string> = {
   ROOT: "Rooted — can't move.",
   BLEED: "Bleeding — takes damage each round.",
-  BURN: "Burning — loses a shield (then HP) each round.",
+  // Its POWER to HP, straight past shields, AND two shields melted a tick
+  // (the DOT loop in phases.ts). "A shield, then HP" described neither half.
+  BURN: "Burning — loses HP equal to its BURN each round, straight past shields, and melts 2 shields a tick.",
   SCALD: "Scalded — takes damage each round.",
   DOT: "Damaged over time each round.",
   // HALVES WHAT IT DEALS, not what it takes. This read "takes half damage
   // dealt", which is the opposite AND reads as a benefit — the one status text
   // a player might have been happy to see. `effectiveDmg` (state.ts) applies
   // the halving to the frozen card's own output.
-  FREEZE: "Frozen — SP 0, and deals half damage.",
+  //
+  // ...and only to its BASICS, like WEAKEN and BLIND below: `effectiveDmg` and
+  // the accuracy rolls are what a basic reads, while a Special prints its own
+  // number and never rolls for BLIND. The rules book already said so; these
+  // three did not.
+  FREEZE: "Frozen — SP 0, and its basic attacks deal half damage.",
   STUN: "Stunned — can't act.",
-  WEAKEN: `Weakened — deals ${WEAKEN_PCT_PER_STACK}% less damage per stack (compounding, max ${WEAKEN_MAX_STACKS}). Re-applying deepens it instead of refreshing.`,
+  WEAKEN: `Weakened — its basic attacks deal ${WEAKEN_PCT_PER_STACK}% less damage per stack (compounding, max ${WEAKEN_MAX_STACKS}). Re-applying deepens it instead of refreshing.`,
   // The cutoff is SP_SLOW_MAX, not a hardcoded 7. It said 7 while the constant
   // has been 5, so SP 6-7 cards were being slowed by a card that told the
   // player they were immune. Derived now, so the next change to the SP curve
   // cannot desync the text from it.
-  PARALYZE: `Paralyzed — 50% chance to skip its action, and moves only 1 space (no effect on SP ${SP_SLOW_MAX} and under).`,
+  //
+  // The coin is on the BASIC, not the turn: a paralysed card still fires its
+  // Special (basicAttack is the only place PARALYZE rolls). "Skip its action"
+  // told the player the Special was off the table too.
+  PARALYZE: `Paralyzed — each basic attack has a 50% chance to fizzle (Specials still fire), and it moves only 1 space (no effect on movement at SP ${SP_SLOW_MAX} and under).`,
   MUTED: "Muted — can't fire its Special.",
   SLEEP: "Asleep — can't act until it wakes.",
-  FRIGHTEN: "Frightened — retreats and can't move forward.",
-  BLIND: "Blinded — attacks have a 50% chance to miss.",
+  // Not just "forward": `canMove` refuses a FRIGHTENED card every move.
+  FRIGHTEN: "Frightened — retreats a slot and can't move at all.",
+  BLIND: "Blinded — each basic hit has a 50% chance to miss.",
   SEAL: "Bluflamed — cannot be healed.",
   ELECTRIFIED: "Electrified — BOLT cards deal +1 DMG to it.",
   STEALTH: "Stealthed — can't be targeted.",

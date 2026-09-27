@@ -1,5 +1,5 @@
 import type { GameState } from "../engine";
-import { boardCards, effectiveSp, getDef, plannedAction } from "../engine";
+import { GALE_SP_CAP, boardCards, effectiveSp, getDef, plannedAction } from "../engine";
 import { EL_COLOR } from "./shared";
 
 /** What the queue tags SAY vs what they mean. "SKIP" read like a choice the
@@ -32,7 +32,9 @@ export function SpeedQueue(props: { game: GameState }) {
 
   return (
     <div className="rail queue-rail">
-      <div className="rail-title">Speed Queue · 15 → 0</div>
+      {/* The top of the scale is the SP ceiling, read off the constant — it
+          said 15 long after Zephyr's cap moved to GALE_SP_CAP. */}
+      <div className="rail-title">Speed Queue · {GALE_SP_CAP} → 0</div>
       <div className="queue-scale">
         {entries.map(({ id, done }, i) => {
           const card = game.cards[id];

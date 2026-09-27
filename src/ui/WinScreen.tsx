@@ -90,18 +90,29 @@ export function WinScreen(props: {
               Round {game.round} — <b style={{ color: "var(--ink)" }}>every side is spent</b>.
               Nothing left standing anywhere.
             </>
+          ) : win.by === "timeout" && game.voidTower ? (
+            // A Void Tower timeout is not a tiebreak at all: the floor's own
+            // clock ran out, and running it out IS how the boss wins (phases.ts
+            // decides it before `decideOnTime` is ever reached).
+            <>
+              Time ran out on round {game.round} —{" "}
+              <b style={{ color: "var(--ink)" }}>the boss outlasted the clock</b>.
+            </>
           ) : win.by === "timeout" ? (
             <>
               Time ran out on round {game.round}.{" "}
               {youWon ? "You take it" : `${them} takes it`} on{" "}
-              <b style={{ color: "var(--ink)" }}>the board</b> — captures first, then cards
+              <b style={{ color: "var(--ink)" }}>the board</b> —{" "}
+              {/* The ladder `decideOnTime` actually walks: Points on the 7x7,
+                  captured Home slots everywhere else. */}
+              {game.domination ? "Points held first" : "captures first"}, then cards
               standing, then HP.
             </>
           ) : (
             <>
               {youWon ? "You" : them} won by{" "}
               <b style={{ color: "var(--ink)" }}>
-                {win.by === "capture" ? "capturing all 4 Home slots"
+                {win.by === "capture" ? `capturing all ${game.boardSize} Home slots`
                   : win.by === "slain" ? "slaying the boss"
                   : win.by === "overrun" ? "overrunning the whole Home row"
                   // Domination has always been a `by`, and this ladder had no

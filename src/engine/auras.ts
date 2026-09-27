@@ -104,18 +104,6 @@ export const VOID_DEFLECT_RETURN_PCT = 50;
  *  to be in contact, which is the same place it can be hit. */
 export const DUSK_DRAIN = 1;
 
-export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
-  PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
-  BORE: { name: "Exostone", desc: "Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent." },
-  DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, deals its full DMG back to the killer, and the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
-  AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 hit if it already strikes twice) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
-  DAWN: { name: "Awakening", desc: "On summon, strikes the nearest enemy for its full DMG. End of round, burns one negative status off itself and gains +1 SP (caps at SP 12)." },
-  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
-  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
-  VOID: { name: "One Eyes", desc: `Takes what it hits: each landed strike steals ${VOID_STEAL_PER_ATTACK} DMG from the target and keeps it (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — every ${VOID_DEFLECT_EVERY}th hit against it is deflected, taking half and returning half to the attacker.` },
-};
-
 /** How many plates one BORE card may take off opponents in a single round.
  *
  *  The theft fires per SHIELD BROKEN, and a multi-hit basic breaks one a hit —
@@ -320,6 +308,41 @@ export const DAWN_SP_CAP = 12;
  *  aura. That was the reason the +3 bonus existed. It is the owner's call which
  *  end of the roster to favour, and this is the end that stops the stall. */
 export const LEAF_SHIELD_CAP = 3;
+
+/** Midnight Shade's death hit, exactly as the aura prints it.
+ *
+ *  Its own constant because not every DUSK card makes it: a card with an
+ *  `onDeath` of its own runs THAT instead — combat.ts takes one branch or the
+ *  other, never both — so the card text has to be able to lift precisely this
+ *  clause back out for those eight (`describeSharedPassives`). Spelled once
+ *  here, the text it removes can never drift from the text it removes it from. */
+export const DUSK_DEATH_HIT_TEXT = "deals its full DMG back to the killer, and ";
+
+/** "1st", "5th" — VOID's deflect cadence, stated as the hits a player counts. */
+function ordinal(n: number): string {
+  const tens = n % 100;
+  const unit = n % 10;
+  const suffix = tens >= 11 && tens <= 13 ? "th"
+    : unit === 1 ? "st" : unit === 2 ? "nd" : unit === 3 ? "rd" : "th";
+  return `${n}${suffix}`;
+}
+
+/** The aura table sits BELOW the dials it quotes, not above them. A number here
+ *  is read from the constant the engine uses wherever one exists, and a `const`
+ *  read before its own line throws when the module loads — so the table moved
+ *  down here the day the DAWN and BORE lines started quoting DAWN_STRIKE_PCT and
+ *  the Exostone caps instead of typing them. */
+export const ELEMENT_AURA: Record<Element, AuraDef> = {
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
+  PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
+  BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
+  DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
+  AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
+  DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (caps at SP ${DAWN_SP_CAP}).` },
+  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
+  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
+  VOID: { name: "One Eyes", desc: `Takes what it hits: each basic attack that lands steals ${VOID_STEAL_PER_ATTACK} DMG from its target and keeps it — once per attack, however many hits land (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — the first hit it takes is deflected, then every ${ordinal(VOID_DEFLECT_EVERY)} after that (${[0, 1, 2].map((k) => ordinal(1 + k * VOID_DEFLECT_EVERY)).join(", ")}…), taking half and returning half to the attacker.` },
+};
 
 /** TAKING ROOT — TRIED, MEASURED, REJECTED. Recorded because the finding
  *  generalises and the next person will otherwise reach for it again.

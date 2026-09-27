@@ -1612,6 +1612,41 @@ function pullOne(pool: readonly string[], rand: () => number, weights: Record<st
   return pool[pool.length - 1];
 }
 
+/** What a pack pulls from: every card but the bosses. One definition, read by
+ *  `openPack` and by `packOdds`, so the odds the Shop quotes are computed over
+ *  exactly the pool the pack rolls. */
+export const packPool = (): string[] => CARDS.filter((c) => !c.boss).map((c) => c.id);
+
+/** The rarities the last slot's guarantee pulls from — "one Epic or better". */
+const PACK_GUARANTEE: readonly string[] = ["epic", "legendary", "mythic"];
+const inPackGuarantee = (id: string): boolean => PACK_GUARANTEE.includes(getDef(id).rarity ?? "");
+
+/** THE ODDS A PACK REALLY ROLLS AT, by rarity, as fractions that sum to 1.
+ *
+ *  PACK_WEIGHT is a weight per CARD, not a percentage per slot: `pullOne` sums
+ *  it over every card in the pool, so a rarity's chance is its weight times how
+ *  many cards carry it, over the pool's total. The Shop printed the weights
+ *  themselves (58/29/11/2) as if they were the odds — a Mythic at 2% when a pull
+ *  lands one about a quarter of a percent of the time, because there are far
+ *  fewer Mythics than Rares to share the weight between.
+ *
+ *  `guaranteed` is the last slot when the guarantee fires (nothing Epic or
+ *  better in the first four): the same weights over the Epic-and-up pool. Every
+ *  other pull rolls the plain odds. Mirrors `pullOne` exactly — its "rare"
+ *  fallback for a card with no rarity, and its even split when every weight is
+ *  zero — so the two cannot disagree about a pull. */
+export function packOdds(guaranteed = false): Record<string, number> {
+  const pool = guaranteed ? packPool().filter(inPackGuarantee) : packPool();
+  const weightOf = (id: string) => PACK_WEIGHT[getDef(id).rarity ?? "rare"] ?? 0;
+  const total = pool.reduce((n, id) => n + weightOf(id), 0);
+  const odds: Record<string, number> = {};
+  for (const id of pool) {
+    const r = getDef(id).rarity ?? "rare";
+    odds[r] = (odds[r] ?? 0) + (total > 0 ? weightOf(id) / total : 1 / pool.length);
+  }
+  return odds;
+}
+
 export interface PackResult {
   /** Every card pulled, in order, including duplicates. */
   pulled: string[];
@@ -1631,7 +1666,7 @@ export interface PackResult {
  *  your collection got, which is backwards. Duplicates are the cost of buying
  *  volume, and they come back as essence. */
 export function openPack(save: StorySave, rand: () => number = Math.random): PackResult {
-  const pool = CARDS.filter((c) => !c.boss).map((c) => c.id); // bosses are not pullable
+  const pool = packPool(); // bosses are not pullable
   const owned = new Set(save.collection);
   const pulled: string[] = [];
   const fresh: string[] = [];
@@ -1641,12 +1676,8 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
   for (let i = 0; i < PACK_SIZE; i++) {
     // The last slot is the guarantee: if nothing Epic-or-better has shown up
     // yet, pull from that tier instead of the whole set.
-    const guarantee =
-      i === PACK_SIZE - 1 &&
-      !pulled.some((id) => ["epic", "legendary", "mythic"].includes(getDef(id).rarity ?? ""));
-    const from = guarantee
-      ? pool.filter((id) => ["epic", "legendary", "mythic"].includes(getDef(id).rarity ?? ""))
-      : pool;
+    const guarantee = i === PACK_SIZE - 1 && !pulled.some(inPackGuarantee);
+    const from = guarantee ? pool.filter(inPackGuarantee) : pool;
     const id = pullOne(from, rand, PACK_WEIGHT);
     if (!id) break;
     pulled.push(id);

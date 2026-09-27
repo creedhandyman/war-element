@@ -219,7 +219,7 @@ import { talentEffect } from "./card-text";
 import { LevelUpModal } from "./LevelUpModal";
 import { claimLevelUp, pendingLevelUp } from "../data/levels";
 import {
-  DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, dealDraftSeat, draftComplete, draftLosses,
+  DRAFT_DECK_ID, DRAFT_ENTRY, DRAFT_LOSSES, DRAFT_MAX_WINS, dealDraftSeat, draftComplete, draftLosses,
   draftPlaying, draftReward, draftRunOver, draftSize, draftWins, pickGroup, pickSpell,
   settleDraft, startDraft, pickCard, picksLeft, SINGLE_PICKS,
 } from "../data/draft";
@@ -5878,7 +5878,8 @@ export function App() {
                           because warbands-then-singles is the thing a drafter
                           wants to know before paying. */}
                       Draft {deckSizeFor(boardSize)} cards you do not own — warbands first, then{" "}
-                      {SINGLE_PICKS} one at a time — then play them until {DRAFT_LOSSES} losses.{" "}
+                      {SINGLE_PICKS} one at a time — then play them until {DRAFT_LOSSES} losses
+                      or {DRAFT_MAX_WINS} wins.{" "}
                       Entry {DRAFT_ENTRY} shards; you have {shards}.
                     </p>
                   </div>

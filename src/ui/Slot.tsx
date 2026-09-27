@@ -149,11 +149,14 @@ export function Slot(props: {
         <span
           className="lock"
           title={
+            // Captured at the Cleanup of the round the invader is still standing
+            // there, and locked as a DESTINATION only — canMove lets a card pass
+            // through, it just cannot stop.
             `CAPTURED HOME SLOT — held by ${props.captured}.\n\n` +
-            `An invader that survives a full round standing on an enemy Home slot ` +
+            `An invader still standing on an enemy Home slot at a round's Cleanup ` +
             `captures it permanently. Captured slots are locked for the rest of the ` +
-            `match: nothing can be summoned onto or moved through them, and they ` +
-            `can never be taken back.\n\n` +
+            `match: nothing can be summoned onto them and no move can end on them ` +
+            `(cards may still pass through), and they can never be taken back.\n\n` +
             `Capture ALL of an opponent's Home slots and you win outright.`
           }
         >

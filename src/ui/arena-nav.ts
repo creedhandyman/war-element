@@ -12,6 +12,9 @@
 // state; a view only decides which of those the player is shown and which are
 // set for them.
 
+import { DRAFT_LOSSES, DRAFT_MAX_WINS } from "../data/draft";
+import { SHARDS_PER_WIN } from "../data/story";
+
 export type ArenaView =
   | "hub"
   | "quick" | "streak" | "gauntlet" | "draft" | "domination"
@@ -110,12 +113,16 @@ export const HUB_ENTRIES: readonly { id: HubEntryId; title: string; sub: string 
   { id: "friend", title: "Play a friend", sub: "This device or online" },
 ];
 
-/** The heading and one-line explanation at the top of each mode screen. */
+/** The heading and one-line explanation at the top of each mode screen.
+ *
+ *  Quick match moves no ladder and no run, but it is not unscored: `settleArena`
+ *  pays the flat Arena win against any premade, whatever the mode. And a draft
+ *  run ends at the top as well as at the bottom (`draftRunOver`). */
 export const VIEW_HEAD: Record<ModeView, { title: string; blurb: string }> = {
-  quick: { title: "Quick match", blurb: "One match against the AI. Nothing is scored." },
+  quick: { title: "Quick match", blurb: `One match against the AI. No ladder and no run — though a win over a premade deck still pays ${SHARDS_PER_WIN.arena} shards.` },
   streak: { title: "Streak", blurb: "The opponent is dealt from your rung. Wins pay more the longer you hold it." },
   gauntlet: { title: "Gauntlet", blurb: "Four dealt opponents from one rung. One loss ends the run." },
-  draft: { title: "Draft", blurb: "Build a squad from cards you do not own, then play it until three losses." },
+  draft: { title: "Draft", blurb: `Build a squad from cards you do not own, then play it until ${DRAFT_LOSSES} losses or ${DRAFT_MAX_WINS} wins.` },
   domination: { title: "Domination", blurb: "A free-for-all on the 7×7. Hold Points to win; everyone deploys at the shrines." },
   local: { title: "Play a friend", blurb: "Two players on this device — hand it over each turn." },
   online: { title: "Play a friend", blurb: "Host a room and share its code, or join a friend's." },

@@ -33,7 +33,7 @@ import { loadSquads } from "../data/squads";
 import { activeAvatar, avatarStyle, earnedAvatars, playerLevel } from "../data/player";
 import { CARDS, TOKENS, getDef } from "../data/cards";
 import { openEvents, type GameEvent } from "../data/events";
-import { boardOfRun, runOver, runReward } from "../data/gauntlet";
+import { runOver, runRewardOf } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
@@ -448,8 +448,10 @@ function buildLive(
       title: "The Gauntlet",
       // "Even", not "mid": that is what the Arena segment and the deck sheet
       // both call this rung, and Home is the third surface naming it.
+      // `runRewardOf`, the price the run actually settles at: it carries a 7x7
+      // run's bigger tables, which the bare rung-and-board figure left out.
       body: `${run.seats.length - run.won} to go on the ${run.tier === "mid" ? "even" : run.tier} rung.`
-        + ` One loss ends the run — ${runReward(run.tier, boardOfRun(run))} shards if it does not.`,
+        + ` One loss ends the run — ${runRewardOf(run)} shards if it does not.`,
       cta: "Fight", onGo: go.onArena,
       // The face of the deck in the next seat, not a generic backdrop. The
       // first cut pointed at `/battlefield.png` — 3.5 MB, and an asset the

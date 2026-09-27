@@ -3,8 +3,18 @@
  *  engine before it shipped (magic ramp, pool carryover, deck + spellbook caps,
  *  capture lockout): objective, deck, resources, the round loop, combat,
  *  shields, speed/movement, elements, statuses, keywords and wins. */
-import { ELEMENT_AURA, ELEMENT_MATCHUP } from "../engine";
+import {
+  ELEMENT_AURA, ELEMENT_MATCHUP, MAX_ROUNDS, OPENING_COST_CAP, OVERRUN_HOLD_ROUNDS, SP_SLOW_MAX,
+  VOID_TOWER_ROUNDS,
+} from "../engine";
+import { OPENING_CHEAP_COST, OPENING_CHEAP_MIN, SP_MID_MAX } from "../engine/state";
+import { DOMINATION_7X7, POI_GOLD } from "../data/domination";
 import { EL_COLOR, ELEMENTS } from "./shared";
+
+/** The Well's numbers, off the map that places it — the 7x7 is the only board
+ *  with one. Read rather than typed for the same reason as every other figure
+ *  in this book: a retuned heal must not leave the rules describing the old. */
+const WELL = DOMINATION_7X7.well;
 
 /** Fixed display order for the element lists below. */
 /** "LEAF" → "Leaf" — the rules book reads as prose, not as engine constants. */
@@ -29,16 +39,24 @@ export function RulesBook(props: { onClose: () => void }) {
                 in hand, or in their deck.
               </li>
               <li>
-                <b>Slot capture</b> — an invader that survives a full round standing
-                on an enemy Home slot captures it <i>permanently</i>. A captured slot
-                is locked out for its owner and shows a <b>🔒 padlock</b>: nothing can
-                be summoned onto it or moved through it, and it can never be taken
-                back. Capture every slot in it — four on the standard board, five on the large one — and you win.
+                {/* Checked at EVERY Cleanup on bare occupancy (phases.ts), so an
+                    invader that stepped on in this round's Prep and lived through
+                    the battle captures that same Cleanup — "a full round" read as
+                    a round of waiting it does not need. */}
+                <b>Slot capture</b> — an invader still standing on an enemy Home slot
+                at a round's Cleanup captures it <i>permanently</i> — even one that only
+                stepped on during that round's Prep. A captured slot is locked out for
+                its owner and shows a <b>🔒 padlock</b>: nothing can be summoned onto it
+                and no move can end on it (cards may still pass through), and it can
+                never be taken back. Capture every one of an opponent's Home slots —
+                four on the standard board, five on the large one — and you win.
               </li>
               <li>
-                <b>The clock</b> — a match that reaches <b>round 50</b> is decided on the
-                spot: most Home slots captured, then most cards still standing, then most
-                total HP. Level on all three and it is a <b>draw</b>.
+                <b>The clock</b> — a match still running after round{" "}
+                <b>{MAX_ROUNDS}</b>'s Cleanup is decided there: most Home slots captured,
+                then most cards still standing, then most total HP. On the 7×7 it is
+                Points held, then cards, then HP — and a seat already eliminated is out
+                of the running. Level on all three and it is a <b>draw</b>.
               </li>
             </ul>
             <p>
@@ -50,8 +68,9 @@ export function RulesBook(props: { onClose: () => void }) {
               Two modes change these rules outright. <b>Domination</b> (the 7×7) has no
               Home row to capture — see below. In the <b>Void Tower</b>, Home-slot capture
               is switched off entirely: you win the moment no untamed boss is left
-              standing, and the boss wins by wiping you out, by holding your whole Home
-              row for two rounds running, or by outlasting its own 30-round clock.
+              standing, and the boss wins by wiping you out, by standing on every slot
+              of your Home row — the boss itself among them — at {OVERRUN_HOLD_ROUNDS}{" "}
+              Cleanups in a row, or by outlasting its own {VOID_TOWER_ROUNDS}-round clock.
             </p>
           </section>
 
@@ -96,8 +115,8 @@ export function RulesBook(props: { onClose: () => void }) {
             </p>
             <p>
               <b>In Domination the Home-slot bonus does not exist</b> — the 7×7 has no
-              Home row. Each <b>Point</b> you hold pays <b>2</b> Gold a round instead, so
-              the map itself is the income.
+              Home row. Each <b>Point</b> you hold pays <b>{POI_GOLD}</b> Gold a round
+              instead, on top of the same ramp, so the map itself is the income.
             </p>
           </section>
 
@@ -109,16 +128,21 @@ export function RulesBook(props: { onClose: () => void }) {
                 confirm, and redraw.
               </li>
               <li>
-                <b>Deployment</b>: before round one, each side places one card
-                <b> free</b> — no Gold spent — onto a Home slot. Cost 3 or less only, so
-                the head start is a body rather than a bomb.
+                {/* The campaign's first battle is the ONLY match that deals an
+                    opening placement (App passes `opening` there alone), and only
+                    to the player — story.ts PLAYER_DEPLOY / ENEMY_DEPLOY. */}
+                <b>Deployment</b>: in the campaign's first battle only, you place one
+                card <b> free</b> — no Gold spent — onto a Home slot before round one;
+                the opponent gets no free placement. Cost {OPENING_COST_CAP} or less only,
+                so the head start is a body rather than a bomb. Every other match starts
+                straight on the Gold ramp.
               </li>
               <li>
                 <b>Prep</b>: glowing hand cards are affordable — click one, then a
                 glowing Home slot to summon (any number per turn). Click a board card,
                 then a glowing slot to move (one move per priority turn). Cast Spells
-                here too. <b>Pass Priority</b> when done — two passes in a row start
-                the battle.
+                here too. <b>Pass Priority</b> when done — once every seat has passed in
+                a row, the battle starts.
               </li>
               <li>
                 <b>Battle</b>: cards act in <b>SP order</b> (fastest first, 21 → 0;
@@ -148,9 +172,13 @@ export function RulesBook(props: { onClose: () => void }) {
                 block. Allies never get in the way.
               </li>
               <li>
-                <b>Specials do not reach the whole board either.</b> A ranged card's
-                Special is free of melee range; a <b>melee</b> card's Special still only
-                reaches its own adjacent square unless the Special itself says otherwise.
+                {/* A ranged card's Special skips every reach branch in canTarget
+                    (those are basic-only), so it has no range cap and no body can
+                    screen it; the Home rule and STEALTH still run for it. */}
+                <b>A ranged card's Special reaches the whole board</b> — no range cap, and
+                no body screens it — though the Home rule and STEALTH still apply. A{" "}
+                <b>melee</b> card's Special only reaches its own adjacent squares unless
+                the Special itself says otherwise.
               </li>
               <li>
                 <b>The Home rule</b> — while you are standing on your <i>own</i> Home
@@ -229,10 +257,12 @@ export function RulesBook(props: { onClose: () => void }) {
               <li><b>YOU</b> — your card; you'll choose its action.</li>
               <li><b>AI</b> — the opponent's card.</li>
               <li>
+                {/* No PARALYZE here: the tag is worked out before the turn, the
+                    PARALYZE coin is rolled at the swing, and a paralysed card can
+                    still fire its Special anyway. */}
                 <b>CAN'T ACT</b> — this card can do nothing this turn: either a status
-                is stopping it (STUN, SLEEP, a failed PARALYZE roll) or it has no legal
-                action — nothing in range and no Special it can afford. It stays in the
-                queue and passes.
+                is stopping it (STUN or SLEEP) or it has no legal action — nothing in
+                range and no Special it can afford. It stays in the queue and passes.
               </li>
             </ul>
             <ul className="rules-defs">
@@ -251,16 +281,22 @@ export function RulesBook(props: { onClose: () => void }) {
                 each priority turn onto a glowing slot.
               </li>
               <li>
-                <b>Speed sets your stride</b> — SP 1–5 move 1 slot, SP 6–10 move 2, and
-                SP 11+ (plus FLYING or mounted cards) move 2 <i>and cut corners like a
-                chess king</i> — a diagonal counts as one step. PARALYZE caps a card to
-                a single step; ROOT and FREEZE stop it dead.
+                {/* Reach is SP's alone (`moveReach`). FLYING and a mount buy the
+                    king-step, not a longer stride — an SP 4 flier still moves one
+                    slot, it just may take it diagonally. */}
+                <b>Speed sets your stride</b> — SP 1–{SP_SLOW_MAX} move 1 slot, SP{" "}
+                {SP_SLOW_MAX + 1}–{SP_MID_MAX} move 2, and SP {SP_MID_MAX + 1}+ move 2{" "}
+                <i>and cut corners like a chess king</i> — a diagonal counts as one step.
+                FLYING and mounted cards cut corners too, at whatever stride their SP
+                gives them. PARALYZE caps a card to a single step; ROOT and FREEZE stop
+                it dead.
               </li>
               <li>
                 <b>Bodies hold the way</b> — an enemy standing between the two ends of a
-                two-step move blocks it. FLYING cards and the SP 11+ tier slip past
-                anyway, which is the second thing that tier buys. Allies never block, and
-                a captured slot can be <i>passed through</i> — you just can't stop on it.
+                two-step move blocks it. FLYING cards and the SP {SP_MID_MAX + 1}+ tier
+                slip past anyway, which is the second thing that tier buys. Allies never
+                block, and a captured slot can be <i>passed through</i> — you just can't
+                stop on it.
               </li>
               <li>
                 <b>What stops a move outright</b> — STUN, SLEEP and FRIGHTEN refuse it
@@ -320,7 +356,7 @@ export function RulesBook(props: { onClose: () => void }) {
             </p>
             <ul className="rules-defs">
               <li><b>BURN</b> — burns HP each round, and melts <b>2</b> shields every tick. Stacks up to 5 (Pyro's Scorch).</li>
-              <li><b>BLEED</b> — loses HP each round; stacks (Leaf).</li>
+              <li><b>BLEED</b> — loses HP each round. Re-applying keeps the stronger, like every DOT here; it stacks only where a card says it does (Leaf).</li>
               <li><b>SCALD</b> — scalding damage each round.</li>
               <li><b>DOT / Poison</b> — generic damage each round.</li>
             </ul>
@@ -384,7 +420,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 <b>Four Points</b> — Fire Citadel, Volcanic Bastion, Ashen Port and
                 Dragon's Lair. You hold a Point by having more live bodies on its ring
                 than anyone else — a <i>tie</i> changes nothing, so whoever held it keeps
-                it until someone breaks the deadlock. Each one pays <b>2</b> Gold a round.
+                it until someone breaks the deadlock. Each one pays <b>{POI_GOLD}</b> Gold a round.
                 Its letter sits on the closed middle square, with the <b>suit</b> of
                 whoever holds it above it.
               </li>
@@ -408,9 +444,22 @@ export function RulesBook(props: { onClose: () => void }) {
                 Point that flips takes its landing squares with it.
               </li>
               <li>
-                <b>The terrain</b> — a Point's citadel and the closed centre of the cross
-                cannot be stood on, though cards may cross them. The roads themselves are
-                faster: a move that runs along a lane gets one extra step.
+                {/* The cross's centre stopped being closed when it became the Well
+                    (data/domination.ts). A citadel is masonry both ways: rules.ts
+                    refuses a walk through one (`terrainBlocksPath`, fliers exempt)
+                    and a shot across one (`rangedCanSee`). */}
+                <b>The terrain</b> — a Point's citadel is solid: nothing can stand on it,
+                only FLYING cards pass over it (everything else goes round), and it
+                stops any ranged basic attack that would cross it, so the squares behind
+                a citadel are cover.{WELL && (
+                  <>
+                    {" "}The centre of the cross is the <b>Well</b>: stepping onto it
+                    mends <b>{WELL.hp}</b> HP at once, and a card standing there at
+                    Cleanup heals <b>{WELL.hp}</b> a round for <b>{WELL.rounds}</b> rounds —
+                    which keeps running after it steps off.
+                  </>
+                )} The roads themselves are faster: a move that runs along a lane gets
+                one extra step.
               </li>
             </ul>
           </section>
@@ -420,17 +469,26 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul>
               <li>
                 <b>🔒 Locked slots</b>: a hatched, padlocked square is a <b>captured Home
-                slot</b>. Park an invader on an enemy Home slot and keep it alive for a
-                full round to capture that slot <i>permanently</i> — nothing can be
-                summoned onto or moved through it again, and it can never be won back.
-                Take all of an opponent's Home slots and you win outright.
+                slot</b>. Park an invader on an enemy Home slot and keep it alive to that
+                round's Cleanup to capture the slot <i>permanently</i> — nothing can be
+                summoned onto it or end a move on it again (cards may still pass through),
+                and it can never be won back. Take all of an opponent's Home slots and you
+                win outright.
               </li>
-              <li><b>King of the Hill</b>: a card standing in a middle row deals +1 DMG —
-                or lands one <i>extra hit</i> instead, if it is a heavy multi-hit card.</li>
+              {/* The hill is `isMidRow` — rows 1 and 2, counted from P2's Home row
+                  as row 0, at BOTH board sizes. On the 4x4 that is both middle rows;
+                  on the 5x5 it leaves out row 3, the one in front of P1's Home, so it
+                  is named by number here rather than as "a middle row". */}
+              <li><b>King of the Hill</b>: a card standing on a hill row deals +1 DMG —
+                or lands one <i>extra hit</i> instead, if it is a heavy multi-hit card.
+                The hill is <b>rows 1 and 2</b>, counted from P2's Home row as row 0 (the
+                top row when you play the AI): both middle rows on the 4×4, but on the
+                5×5 the middle row and the one on P2's side of it — the row in front of
+                P1's Home is not part of it.</li>
               <li>
-                <b>Full-lane bonus</b>: hold <i>every slot</i> of a middle lane — four on
+                <b>Full-lane bonus</b>: hold <i>every slot</i> of a hill row — four on
                 the standard board, five on the large one — and
-                your <b>entire board</b> gains +1 DMG — and there are two middle lanes
+                your <b>entire board</b> gains +1 DMG — and there are two hill rows
                 to seize, so a locked-down centre can stack +2 across your army.
               </li>
               <li>Spells are one-shot effects from your spellbook — cast in Prep.</li>
@@ -440,11 +498,53 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
+            <h3>💡 Good to know</h3>
+            {/* Five rules the engine enforces that nothing else on this page said,
+                each checked against the line that enforces it: canAoeRow,
+                canSpellHitEnemy and canPlaceWallRow (rules.ts) and the spell-splash
+                filter in phases.ts; the home-defence
+                reach in canTarget; the status countdown in doCleanupPhase, which
+                runs over every status including the ones landed this round; the
+                coin in createInitialState and the rotation in doResourcePhase; and
+                seedOpeningCurve (state.ts), which the mulligan re-runs. */}
+            <ul className="rules-defs">
+              <li>
+                <b>Their Home row is out of a spell's aim</b> — no spell can be aimed at a
+                card or a row there, a spell's splash stops short of it, and no wall can
+                be laid on it. Only board-wide sweeps and traps still reach it.
+              </li>
+              <li>
+                <b>Home defence</b> — a ranged card standing on its own Home row can shoot
+                any enemy on that same row, however far along it; a nearer enemy in the
+                row still screens a farther one.
+              </li>
+              <li>
+                <b>Statuses tick the round they land</b> — every status counts down at that
+                round's Cleanup, so a 1-round STUN on a card that has already acted this
+                round wears off without costing it anything.
+              </li>
+              <li>
+                <b>Who preps first</b> is a coin flip at the start of the match, and then
+                it rotates every round.
+              </li>
+              <li>
+                <b>Your opening hand</b> — and a mulligan redraw — always holds at least{" "}
+                {OPENING_CHEAP_MIN} cards costing {OPENING_CHEAP_COST} or less, as long as
+                your deck has them.
+              </li>
+            </ul>
+          </section>
+
+          <section>
             <h3>▶️ A turn, step by step</h3>
             <ol className="rules-steps">
               <li>
-                <b>Round starts.</b> You gain 1 Gold plus 1 per Home slot you hold,
-                gain Magic (see the table above), and draw a card — with a +2 bonus
+                {/* Gold is the ramp, not a flat 1 — `poolGainForRound` plus the
+                    Home slots stood on (or the Points held, on the 7x7). */}
+                <b>Round starts.</b> You gain Gold on the same ramp Magic uses (+1 rising
+                to +5), plus 1 for every Home slot you are standing in — or{" "}
+                {POI_GOLD} per Point you hold, on the 7×7 — gain Magic (see the table
+                above), and draw a card — with a +2 bonus
                 draw every fifth round. A draw that would take you over the hand
                 cap of <b>7</b> is held, not queued, so a refuel with a full hand
                 is partly lost.
@@ -455,7 +555,8 @@ export function RulesBook(props: { onClose: () => void }) {
                 for the hill). Cast a Spell if you like. <b>Pass Priority.</b>
               </li>
               <li>
-                <b>The AI preps</b>, then passes. Two passes in a row → the Battle begins.
+                <b>The AI preps</b>, then passes. Every seat has now passed in a row → the
+                Battle begins.
               </li>
               <li>
                 <b>Battle — fastest first.</b> Cards act in SP order (21 → 0). Your
@@ -470,7 +571,7 @@ export function RulesBook(props: { onClose: () => void }) {
             </ol>
             <p>
               Win the long game by wiping the opponent out, or the short game by parking
-              an invader on their Home slots and holding for a full round.
+              invaders on their Home slots and keeping them alive to Cleanup.
             </p>
           </section>
         </div>

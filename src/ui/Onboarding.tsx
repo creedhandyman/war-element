@@ -52,6 +52,7 @@
  */
 import type { StorySave } from "../data/story";
 import { deckCapFor, freePacks } from "../data/story";
+import { TAME_USES } from "../data/void-tower";
 
 /** The sentinel written into `save.taught` when the player skips. Distinct
  *  from the coach's own "SKIP" — silencing the walkthrough and silencing the
@@ -153,9 +154,13 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "nav-tower",
     tab: "tower",
     title: "The Void Tower",
+    // Beating a boss once does not tame it: clearing its whole FLOOR enrages
+    // every boss on it, and only an enraged one comes over (`tamedSave` in App,
+    // `bossEnraged` in void-tower.ts) — for TAME_USES battles, not for good.
     body: "Five floors of boss puzzles, each one a stated problem rather than a bigger "
-      + "enemy — break the wall, survive the lock, reach the source. Beat one and you can "
-      + "tame the boss and take it with you.",
+      + "enemy — break the wall, survive the lock, reach the source. Clear a floor and "
+      + "its bosses turn enraged; beat one enraged and it fights for you in your next "
+      + `${TAME_USES} battles.`,
     cta: "Next",
     core: false,
   },

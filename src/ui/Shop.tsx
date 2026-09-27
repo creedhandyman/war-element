@@ -16,30 +16,47 @@
  *  partly for the cards you already own.
  *
  *  Every number here is READ from data/story.ts rather than written down — the
- *  odds bar is PACK_WEIGHT, the refunds are derived from CRAFT_COST the same
- *  way dupeEssenceFor derives them, the prices are CRAFT_COST. A shop that
- *  quotes odds has to quote the real ones, and quoting them from a literal is
- *  how they drift the first time someone retunes the table.
+ *  odds bar is `packOdds` (PACK_WEIGHT over the real pull pool), the refunds are
+ *  derived from CRAFT_COST the same way dupeEssenceFor derives them, the prices
+ *  are CRAFT_COST. A shop that quotes odds has to quote the real ones, and
+ *  quoting them from a literal is how they drift the first time someone retunes
+ *  the table.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useBackLayer } from "./use-back-layer";
 import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
-  CRAFT_COST, PACK_COST, PACK_SIZE, PACK_WEIGHT, REGIONS, SHINY_CHANCE,
+  CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
   applyPack, buyBox, canBuyBox, canCraft, canOpenPack, craftCard, craftCostOf,
-  dupeEssenceFor, freePacks, openPack, packIsFree, type PackResult, type StorySave,
+  dupeEssenceFor, freePacks, openPack, packIsFree, packOdds, type PackResult, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
-/** Commonest first, which is the order the bar stacks them in. */
-const ODDS_ROWS = (["rare", "epic", "legendary", "mythic"] as const).map((r) => ({
-  rarity: r as string,
-  weight: PACK_WEIGHT[r] ?? 0,
-  refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
-}));
+/** A share as the Shop prints it: one decimal for the common tiers, two
+ *  significant figures under 1% so a Mythic does not round away to nothing. */
+const fmtPct = (p: number): string =>
+  p >= 1 ? String(Math.round(p * 10) / 10) : p > 0 ? p.toPrecision(2) : "0";
+/** Commonest first, which is the order the bar stacks them in. `pct` is the
+ *  REAL chance a pulled card is that rarity — `packOdds`, not the raw weight
+ *  (PACK_WEIGHT is per card; see the note on `packOdds`). */
+const ODDS_ROWS = (() => {
+  const odds = packOdds();
+  return (["rare", "epic", "legendary", "mythic"] as const).map((r) => ({
+    rarity: r as string,
+    pct: (odds[r] ?? 0) * 100,
+    refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
+  }));
+})();
+/** ...and what the guaranteed last card rolls at, when the guarantee fires. */
+const GUARANTEE_LINE = (() => {
+  const odds = packOdds(true);
+  return (["epic", "legendary", "mythic"] as const)
+    .map((r) => `${fmtPct((odds[r] ?? 0) * 100)}% ${RARITY_STYLE[r]?.label ?? r}`)
+    .join(" · ");
+})();
 
 /** The pull, ordered so the BEST card is the LAST one turned over.
  *
@@ -315,23 +332,29 @@ export function Shop(props: {
               </>
             )}
           </div>
-          <div className="pack-sub">{PACK_SIZE} cards · at least one Epic or better</div>
+          <div className="pack-sub"
+            title={`If none of the first ${PACK_SIZE - 1} is Epic or better, the last card rolls ${GUARANTEE_LINE}.`}>
+            {PACK_SIZE} cards · at least one Epic or better
+          </div>
 
-          <div className="odds-head">PULL ODDS <em>the same table the story rolls on</em></div>
+          {/* Per CARD, and not "the story's table": the recruitment roll is a
+              different table (DROP_RATE) with a different meaning, and these
+              are the real chances off `packOdds` rather than the raw weights. */}
+          <div className="odds-head">PULL ODDS <em>each card, before the Epic guarantee</em></div>
           <div className="odds-bar">
             {ODDS_ROWS.map((o) => (
               <span
                 key={o.rarity}
                 className="odds-seg"
-                style={{ width: `${o.weight}%`, background: RARITY_STYLE[o.rarity]?.color }}
-                title={`${o.weight}% ${o.rarity}`}
+                style={{ width: `${o.pct}%`, background: RARITY_STYLE[o.rarity]?.color }}
+                title={`${fmtPct(o.pct)}% ${o.rarity}`}
               />
             ))}
           </div>
           <div className="odds-key">
             {ODDS_ROWS.map((o) => (
               <span key={o.rarity} style={{ color: RARITY_STYLE[o.rarity]?.color }}>
-                <b>{o.weight}</b> {RARITY_STYLE[o.rarity]?.label}
+                <b>{fmtPct(o.pct)}%</b> {RARITY_STYLE[o.rarity]?.label}
               </span>
             ))}
           </div>
@@ -686,7 +709,11 @@ export function Shop(props: {
                 outlined so a second purchase is never the default tap. */}
             <div className="pack-reveal-acts">
               <button className="lockin" onClick={() => setOpened(null)}>Done</button>
-              <button className="ghost" disabled={!canOpenPack(save)} onClick={tearOpen}>
+              <button className="ghost" disabled={!canOpenPack(save)} onClick={tearOpen}
+                // A disabled button that says nothing reads as broken; this one
+                // is short of shards, so it says by how many.
+                title={canOpenPack(save) ? undefined
+                  : `${PACK_COST} shards a pack — you have ${shards}`}>
                 {packIsFree(save)
                   ? "Open another · free"
                   : <>Open another {PACK_COST}<i className="shard" /></>}

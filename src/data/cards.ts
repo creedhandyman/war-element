@@ -2710,7 +2710,7 @@ export const CARDS: CardDef[] = [
       // own home row: from there it stops one row short.
       params: { dmg: 10, dragToCaster: 1, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Drag an opponent from up to two rows away into this row (never onto its home row), deal 10 DMG, and root them for 3 rounds.",
+      text: "Drag an opponent from anywhere on the board into this row (never onto its home row), deal 10 DMG, and root them for 3 rounds.",
     },
   },
   {
@@ -2772,7 +2772,7 @@ export const CARDS: CardDef[] = [
       handler: "spawn",
       params: { startsChannel: 1 },
       targetSide: "self",
-      text: "Deal 5 DMG (+ Magmadon's bonus DMG) to every opponent in range, then keep erupting every round for 2 HP a round — until Magmadon dies or is FROZEN. Scorched Fury makes each eruption hotter than the last.",
+      text: "Deal 5 DMG (+ Magmadon's bonus DMG) to every opponent in range, then erupt the same way every round for 2 HP a round — until Magmadon dies, is FROZEN, or can't pay the 2 HP. The eruptions don't grow on their own; below 10 HP, Scorched Fury makes each one 2 hotter.",
     },
   },
   {
@@ -6605,7 +6605,7 @@ export const CARDS: CardDef[] = [
     // suffer −50% accuracy for 2 rounds.
     talent: {
       name: "Shell Tuck",
-      text: "Once per game, free: gain 6 shields, but Tide's basic attacks miss 50% of the time for 2 rounds.",
+      text: "Once per game, free: gain 6 shields, but Tide's basic attacks miss 50% of the time through its next round.",
       handler: "shellTuck",
       params: { shields: 6, missPct: 50, missRounds: 2 },
     },
@@ -8541,7 +8541,7 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 2, hits: 4, targets: 99, pen: 1, drain: 1 },
       targetSide: "enemy",
-      text: "Deal 2×4 DMG (PEN) to all opponents in range and drain from them.",
+      text: "Deal 4 hits of 2 DMG (PEN) to all opponents in range and drain from them.",
     },
   },
   {
@@ -8695,7 +8695,7 @@ export const CARDS: CardDef[] = [
       // never onto Ironclad's own home row.
       params: { dmg: 3, targets: 99, stealShields: 3, stealRowAheadOnly: 1, magnetPull: 1 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents, and steal up to 3 shields each from opponents in the row directly ahead, equip them, and pull those opponents in beside Ironclad (never onto its home row).",
+      text: "Deal 3 DMG to every adjacent opponent, and steal up to 3 shields from each one in front of it, equipping them.",
     },
   },
   {
@@ -8731,7 +8731,7 @@ export const CARDS: CardDef[] = [
       params: { statusKind: "SEAL", statusDuration: 99, markKillDmg: 2 },
       targetSide: "enemy",
       ranged: true,
-      text: "Mark an opponent — every basic attack against them is a guaranteed CRIT, and they cannot be healed for the rest of the match. When a marked target dies, Blur banks a one-time auto-dodge and +2 DMG.",
+      text: "Mark an opponent — while they have no shields, every basic attack against them is a guaranteed CRIT (a piercing attack still never crits), and they cannot be healed for the rest of the match. When a marked target dies, Blur banks a one-time auto-dodge and +2 DMG.",
     },
   },
   {
@@ -8901,7 +8901,7 @@ export const CARDS: CardDef[] = [
         statusKind: "BLEED", statusPower: 1, statusDuration: 2,
       },
       targetSide: "enemy",
-      text: "Move forward one space, then deal 3 DMG and apply BLEED 1 (2 rounds) to opponents in range. Usable with nobody in range, just to move.",
+      text: "Move forward one space, then deal 3 DMG and apply BLEED 1 (2 rounds) to up to 3 opponents within 2 spaces. Usable with nobody in range, just to move.",
     },
   },
   {
@@ -10019,7 +10019,7 @@ export const CARDS: CardDef[] = [
       handler: "barrage",
       params: { dmg: 3, targets: 99, rowAhead: 1, statusKind: "ROOT", statusDuration: 3 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to all opponents in the row directly ahead and ROOT them for 3 rounds.",
+      text: "Deal 3 DMG to every opponent on the (up to three) squares directly in front of it and ROOT them for 3 rounds.",
     },
   },
   {
@@ -10292,7 +10292,7 @@ export const CARDS: CardDef[] = [
       handler: "battleCharge",
       params: { charge: 4, dmg: 15, chainDmg: 15, push: 5, flankDmg: 4 },
       targetSide: "self",
-      text: "Charge straight ahead, dealing 15 DMG to opponents in the column and pushing the leader to the farthest slot. Opponents it passes in the columns beside it take 4 DMG.",
+      text: "Charge straight ahead, dealing 15 DMG to the first opponent in the column and to every opponent packed directly behind it, and pushing the leader to the farthest slot. Opponents it passes in the columns beside it take 4 DMG.",
     },
   },
 
@@ -12140,7 +12140,7 @@ export const CARDS: CardDef[] = [
                 debuffStatus: "BLIND", debuffStatusRounds: 2,
                 dotPower: 8, dotDuration: 2 },
       targetSide: "enemy",
-      text: "It looks at three of you: MUTED for 2 rounds, BLIND for 2, and DOT 8 for 2. 3-round cooldown.",
+      text: "It looks at three of you: MUTED for 2 rounds, BLIND for 2, and DOT 8 for 2. It fires on its own every third round.",
     },
   },
   {
@@ -12197,7 +12197,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 12, targets: 99, statusKind: "BURN", statusPower: 3, statusDuration: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "12 DMG to every opponent and BURN 3 for 3 rounds. 3-round cooldown.",
+      text: "12 DMG to every opponent and BURN 3 for 3 rounds. It fires on its own every third round.",
     },
   },
   {
@@ -12930,7 +12930,7 @@ export const CARDS: CardDef[] = [
       // be cast at something already touching it, which is not a pounce.
       params: { dmg: 9, charge: 3, chargeFirst: 1, takeSpotOnKill: 1, onKillSelfHeal: 4, pounceAgain: 1 },
       targetSide: "enemy",
-      text: "Leap up to 3 spaces and strike for 9. A kill heals it 4, it takes the ground it cleared, and it springs again.",
+      text: "Leap up to 3 spaces and strike for 9, then spring again at the nearest other opponent for 9 more (the same one if it is the only one left). Each kill heals it 4, and it takes the ground it cleared.",
     },
   },
 
@@ -13121,7 +13121,7 @@ export const CARDS: CardDef[] = [
       // 7 a shot, up from 5 with the recost to 7.
       params: { dmg: 7, targets: 2, closest: 1, crit: 1, push: 1 },
       targetSide: "enemy",
-      text: "7 DMG to the 2 nearest opponents, both shots rolling for a CRIT.",
+      text: "7 DMG to the 2 nearest opponents, both shots rolling for a CRIT, and each one it hits is shoved back 1 space.",
     },
   },
   {
@@ -13191,7 +13191,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 6, targets: 3, statusKind: "STUN", statusDuration: 1,
                 push: 1, selfShields: 2 },
       targetSide: "enemy",
-      text: "6 DMG and STUN 1 to up to 3 opponents in range; brace for +2 shields.",
+      text: "6 DMG and STUN 1 to up to 3 opponents in range, shoving each back 1 space; brace for +2 shields.",
     },
   },
   {
