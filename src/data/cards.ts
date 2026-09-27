@@ -3300,7 +3300,7 @@ export const CARDS: CardDef[] = [
       },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Ride up to 4 spaces in any direction toward your target, dealing 5 DMG (PEN) to every opponent you pass. Then hit it for 19 DMG (PEN) + 9 DOT and gain EVASION for a round. 3-round cooldown.",
+      text: "Ride up to 4 spaces in any direction toward your target, dealing 5 DMG (PEN) to every opponent you pass that isn't flying. Then hit it for 19 DMG (PEN) + 9 DOT and gain EVASION for a round. 3-round cooldown.",
     },
   },
   {
@@ -8608,12 +8608,17 @@ export const CARDS: CardDef[] = [
         // Written rather than derived: scaling 15 by 0.5 floors to 7, and the
         // card says 8.
         onSummonDmg: 8,
+        // CAST AGAIN WHILE IT STANDS and the storm re-forms (owner's call,
+        // 2026-09-27): the same arrival burst breaks over the board again and
+        // the storm heals 6, about a fifth of its half-power body. The cast
+        // used to be wasted ("already at full strength").
+        recastHeal: 6,
       },
       // SELF, not enemy. With no damage left there is nothing to aim at, and an
       // enemy-targeted Special cannot be cast into an empty board — which would
       // have made the summons unavailable exactly when you most want a body.
       targetSide: "self",
-      text: "Raise a Thundering Hurricane at half strength (one at a time). It lands reeling every opponent within 2 spaces into contact for 8 DMG and PARALYZING them for 2 rounds.",
+      text: "Raise a Thundering Hurricane at half strength (one at a time). It lands reeling every opponent within 2 spaces into contact for 8 DMG and PARALYZING them for 2 rounds. Cast again while it stands and it re-forms: the burst breaks again and the storm heals 6.",
     },
   },
   {
@@ -9697,17 +9702,18 @@ export const CARDS: CardDef[] = [
     // Blinding Star (Aura): every enemy basic attack rolls a 10% miss.
     passiveNames: { onKill: "Dragon's Fury", blindingStar: "Blinding Star" },
     blindingStar: true,
-    // Gamma Ray Burst: 14 DMG to a target AND to opponents adjacent to it (same
-    // damage — a blast zone around the mark); Supernova pays 5 HP.
+    // Gamma Ray Burst: 14 DMG to a target and 10 to every opponent adjacent to
+    // it (owner's call, 2026-09-27: the blast zone was the full 14); Supernova
+    // pays 5 HP. Magic 4.
     special: {
       name: "Gamma Ray Burst",
       cost: 4,
       handler: "strike",
-      params: { dmg: 14, splash: 14, selfDamage: 5 },
+      params: { dmg: 14, splash: 10, selfDamage: 5 },
       targetSide: "enemy",
       ranged: true,
       cooldown: 3,
-      text: "Deal 14 DMG to a target and 14 DMG to every opponent adjacent to it. Supernova loses 5 HP.",
+      text: "Deal 14 DMG to a target and 10 DMG to every opponent adjacent to it. Supernova loses 5 HP.",
     },
   },
   {

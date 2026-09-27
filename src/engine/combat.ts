@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, canTarget, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -2825,7 +2825,13 @@ function spawnCapped(
  *  `castsOwnSpecial`, no ally branch, no self-status. Those exist for cards a
  *  player summons and none of them is carried by a token today; adding them
  *  here would be four behaviours nothing asked for. When one does, it moves. */
-function fireSpawnArrival(draft: GameState, born: CardInstance, dmgOverride?: number): void {
+function fireSpawnArrival(
+  draft: GameState,
+  born: CardInstance,
+  dmgOverride?: number,
+  /** A body already standing, re-formed by a recast (Kloud's storm). */
+  again = false,
+): void {
   const def = getDef(born.defId);
   const os = def.onSummon;
   if (!os?.handler || os.targetSide === "ally" || !born.pos) return;
@@ -2834,7 +2840,9 @@ function fireSpawnArrival(draft: GameState, born: CardInstance, dmgOverride?: nu
   const params = dmgOverride != null ? { ...(os.params ?? {}), dmg: dmgOverride } : (os.params ?? {});
   const targets = onSummonTargets(draft, born, def);
   if (targets.length === 0 && !TARGETLESS_HANDLERS.has(os.handler)) return;
-  draft.log.push(`${def.name} arrives — ${def.passiveNames?.onSummon ?? "its arrival"} breaks over the board!`);
+  draft.log.push(again
+    ? `${def.name} re-forms — ${def.passiveNames?.onSummon ?? "its arrival"} breaks over the board again!`
+    : `${def.name} arrives — ${def.passiveNames?.onSummon ?? "its arrival"} breaks over the board!`);
   handler(draft, born, targets, params);
 }
 
@@ -3087,6 +3095,7 @@ function chargeToward(
       // a blocker and change the lane the rider is still walking.
       for (const e of enemyCards(draft, card.owner)) {
         if (!e.pos || (e.pos.row === dest.row && e.pos.col === dest.col)) continue;
+        if (isAirborne(e)) continue; // hooves do not reach a flier (owner's call)
         if (chebyshev(e.pos, card.pos) <= 1) run.add(e.instanceId);
       }
     }
@@ -3989,22 +3998,48 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         );
       }
     }
-    // STOCK CAP. `spawnMaxAlive` already leashes the round-tick spawn and the
-    // onOppSummon one (see phases.ts); the SPECIAL was the one spawn path with
-    // no ceiling, and on a repeatable cast that is the Buzzard problem again —
-    // two a cast forever, and the only way a body leaves the board is by dying.
-    // Overclock's Production Run fires free every 3 rounds, so uncapped it just
-    // buried the board. Counts LIVING tokens of this id on the caster's side.
-    spawnCapped(draft, attacker, token, num(params, "count", 1), radius,
-      params.maxAlive == null ? Infinity : num(params, "maxAlive", 0),
-      // HALF-POWER SPAWNS (Kloud's storm). `spawnCapped` has always taken this;
-      // only `combo` passed it, so a Special whose whole effect IS the summons
-      // had to route through a combo handler to get a scaled body. Omit for a
-      // full-strength spawn, which is every other card.
-      params.scale == null ? undefined : num(params, "scale", 1),
-      // The arrival damage this spawn uses, when the token's own is not the
-      // right number for a body raised at a fraction of the card.
-      params.onSummonDmg == null ? undefined : num(params, "onSummonDmg", 0));
+    // THE STORM, RAISED AGAIN (Kloud's Twisted Rage; owner's call). With its one
+    // storm already standing, a recast used to spend its magic on "its brood is
+    // already at full strength". A Special that sets `recastHeal` instead
+    // re-forms what is standing: its arrival burst breaks over the board again,
+    // and it heals a little. Only when the cap is what stopped a new body.
+    const recastHeal = num(params, "recastHeal");
+    const standing = recastHeal > 0 && params.maxAlive != null
+      ? boardCards(draft, attacker.owner).filter((c) => c.curHp > 0 && c.defId === token)
+      : [];
+    if (standing.length > 0 && standing.length >= num(params, "maxAlive", 0)) {
+      const arrivalDmg = params.onSummonDmg == null ? undefined : num(params, "onSummonDmg", 0);
+      for (const s of standing) {
+        // The burst is the storm FORMING, not the half-power body swinging,
+        // which is why its first arrival fires BEFORE `scaleInstance` (see
+        // spawnCapped). Re-forming is the same burst, so it lands at the card's
+        // number too: the body's scale is lifted for it and put back after.
+        const scale = s.statScale;
+        s.statScale = undefined;
+        fireSpawnArrival(draft, s, arrivalDmg, true);
+        s.statScale = scale;
+        if (!draft.cards[s.instanceId] || s.curHp <= 0) continue; // a REFLECT can end it
+        const healed = healCard(draft, s, recastHeal, attacker.owner);
+        if (healed > 0) draft.log.push(`${label(draft, s)} gathers itself (+${healed} HP).`);
+      }
+    } else {
+      // STOCK CAP. `spawnMaxAlive` already leashes the round-tick spawn and the
+      // onOppSummon one (see phases.ts); the SPECIAL was the one spawn path with
+      // no ceiling, and on a repeatable cast that is the Buzzard problem again —
+      // two a cast forever, and the only way a body leaves the board is by dying.
+      // Overclock's Production Run fires free every 3 rounds, so uncapped it just
+      // buried the board. Counts LIVING tokens of this id on the caster's side.
+      spawnCapped(draft, attacker, token, num(params, "count", 1), radius,
+        params.maxAlive == null ? Infinity : num(params, "maxAlive", 0),
+        // HALF-POWER SPAWNS (Kloud's storm). `spawnCapped` has always taken this;
+        // only `combo` passed it, so a Special whose whole effect IS the summons
+        // had to route through a combo handler to get a scaled body. Omit for a
+        // full-strength spawn, which is every other card.
+        params.scale == null ? undefined : num(params, "scale", 1),
+        // The arrival damage this spawn uses, when the token's own is not the
+        // right number for a body raised at a fraction of the card.
+        params.onSummonDmg == null ? undefined : num(params, "onSummonDmg", 0));
+    }
     // Grove's Blessing: the same burst that raises the tree tops up every ally
     // on the caster's side (Sylvane's Emergence). Element-agnostic — heals all.
     const healAmt = num(params, "healAllies");

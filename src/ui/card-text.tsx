@@ -287,7 +287,9 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
         // Any free square BESIDE the victim (not the one you are leaving), the
         // furthest from you first — `shoveTarget` prefers further but settles
         // for sideways, which "any free square further from you" denied.
-        + " The victim is driven a slot straight back, or knocked into another free square beside it (furthest from you first) if the slot behind it is blocked." });
+        + " The victim is driven a slot straight back, or knocked into another free square beside it (furthest from you first) if the slot behind it is blocked."
+        // `isAirborne` in rules.ts: flying and not grounded by a status.
+        + " A FLYING opponent is overhead and can't be trampled, unless a status has grounded it." });
   // THE FOUR THAT SAID NOTHING. This list stopped at TRAMPLE, so FLYING, CRIT,
   // PEN and STEALTH rendered as dead grey chips — a word on the card and no
   // rule anywhere on the surface a player reads mid-fight. FLYING is the
@@ -711,7 +713,7 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.summonCharge)
     named("summonCharge",
-      `Wild Charge: on arrival it bolts straight up its column for the enemy home row, dealing ${def.summonCharge.dmg} DMG through shields to every opponent in the lane and running on past them. It stops at the board edge or at one of your own cards.`);
+      `Wild Charge: on arrival it bolts straight up its column for the enemy home row, dealing ${def.summonCharge.dmg} DMG through shields to every opponent in the lane and running on past them (it runs under FLYING ones). It stops at the board edge or at one of your own cards.`);
   if (def.noBattleTurn)
     named("noBattleTurn", "A piece, not a combatant — it never takes a battle turn and never enters the speed queue.");
   if (def.onHeavyHit) {

@@ -42,6 +42,7 @@ import {
   canFireTalent,
   canMove,
   shoveTarget,
+  isAirborne,
   canSummon,
   canTarget,
   defaultCommandPicks,
@@ -2588,6 +2589,9 @@ export function chargeOnArrival(draft: GameState, card: CardInstance): void {
     const occupant = cardAt(draft, next, col);
     if (occupant) {
       if (occupant.owner === card.owner) break; // it will not run down its own
+      // A flier is overhead (owner's call): the bull runs on under it, can't
+      // stop on its square, and does not trample it.
+      if (isAirborne(occupant)) { row = next; continue; }
       directDamage(draft, card, occupant, charge.dmg, true); // PEN — hooves
       trampled++;
       // If that killed it the square is free and the bull may stop there;

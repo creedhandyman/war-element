@@ -419,6 +419,10 @@ export function shoveTarget(
   // the single push in the game that ignores "it doesn't budge" — most visibly
   // in a Stormhide Bison mirror, where the same card carries both.
   if (getDef(victim.defId).pushImmune) return null;
+  // A FLIER IS OVERHEAD (owner's call): there is nothing underfoot to drive
+  // back, so its square is simply taken, like any other occupied one. Grounded
+  // (pinned, frozen, stunned, asleep, paralysed), it can be trampled again.
+  if (isAirborne(victim)) return null;
   // WEIGHT, unless the trampler is a falling rock. See `tramplesAnything`.
   if (!getDef(card.defId).tramplesAnything
       && effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
@@ -625,8 +629,13 @@ export function canMove(
     to.row === homeRow(enemyOf(card.owner), state.boardSize)
   )
     return { ok: false, reason: "Can't cross from your Home row to theirs in one move" };
-  if (cardAt(state, to.row, to.col) && !shoveTarget(state, card, to))
+  const occupant = cardAt(state, to.row, to.col);
+  if (occupant && !shoveTarget(state, card, to)) {
+    // A trampler is told WHY: the same step onto a body on the ground works.
+    if (getDef(card.defId).keywords.TRAMPLE && occupant.owner !== card.owner && isAirborne(occupant))
+      return { ok: false, reason: `${getDef(occupant.defId).name} is flying — TRAMPLE can't reach it` };
     return { ok: false, reason: "Destination occupied" };
+  }
   // …and now the squares BETWEEN, which nothing used to look at. Checked after
   // the destination so "occupied" still wins when both are true — the shorter,
   // more obvious reason is the more useful one to show.
@@ -778,6 +787,16 @@ export function isStealthed(def: CardDef, card: CardInstance): boolean {
 const GROUNDING_STATUSES: StatusKind[] = ["ROOT", "FREEZE", "STUN", "SLEEP", "PARALYZE"];
 export function isGrounded(card: CardInstance): boolean {
   return GROUNDING_STATUSES.some((s) => hasStatus(card, s));
+}
+
+/** UP IN THE AIR right now: FLYING (the keyword, or FireFly's granted flight)
+ *  and not dragged down by a grounding status. Nothing that runs a body down
+ *  can reach it (owner's call): a TRAMPLE shove, a rider's trample on the way
+ *  past, a stampede up the lane. A grounded flier is on the ground, the same
+ *  line melee draws. */
+export function isAirborne(card: CardInstance): boolean {
+  const flies = Boolean(getDef(card.defId).keywords.FLYING) || (card.flyingRoundsLeft ?? 0) > 0;
+  return flies && !isGrounded(card);
 }
 
 export function canTarget(
