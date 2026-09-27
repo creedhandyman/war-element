@@ -6956,7 +6956,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   text-shadow: 0 1px 2px #000; margin-top: 1px;
 }
 .gal-empty { margin-top: 18px; }
-/* THE ARTWORK'S MARK: ™ © on every painting the gallery shows — the grid's
+/* THE ARTWORK'S MARK: "™ © Creed Koncepts" on every painting the gallery shows — the grid's
    tiles and the full-size plate — so a screenshot of the art carries it.
    Quiet on purpose: a translucent corner mark, not a stamp across the
    painting, and it never takes a tap. `.gal-card >` because the tile's shared
@@ -6964,7 +6964,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    relative` and drop it into the flow. */
 .gal-card > .gal-wm {
   position: absolute; top: 36%; right: 5px; z-index: 1;
-  font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; line-height: 1;
+  font-size: 7px; font-weight: 800; letter-spacing: 0.04em; line-height: 1; white-space: nowrap;
   color: rgba(255, 255, 255, 0.5); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
   pointer-events: none; -webkit-user-select: none; user-select: none;
 }
@@ -6984,6 +6984,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .gallery-modal { padding: 12px 10px 14px; }
   .gal-grid { grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); }
   .gal-card { height: 132px; }
+  /* An 84px tile clipped the mark's "™" at 7px. */
+  .gal-card > .gal-wm { font-size: 6px; letter-spacing: 0; right: 3px; }
 }
 
 /* ── Card Gallery · the plate, full screen ────────────────────────────────
@@ -7010,7 +7012,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gal-frame { position: relative; display: grid; min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; }
 .gal-frame > .gal-wm {
   position: absolute; right: 10px; bottom: 8px;
-  font-size: 13px; font-weight: 800; letter-spacing: 0.1em; line-height: 1;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.06em; line-height: 1; white-space: nowrap;
   color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
   pointer-events: none; -webkit-user-select: none; user-select: none;
 }

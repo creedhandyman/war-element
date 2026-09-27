@@ -333,7 +333,7 @@ export function CardGallery(props: { onClose: () => void }) {
                     onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
                   {/* The artwork's mark, on the art itself (see `.gal-wm`). */}
-                  <span className="gal-wm" aria-hidden="true">™ ©</span>
+                  <span className="gal-wm" aria-hidden="true">™ © Creed Koncepts</span>
                   <div className="dt-top">
                     <span
                       className="dt-cost"
@@ -407,7 +407,7 @@ export function CardGallery(props: { onClose: () => void }) {
               // neither one steals the other's tap.
               onClick={(e) => { e.stopPropagation(); setZoom((z) => !z); }}
             />
-            <span className="gal-wm" aria-hidden="true">™ ©</span>
+            <span className="gal-wm" aria-hidden="true">™ © Creed Koncepts</span>
           </div>
 
           <div className="gal-lb-top" onClick={(e) => e.stopPropagation()}>
