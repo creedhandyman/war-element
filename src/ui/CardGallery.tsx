@@ -332,6 +332,8 @@ export function CardGallery(props: { onClose: () => void }) {
                     decoding="async"
                     onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
+                  {/* The artwork's mark, on the art itself (see `.gal-wm`). */}
+                  <span className="gal-wm" aria-hidden="true">™ ©</span>
                   <div className="dt-top">
                     <span
                       className="dt-cost"
@@ -392,15 +394,21 @@ export function CardGallery(props: { onClose: () => void }) {
           role="dialog"
           aria-label={`${detail.name} — full size`}
         >
-          <img
-            className="gal-plate"
-            src={cardArtSrc(detail)}
-            alt={detail.name}
-            // Tap the ART to fill the screen with it; tap the backdrop to
-            // leave. Two different targets for two different intentions, so
-            // neither one steals the other's tap.
-            onClick={(e) => { e.stopPropagation(); setZoom((z) => !z); }}
-          />
+          {/* The frame is the painting's own box, so its mark sits on the
+              painting's corner however the plate is scaled, not on the
+              screen's. */}
+          <div className="gal-frame">
+            <img
+              className="gal-plate"
+              src={cardArtSrc(detail)}
+              alt={detail.name}
+              // Tap the ART to fill the screen with it; tap the backdrop to
+              // leave. Two different targets for two different intentions, so
+              // neither one steals the other's tap.
+              onClick={(e) => { e.stopPropagation(); setZoom((z) => !z); }}
+            />
+            <span className="gal-wm" aria-hidden="true">™ ©</span>
+          </div>
 
           <div className="gal-lb-top" onClick={(e) => e.stopPropagation()}>
             <span className="gal-lb-count">{at >= 0 ? `${at + 1} / ${shown.length}` : ""}</span>

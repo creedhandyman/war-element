@@ -6956,6 +6956,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   text-shadow: 0 1px 2px #000; margin-top: 1px;
 }
 .gal-empty { margin-top: 18px; }
+/* THE ARTWORK'S MARK: ™ © on every painting the gallery shows — the grid's
+   tiles and the full-size plate — so a screenshot of the art carries it.
+   Quiet on purpose: a translucent corner mark, not a stamp across the
+   painting, and it never takes a tap. `.gal-card >` because the tile's shared
+   `.carded > *:not(.card-art)` rule would otherwise make it `position:
+   relative` and drop it into the flow. */
+.gal-card > .gal-wm {
+  position: absolute; top: 36%; right: 5px; z-index: 1;
+  font-size: 8.5px; font-weight: 800; letter-spacing: 0.08em; line-height: 1;
+  color: rgba(255, 255, 255, 0.5); text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9);
+  pointer-events: none; -webkit-user-select: none; user-select: none;
+}
 
 /* The detail panel's footer: what it is, what summons it, and the pager. */
 .gal-extra { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; text-align: left; }
@@ -6993,11 +7005,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   animation: gal-lb-in 0.16s ease-out both;
 }
 @keyframes gal-lb-in { from { opacity: 0; } to { opacity: 1; } }
+/* The plate's own box, shrink-wrapped round it, so the mark can sit on the
+   painting's corner. It is the grid item now, centred as the plate was. */
+.gal-frame { position: relative; display: grid; min-width: 0; min-height: 0; max-width: 100%; max-height: 100%; }
+.gal-frame > .gal-wm {
+  position: absolute; right: 10px; bottom: 8px;
+  font-size: 13px; font-weight: 800; letter-spacing: 0.1em; line-height: 1;
+  color: rgba(255, 255, 255, 0.55); text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9);
+  pointer-events: none; -webkit-user-select: none; user-select: none;
+}
 .gal-plate {
-  /* Viewport units as well as percentages: percentages depend on the track
-     above resolving, and these cannot fail regardless. `dvh` so a phone's
+  /* VIEWPORT units only. The plate used to be the lightbox's grid item and
+     took percentages of its track too; inside the frame, a percentage of the
+     frame's auto height cannot resolve, and an unresolvable max-height is no
+     max-height at all — the plate would hang off the screen. The lightbox is
+     fixed to the viewport, so these ARE its track. `dvh` so a phone's
      retracting URL bar does not crop the bottom of the painting. */
-  max-width: min(100%, 100vw); max-height: min(100%, 100dvh);
+  max-width: 100vw; max-height: 100dvh;
   width: auto; height: auto;
   object-fit: contain;               /* the WHOLE painting — never a crop */
   display: block;
@@ -7010,6 +7034,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    covering while a modal is on top of both. */
 .gal-lightbox.reading { z-index: calc(var(--z-modal) - 1); }
 .gal-lightbox.zoomed { cursor: zoom-out; }
+.gal-lightbox.zoomed .gal-frame { width: 100%; height: 100%; }
 .gal-lightbox.zoomed .gal-plate {
   width: 100%; height: 100%; max-width: none; max-height: none;
   object-fit: cover; object-position: 50% 32%;
