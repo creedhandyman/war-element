@@ -934,6 +934,8 @@ export function reelToCaster(
   card: CardInstance,
   steps: number,
   puller: CardInstance,
+  /** The log's verb: a rope "ropes", a tentacle "reels". */
+  verb = "ropes",
 ): void {
   if (getDef(card.defId).pushImmune) return;
   const pullerHome = stopsAtOwnHomeRow(draft, card, puller.owner);
@@ -960,7 +962,7 @@ export function reelToCaster(
     if (!stepped) break;
   }
   if (moved > 0)
-    draft.log.push(`${label(draft, puller)} ropes ${getDef(card.defId).name} in ${moved} slot(s).`);
+    draft.log.push(`${label(draft, puller)} ${verb} ${getDef(card.defId).name} in ${moved} slot(s).`);
 }
 
 /** HP-threshold transform (Skelider Dismount): fires once when the card first
@@ -2635,9 +2637,10 @@ export function basicAttack(
       draft.log.push(`${label(draft, attacker)} unleashes Mega Push (${aDef.lowHpNova.dmg} + knockback to all).`);
     }
   }
-  // Harpoon Hook (Harp) / Sucker Sword (Octoirate): reel each struck enemy in
-  // toward the attacker. Only when something landed and the attacker is still
-  // standing; allies (Morning-Dew-style friendly aims) are never dragged.
+  // Undertow (Harp) / Hooked Vine (Leafwind Guardian): drag each struck enemy
+  // down its own column toward the attacker's side. Only when something landed
+  // and the attacker is still standing; allies (Morning-Dew-style friendly
+  // aims) are never dragged.
   if (aDef.pullOnAttack && agg.landedHits > 0 && attacker.curHp > 0) {
     const seen = new Set<string>();
     for (const g of groups) {
@@ -2645,6 +2648,19 @@ export function basicAttack(
       seen.add(g.targetId);
       const t = draft.cards[g.targetId];
       if (t && t.curHp > 0 && t.owner !== attacker.owner) pullToward(draft, t, aDef.pullOnAttack, attacker.owner);
+    }
+  }
+  // Tentacle Reel (Octoirate): reel each struck enemy toward the ATTACKER
+  // ITSELF, a king-step from any side — the lasso's rule, so it stops beside
+  // Octoirate, steps around a body in the way, and never ends on the home row.
+  // Same gates as the drag above.
+  if (aDef.reelOnAttack && agg.landedHits > 0 && attacker.curHp > 0) {
+    const seen = new Set<string>();
+    for (const g of groups) {
+      if (seen.has(g.targetId)) continue;
+      seen.add(g.targetId);
+      const t = draft.cards[g.targetId];
+      if (t && t.curHp > 0 && t.owner !== attacker.owner) reelToCaster(draft, t, aDef.reelOnAttack, attacker, "reels");
     }
   }
   // Rolling Start (Rumbler): the boulder keeps rolling — every basic carries it a

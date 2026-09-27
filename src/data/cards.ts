@@ -3609,15 +3609,19 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    passiveNames: { onKill: "Swallow Whole", pullOnAttack: "Tentacle Reel" },
+    passiveNames: { onKill: "Swallow Whole", reelOnAttack: "Tentacle Reel" },
     // Liquid -> Pirate; SeaC is KEPT, so unlike BlackBeard and Driftwraith this
     // one stays in Kraken's school and gains the crew's +1 DMG on top. "Liquid"
     // is read by no aura or payoff in the game, so nothing was lost with it.
     tribe: ["SeaC", "Pirate"],
-    // On Kill: +3 max HP permanently. Sucker Sword: a landed basic drags the
-    // struck enemy 1 slot toward Octoirate.
+    // On Kill: +3 max HP permanently. Tentacle Reel: a landed basic reels the
+    // struck enemy 1 slot toward Octoirate ITSELF, from any side. It was the
+    // column drag (`pullOnAttack`), which from Octoirate's usual seat on its
+    // home row could never move the enemy in the row in front (that step is
+    // the home row, which a pull may not enter) and only ever dragged a
+    // target straight down its own column, never toward Octoirate.
     onKill: { buffMaxHp: 3 },
-    pullOnAttack: 1,
+    reelOnAttack: 1,
     special: {
       name: "Wave Crash",
       cost: 2,

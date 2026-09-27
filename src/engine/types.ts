@@ -1064,10 +1064,15 @@ export interface CardDef {
    *  round's Cleanup — the sting is spent and the bee is gone. Its on-hit DOT
    *  still lands and still ticks; the corpse just doesn't linger. */
   diesAfterAttacking?: boolean;
-  /** Harpoon Hook (Harp) / Sucker Sword (Octoirate): after a landed basic
-   *  attack, drag the struck enemy this many slots toward the attacker —
-   *  reeling a ranged/backline target into melee range. */
+  /** Undertow (Harp) / Hooked Vine (Leafwind Guardian): after a landed basic
+   *  attack, drag the struck enemy this many slots along its own column toward
+   *  the attacker's side (`pullToward`) — reeling a backline target forward. */
   pullOnAttack?: number;
+  /** Tentacle Reel (Octoirate): after a landed basic attack, reel the struck
+   *  enemy this many king-steps toward the ATTACKER ITSELF, from any side
+   *  (`reelToCaster`). Unlike `pullOnAttack` it closes both axes, so a target
+   *  off to one side comes sideways, and it stops beside the attacker. */
+  reelOnAttack?: number;
   /** Tail Drop (Gecko): a once-per-game cheat-death. The first lethal blow
    *  leaves it at 1 HP instead, cloaked in STEALTH and regenerating as the tail
    *  regrows. */

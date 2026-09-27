@@ -1259,7 +1259,9 @@ export function describePassives(def: CardDef): string[] {
   if (def.idleBuff)
     named("idleBuff", `Liquid Serenity: on a round it doesn't attack, heals +${def.idleBuff.heal} and gains +${def.idleBuff.dmg} DMG next round.`);
   if (def.pullOnAttack)
-    named("pullOnAttack", `${def.id === "aqua_octoirate" ? "Sucker Sword" : "Harpoon Hook"}: a landed basic drags the struck enemy ${def.pullOnAttack} slot${def.pullOnAttack > 1 ? "s" : ""} toward it.`);
+    named("pullOnAttack", `Harpoon Hook: a landed basic drags the struck enemy ${def.pullOnAttack} slot${def.pullOnAttack > 1 ? "s" : ""} toward it.`);
+  if (def.reelOnAttack)
+    named("reelOnAttack", `Tentacle Reel: a landed basic reels the struck enemy ${def.reelOnAttack} slot${def.reelOnAttack > 1 ? "s" : ""} toward it, from any side.`);
   if (def.healPerHit)
     named("healPerHit", `Liquification: heals ${def.healPerHit} HP for every basic hit it lands.`);
   if (def.onAllyHitShield)

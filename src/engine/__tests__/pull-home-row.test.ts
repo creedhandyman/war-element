@@ -1,7 +1,7 @@
 // A pull that hands the OPPONENT a capture — your own ability, used against you.
 //
-// `pullToward` (Sucker Sword, Harpoon Hook, Hooked Vine) and `reelToCaster`
-// (Hogtie, the hurricane's arrival) drag an enemy toward the puller, and both
+// `pullToward` (Undertow, Hooked Vine) and `reelToCaster` (Tentacle Reel,
+// Hogtie, the hurricane's arrival) drag an enemy toward the puller, and both
 // walked until the BOARD EDGE stopped them. On the puller's side of the board
 // that edge IS the puller's own home row — so the last step of your own pull
 // parked an enemy body on your own back row, and Cleanup captures a home slot
@@ -36,11 +36,12 @@ function battleWith(s: GameState, activeId: string): GameState {
 const posOf = (s: GameState, c: CardInstance) => s.cards[c.instanceId].pos!;
 
 describe("a pull cannot drag an enemy onto the puller's OWN home row", () => {
-  // Octoirate: AQUA, Ranged, `pullOnAttack: 1` (Sucker Sword). The passive
-  // rides the ordinary basic — no Special, no cost, nothing to opt out of.
-  // AQUA into DUSK cannot be dodged (`dodgesByMatchup` is GALE-vs-BORE only),
-  // so the swing lands and the pull fires every time.
-  const SUCKER = "aqua_octoirate";
+  // Harp: AQUA, Ranged, `pullOnAttack: 1` (Undertow). The passive rides the
+  // ordinary basic — no Special, no cost, nothing to opt out of. AQUA into
+  // DUSK cannot be dodged (`dodgesByMatchup` is GALE-vs-BORE only), so the
+  // swing lands and the pull fires every time. (This was Octoirate until its
+  // Tentacle Reel became `reelOnAttack`, the any-direction reel; see below.)
+  const SUCKER = "aqua_harp";
   const BODY = "dusk_gool";
 
   /** P1's Octoirate swings at the P2 body beside it, through the real intent
