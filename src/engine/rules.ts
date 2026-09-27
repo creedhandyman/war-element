@@ -1908,6 +1908,24 @@ export function talentNeedsTarget(def: CardDef): boolean {
  *  `instanceId !== attacker.instanceId`, and a test reads that back. */
 export const TALENT_EXCLUDES_SELF: ReadonlySet<string> = new Set(["swapAlly"]);
 
+/** THE ALLIES A TALENT AIMED AT A CHOSEN ALLY MAY PICK. That is Stone's Search
+ *  and Rescue, the one Talent with `targetSide: "ally"`, and never Stone itself.
+ *
+ *  The engine has always honoured a picked target (`picks[0]` in the Talent
+ *  branch of `performBattleAction`), but the board never sent one: CONFIRM fired
+ *  with no pick, and the swap went to whichever ally `boardCards` happened to
+ *  list first. The player could not choose who to trade places with. The board
+ *  lights these, a tap picks one, and CONFIRM sends it. Empty for every other
+ *  Talent, which keeps its old untargeted flow. */
+export function talentAllyChoices(state: GameState, instanceId: string): CardInstance[] {
+  const card = state.cards[instanceId];
+  const talent = card && getDef(card.defId).talent;
+  if (!talent || talent.targetSide !== "ally") return [];
+  const selfIsNoUse = TALENT_EXCLUDES_SELF.has(talent.handler);
+  return talentTargets(state, instanceId)
+    .filter((t) => t.curHp > 0 && (!selfIsNoUse || t.instanceId !== instanceId));
+}
+
 export function canFireTalent(
   state: GameState,
   instanceId: string,

@@ -19,8 +19,9 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { CARDS, TOKENS, getDef } from "../../data/cards";
 import {
-  canFireTalent, talentNeedsTarget, TALENT_EXCLUDES_SELF, TALENT_NEEDS_NO_TARGET,
+  canFireTalent, talentAllyChoices, talentNeedsTarget, TALENT_EXCLUDES_SELF, TALENT_NEEDS_NO_TARGET,
 } from "../rules";
+import { applyIntent } from "../phases";
 import { place, prepState } from "./helpers";
 
 const COMBAT = readFileSync(join(__dirname, "..", "combat.ts"), "utf8");
@@ -149,5 +150,65 @@ describe("the card's own text agrees with the gate", () => {
     const t = getDef("gale_tumbleweed").talent!;
     expect(t.text.toLowerCase()).toContain("nothing to hit");
     expect(talentNeedsTarget(getDef("gale_tumbleweed"))).toBe(false);
+  });
+});
+
+// ── Search and Rescue trades places with the ally you PICK ──────────────────
+// Owner-reported: Stone's Talent would not let the player choose the ally to
+// switch with. The engine honoured a picked target all along (`picks[0]`); the
+// board never sent one, so the swap went to whichever ally the board listed
+// first.
+describe("Search and Rescue trades places with the ally you pick", () => {
+  const setup = () => {
+    const s = prepState();
+    const stone = place(s, "bore_stone", "P1", 3, 1);
+    const first = place(s, "leaf_alpha", "P1", 3, 0); // listed first on the board
+    const second = place(s, "leaf_alpha", "P1", 3, 3);
+    s.phase = "battle";
+    s.prep = null;
+    s.battle = { queue: [stone.instanceId], index: 0, awaitingInput: stone.instanceId };
+    return { s, stone: stone.instanceId, first: first.instanceId, second: second.instanceId };
+  };
+
+  it("offers every living ally, and never Stone itself", () => {
+    const { s, stone, first, second } = setup();
+    expect(talentAllyChoices(s, stone).map((c) => c.instanceId).sort()).toEqual([first, second].sort());
+  });
+
+  it("swaps with the ally named in the pick, not the first one on the board", () => {
+    const { s, stone, first, second } = setup();
+    const next = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "talent", targetIds: [second] });
+    expect(next.cards[stone].pos).toEqual({ row: 3, col: 3 });
+    expect(next.cards[second].pos).toEqual({ row: 3, col: 1 });
+    expect(next.cards[first].pos, "the ally nobody picked stays put").toEqual({ row: 3, col: 0 });
+    expect(next.cards[stone].talentUsed).toBe(true);
+  });
+
+  it("is empty for every other Talent, which keeps its untargeted flow", () => {
+    for (const d of [...CARDS, ...TOKENS]) {
+      if (!d.talent || d.id === "bore_stone") continue;
+      const s = prepState();
+      const c = place(s, d.id, "P1", 3, 1);
+      place(s, "leaf_alpha", "P1", 3, 0);
+      expect(talentAllyChoices(s, c.instanceId), d.id).toEqual([]);
+    }
+  });
+
+  it("the board lights the allies, a tap picks one, and Confirm sends it (App.tsx)", () => {
+    const APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
+    const fn = (name: string) => {
+      const at = APP.indexOf(`function ${name}(`);
+      expect(at, `${name} exists`).toBeGreaterThan(-1);
+      return APP.slice(at, APP.indexOf("\n  }\n", at));
+    };
+    expect(APP).toContain("const allies = talentAllyChoices(game, awaitingId);");
+    expect(fn("onSlotClick")).toContain(
+      "if (clicked && talentAllyChoices(game, awaitingId).some((a) => a.instanceId === clicked.instanceId)) {",
+    );
+    const act = fn("actTalent");
+    // Confirm with no ally picked waits instead of firing at the first one...
+    expect(act).toContain("if (picksAlly && picks.length === 0) {");
+    // ...and with one, sends it.
+    expect(act).toContain("...(picksAlly ? { targetIds: picks.slice(0, 1) } : {}),");
   });
 });

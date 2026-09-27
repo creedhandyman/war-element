@@ -7,6 +7,7 @@ import {
   canCastSpell,
   canFireSpecial,
   canFireTalent,
+  talentAllyChoices,
   canPlummet,
   plummetTargets,
   canMove,
@@ -3220,6 +3221,12 @@ export function App() {
     // legal victim, so tapping the 12 HP body killed the 3 HP one beside it.
     if (pending === "plummet")
       return plummetTargets(game, awaitingId).map((t) => t.instanceId);
+    // SEARCH AND RESCUE names its ally, so the allies it can trade places with
+    // glow (not the enemies a basic would hit). A tap picks one; CONFIRM sends it.
+    if (pending === "talent") {
+      const allies = talentAllyChoices(game, awaitingId);
+      if (allies.length > 0) return allies.map((t) => t.instanceId);
+    }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
   }, [game, awaitingId, pending, sel, view, armedPickSide, spellPicks]);
 
@@ -3232,6 +3239,8 @@ export function App() {
       const side = getDef(game.cards[awaitingId].defId).special?.targetSide;
       return side !== "ally" && side !== "self"; // self-buffs aren't hostile targets
     }
+    // An ally-picking Talent's glow is friendly, like an ally Special's.
+    if (pending === "talent" && awaitingId && talentAllyChoices(game, awaitingId).length > 0) return false;
     return true; // basic attack
   }, [legalTargetIds, sel, pending, awaitingId, game, armedPickSide]);
 
@@ -3568,8 +3577,20 @@ export function App() {
       // An armed Talent takes no target, so nothing on the board is glowing and
       // "pick a glowing card" would be a lie. A click inspects; the board is not
       // where the decision is.
+      //
+      // ...EXCEPT Search and Rescue, which trades places with an ally the player
+      // names. Its allies glow (`legalTargetIds`), a tap picks one (and a later
+      // tap re-picks), and CONFIRM sends that ally. Picking only aims it: the
+      // Talent is spent once per game, so it never fires on the tap itself.
       if (pending === "talent") {
+        if (clicked && talentAllyChoices(game, awaitingId).some((a) => a.instanceId === clicked.instanceId)) {
+          setPicks([clicked.instanceId]);
+          setHint(`Trade places with <b>${getDef(clicked.defId).name}</b>? Press <b>Confirm</b>, or tap another ally.`);
+          return;
+        }
         if (clicked) inspectTapped(clicked);
+        else if (talentAllyChoices(game, awaitingId).length > 0)
+          setHint("Tap a <b>glowing ally</b>: the one to trade places with.");
         else setHint("This Talent takes no target — press <b>CONFIRM</b> to use it, or <b>CANCEL</b> to back out.");
         return;
       }
@@ -4141,8 +4162,19 @@ export function App() {
     // first — on a button whose effect is free, once per game, and gone the
     // moment it resolves. A Special you misfire costs magic you get back next
     // round; a Talent you misfire is spent for the rest of the match.
+    // An ally-picking Talent (Search and Rescue) goes to the ally the player
+    // TAPPED. Without a pick it waits rather than firing: the engine would
+    // otherwise hand the swap to whichever ally it lists first.
+    const picksAlly = talentAllyChoices(game, activeCard.instanceId).length > 0;
     if (pending === "talent") {
-      dispatch({ type: "BATTLE_ACTION", player: activeCard.owner, action: "talent" });
+      if (picksAlly && picks.length === 0) {
+        setHint("Tap a <b>glowing ally</b> first: the one to trade places with. Then press <b>Confirm</b>.");
+        return;
+      }
+      dispatch({
+        type: "BATTLE_ACTION", player: activeCard.owner, action: "talent",
+        ...(picksAlly ? { targetIds: picks.slice(0, 1) } : {}),
+      });
       setPending(null);
       return;
     }
@@ -4160,7 +4192,9 @@ export function App() {
       // touch, which is where this prompt lives (`.bp-hint`).
       `<b>${activeDef.talent.name}</b> (Talent) — ` +
       `${talentEffect(activeDef.talent.text)} ` +
-      `Free, but press <b>Confirm</b> to spend it: there is no second one.`,
+      (picksAlly
+        ? `Tap the <b>glowing ally</b> to trade places with, then press <b>Confirm</b>. Free, but there is no second one.`
+        : `Free, but press <b>Confirm</b> to spend it: there is no second one.`),
     );
   }
 

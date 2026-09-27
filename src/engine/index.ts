@@ -52,6 +52,7 @@ export {
   canBasicAttack,
   canFireSpecial,
   canFireTalent,
+  talentAllyChoices,
   canPlummet,
   plummetTargets,
   effectiveSpecialCost,
