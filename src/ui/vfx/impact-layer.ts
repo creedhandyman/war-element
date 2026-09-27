@@ -28,6 +28,8 @@ import { LOOKS, lookFor } from "./looks";
 import { platePoint } from "./looks/base";
 import { drawDrain, drawTick, type TickArgs } from "./ticks";
 import { drawShieldHit } from "./shield-hit";
+import { SIGNATURES } from "./signatures";
+import type { SigMoment } from "./signatures/types";
 import type { Emit, FxTools, LookVariant, Pt, Shot, SparkStyle } from "./looks/types";
 
 /** A screen rectangle, CSS px — a square, a row, the board. */
@@ -65,9 +67,15 @@ export type LayerFx =
       arriving?: boolean; variant?: LookVariant;
       /** Targets whose shields took all of it, aligned with `targets`: the shot
        *  is stopped on the shield plate in front of them (`platePoint`). */
-      soaked?: boolean[] }
+      soaked?: boolean[];
+      /** A MYTHIC's Special (signatures/): its card id, whose own delivery
+       *  plays instead of the element's — with where it ends the step (`to`,
+       *  a charge or a dive), which way is ahead for it, and the board. */
+      signature?: string; to?: Rect; ahead?: Pt; board?: Rect }
   /** A summon that struck, materialising on its square as the hits land. */
   | { kind: "arrive"; rect: Rect; element: Element; variant?: LookVariant }
+  /** A MYTHIC's signature move landing (signatures/), keyed by card id. */
+  | ({ kind: "signature"; key: string; element: Element } & SigMoment)
   /** A card's shields knocked off: the plate that took the blow, facing along
    *  `angle` (the line of attack) — none for a spell, which lights all of it.
    *  A soaked blow splashes off it in `element` (or an icy card's ice). See
@@ -99,6 +107,10 @@ export interface ImpactLayer {
   /** Hard ceiling on live sparks. A burst that would exceed it is thinned, not
    *  skipped, so a busy AoE still reads as a hit on every square. */
   setCap(n: number): void;
+  /** The signature drawn for a card id, if there is one (signatures/): how
+   *  hard its landing shakes the board, and whether a melee card still lunges
+   *  in its delivery. Null plays the element's look. */
+  signature(key: string): { shake: number; lunge: boolean } | null;
   destroy(): void;
 }
 
@@ -1015,6 +1027,18 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     const look = lookFor(fx.element, fx.variant);
     const t = toolsFor(fx.element);
     const T = fx.seconds;
+    // A MYTHIC's Special is delivered its own way (signatures/), when its
+    // signature draws a delivery; one that draws only a landing is thrown in
+    // its element's look like anything else.
+    const sig = fx.signature ? SIGNATURES[fx.signature] : undefined;
+    if (sig?.deliver) {
+      sig.deliver(t, {
+        from: fx.from, to: fx.to ?? fx.from, targets: fx.targets, power: fx.power ?? fx.targets.map(() => 1),
+        killed: fx.targets.map(() => false), spawned: [], allies: [], ahead: fx.ahead ?? { x: 0, y: -1 },
+        board: fx.board ?? fx.from, arriving: !!fx.arriving, size: Math.min(fx.from.w, fx.from.h),
+      }, T);
+      return;
+    }
     const wind = T * (fx.special ? 0.45 : 0.35);
     const travel = T - wind;
     const from = centre(fx.from);
@@ -1239,6 +1263,9 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       case "arrive":
         arrive(fx);
         break;
+      case "signature":
+        SIGNATURES[fx.key]?.land(t, fx);
+        break;
       case "shieldHit":
         drawShieldHit(t, fx, fx.variant === "ice" && fx.element === "AQUA" ? ICE_STYLE : el);
         break;
@@ -1397,6 +1424,10 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     get quality() { return quality; },
     fps: () => app.ticker.FPS,
     setCap(n) { cap = n; },
+    signature(key) {
+      const s = SIGNATURES[key];
+      return s ? { shake: s.shake ?? 1.2, lunge: s.lunge ?? true } : null;
+    },
     destroy() {
       app.ticker.stop();
       app.destroy(true, { children: true });
@@ -1405,5 +1436,5 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
 }
 
 function noopLayer(): ImpactLayer {
-  return { impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, destroy() {} };
+  return { impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, signature: () => null, destroy() {} };
 }

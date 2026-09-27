@@ -17,7 +17,7 @@
  *  Only the viewer's own trap placement gets an effect. */
 import type { CardDef, CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
 import { chebyshev, effectiveSp } from "../../engine/state";
-import { FX_DMG_KEEP } from "../../engine/combat";
+import { FX_DMG_KEEP, rowAhead } from "../../engine/combat";
 import { getSpell } from "../../engine/spells";
 import { DUSK_DRAIN, hasElementAura } from "../../engine/auras";
 import { getDef } from "../../data/cards";
@@ -66,6 +66,13 @@ export type SpellFx =
   | { kind: "shieldHit"; at: At; element: Element; had: number; lost: number; soaked: boolean; from?: At; variant?: LookVariant }
   /** A summon that struck as it landed, materialising on its square. */
   | { kind: "arrive"; at: At; element: Element; variant?: LookVariant }
+  /** A MYTHIC's signature move — its Special, or the strike it makes as it
+   *  lands — drawn as itself (vfx/signatures/) instead of the per-target hit
+   *  marks. `key` is the card's id. `lands`: where the card ends the step (a
+   *  charge or a dive moves it). `damage`/`killed` align with `targets`.
+   *  `dir`: the row direction toward its enemy (`rowAhead`). */
+  | { kind: "signature"; key: string; element: Element; actor: At; lands: At; targets: At[]; damage: number[]; killed: boolean[];
+      spawned: At[]; allies: At[]; dir: number; arriving: boolean }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
    *  the set piece that sweeps the board, over and above each card's own
    *  effect. `targets` are the opposing cards it reached, which the set piece
@@ -244,6 +251,21 @@ export interface CardAttack {
   /** Each target's shields took all of it, aligned with `targets`: the shot
    *  is stopped by the shield plate in front of the card, not the card. */
   soaked: boolean[];
+  /** A MYTHIC's signature move (`signatureOf`): its card id, when this is
+   *  its Special or its entrance. */
+  signature?: string;
+  /** Where the card ends the step, when that is not where it struck from: a
+   *  charge, a dive, a ride. */
+  lands?: At;
+  /** The row direction toward its enemy (`rowAhead`): -1 or 1. */
+  dir: number;
+}
+
+/** A MYTHIC's signature: its card id, when the step is its Special or the
+ *  strike it makes as it lands. vfx/signatures/ draws the ones it has; any
+ *  other (a boss, a mythic not drawn yet) plays its element's look. */
+function signatureOf(a: { def: CardDef; special: boolean }): string | undefined {
+  return a.special && a.def.rarity === "mythic" ? a.def.id : undefined;
 }
 
 /** A PROJECTILE'S SIZE IS ITS DAMAGE: its area in proportion to what it
@@ -315,7 +337,7 @@ function striker(before: GameState, after: GameState) {
     if (!was?.pos) return null;
     const now = after.cards[id];
     return {
-      seat: was.owner, at: was.pos, def: getDef(was.defId),
+      id, seat: was.owner, at: was.pos, def: getDef(was.defId),
       special: !!now && now.specialCasts > was.specialCasts, arriving: false, variant: lookVariant(was),
     };
   }
@@ -325,30 +347,47 @@ function striker(before: GameState, after: GameState) {
   const card = arrived.find((c) => getDef(c.defId).onSummon) ?? arrived[0];
   if (!card?.pos) return null;
   const def = getDef(card.defId);
-  return { seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true, variant: lookVariant(card) };
+  return {
+    id: card.instanceId, seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true, variant: lookVariant(card),
+  };
 }
+
+/** What a striker's step was aimed at: the opposing cards it reached (hurt,
+ *  statused or drained) — and any that DODGED it, which changes nothing but
+ *  the dodger's MISS counter, though it was still aimed. */
+function aimedAt(before: GameState, after: GameState, seat: PlayerId, reached: At[]): At[] {
+  const targets = [...reached];
+  for (const [id, c] of Object.entries(before.cards)) {
+    if (!c.pos || c.owner === seat) continue;
+    const n = after.cards[id];
+    if (n && (n.fxMiss ?? 0) > (c.fxMiss ?? 0) && !targets.some((t) => t.row === c.pos!.row && t.col === c.pos!.col))
+      targets.push(c.pos);
+  }
+  return targets;
+}
+
+/** The card that stood at `at` before a step. */
+const cardAt = (s: GameState, at: At) => Object.values(s.cards).find((c) => c.pos?.row === at.row && c.pos?.col === at.col);
 
 /** The attack a step made, if it made one at anything. */
 export function cardAttack(before: GameState, after: GameState): CardAttack | null {
   const a = striker(before, after);
   if (!a) return null;
   const { reached } = cardChanges(before, after, a.def.element, a.seat);
-  const targets = [...reached];
-  for (const [id, c] of Object.entries(before.cards)) {
-    if (!c.pos || c.owner === a.seat) continue;
-    const n = after.cards[id];
-    if (n && (n.fxMiss ?? 0) > (c.fxMiss ?? 0) && !targets.some((t) => t.row === c.pos!.row && t.col === c.pos!.col))
-      targets.push(c.pos);
-  }
+  const targets = aimedAt(before, after, a.seat, reached);
   if (targets.length === 0) return null;
+  const lands = a.arriving ? undefined : after.cards[a.id]?.pos;
   return {
     seat: a.seat, actor: a.at, element: a.def.element,
     melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets, variant: a.variant,
     damage: targets.map((at) => damageAt(before, after, at)),
     soaked: targets.map((at) => {
-      const card = Object.values(before.cards).find((c) => c.pos?.row === at.row && c.pos?.col === at.col);
+      const card = cardAt(before, at);
       return !!card && shieldLoss(card, after.cards[card.instanceId]).soaked;
     }),
+    signature: signatureOf(a),
+    ...(lands && (lands.row !== a.at.row || lands.col !== a.at.col) ? { lands } : {}),
+    dir: rowAhead(a.seat, 0),
   };
 }
 
@@ -387,6 +426,26 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
     else if (opposing || fx.kind !== "debuff") out.push(fx);
   }
   if (a.arriving && reached.length > 0) out.unshift({ kind: "arrive", at: a.at, element, variant: a.variant });
+  // A MYTHIC's signature move: everything its drawing needs, read off the same
+  // step — what it aimed at, what that cost each (and who died), where it
+  // ended up, what it raised, and who stands with it. Pushed even when it aimed
+  // at nothing: a self-buff (Oakgre tearing free) is the move itself.
+  const key = signatureOf(a);
+  if (key) {
+    const targets = aimedAt(before, after, a.seat, reached);
+    const mine = Object.values(after.cards).filter((c) => c.pos && c.owner === a.seat && c.instanceId !== a.id);
+    out.push({
+      kind: "signature", key, element, actor: a.at, lands: after.cards[a.id]?.pos ?? a.at, targets,
+      damage: targets.map((at) => damageAt(before, after, at)),
+      killed: targets.map((at) => {
+        const card = cardAt(before, at);
+        return !!card && !after.cards[card.instanceId]?.pos;
+      }),
+      spawned: mine.filter((c) => !before.cards[c.instanceId]).map((c) => c.pos!),
+      allies: mine.map((c) => c.pos!),
+      dir: rowAhead(a.seat, 0), arriving: a.arriving,
+    });
+  }
   return out;
 }
 

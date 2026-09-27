@@ -40,7 +40,9 @@ function loadLayer(): Promise<ImpactLayer> {
   return layer;
 }
 
-const NO_LAYER: ImpactLayer = { impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, destroy() {} };
+const NO_LAYER: ImpactLayer = {
+  impact() {}, play() {}, live: 0, quality: 1, fps: () => 0, setCap() {}, signature: () => null, destroy() {},
+};
 
 function effectsOn(): boolean {
   // prefers-reduced-motion switches the whole layer off, not down: a softer
@@ -65,6 +67,21 @@ function rowRect(row: number): Rect | null {
   const x = Math.min(...cells.map((c) => c.left)), y = Math.min(...cells.map((c) => c.top));
   const right = Math.max(...cells.map((c) => c.right)), bottom = Math.max(...cells.map((c) => c.bottom));
   return { x, y, w: right - x, h: bottom - y };
+}
+
+/** "Ahead" for a card on `at`, as a screen unit vector: toward the square
+ *  `dir` rows on (`rowAhead`), measured off the DOM because the board is drawn
+ *  flipped for a P2 viewer. At the board's edge, away from the square behind. */
+function aheadOf(at: At, dir: number): { x: number; y: number } {
+  const here = squareRect(at);
+  const on = squareRect({ row: at.row + dir, col: at.col }), back = squareRect({ row: at.row - dir, col: at.col });
+  const unit = (dx: number, dy: number) => {
+    const d = Math.hypot(dx, dy) || 1;
+    return { x: dx / d, y: dy / d };
+  };
+  if (here && on) return unit(on.x - here.x, on.y - here.y);
+  if (here && back) return unit(here.x - back.x, here.y - back.y);
+  return { x: 0, y: dir < 0 ? -1 : 1 };
 }
 
 function boardRect(): Rect | null {
@@ -144,14 +161,21 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
   const aimed = act.targets.map((at, i) => ({ r: squareRect(at), dmg: act.damage[i] ?? 0, soaked: act.soaked[i] ?? false }))
     .filter((a): a is { r: Rect; dmg: number; soaked: boolean } => a.r !== null);
   if (!from || aimed.length === 0) return;
-  void loadLayer().then((l) => l.play({
-    kind: "attack", from, targets: aimed.map((a) => a.r), power: aimed.map((a) => shotPower(a.dmg, act.special)), element: act.element,
-    melee: act.melee, special: act.special, arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
-    soaked: aimed.map((a) => a.soaked),
-  }));
-  // A summon striking as it lands has no token to lunge yet — it is not on the
-  // board until the step lands — so its delivery comes from its square alone.
-  if (act.melee && !act.arriving) lunge(act.actor, from, aimed.map((a) => a.r), ms);
+  const to = act.lands ? squareRect(act.lands) : null;
+  const board = boardRect();
+  void loadLayer().then((l) => {
+    l.play({
+      kind: "attack", from, targets: aimed.map((a) => a.r), power: aimed.map((a) => shotPower(a.dmg, act.special)), element: act.element,
+      melee: act.melee, special: act.special, arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
+      soaked: aimed.map((a) => a.soaked),
+      ...(act.signature ? { signature: act.signature, to: to ?? from, ahead: aheadOf(act.actor, act.dir), board: board ?? from } : {}),
+    });
+    // A summon striking as it lands has no token to lunge yet — it is not on
+    // the board until the step lands — so its delivery comes from its square
+    // alone. A mythic whose signature draws its own charge keeps its card still.
+    const sig = act.signature ? l.signature(act.signature) : null;
+    if (act.melee && !act.arriving && (sig?.lunge ?? true)) lunge(act.actor, from, aimed.map((a) => a.r), ms);
+  });
 }
 
 /** The lunge running on each token, so a second one takes over from the first. */
@@ -248,6 +272,10 @@ const OVERLAP_MS = 300;
 /** ...and is never held longer than this, however much is on screen. */
 const MAX_WAIT_MS = 1200;
 
+/** How long a mythic's signature landing holds the eye (signatures/types.ts
+ *  asks each to keep to it). */
+const SIGNATURE_SETTLE_MS = 1200;
+
 /** Roughly how long an effect holds the eye, in seconds. */
 function settleOf(f: SpellFx): number {
   switch (f.kind) {
@@ -255,6 +283,9 @@ function settleOf(f: SpellFx): number {
     case "impact": case "trapSprung": case "wallBite": case "shieldHit": return 0.55;
     case "tick": case "drain": return f.delay + 0.8;
     case "board": return 1.1;
+    // Counted once the layer says it draws one (`fire`): a mythic it has no
+    // drawing for — a boss — plays its hits, on their own clock.
+    case "signature": return 0;
     case "field": return 1.2;
     case "wall": return 1;
     case "heal": case "pulse": return 0.8;
@@ -310,6 +341,11 @@ function fire(all: SpellFx[]) {
     // one white-out that hides the very cards and numbers the player is
     // reading (seen: Volcanic Eruption on three Greegons).
     const boardWide = fx.some((f) => f.kind === "board");
+    // A MYTHIC's signature owns its landing: the per-target hit marks give way
+    // to it. (Its statuses, the shields it knocked off and the damage numbers
+    // still play — they mean the same thing whoever caused them.)
+    const signed = fx.some((f) => f.kind === "signature" && l.signature(f.key) !== null);
+    if (signed) busyUntil = Math.max(busyUntil, performance.now() + SIGNATURE_SETTLE_MS);
     for (const f of fx) {
       switch (f.kind) {
         case "board": {
@@ -325,7 +361,7 @@ function fire(all: SpellFx[]) {
         }
         case "hit": {
           const r = squareRect(f.at), a = squareRect(f.from);
-          if (!r) break;
+          if (!r || signed) break;
           const angle = a ? Math.atan2(r.y - a.y, r.x - a.x) : -Math.PI / 2;
           // A blow the shields SOAKED never reached the card, so it is not drawn
           // as damage: the shot was stopped on the plate in front of it and
@@ -339,6 +375,23 @@ function fire(all: SpellFx[]) {
           // Only a Special shakes the board: a basic attack happens every turn.
           // Nor one the shields held — nothing got through to shake.
           if (f.special && !f.soaked) hardest = Math.max(hardest, f.strength);
+          break;
+        }
+        case "signature": {
+          const sig = l.signature(f.key);
+          const from = squareRect(f.actor), board = boardRect();
+          if (!sig || !from || !board) break;
+          const rects = (ats: At[]) => ats.map(squareRect).filter((r): r is Rect => r !== null);
+          // Paired before filtering, so each target keeps its own numbers.
+          const hit = f.targets.map((at, i) => ({ r: squareRect(at), p: shotPower(f.damage[i] ?? 0, true), k: f.killed[i] ?? false }))
+            .filter((h): h is { r: Rect; p: number; k: boolean } => h.r !== null);
+          l.play({
+            kind: "signature", key: f.key, element: f.element, from, to: squareRect(f.lands) ?? from,
+            targets: hit.map((h) => h.r), power: hit.map((h) => h.p), killed: hit.map((h) => h.k),
+            spawned: rects(f.spawned), allies: rects(f.allies), ahead: aheadOf(f.actor, f.dir), board,
+            arriving: f.arriving, size: Math.min(from.w, from.h),
+          });
+          hardest = Math.max(hardest, sig.shake);
           break;
         }
         case "shieldHit": {
