@@ -4,8 +4,8 @@
  *  capture lockout): objective, deck, resources, the round loop, combat,
  *  shields, speed/movement, elements, statuses, keywords and wins. */
 import {
-  ELEMENT_AURA, ELEMENT_MATCHUP, MAX_ROUNDS, OPENING_COST_CAP, OVERRUN_HOLD_ROUNDS, SP_SLOW_MAX,
-  VOID_TOWER_ROUNDS,
+  ELEMENT_AURA, ELEMENT_MATCHUP, GALE_SP_CAP, MAX_ROUNDS, OPENING_COST_CAP, OVERRUN_HOLD_ROUNDS,
+  SP_SLOW_MAX, VOID_TOWER_ROUNDS,
 } from "../engine";
 import { OPENING_CHEAP_COST, OPENING_CHEAP_MIN, SP_MID_MAX } from "../engine/state";
 import { DOMINATION_7X7, POI_GOLD } from "../data/domination";
@@ -145,7 +145,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 a row, the battle starts.
               </li>
               <li>
-                <b>Battle</b>: cards act in <b>SP order</b> (fastest first, 21 → 0;
+                <b>Battle</b>: cards act in <b>SP order</b> (fastest first, {GALE_SP_CAP} → 0;
                 ties broken by a seeded coin). When one of yours is up, choose
                 <b> Basic / Special / Skip</b>, then click glowing targets.
               </li>
@@ -268,7 +268,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-defs">
               <li>
                 <b>Who acts first</b> — in battle every card takes its turn in
-                <b> SP order, fastest first</b> (the queue counts down 21 → 0). Exact
+                <b> SP order, fastest first</b> (the queue counts down {GALE_SP_CAP} → 0). Exact
                 SP ties are broken by a seeded coin flip.
               </li>
               <li>
@@ -559,7 +559,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 Battle begins.
               </li>
               <li>
-                <b>Battle — fastest first.</b> Cards act in SP order (21 → 0). Your
+                <b>Battle — fastest first.</b> Cards act in SP order ({GALE_SP_CAP} → 0). Your
                 SP-11 Ranger acts early: choose <b>Basic</b>, click a glowing enemy, it
                 fires. Later your Tank (SP 5) comes up — choose <b>Special</b> to spend
                 Magic on a barrage, spreading picks across two foes, then <b>Fire</b>.

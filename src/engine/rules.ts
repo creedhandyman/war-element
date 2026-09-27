@@ -39,8 +39,9 @@ export function domMap(state: GameState) {
   return state.domination ? dominationMap(state.domination.mapId) : undefined;
 }
 
-/** Nothing may STAND here — a Point's citadel, or the closed centre of the
- *  road cross. Cards may still pass over one; what they cannot do is stop. */
+/** Nothing may STAND here — a Point's citadel. (The centre of the road cross
+ *  is the Well now, and open.) Only a flier crosses a citadel; everything else
+ *  has to route around it — see `pathBlocker`. */
 export function slotIsImpassable(state: GameState, row: number, col: number): boolean {
   const m = domMap(state);
   return !!m && isImpassable(m, row, col);

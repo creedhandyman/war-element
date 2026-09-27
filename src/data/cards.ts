@@ -2704,7 +2704,7 @@ export const CARDS: CardDef[] = [
       name: "Bog Ambush",
       cost: 2, // 3 -> 2 (owner's call)
       handler: "strike",
-      ranged: true, // 2-space reach — drags a foe from up to 2 rows away
+      ranged: true, // a ranged Special has no reach cap: it drags a foe from anywhere on the board
       // Drag first, then 10 DMG, then ROOT for 3 rounds (owner's call; it was a
       // permanent -4 SP mire). The drag never lands an enemy on Magalogoon's
       // own home row: from there it stops one row short.
@@ -4272,8 +4272,8 @@ export const CARDS: CardDef[] = [
     shields: 3,
     keywords: {},
     tribe: "ARC",
-    // Living Reactor (Start of Round): +1 shield every round, no cap — the
-    // reactor never stops drawing power.
+    // Living Reactor (Start of Round): +1 shield every round, up to 6
+    // (selfShieldsMax below) — the reactor keeps drawing power.
     // Meltdown (On Death): the containment fails and the charge escapes as a
     // Static Wisp — the weakened token version of Static Cloud (10 HP, 2 DMG +
     // PARALYZE 1 a round). Spawning the FULL cost-2 Static Cloud card here paid

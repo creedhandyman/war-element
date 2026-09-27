@@ -1020,8 +1020,9 @@ export function movesLikeKing(def: CardDef, card: CardInstance, sp: number): boo
  *
  * PARALYZE caps movement at a single step. It doesn't pin the card the way ROOT
  * and FREEZE do (those zero SP outright); it costs the sprint. So it only bites
- * the fast cards: anything at SP 7 or below already moves 1 and feels nothing,
- * while an SP 8+ runner loses half its reach until the jolt wears off.
+ * the fast cards: anything at SP_SLOW_MAX (5) or below already moves 1 and
+ * feels nothing, while anything faster loses its extra reach until the jolt
+ * wears off.
  *
  * Every caller must use THIS, not moveReach() directly — the AI and the legality
  * check both compute reach, and if they disagreed the AI would offer moves the
