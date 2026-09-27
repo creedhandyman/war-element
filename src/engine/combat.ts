@@ -2441,6 +2441,11 @@ export function basicAttack(
         }
       }
       if (healOnHit > 0 && attacker.curHp > 0) healCard(draft, attacker, healOnHit, attacker);
+      // Now You Don't (Prestige): the status it hunts carries a rider of its
+      // own, a STUN on a MUTED target. Matched before the swing like the rest
+      // of vsStatus, so it is the status the target was CARRYING that counts.
+      if (vs && vsMatch && vs.inflict && t.curHp > 0 && draft.cards[t.instanceId])
+        applyStatus(draft, t, vs.inflict.kind, vs.inflict.duration, 0, aDef.element);
       // Raising Star (Star): a landed basic bathes the whole team in light.
       if (aDef.basicHealsTeam) {
         for (const a of boardCards(draft, attacker.owner)) if (a.curHp > 0) healCard(draft, a, aDef.basicHealsTeam, attacker);

@@ -13016,8 +13016,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     passiveNames: { vsStatus: "Now You Don't" },
     // The Special sets up its own payoff, which is the whole card: MUTE, then
-    // hit the muted thing twice as hard.
-    vsStatus: { status: "MUTED", dmgMult: 2 },
+    // hit the muted thing twice as hard, and STUN it for a round as well
+    // (owner's call, 2026-09-27). Like every 1-round STUN, it costs the target
+    // the action it has not taken yet this round; at 12 SP, Prestige is usually
+    // ahead of it.
+    vsStatus: { status: "MUTED", dmgMult: 2, inflict: { kind: "STUN", duration: 1 } },
     special: {
       name: "Sleight of Hand",
       cost: 2,

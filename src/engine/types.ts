@@ -314,6 +314,9 @@ export interface VsStatusDef {
   dmgMult?: number; // multiply per-hit DMG (2 = double vs the status)
   healOnHit?: number; // heal self N when a hit lands on such a target
   pen?: boolean; // basic gains PEN vs such a target (Stingray's Piercing Pulse)
+  /** A landed basic on such a target also puts this status on it (Prestige's
+   *  Now You Don't: a MUTED target is STUNNED for a round as well). */
+  inflict?: { kind: StatusKind; duration: number };
 }
 
 /** A periodic self-driven effect resolved in Cleanup (end of round). */

@@ -409,8 +409,13 @@ export function describePassives(def: CardDef): string[] {
     // anyStatus means it triggers off ANY status, not the named one — saying
     // "Vs PARALYZE targets" would understate it badly. bloodfire is the
     // leaf_pyro payoff: only a target that's BLEEDING and BURNING at once.
+    // "gain ×2 DMG", and/or "STUN it for 1 round" (Prestige's `inflict`).
+    const does = [
+      parts.length ? `gain ${parts.join(" · ")}` : "",
+      v.inflict ? `${v.inflict.kind} it for ${v.inflict.duration} round${v.inflict.duration > 1 ? "s" : ""}` : "",
+    ].filter(Boolean).join(", and ");
     named("vsStatus",
-      `Vs ${v.bloodfire ? "a BLOODFIRE target (bleeding AND burning)" : v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics gain ${parts.join(" · ")}.`,
+      `Vs ${v.bloodfire ? "a BLOODFIRE target (bleeding AND burning)" : v.anyStatus ? "any target carrying a status" : `${v.status} targets`}, basics ${does}.`,
     );
   }
   if (def.onHitByMelee) {
