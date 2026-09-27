@@ -2973,12 +2973,23 @@ The single 390 KB gz chunk every visitor used to download was:
 | `@supabase/*` | 204 KB — auth + realtime SDK |
 | `react*` | 192 KB |
 
-`deferred()` at the top of App.tsx (lazy + a null Suspense, so the render sites
-are unchanged) puts each reachable-by-tapping screen in its own chunk: shop,
+`deferred()` at the top of App.tsx (the render sites are unchanged) puts each
+reachable-by-tapping screen in its own chunk: shop,
 gallery, rules, campaign map/prep/collection, draft, profile, account, tower,
 chat, builder. **The builder needed its own wrapper** — it renders ALWAYS and
 hides itself on `open={false}`, so a plain lazy would fetch it on the first
 frame exactly like a static import.
+
+**Not `React.lazy` any more** (2026-09-26, "a black screen for about a second"
+on every tab). A lazy component suspends on its first mount even when its module
+is already in the page, and React holds a suspended boundary on its fallback for
+its 300 ms reveal throttle, so the first open of each tab was ~300 ms of blank
+on desktop even after the warm. `deferred` now remembers the module once `load`
+resolves (the warm or an open), and a mount that finds it draws it in the tap's
+own frame. One not yet loaded draws nothing until it lands (no throttle), and a
+failed load is thrown in render for `ScreenBoundary`. The warm runs in declaration
+order, so StoryMap, VoidTower and Shop are declared first. Measured on the
+production build: first opens 25-37 ms (next frame) vs ~318 ms live before.
 
 Supabase is fetched at the tap that hosts or joins a room, and from the auth
 effect **only when a session exists** — supabase-js keeps it in localStorage as

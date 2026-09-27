@@ -157,10 +157,33 @@ describe("the wiring: no failed screen takes the app down with it", () => {
 
   it("every deferred screen loads resiliently, inside its own boundary", () => {
     const deferred = APP.slice(APP.indexOf("function deferred<"), APP.indexOf("const ChatPanel = deferred("));
-    expect(deferred).toContain("lazy(resilient(load))");
-    expect(deferred).toMatch(/<ScreenBoundary[\s\S]*<Suspense[\s\S]*<Inner/);
-    // Nothing code-split bypasses it: every lazy screen is made by `deferred`.
-    expect(APP.match(/\blazy\(/g)).toHaveLength(1);
+    expect(deferred).toContain("const open = resilient(load);");
+    expect(deferred).toMatch(/<ScreenBoundary[\s\S]*<Screen \{\.\.\.props\} \/>[\s\S]*<\/ScreenBoundary>/);
+    // A load that failed and could not reload is thrown where the boundary sees it.
+    expect(deferred).toContain('if (got && "error" in got) throw got.error;');
+    // Nothing code-split bypasses it: every screen import is made by `deferred`.
+    const imports = APP.split("\n").filter((l) => l.includes('import("./'));
+    expect(imports.length).toBeGreaterThan(0);
+    for (const l of imports) expect(l).toMatch(/^const \w+ = deferred\(/);
+  });
+
+  it("a screen whose module is already in the page opens in the tap's own frame", () => {
+    // React.lazy suspended on every screen's first mount, loaded or not, and
+    // React holds a suspended screen on its fallback for its 300 ms reveal
+    // throttle: a blank dark screen on the first open of every tab.
+    expect(APP).not.toMatch(/\blazy\(|<Suspense/);
+    const deferred = APP.slice(APP.indexOf("function deferred<"), APP.indexOf("const ChatPanel = deferred("));
+    // The warm and an open both go through `load`, which remembers the module...
+    expect(deferred).toMatch(/const load = async \(\) => \{\s*const m = await fetchScreen\(\);\s*loaded = m\.default;/);
+    // ...and a mount that finds it draws it from its first render.
+    expect(deferred).toContain("() => (loaded ? { view: loaded } : null)");
+  });
+
+  it("the bottom-nav screens are warmed first", () => {
+    const warmed = APP.split("\n")
+      .filter((l) => /^const \w+ = deferred\(/.test(l) && !/, false\);$/.test(l))
+      .map((l) => l.match(/^const (\w+)/)![1]);
+    expect(warmed.slice(0, 3)).toEqual(["StoryMap", "VoidTower", "Shop"]);
   });
 
   it("the online room loader is resilient too, and a match is never reloaded away", () => {

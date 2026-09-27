@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
 import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
@@ -81,12 +81,21 @@ import { rememberPlace, resilient, resumePlace, setMatchLive, warmLater } from "
  *  shop, the gallery, the rules, the campaign map, the builder. None of it is
  *  needed to draw the menu or play a match, and together they were about a
  *  third of a single 390 KB bundle that every visitor downloaded before the
- *  first frame. `lazy` fetches each one the first time it actually renders.
+ *  first frame. Each one is fetched the first time it actually renders.
  *
- *  `fallback={null}` and not a spinner: these are already gated behind their
- *  own `open` state, the chunk is tens of KB off the same origin, and a
- *  flashed loading card would be on screen for less time than it takes to
- *  read. The screen appears a frame later than it used to, on first open only.
+ *  Nothing is drawn while one loads, not a spinner: these are already gated
+ *  behind their own `open` state, the chunk is tens of KB off the same origin,
+ *  and a flashed loading card would be on screen for less time than it takes
+ *  to read.
+ *
+ *  NOT `React.lazy`, which suspends on a screen's first mount even when its
+ *  module is already in the page. React then holds the suspended screen on its
+ *  fallback for its 300 ms reveal throttle, so the first open of every tab was
+ *  a blank dark screen whether it had been warmed or not. That measured 300 ms
+ *  on desktop and was reported from a phone as "a black screen for about a
+ *  second". So the module is remembered once it arrives (warmed or opened), a
+ *  screen whose module is in the page renders in the same frame as the tap,
+ *  and one still on its way appears the moment it lands.
  *
  *  The names are unchanged, so every render site below reads exactly as it did
  *  when these were plain imports.
@@ -116,29 +125,59 @@ import { rememberPlace, resilient, resumePlace, setMatchLive, warmLater } from "
  *  creates a live client, and the SDK is the 204 KB kept off the page until a
  *  player actually goes online — a background fetch for everyone would undo
  *  that. Those two still resume after a reload like the rest. */
-function deferred<P extends object>(load: () => Promise<{ default: (props: P) => ReactNode }>, warm = true) {
+function deferred<P extends object>(fetchScreen: () => Promise<{ default: (props: P) => ReactNode }>, warm = true) {
+  /** The screen once its module is in the page, for every later mount. */
+  let loaded: ((props: P) => ReactNode) | null = null;
+  const load = async () => {
+    const m = await fetchScreen();
+    loaded = m.default;
+    return m;
+  };
   if (warm) warmLater(load);
-  const Inner = lazy(resilient(load));
+  const open = resilient(load);
+  function Screen(props: P) {
+    // Decided at mount: a module already in the page is drawn now, in the
+    // tap's own frame; otherwise nothing is drawn until it lands.
+    const [got, setGot] = useState<{ view: (props: P) => ReactNode } | { error: unknown } | null>(
+      () => (loaded ? { view: loaded } : null),
+    );
+    useEffect(() => {
+      if (got) return;
+      let live = true;
+      open().then(
+        (m) => { if (live) setGot({ view: m.default }); },
+        (error: unknown) => { if (live) setGot({ error }); },
+      );
+      return () => { live = false; };
+      // Mount only: `got` is what this effect fills in.
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    // A load that failed and could not reload is the boundary's to explain.
+    if (got && "error" in got) throw got.error;
+    const View = got ? got.view : null;
+    return View ? <View {...props} /> : null;
+  }
   return (props: P) => (
     <ScreenBoundary onClose={(props as { onClose?: () => void }).onClose}>
-      <Suspense fallback={null}>
-        <Inner {...props} />
-      </Suspense>
+      <Screen {...props} />
     </ScreenBoundary>
   );
 }
 
 const ChatPanel = deferred(async () => ({ default: (await import("./ChatPanel")).ChatPanel }), false);
+// Warmed in this order, one at a time, so the three bottom-nav destinations go
+// first: a tab tapped in the first seconds is the open likeliest to beat the
+// warm. Home's Collection tile is next.
+const StoryMap = deferred(async () => ({ default: (await import("./StoryMap")).StoryMap }));
+const VoidTower = deferred(async () => ({ default: (await import("./VoidTower")).VoidTower }));
+const Shop = deferred(async () => ({ default: (await import("./Shop")).Shop }));
+const StoryCollection = deferred(async () => ({ default: (await import("./StoryCollection")).StoryCollection }));
 const DraftScreen = deferred(async () => ({ default: (await import("./DraftScreen")).DraftScreen }));
 const ProfilePanel = deferred(async () => ({ default: (await import("./ProfilePanel")).ProfilePanel }));
-const VoidTower = deferred(async () => ({ default: (await import("./VoidTower")).VoidTower }));
 const RulesBook = deferred(async () => ({ default: (await import("./RulesBook")).RulesBook }));
 const CardGallery = deferred(async () => ({ default: (await import("./CardGallery")).CardGallery }));
-const StoryCollection = deferred(async () => ({ default: (await import("./StoryCollection")).StoryCollection }));
-const StoryMap = deferred(async () => ({ default: (await import("./StoryMap")).StoryMap }));
 const StoryPrep = deferred(async () => ({ default: (await import("./StoryPrep")).StoryPrep }));
 const AccountPanel = deferred(async () => ({ default: (await import("./AccountPanel")).AccountPanel }), false);
-const Shop = deferred(async () => ({ default: (await import("./Shop")).Shop }));
 
 const LoadedDeckBuilder = deferred(async () => ({ default: (await import("./DeckBuilder")).DeckBuilder }));
 /** `net/online` — and with it the Supabase SDK — fetched when a room is
