@@ -424,3 +424,20 @@ describe("the attack spotlight holds its layers still", () => {
     expect(CSS).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.board-spot\s*\{\s*animation:\s*none;?\s*\}/);
   });
 });
+
+// THE HAND CARD'S PLATE IS PLACED, NOT FLOWED. The shared art rule
+// `.carded > *:not(.card-art) { position: relative }` out-specifies a bare
+// `.hc-plate { position: absolute }`, and for months it dropped the plate, the
+// cost gem and the foil mark into the flow: on a phone's 82px card the stat
+// row hung out below the card — wrapped, over the action bar and under the
+// gold and magic coins. Only a selector that outranks the art rule holds.
+describe("the hand card's plate sits on the card", () => {
+  it("plate, gem and foil mark are positioned by a selector that outranks .carded > *", () => {
+    for (const piece of ["hc-plate", "hc-cost", "foil-tag"])
+      expect(CSS, piece).toMatch(new RegExp(`\.hcard\.carded > \.${piece} \{ position: absolute`));
+  });
+
+  it("the highlighted-card readout is a phone/tablet element, hidden elsewhere", () => {
+    expect(CSS).toMatch(/\n\.hand-readout \{ display: none; \}/);
+  });
+});

@@ -3331,6 +3331,13 @@ export function App() {
     //
     // So ask about EVERY square and arm if any one of them will take the card.
     if (!summonSquare(game, me, handId)) {
+      // The card tapped is the one on show now (Hand's readout). Stand down a
+      // different card left armed, or the Home row keeps glowing for a card
+      // the player is no longer looking at — and a tap on it would summon that.
+      if (sel?.kind === "hand") {
+        setSel(null);
+        setStaged(null);
+      }
       // Nothing takes it. To say WHY, ask a square that is genuinely free —
       // `openHomeSlots` is the engine's own answer to that, capture and contest
       // included — because canSummon tests the card before it tests the square,
@@ -4998,6 +5005,7 @@ export function App() {
             summonableHandIds={summonableHandIds}
             homeRowOpen={openSlots.length > 0}
             selectedHandId={sel?.kind === "hand" ? sel.handId : null}
+            stagedHandId={staged?.handId ?? null}
             // Same set the board gets. A foil that shines on the field and not
             // in the hand is the same card looking like two.
             foils={foilIds}

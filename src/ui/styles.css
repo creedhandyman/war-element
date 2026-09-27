@@ -1499,15 +1499,42 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard.unaffordable .hc-cost { border-color: #c98a8a; box-shadow: none; }
 .hcard.unaffordable .hc-cost b { color: #f0b8b8; }
 .hcard.unaffordable .hc-cost::after { background: radial-gradient(circle, rgba(40, 10, 10, .62) 24%, rgba(20, 6, 6, .16) 64%, transparent 80%); }
-.hc-plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 18px 7px 7px; background: linear-gradient(180deg, transparent, rgba(8,7,12,0.78) 32%, rgba(8,7,12,0.95)); border-radius: 0 0 9px 9px; }
-.hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: center; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
-.hc-type { text-align: center; font-size: 9px; color: var(--ink-dim); letter-spacing: 0.03em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.hcard .hc-stats { display: flex; justify-content: space-between; gap: 2px; padding: 5px 3px 0; font-size: 12px; font-weight: 800; color: inherit; align-items: center; }
+/* THE HAND CARD'S PLATE — name, class, stats and the bar — sits on the card's
+   bottom edge, and everything on it is LEFT-aligned. In the fan every card
+   lies over the right third of the one before it, so the left of a card is
+   the part that is always seen: a centred row put the speed, and half the
+   name, under the next card.
+
+   Placed, not flowed. `.carded > *:not(.card-art)` (the shared art rule
+   below) out-specifies a bare `position: absolute`, and it had dropped the
+   plate, the cost gem and the foil mark into the flow: the gem took 32px at
+   the top and pushed the plate down until, on a phone's 82px card, the stat
+   row hung out below the card — wrapped, over the action bar, under the gold
+   and magic coins and the next card. */
+.hc-plate { position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 16px 7px 0; text-align: left; background: linear-gradient(180deg, transparent, rgba(8,7,12,0.8) 30%, rgba(8,7,12,0.96)); border-radius: 0 0 9px 9px; }
+.hcard.carded > .hc-plate { position: absolute; z-index: 2; }
+.hcard.carded > .hc-cost { position: absolute; z-index: 4; }
+.hcard.carded > .foil-tag { position: absolute; }
+.hcard .hc-name { font-family: var(--head); font-size: 12.5px; font-weight: 700; text-align: left; color: #efe9d8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; min-height: 0; }
+.hc-type { text-align: left; font-size: 9.5px; font-weight: 700; color: #cfc8b8; letter-spacing: 0.02em; margin-top: 1px; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.hc-atk { margin-right: 3px; }
+.hc-atk-word { color: var(--ink-dim); font-weight: 600; }
+/* The numbers the way the board token prints them (.tk-stats): no icons —
+   colour says which is which — tabular figures, one line, never wrapping. */
+.hcard .hc-stats { display: flex; justify-content: flex-start; align-items: baseline; gap: 8px; padding: 4px 0 0; font-family: var(--font-ui); font-size: 14px; font-weight: 800; line-height: 1; color: inherit; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.hcard .hc-stats > span { display: inline-flex; align-items: baseline; text-shadow: 0 1px 2px #000, 0 0 5px rgba(0, 0, 0, 0.9); }
+.hcard .hc-stats .atk-x { color: #fff; font-size: 0.78em; margin-left: 1px; }
+.hc-bar { display: flex; height: 3px; margin: 5px -7px 0; overflow: hidden; border-radius: 0 0 9px 9px; background: rgba(255, 255, 255, 0.08); }
+.hc-bar-sh { flex: none; background: var(--stat-sh); }
+.hc-bar-hp { flex: 1; background: linear-gradient(90deg, #3ec778, var(--stat-hp)); }
 .s-dmg { color: var(--stat-dmg); } .s-hp { color: var(--stat-hp); } .s-sh { color: var(--stat-sh); } .s-sp { color: var(--stat-sp); }
 /* The SP stat carries an inline SVG icon (1em tall) where its siblings use text
    glyphs; flex-centering each stat span keeps the icon + number on the same
    centerline instead of riding higher than the rest. */
 .hc-stats span, .dt-stats span, .announce-stats span, .cd-val { display: inline-flex; align-items: center; }
+/* The highlighted hand card's readout (Hand.tsx `HandReadout`). Phones and
+   tablets only — see the portrait block. */
+.hand-readout { display: none; }
 /* Multi-attack readability: the DAMAGE value sits right next to the sword and
    is red like it (⚔4 reads as one all-red unit), while the "×N" hit-count
    trails off to the side in white so the two numbers never blur (⚔[4][ ×2]). */
@@ -3812,9 +3839,79 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      hidden 14px would newly spill over the action bar. */
   .hand-float .hcard { width: 74px; height: 82px; margin: 0 -14px; transform-origin: 50% 96%; --ty: 0px; }
   .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
-  .hand-float .hc-name { font-size: 12px; }
-  .hand-float .hc-type { font-size: 8.5px; }
-  .hand-float .hc-stats { font-size: 10px; }
+  .hand-float .hc-plate { padding: 9px 5px 0; }
+  .hand-float .hc-name { font-size: 11.5px; }
+  .hand-float .hc-type { font-size: 9px; }
+  .hand-float .hc-atk-word { display: none; } /* the glyph says it; the readout spells it out */
+  .hand-float .hc-stats { font-size: 12px; gap: 4px; padding-top: 3px; }
+  .hand-float .hc-bar { margin: 4px -5px 0; }
+  /* THE HIGHLIGHTED CARD, READABLE (Hand.tsx `HandReadout`): the tapped card's
+     name, class, Melee or Ranged, and stats in type that reads, and what to do
+     next or why it cannot be summoned — the hint line that says so is hidden
+     at this size. It sits in the band between the board and the hand, over
+     the one-line log, and never over the Home row: the card under it lifts 6px
+     rather than the hover's 26px, which leaves a band of ~74px even on a
+     360x640 phone, and the readout is 60. z 56: over the fan's leaked 30-55,
+     under the drawers (60/62) — see the note at .hcard. */
+  .hand-float .hcard.hl, .hand-float .hcard.hl:hover { transform: translateY(-6px) scale(1.03); z-index: 50 !important; }
+  .hand-readout {
+    position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%); z-index: 56;
+    width: min(360px, calc(100vw - 12px)); box-sizing: border-box;
+    display: grid; grid-template-columns: auto minmax(0, 1fr) auto; column-gap: 9px; row-gap: 1px; align-items: center;
+    padding: 5px 10px 6px 8px; border-radius: 11px; pointer-events: auto;
+    background: linear-gradient(180deg, rgba(22, 20, 31, 0.97), rgba(10, 9, 15, 0.97));
+    border: 1px solid color-mix(in srgb, var(--el, var(--gold)) 60%, #0d0c14);
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.7), 0 0 14px color-mix(in srgb, var(--el, #000) 30%, transparent);
+  }
+  .hr-cost {
+    grid-row: 1 / 4; position: relative; width: 32px; height: 32px; border-radius: 50%;
+    display: grid; place-items: center; overflow: hidden;
+    background-color: #0d0c14; background-size: cover; background-position: center;
+    border: 2px solid var(--gold-hi); box-shadow: 0 0 10px rgba(232, 200, 119, 0.55);
+  }
+  .hr-cost::after {
+    content: ""; position: absolute; inset: 0;
+    background: radial-gradient(circle, rgba(6, 7, 12, .58) 24%, rgba(6, 7, 12, .1) 64%, transparent 80%);
+  }
+  .hr-cost b { position: relative; z-index: 1; font-size: 16px; font-weight: 800; color: var(--gold-hi); line-height: 1; text-shadow: 0 1px 3px #000, 0 0 6px #000; }
+  .hr-cost.discounted { border-color: var(--stat-hp); }
+  .hr-cost.discounted b { color: var(--stat-hp); }
+  .hr-cost.short { border-color: #c98a8a; box-shadow: none; }
+  .hr-cost.short b { color: #f0b8b8; }
+  .hr-name {
+    font-family: var(--head); font-size: 15px; font-weight: 700; line-height: 16px; color: #f4efe2;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .hr-status {
+    font-size: 11px; font-weight: 800; line-height: 15px; letter-spacing: 0.02em; white-space: nowrap;
+    padding: 0 7px; border-radius: 8px; color: var(--ink-dim); background: rgba(255, 255, 255, 0.06);
+  }
+  .hand-readout.st-armed .hr-status, .hand-readout.st-staged .hr-status, .hand-readout.st-ready .hr-status {
+    color: #06251a; background: var(--legal);
+  }
+  .hand-readout.st-gold .hr-status { color: #ffd0d0; background: rgba(200, 60, 60, 0.32); }
+  .hand-readout.st-room .hr-status { color: #ffe3a3; background: rgba(200, 150, 40, 0.3); }
+  .hr-type { grid-column: 2 / 4; display: flex; align-items: center; gap: 8px; font-size: 12.5px; line-height: 14px; white-space: nowrap; }
+  .hr-class { color: #d9d3c4; font-weight: 700; }
+  .hr-atk { font-weight: 800; letter-spacing: 0.02em; }
+  .hr-atk.melee { color: #ffab7a; }
+  .hr-atk.ranged { color: #86d2ff; }
+  .hr-stats { grid-column: 2 / 4; display: flex; align-items: baseline; gap: 12px; line-height: 17px; white-space: nowrap; }
+  .hr-stat { display: inline-flex; align-items: baseline; gap: 4px; }
+  .hr-stat i { font-style: normal; font-size: 9.5px; font-weight: 800; letter-spacing: 0.08em; color: var(--ink-faint, #8a8779); }
+  .hr-stat b { display: inline-flex; align-items: baseline; font-size: 15.5px; font-weight: 800; text-shadow: 0 1px 2px #000; }
+  .hr-stat b small { font-size: 11.5px; margin-left: 1px; }
+  .hr-stat .icon-sp, .hr-stat svg { width: 11px; height: 11px; margin-right: 2px; align-self: center; }
+  /* COMPACT, for a gap too short for the full readout (Hand.tsx measures it):
+     the same three lines, tighter — still well above the card's own type. */
+  .hand-readout.compact { bottom: calc(100% + 8px); padding: 3px 9px 4px 7px; row-gap: 0; column-gap: 8px; }
+  .hand-readout.compact .hr-cost { width: 28px; height: 28px; }
+  .hand-readout.compact .hr-cost b { font-size: 14px; }
+  .hand-readout.compact .hr-name { font-size: 13.5px; line-height: 14px; }
+  .hand-readout.compact .hr-status { font-size: 10.5px; line-height: 13px; }
+  .hand-readout.compact .hr-type { font-size: 11.5px; line-height: 12.5px; }
+  .hand-readout.compact .hr-stats { line-height: 14px; gap: 10px; }
+  .hand-readout.compact .hr-stat b { font-size: 14px; }
   /* Keep the hand full-size even on the opponent's turn (no tiny collapsed peek —
      there's room in flow). */
   .hand-float .hand.collapsed .hcard { height: 82px; margin: 0 -14px; }
@@ -4064,9 +4161,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     width: 56px; height: 78px; margin: 0 -17px; transform-origin: 50% 100%;
   }
   .hand-float .hcard:hover { transform: translateY(-18px) scale(1.14); z-index: 50 !important; }
-  .hand-float .hc-name { font-size: 9.5px; }
-  .hand-float .hc-type { font-size: 7.5px; }
-  .hand-float .hc-stats { font-size: 8.5px; }
+  .hand-float .hc-name { font-size: 10px; }
+  .hand-float .hc-type { font-size: 8px; }
+  .hand-float .hc-stats { font-size: 11px; }
   .hand-float .hc-cost { width: 22px; height: 22px; font-size: 11px; top: -6px; left: -6px; }
   /* Retame the collapsed-peek hover: the base rule `.hand.collapsed .hcard:hover`
      blows a peek card to scale(2.7)+translateY(-72px), which on a ~375px-tall
