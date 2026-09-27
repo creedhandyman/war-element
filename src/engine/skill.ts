@@ -62,6 +62,18 @@
 // lose it, which is the difference they will actually feel. `readsLethal` and
 // `readsThreat` measure near zero here and stay in `learning` for that reason —
 // the win-rate column is evidence, not the whole account.
+//
+// `farms` CAME LATER, and it is the second-largest switch there is. The AI kept
+// one home slot and walked everything else out to fight, and its opening
+// sprinted a lone card across the empty board (see `OPENING_ROUNDS` in ai.ts),
+// so it earned about a third less gold a round than it could. Measured the same
+// way, 512 sharp duels, every suit pairing, both seats and decks each way:
+//
+//     farms (all home slots but one)  vs  the same seat keeping one   64.9%
+//     the whole change                vs  the AI that shipped before   76.8%
+//
+// Learning keeps its one slot: where the gold comes from is knowledge a new
+// player has not picked up yet, exactly the kind this file takes away.
 import type { GameState } from "./types";
 
 export type { AiSkill } from "./types";
@@ -109,26 +121,33 @@ export interface SkillProfile {
    *  sits on its magic the way a new player does, and Specials appear only when
    *  something is about to die anyway. */
   readsMagic: boolean;
+  /** Does it FARM its home row? Gold is the round's base plus one per home slot
+   *  held, and the base is one a round for the first five — so a held slot is
+   *  a whole extra base grant. On, it keeps every home slot but one filled while
+   *  it still has cards to buy (`homeReserve` in ai.ts); off, it keeps one and
+   *  walks the rest out to fight, the way a player does before they have
+   *  noticed where their gold comes from. */
+  farms: boolean;
 }
 
 export const SKILL_PROFILES: Record<AiSkill, SkillProfile> = {
   learning: {
     key: "learning", name: "Learning",
-    blurb: "Plays its cards straight. Misses kills, ignores your casters, and never opens its spellbook.",
+    blurb: "Plays its cards straight. Misses kills, ignores your casters, never farms its home row, and never opens its spellbook.",
     spells: false, plans: false, readsLethal: false, readsThreat: false, guardsHome: false,
-    readsCurve: false, readsMagic: false,
+    readsCurve: false, readsMagic: false, farms: false,
   },
   steady: {
     key: "steady", name: "Steady",
     blurb: "Fights hard in front of it, but will not path around your line and hoards its Magic for the kill.",
     spells: true, plans: false, readsLethal: true, readsThreat: true, guardsHome: true,
-    readsCurve: true, readsMagic: false,
+    readsCurve: true, readsMagic: false, farms: true,
   },
   sharp: {
     key: "sharp", name: "Sharp",
     blurb: "Knows the whole game. Takes every kill, reads every threat, and will path around you.",
     spells: true, plans: true, readsLethal: true, readsThreat: true, guardsHome: true,
-    readsCurve: true, readsMagic: true,
+    readsCurve: true, readsMagic: true, farms: true,
   },
 };
 

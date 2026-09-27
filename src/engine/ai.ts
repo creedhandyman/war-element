@@ -61,16 +61,79 @@ export function aiMulligan(state: GameState, player: PlayerId = "P2"): string[] 
 
 /** How many home slots the AI keeps occupied while it still has cards to buy.
  *
- *  One. Income is 1/round + 1 per slot held, so a single held slot doubles the
- *  base grant, and every slot above the first is worth advancing instead — the
- *  win conditions are all forward. Higher values measured worse: the AI camped,
- *  and camping is a guaranteed non-win. */
-const HOME_RESERVE = 1;
+ *  EVERY SLOT BUT ONE, for an opponent that knows where its gold comes from
+ *  (`farms`, skill.ts). Income is the round's base plus one gold per home slot
+ *  held, and the base is ONE a round for the first five rounds — so each held
+ *  slot is another whole base grant, and a full back line earns several times
+ *  what a lone card does. The slot left open is the one the next summon lands
+ *  in; when the row fills anyway, `homeJammed` walks a body out to make room.
+ *
+ *  It used to be ONE for everyone, on the note that higher values "measured
+ *  worse: the AI camped". That does not reproduce on today's game. Re-measured
+ *  over 512 sharp AI duels on the premade shelf — every suit pairing, both
+ *  seats and both decks each way — keeping all but one beats the one-slot AI
+ *  59.8% with the opening sprint left in. With the opening fixed as well
+ *  (`OPENING_ROUNDS`):
+ *
+ *                             old AI       this
+ *    home slots held, rd 1-5   0.33        1.40
+ *    gold per round            3.3         4.8
+ *    wins, head to head        23.2%       76.8%   (4x4 75.8, 5x5 77.7)
+ *
+ *  and no camping: timeouts 0 of 512. Two farming seats do play longer games —
+ *  a sharp mirror runs 13.6 -> 18.0 rounds — which is the economy building, not
+ *  a stall. Keeping 3 instead of 4 on the 5x5 measured the same (51.8% +/- 2.2),
+ *  so the rule is the simple one. `learning` keeps one — see `farms`. */
+function homeReserve(state: GameState, player: PlayerId): number {
+  return skillOf(state, player).farms ? state.boardSize - 1 : 1;
+}
 
 /** How much gold the AI will wait for before calling a card in hand "buyable".
  *  Without this the reserve drops the moment the pool dips below the cheapest
  *  card, which is exactly the round it most needs the income. */
 const HOME_RESERVE_LOOKAHEAD = 2;
+
+/** THE OPENING IS NOT A STANDOFF. The stall-breaker (`aiPrepIntent`) fires when
+ *  none of a seat's cards can reach anything, and moves regardless of the home
+ *  reserve — the cure for two ranged lines camping their home rows until the
+ *  round cap. But on the first rounds NOTHING can reach anything: the board is
+ *  empty. So every opening read as a standoff, and every seat — Defense and
+ *  Control included, the suits that are supposed to make you come to them —
+ *  sent its first card sprinting across the board to take a home slot, then the
+ *  next, and held 0.33 home slots on average through the first five rounds,
+ *  earning little more than the one-gold base. A standoff is something that
+ *  has been going on; five rounds is the first income bracket, when a held
+ *  slot is worth most. */
+const OPENING_ROUNDS = 5;
+
+/** The home row is FULL and there is something to buy with the slot a move
+ *  would open. Then a held slot is not income, it is the blockage: the reserve
+ *  exists to fund the summon, and a summon that cannot land anywhere makes the
+ *  gold it protects unspendable. See `findAdvance` for the deadlock this ends. */
+function homeJammed(state: GameState, player: PlayerId): boolean {
+  const me = state.players[player];
+  const cheapest = me.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
+  return cheapest !== Infinity && cheapest <= me.gold + HOME_RESERVE_LOOKAHEAD
+    && openHomeSlots(state, player).length === 0;
+}
+
+/** Would walking this card off its own home row spend the reserve?
+ *
+ *  One answer for every mover that could take it — the ordinary advance, the
+ *  pathed press and the flanking step. The press and the flank used to ignore
+ *  the reserve altogether, so a sharp seat's idle back line walked off its own
+ *  income to line up a shot. What still may take a held card: a capture (the
+ *  win condition itself), the jam release, and the stall-breaker's desperate
+ *  advance once the opening is over — a genuine standoff outranks income.
+ *
+ *  Only while there is something left to BUY: gold you cannot spend is not
+ *  income, it is a hoard, so an empty hand releases the whole row. */
+function holdsHome(state: GameState, player: PlayerId, card: CardInstance): boolean {
+  if (state.players[player].hand.length === 0) return false;
+  if (!card.pos || card.pos.row !== homeRow(player, state.boardSize)) return false;
+  if (homeJammed(state, player)) return false;
+  return homeSlotsHeld(state, player) <= homeReserve(state, player);
+}
 
 // ── prep ────────────────────────────────────────────────────────────────────
 
@@ -260,10 +323,12 @@ export function aiPrepIntent(state: GameState, player: PlayerId = "P2"): Intent 
     // camping forever is a guaranteed non-win, so make progress toward the
     // capture win regardless of the threat estimate. Without this, two ranged
     // lines camp home rows (where nothing is targetable) until the round cap.
+    // ...but not in the OPENING, where nothing can reach anything because the
+    // board is still empty — see `OPENING_ROUNDS`.
     const standoff = boardCards(state, player).every(
       (c) => validTargets(state, c.instanceId).length === 0,
     );
-    if (standoff) {
+    if (standoff && state.round > OPENING_ROUNDS) {
       const desperate = findAdvance(state, player, true) ?? findClosingMove(state, player);
       if (desperate) return desperate;
     }
@@ -1051,7 +1116,9 @@ function findFlankingMove(state: GameState, player: PlayerId): Intent | null {
     // most one of these a round, the supply is finite and the AI runs out and
     // passes — which is also the honest reading of the move: it is a
     // reposition, not a dance.
-    .filter((c) => !c.movedThisRound);
+    .filter((c) => !c.movedThisRound)
+    // ...and not off the home row it is farming — see `holdsHome`.
+    .filter((c) => !holdsHome(state, player, c));
 
   for (const mover of movers) {
     let best: Pos | null = null;
@@ -1103,6 +1170,7 @@ function findClosingMove(state: GameState, player: PlayerId): Intent | null {
   const movers = boardCards(state, player)
     .filter((c) => moveReachFor(state, c) > 0)
     .filter((c) => !isMidCapture(state, c, enemyHome)) // mid-capture — stay put
+    .filter((c) => !holdsHome(state, player, c))       // farming its home slot
     .sort((a, b) => distToGoal(a.pos!) - distToGoal(b.pos!));
   for (const mover of movers) {
     const cur = distToGoal(mover.pos!);
@@ -1147,26 +1215,21 @@ function findAdvance(
   const enemyHome = homeRow(enemyOf(player), state.boardSize);
   const forward = player === "P2" ? 1 : -1; // P2 pushes toward row 3, P1 toward row 0
   const homeRowMine = homeRow(player, state.boardSize);
-  const me = state.players[player];
-  const cheapestInHand = me.hand.reduce((m, h) => Math.min(m, getDef(h.defId).cost), Infinity);
 
   // TWO DIFFERENT QUESTIONS, and they used to share one flag.
   //
-  // `wantIncome` — is a held home slot still worth anything? Yes while ANY card
+  // Is a held home slot still worth anything (`holdsHome`)? Yes while ANY card
   // remains in hand, however poor the pool is. This used to be the affordability
-  // test below, which inverted the rule exactly when it mattered: at 0 gold with
-  // a 3-cost cheapest card the reserve DISENGAGED, the last home card walked off
+  // test, which inverted the rule exactly when it mattered: at 0 gold with a
+  // 3-cost cheapest card the reserve DISENGAGED, the last home card walked off
   // its own income, and 1/round + 1/slot became 1/round with six cards stranded
   // in hand. Reported from a real game — round 5, no gold, no magic, an empty
   // home row and one card on the board. A poor side needs the slot most; the
   // case the reserve is meant to release is an EMPTY hand, not an empty purse.
   //
-  // `canBuySoon` — would an open home slot actually get used this turn or next?
+  // Would an open home slot actually get used this turn or next (`homeJammed`)?
   // That one does want affordability, because unjamming the summon zone while
   // nothing can be bought trades income away for a slot that stays empty.
-  const wantIncome = me.hand.length > 0;
-  const canBuySoon = cheapestInHand !== Infinity
-    && cheapestInHand <= me.gold + HOME_RESERVE_LOOKAHEAD;
 
   // A card can only be summoned into an OPEN HOME SLOT, and the AI takes one
   // action a priority turn. So when the home row is full and there is something
@@ -1179,8 +1242,7 @@ function findAdvance(
   // arriving around round 22, by which time the fight it was bought for is
   // over. Deployment stalls at about one card per two turns because half those
   // turns go to a move that unblocks nothing.
-  const jammed = openHomeSlots(state, player).length === 0;
-  const homeFirst = !desperate && canBuySoon && jammed;
+  const homeFirst = !desperate && homeJammed(state, player);
   const movers = boardCards(state, player)
     .filter((c) => moveReachFor(state, c) > 0)
     .sort((a, b) => {
@@ -1206,7 +1268,6 @@ function findAdvance(
   // you cannot spend is not income, it is a hoard. So once the hand is empty (or
   // nothing in it is within reach of the pool) every card is free to advance,
   // which keeps the capture win — and the stall-breaker below — intact.
-  const held = homeSlotsHeld(state, player);
 
   // NO "FALL BACK AND FARM" RULE HERE, and that is a measured decision rather
   // than an oversight. Income is 1/round + 1 per home slot held, and every
@@ -1217,16 +1278,17 @@ function findAdvance(
   // ~56s each, which is not slowness but matches running to MAX_ROUNDS and
   // being decided on time instead of won.
   //
-  // That is the same failure the HOME_RESERVE comment above records from its
-  // own tuning ("higher values measured worse: the AI camped, and camping is a
-  // guaranteed non-win"). Advancing beats income here because every win
-  // condition is forward, so the reserve — which stops departures — is the
-  // right shape and a repatriation rule is not.
+  // The reserve is the other half of the same answer: it keeps bodies HOME
+  // rather than bringing them back, and `homeReserve` records why a big one does
+  // not camp. Advancing beats income here
+  // because every win condition is forward, so the reserve — which stops
+  // departures — is the right shape and a repatriation rule is not.
 
   for (const mover of movers) {
-    // Hold the last slot back while there is still something to buy with it.
-    // Anything above the reserve advances as before, and `desperate` ignores it
-    // outright — a total standoff is a guaranteed loss and outranks income.
+    // Hold the reserve back while there is still something to buy with it
+    // (`holdsHome`). Anything above it advances as before, and `desperate`
+    // ignores it outright — a total standoff is a guaranteed loss and outranks
+    // income.
     //
     // ...AND `homeFirst` OVERRIDES IT, because when the row is jammed the held
     // slot is not income, it is the blockage. The reserve exists to fund the
@@ -1267,10 +1329,7 @@ function findAdvance(
     //     not a deadlock — but it is a choice made without knowing the seat is
     //     locked out of summoning entirely, which is a threat-model question
     //     and a wider change than this one.
-    if (
-      !desperate && wantIncome && !homeFirst &&
-      mover.pos!.row === homeRowMine && held <= HOME_RESERVE
-    ) continue;
+    if (!desperate && holdsHome(state, player, mover)) continue;
     const reach = moveReachFor(state, mover);
     const candidates: Pos[] = [];
     for (let d = reach; d >= 1; d--) {

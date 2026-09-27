@@ -6,7 +6,7 @@ import { getSpell } from "../spells";
 import { advance, applyIntent, needsP1Input } from "../phases";
 import { canFireSpecial, canSummon, openHomeSlots, validTargets } from "../rules";
 import { boardCards, cardAt, createInitialState, homeSlotsHeld } from "../state";
-import type { GameState } from "../types";
+import type { AiSkill, GameState, Suit } from "../types";
 import { MAX_ROUNDS, homeRow } from "../types";
 import { getDef } from "../../data/cards";
 import { bigPrepState, giveHand, place, prepState } from "./helpers";
@@ -531,5 +531,70 @@ describe("the home reserve yields to a jammed home row", () => {
     expect(intent.type).toBe("SUMMON");
     const after = applyIntent(s, intent);
     expect(cardAt(after, 0, 0)?.defId, "the reserve body did not walk off").toBe("leaf_alpha");
+  });
+});
+
+describe("the AI farms its home row", () => {
+  // Gold is the round's base plus one per home slot held, and the base is ONE a
+  // round for the first five rounds. The AI used to keep a single slot and walk
+  // everything else out to fight — and in the opening it sprinted its first card
+  // across the empty board, because "nothing I have can reach anything" is true
+  // of every opening and the stall-breaker took it for a standoff.
+  //
+  // Stormhide Bison is SP 1 and melee: it cannot reach the enemy home row in one
+  // move (a capture would rightly outrank the reserve) and it has to step to hit
+  // anything. The Imperator is ten gold it does not have — something to buy.
+  const FARMER = "gale_stormhide_bison";
+  const board = (opts: { round?: number; suit?: Suit; skill?: AiSkill; farmers: number[]; enemy?: [number, number] }) => {
+    const s = prepState(42, "P2");
+    s.round = opts.round ?? 1;
+    if (opts.skill) s.aiSkill = opts.skill;
+    if (opts.suit) s.seatSuits = { P1: "spade", P2: opts.suit, P3: "heart", P4: "diamond" };
+    s.players.P2.spellbook = [];
+    s.players.P2.magicPool = 0;
+    s.players.P2.gold = 0;
+    giveHand(s, "P2", "dawn_imperator");
+    const home = homeRow("P2", s.boardSize);
+    const cards = opts.farmers.map((col) => place(s, FARMER, "P2", home, col));
+    if (opts.enemy) place(s, "dusk_vamp", "P1", opts.enemy[0], opts.enemy[1]);
+    return { s, home, cards };
+  };
+  const leftHome = (s: GameState, home: number) => {
+    const intent = aiPrepIntent(s, "P2");
+    if (intent.type !== "MOVE") return false;
+    return s.cards[intent.instanceId].pos!.row === home && intent.to.row !== home;
+  };
+
+  it("does not sprint its first card across an empty board in the opening", () => {
+    // Defense, the suit that is supposed to make you come to it, opened with a
+    // lone runner like every other suit.
+    const { s, home, cards } = board({ suit: "club", farmers: [1] });
+    expect(validTargets(s, cards[0].instanceId), "nothing can reach anything yet").toEqual([]);
+    expect(leftHome(s, home), "sprinted off its home row on round 1").toBe(false);
+  });
+
+  it("...but a standoff that outlasts the opening is still broken", () => {
+    // Camping until the round cap is a bad game, not a difficulty — past the
+    // opening the stall-breaker moves regardless of the reserve, as it always did.
+    const { s, home } = board({ round: 6, suit: "club", farmers: [1] });
+    expect(leftHome(s, home), "left a real standoff standing").toBe(true);
+  });
+
+  for (const suit of ["spade", "club", "heart", "diamond"] as Suit[]) {
+    it(`${suit}: keeps every home slot but one while it still has cards to buy`, () => {
+      // Three of four held — the fourth is where the next summon lands. The
+      // enemy sits where one step would put a farmer in range, so the ordinary
+      // advance, Spades' press and the flanking step all have a move to offer,
+      // and every one of them has to decline it.
+      const { s, home } = board({ suit, farmers: [0, 1, 2], enemy: [2, 3] });
+      expect(homeSlotsHeld(s, "P2")).toBe(3);
+      expect(leftHome(s, home), "walked a farmer off the home row").toBe(false);
+    });
+  }
+
+  it("a learning opponent keeps one, and walks the rest out to fight", () => {
+    // Where the gold comes from is knowledge — `farms` in skill.ts.
+    const { s, home } = board({ skill: "learning", suit: "diamond", farmers: [0, 1, 2], enemy: [2, 3] });
+    expect(leftHome(s, home), "a learning seat farmed like a sharp one").toBe(true);
   });
 });

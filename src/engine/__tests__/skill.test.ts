@@ -30,9 +30,9 @@ describe("the skill dial", () => {
     const sharp = SKILL_PROFILES.sharp;
     expect(
       [sharp.spells, sharp.plans, sharp.readsLethal, sharp.readsThreat,
-       sharp.guardsHome, sharp.readsCurve, sharp.readsMagic],
+       sharp.guardsHome, sharp.readsCurve, sharp.readsMagic, sharp.farms],
       "sharp is the opponent that shipped — nothing taken away",
-    ).toEqual([true, true, true, true, true, true, true]);
+    ).toEqual([true, true, true, true, true, true, true, true]);
   });
 
   it("gives up strictly more knowledge the gentler it gets", () => {
@@ -41,12 +41,12 @@ describe("the skill dial", () => {
     const count = (k: (typeof AI_SKILLS)[number]) => {
       const p = SKILL_PROFILES[k];
       return [p.spells, p.plans, p.readsLethal, p.readsThreat, p.guardsHome,
-              p.readsCurve, p.readsMagic].filter(Boolean).length;
+              p.readsCurve, p.readsMagic, p.farms].filter(Boolean).length;
     };
     expect(count("learning")).toBeLessThan(count("steady"));
     expect(count("steady")).toBeLessThan(count("sharp"));
     for (const key of ["spells", "plans", "readsLethal", "readsThreat",
-                       "guardsHome", "readsCurve", "readsMagic"] as const) {
+                       "guardsHome", "readsCurve", "readsMagic", "farms"] as const) {
       if (SKILL_PROFILES.steady[key]) {
         expect(SKILL_PROFILES.sharp[key], `sharp keeps ${key} if steady does`).toBe(true);
       }

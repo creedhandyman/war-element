@@ -383,6 +383,56 @@ hoard, which is their handicap.
 should not. Run against the pre-fix ai.ts, all six "should fire" cases fail and
 all seven "should not" cases pass.
 
+## The AI did not farm its home row
+
+Reported from play: "doesn't know how to farm gold properly, it's mostly all
+attack". Gold is the round's base (1 a round for rounds 1-5, rising to 5) plus
+**+1 for every card standing on your own home row**, carried over capped at 10.
+Measured on the shipped AI — 512 sharp duels on the premade shelf, every suit
+pairing, seats and decks both ways — it held **0.33 home slots on average
+through rounds 1-5** and earned 3.3 gold a round. Two causes:
+
+1. **The opening read as a standoff.** The stall-breaker fires when none of a
+   seat's cards can reach anything, and moves regardless of the reserve. On the
+   first rounds nothing can reach anything because the board is empty, so every
+   seat — Defense and Control included — sprinted its first card across the
+   board to take a slot. `OPENING_ROUNDS` (5, the first income bracket) gates it.
+2. **The reserve was one slot, and only the ordinary advance honoured it.** The
+   pathed press (Spades) and the flanking step (every sharp seat) walked home
+   cards off regardless. Now `homeReserve` is every home slot but one for a seat
+   that `farms` (steady, sharp) and one for `learning`, and a single `holdsHome`
+   answers for all three movers. A capture, the jam release (`homeJammed`) and
+   the post-opening stall-breaker still take a held card.
+
+|                         | old AI | new AI |
+|-------------------------|--------|--------|
+| home slots held, rd 1-5 | 0.33   | 1.40   |
+| gold per round          | 3.3    | 4.8    |
+| head to head            | 23.2%  | 76.8% (4x4 75.8, 5x5 77.7) |
+
+Parts, each vs its own control: the opening fix alone 65.9%, farming alone
+64.9%, the bigger reserve with the sprint left in 59.8% — so the old note that
+"higher values measured worse: the AI camped" does not reproduce. No camping:
+timeouts 0 of 512; a sharp mirror runs 13.6 -> 18.0 rounds. Every suit gained,
+Attack most (14% -> 84% head to head — it was the purest all-attack seat).
+
+**THE SUIT MATRIX TIGHTENED.** The shipped AI's suits spread 27.1 points
+(Defense 65.6, Attack 38.5) — nothing like the 4.2 suits.ts records, which
+predates several changes. The new AI: 11.5 (Defense 55.2, Control 51.0, Attack
+50.0, Hoard 43.8).
+
+**THE DIAL WIDENED.** Learning vs sharp went 22.9% -> 7.0%. Learning itself is
+exactly as strong as before (new vs old learning 51.2%, it only lost the
+opening sprint); steady gained 16 points and sharp 27. Learning and steady
+mirrors time out ~12% of the time on the old AI and the new alike — not this.
+
+**THE TOWER BARELY MOVED** (brood switched, player AI held fixed, 16 seeds a
+boss): bare 83.4 -> 85.0%, with a tamed Vulcanyx 53.9 -> 56.9%. Largest single
+floors: Floor 2 bare +11 and Floor 3 with an ally +10 (n=64 / 48, borderline).
+
+**Treat balance readings taken before this change as measurements of a
+different game** — cards-plus-AI numbers all moved, as with the income fix.
+
 ## Measuring balance
 
 There's no committed balance harness — build a disposable one, read it, delete
