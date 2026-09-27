@@ -105,6 +105,26 @@ describe("Exostone's theft has limits", () => {
     expect(attacker.platesStolen ?? 0, "gifts are not loot").toBe(0);
   });
 
+  it("the tally is the loot it is still WEARING, so it never reads past the cap", () => {
+    // Loot to the roof, lose plates to the fight, loot again. The tally used to
+    // only ever grow, and read 12 of 10 on a Krysteel in a real match.
+    const { s, attacker, target, def } = setup();
+    const loot = () => {
+      for (let round = 0; round < 40; round++) {
+        attacker.platesTakenThisRound = 0;
+        target.curShields = 9;
+        target.curHp = 40;
+        basicAttack(s, attacker.instanceId, target.instanceId);
+      }
+    };
+    loot();
+    expect(attacker.platesStolen, "looted to the roof").toBe(EXOSTONE_STEAL_CAP);
+    attacker.curShields = def.shields + 4;   // knocked back down: six of the loot gone
+    loot();
+    expect(attacker.curShields, "back at the roof").toBe(def.shields + EXOSTONE_STEAL_CAP);
+    expect(attacker.platesStolen, "and the tally with it, not past it").toBe(EXOSTONE_STEAL_CAP);
+  });
+
   it("a real match never leaves a BORE card past its ceiling", () => {
     const field = CARDS.filter((c) => c.element === "BORE" && !c.boss).slice(0, 18).map((c) => c.id);
     for (const seed of [4, 19, 37]) {

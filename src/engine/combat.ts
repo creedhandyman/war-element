@@ -1525,7 +1525,15 @@ export function resolveHit(
           // and plated with. Against an armoured line the theft compounded with
           // no upper bound at all: every plate taken is one the target no longer
           // has, so a BORE mirror or a DAWN wall fed it indefinitely.
-          const taken = attacker.platesStolen ?? 0;
+          //
+          // `platesStolen` is the loot it is still WEARING, so plates it has
+          // lost since do not count: it can never wear more of it than it has
+          // above its printed armour. The tally used to only ever grow, and a
+          // card that looted to the roof, lost plates and looted again read
+          // past the cap it never exceeded (Krysteel, 12 of 10, in a real
+          // match). Nothing gates on it — the roof is `curShields` — so this
+          // changes the count and not the play.
+          const taken = Math.min(attacker.platesStolen ?? 0, Math.max(0, attacker.curShields - aDef.shields));
           const thisRound = attacker.platesTakenThisRound ?? 0;
           const roof = aDef.shields + EXOSTONE_STEAL_CAP;
           if (thisRound < EXOSTONE_STEAL_PER_ROUND && attacker.curShields < roof) {
