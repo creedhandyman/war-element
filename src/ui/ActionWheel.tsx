@@ -81,6 +81,27 @@ export function seatVerbs(
   return [armed, { ...cancel, seat: armed.seat === CARD_SEAT ? "right" : CARD_SEAT }];
 }
 
+/** THE SQUARES UNDER THE RING. Its chips sit on the acting card's four
+ *  orthogonal neighbours and its edge reaches the diagonals, so a tap that just
+ *  misses a chip lands on one of those eight cards, or on the acting card
+ *  itself between the chips. */
+export function underWheel(
+  acting: { row: number; col: number } | null | undefined,
+  tapped: { row: number; col: number } | null | undefined,
+): boolean {
+  if (!acting || !tapped) return false;
+  return Math.max(Math.abs(acting.row - tapped.row), Math.abs(acting.col - tapped.col)) <= 1;
+}
+
+/** A TAP THAT WOULD OPEN A CARD WHILE THE RING IS UP (owner's call: misses
+ *  near the ring kept opening the card next to it). Under the ring the first
+ *  tap only lines the card up and a second tap on the same card opens it;
+ *  anywhere else one tap opens, as it always did. Picking a target is not an
+ *  open and never comes through here. */
+export function wheelTap(lined: string | null, tapped: string, near: boolean): "open" | "line-up" {
+  return !near || lined === tapped ? "open" : "line-up";
+}
+
 export function ActionWheel(props: {
   /** Up to four. Order decides the seat: top, right, bottom, left. */
   verbs: WheelVerb[];

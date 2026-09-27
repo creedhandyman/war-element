@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, useState } from "react";
 import type { ComponentProps, ReactNode } from "react";
-import type { AutoMode, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
+import type { AutoMode, CardInstance, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
   advance,
   applyIntent,
@@ -274,7 +274,7 @@ import { StoryResult } from "./StoryResult";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
 import { VersusIntro } from "./VersusIntro";
-import { ActionWheel, type WheelVerb } from "./ActionWheel";
+import { ActionWheel, underWheel, wheelTap, type WheelVerb } from "./ActionWheel";
 import { browserBackStack } from "./back-stack";
 import { useBackLayer } from "./use-back-layer";
 import {
@@ -473,6 +473,11 @@ export function App() {
   const logIsStrip = portrait && mobilePanel !== "log";
   // Card inspector: clicking a played card opens a read-only detail panel.
   const [detailId, setDetailId] = useState<string | null>(null);
+  /** A card next to the action ring that one tap has LINED UP to open: the
+   *  second tap on it opens it (`inspectTapped`). Null otherwise. */
+  const [linedUp, setLinedUp] = useState<string | null>(null);
+  /** The hint that was up before a card was lined up, put back when it opens. */
+  const hintBeforeLineUp = useRef("");
   // Spell cast animation: when I cast, we hold the intent, flash the spell art
   // full-screen for ~2s, then dispatch so the effect resolves. `castTimerRef`
   // guards against a second cast landing mid-flash + clears on unmount.
@@ -3527,6 +3532,26 @@ export function App() {
     });
   }
 
+  /** Open a tapped card, unless it is under the action ring, where a tap that
+   *  missed a chip lands on the card beneath it (owner's call). There the first
+   *  tap only lines the card up (outlined, with a hint) and a second tap on it
+   *  opens it. Anywhere else, or with no ring up, one tap opens as it always
+   *  did. Only the battle taps that INSPECT come through here; a target pick
+   *  stays one tap. */
+  function inspectTapped(card: CardInstance) {
+    const acting = awaitingId ? game.cards[awaitingId]?.pos : null;
+    const near = wheelUp && underWheel(acting, card.pos);
+    if (wheelTap(linedUp, card.instanceId, near) === "open") {
+      if (linedUp === card.instanceId) setHint(hintBeforeLineUp.current);
+      setLinedUp(null);
+      setDetailId(card.instanceId);
+      return;
+    }
+    if (linedUp === null) hintBeforeLineUp.current = hint;
+    setLinedUp(card.instanceId);
+    setHint(`Tap <b>${getDef(card.defId).name}</b> again to open it.`);
+  }
+
   function onSlotClick(row: number, col: number) {
     const clicked = cardAt(game, row, col);
 
@@ -3537,14 +3562,14 @@ export function App() {
       // Area Special previewed: its zone is fixed, so a click just inspects —
       // press Confirm to fire.
       if (pending === "special" && specialAoE) {
-        if (clicked) setDetailId(clicked.instanceId);
+        if (clicked) inspectTapped(clicked);
         return;
       }
       // An armed Talent takes no target, so nothing on the board is glowing and
       // "pick a glowing card" would be a lie. A click inspects; the board is not
       // where the decision is.
       if (pending === "talent") {
-        if (clicked) setDetailId(clicked.instanceId);
+        if (clicked) inspectTapped(clicked);
         else setHint("This Talent takes no target — press <b>CONFIRM</b> to use it, or <b>CANCEL</b> to back out.");
         return;
       }
@@ -3580,7 +3605,7 @@ export function App() {
           );
         }
       } else if (clicked) {
-        setDetailId(clicked.instanceId);
+        inspectTapped(clicked);
       } else {
         setHint("⚠ Not a legal target — glowing cards only.");
       }
@@ -3814,7 +3839,7 @@ export function App() {
           `Moving <b>${getDef(clicked.defId).name}</b> — tap a green slot, or tap the card again to inspect it.`,
         );
       } else {
-        setDetailId(clicked.instanceId);
+        inspectTapped(clicked);
       }
     }
   }
@@ -4234,6 +4259,10 @@ export function App() {
    *  look away from the board to read. One interaction to learn, on every size.
    *  `.wrap.wheel-up` still hides the button row, so the two never both show. */
   const wheelUp = iActBattle && wheelAt !== null && !delivering;
+  // A lined-up card belongs to one moment of one card's turn. A new acting
+  // card, a verb armed or cancelled, or the ring going down drops it, so a
+  // later tap cannot open a card on the strength of one made before.
+  useEffect(() => { setLinedUp(null); }, [awaitingId, pending, wheelUp]);
 
   const wheelVerbs: WheelVerb[] = activeCard && activeDef
     ? [
@@ -4522,7 +4551,9 @@ export function App() {
             }, {})}
             hasSelection={sel !== null}
             movableIds={movableIds}
-            selectedId={sel?.kind === "card" ? sel.instanceId : null}
+            // ...or, mid-battle, the card next to the ring that one tap has lined
+            // up to open (`inspectTapped`): the outline is what the tap did.
+            selectedId={sel?.kind === "card" ? sel.instanceId : linedUp}
             actingId={awaitingId}
             grayTeam={
               // Throughout your prep turn, fade the idle opponent's team to ~50% so
@@ -4725,7 +4756,9 @@ export function App() {
                   the line is a warning. Desktop never sees this copy — `.bp-hint`
                   is hidden exactly where `.hint` is shown, so the pair can never
                   both be on screen. */}
-              {(pending !== null || hint.startsWith("⚠")) && (
+              {/* ...and "tap again to open it" is load-bearing too: without it a
+                  phone's first tap next to the ring would seem to do nothing. */}
+              {(pending !== null || hint.startsWith("⚠") || linedUp !== null) && (
                 <div className="bp-text bp-hint" dangerouslySetInnerHTML={{ __html: hint }} />
               )}
             </div>

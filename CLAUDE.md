@@ -3107,6 +3107,17 @@ board and are unsafe in browse, where there is no GameState at all. Keep the
 union; optional fields would let `props.game!` compile and crash five screens.
 Pure def-to-text lives in `card-text.tsx` and is covered by a whole-pool test.
 
+**A card next to the action ring opens on its SECOND tap** (owner, 2026-09-26).
+The ring's chips are small (52x26) and sit on the squares around the acting
+card, and `.wheel` itself is `pointer-events: none`, so a tap that just missed a
+chip opened the card underneath. While the ring is up, `inspectTapped`
+(App.tsx) only LINES UP a card within one square of the acting card, including
+the acting card itself. The card is outlined via `selectedId`, and "Tap X again
+to open it" is echoed into the phone's `.bp-hint`. A second tap opens it. A card
+farther away opens on one tap, and a target pick never goes through it. The rule
+is `underWheel` / `wheelTap` in ActionWheel.tsx; `linedUp` resets on a new acting
+card, a verb armed or cancelled, or the ring going down.
+
 **`HomeScreen.tsx` answers three questions in order** — where was I, what is on
 right now, where do I prepare — ordered by what DECAYS. Home used to *be* the
 collection, which was the right reaction to the landing card before it: a title
