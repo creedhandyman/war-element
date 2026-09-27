@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { CARD_INDEX } from "../data/cards";
+import { browserMixerEnv, MusicMixer } from "./music-mixer";
 
 /** Background music. Growth on the home/menu screen, a per-region theme whenever
  *  Story Mode is on screen — the region map and its battles share one track, so
@@ -11,6 +12,9 @@ import { CARD_INDEX } from "../data/cards";
  *
  *  Browsers block autoplay until the first user gesture, so we retry play() once
  *  the page has been interacted with. A mute toggle is persisted to localStorage.
+ *
+ *  The playing itself (crossfades, restarting a track from the top, the bass
+ *  trim) is `music-mixer.ts`; this hook only decides WHICH track.
  */
 export const TRACKS = {
   menu: "/music/growth.mp3",
@@ -80,30 +84,30 @@ export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean
     () => typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1",
   );
   const [unlocked, setUnlocked] = useState(false);
-  // Built on demand rather than up front. The library is uniform now — ten
-  // tracks, all 96kbps, 1.7-2.4MB each — which is about 23MB of audio against a
-  // session that hears one region's theme or one Arena playlist. Building all
-  // ten eagerly would fetch most of that to never play it.
-  //
-  // The argument used to rest on Stars of Dawn alone, an 8MB 320kbps outlier.
-  // It and Underground were re-encoded down to the library's 96, so what makes
-  // this worth doing is the total rather than any single track.
-  const pool = useRef<Map<MusicTrack, HTMLAudioElement>>(new Map());
+  // The mixer (music-mixer.ts) owns the elements, the fades and the bass
+  // filter. Its elements are still built on demand rather than up front: the
+  // library is ten tracks at 96kbps, 1.7-2.4MB each, about 23MB of audio
+  // against a session that hears one region's theme or one Arena playlist.
+  const mixerRef = useRef<MusicMixer | null>(null);
+  const mixer = () => (mixerRef.current ??= new MusicMixer(browserMixerEnv(), VOLUME));
 
   // Stop and drop everything on unmount.
-  useEffect(() => {
-    const live = pool.current;
-    return () => { live.forEach((a) => a.pause()); live.clear(); };
-  }, []);
+  useEffect(() => () => { mixerRef.current?.dispose(); mixerRef.current = null; }, []);
 
-  // Unlock audio on the first user gesture (autoplay is blocked before that).
+  // Unlock audio on a user gesture (autoplay is blocked before one). The mixer
+  // is woken INSIDE the gesture, because iOS starts an AudioContext nowhere
+  // else. It listens on every tap, not just the first, because iOS also
+  // suspends the context on an interruption (a call, the app backgrounded)
+  // and only a later tap can start it again. `setUnlocked(true)` after the
+  // first is a no-op render.
   useEffect(() => {
-    if (unlocked) return;
-    const on = () => setUnlocked(true);
-    window.addEventListener("pointerdown", on, { once: true });
-    window.addEventListener("keydown", on, { once: true });
+    const on = () => { mixer().unlock(); setUnlocked(true); };
+    window.addEventListener("pointerdown", on);
+    window.addEventListener("keydown", on);
     return () => { window.removeEventListener("pointerdown", on); window.removeEventListener("keydown", on); };
-  }, [unlocked]);
+    // `mixer` reads a ref and is stable in effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const list = Array.isArray(track) ? track : [track];
   // The effect keys on the JOINED STRING, not the array. Callers build these
@@ -117,30 +121,19 @@ export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean
   useEffect(() => { setStep(0); }, [key]);
   const current = list[step % list.length] ?? list[0];
 
-  // Play the track that matches the current state; pause every other one.
+  // Play the track that matches the current state. The mixer crossfades from
+  // whatever was playing and starts a track that had stopped from the top.
   // Re-runs when `unlocked` flips so the first gesture kicks playback off.
   useEffect(() => {
-    for (const [id, audio] of pool.current) if (id !== current || muted) audio.pause();
-    if (muted) return;
-    let audio = pool.current.get(current);
-    if (!audio) {
-      audio = new Audio(TRACKS[current]);
-      audio.volume = VOLUME;
-      audio.preload = "auto";
-      pool.current.set(current, audio);
-    }
-    // A lone track loops; a playlist hands over at the end. `onended` is
-    // ASSIGNED rather than added, because these elements are pooled and reused
-    // — addEventListener would stack a fresh advance on every pass through the
-    // list and skip tracks in accelerating multiples.
+    if (muted) { mixer().stop(); return; }
+    // A lone track loops; a playlist hands over at the end.
     const many = list.length > 1;
-    audio.loop = !many;
-    audio.onended = many ? () => setStep((i) => (i + 1) % list.length) : null;
-    // Rewind a track that has already played. A pooled element sits at its end
-    // once it fires `ended`, so coming back to it a cycle later would end again
-    // on the spot and spin the playlist as fast as the event loop allows.
-    if (audio.ended || audio.currentTime >= audio.duration) audio.currentTime = 0;
-    void audio.play().catch(() => {}); // still gesture-blocked → the unlock effect retries
+    mixer().play(current, TRACKS[current], {
+      loop: !many,
+      onEnded: many ? () => setStep((i) => (i + 1) % list.length) : null,
+    });
+    // `list` is `key`, and `mixer` reads a ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, key, muted, unlocked]);
 
   const toggle = () =>

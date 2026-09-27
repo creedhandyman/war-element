@@ -1357,6 +1357,18 @@ engine runtime and no React, so it stays testable headlessly
   dBTP ceiling). They arrived 5.9 dB apart and every one of them clipped, so
   switching regions changed the volume. Normalize from the MASTER, not from the
   committed 96k file, or you stack two generations of lossy encoding.
+  **Playback goes through `music-mixer.ts`** (owner, 2026-09-26: tracks came
+  back mid-song, battle in/out was a hard cut, the bass was saturated). Each
+  track feeds its own GainNode fader into one shared chain: a 40 Hz high-pass,
+  a −5 dB low-shelf at 150 Hz (`BASS`), then the master volume. A change of
+  track crossfades (`FADE_S`), a start from silence fades in (`START_FADE_S`),
+  and a track that STOPS is rewound, so it always comes back from the top. One
+  still fading out is picked back up instead. Fades are gain automation because
+  iOS ignores `audio.volume`. The context is resumed inside a tap (every tap,
+  since iOS suspends it on interruptions), and `navigator.audioSession.type =
+  "playback"` keeps the old `<audio>` behaviour of playing through the silent
+  switch. With no Web Audio it falls back to element volume. The browser pieces
+  are injected, so `music-mixer.test.ts` runs on fakes.
 
 ## Spells — copies are legal now, and everything treated a book as a SET
 
