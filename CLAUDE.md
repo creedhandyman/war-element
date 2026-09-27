@@ -3384,9 +3384,18 @@ region.
   builder's spell fill must NOT go through `autoDeck`: that reads `getDef`,
   which knows cards and throws on a spell id, and the two are both `string[]`.
 
-- **The picked squad is always on screen in the builder**, not one of four
-  panels behind a pill. The desktop default used to be Composition — the
-  default state of the squad builder was one where you could not see the squad.
+- **The builder is one job per screen on a phone, a rail plus tabs on a
+  desktop** (2026-09-27, reported as crowded). The phone builder was a card
+  pool with a drawer rising over it, and the drawer carried a whole desktop
+  rail — name, board, a second count and ruler, Save/Fill/Clear, three notes,
+  the check, the list, two tool pills and whichever panel was open. Now the
+  squad's NAME is the header; a phone has tabs Cards · Squad · Spells ·
+  Library, with the count, Fill and Save in a bar under the thumb; a desktop
+  keeps the squad as its rail — never behind a pill, since the old
+  Composition default hid it — and tabs Cards · Spells · Squads & premades
+  over the wide column. `phone` is live (a matchMedia listener) because it
+  picks the whole tree, and the phone's back button walks check → Squad →
+  Cards before it leaves the builder.
 
 - **The campaign builder's cap and board follow the PREPPED NODE** when prep is
   open (`builderCap` / `builderBoard` in App.tsx), and the region's maximum

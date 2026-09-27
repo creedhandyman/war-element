@@ -93,24 +93,44 @@ export function DeckStats({ stats, gaps }: { stats: DeckComposition; gaps?: bool
       </div>
       <div className="dbs-block">
         <div className="dbs-lbl">Cost curve · avg {stats.avg.toFixed(1)}</div>
-        <div className="dbs-curve">
-          {Array.from({ length: 10 }, (_, i) => i + 1).map((cost) => {
-            const n = stats.byCost[cost] ?? 0;
-            return (
-              <div key={cost} className="dbs-col" title={`Cost ${cost}: ${n}`}>
-                <div className="dbs-bar-wrap">
-                  {n > 0 && (
-                    <div className="dbs-bar" style={{ height: `${(n / stats.maxCostCount) * 100}%` }}>
-                      <span className="dbs-barnum">{n}</span>
-                    </div>
-                  )}
-                </div>
-                <div className="dbs-cost">{cost}</div>
-              </div>
-            );
-          })}
-        </div>
+        <Curve stats={stats} />
       </div>
+    </div>
+  );
+}
+
+/** One bar per cost, 1 to 10. Shared by the full readout and the small one. */
+function Curve({ stats }: { stats: DeckComposition }) {
+  return (
+    <div className="dbs-curve">
+      {Array.from({ length: 10 }, (_, i) => i + 1).map((cost) => {
+        const n = stats.byCost[cost] ?? 0;
+        return (
+          <div key={cost} className="dbs-col" title={`Cost ${cost}: ${n}`}>
+            <div className="dbs-bar-wrap">
+              {n > 0 && (
+                <div className="dbs-bar" style={{ height: `${(n / stats.maxCostCount) * 100}%` }}>
+                  <span className="dbs-barnum">{n}</span>
+                </div>
+              )}
+            </div>
+            <div className="dbs-cost">{cost}</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+/** The cost curve alone, and small — the one block of the composition worth
+ *  reading without asking for it. The Squad Builder shows it above the squad
+ *  list; the full readout above (elements, classes, the big curve) lives in
+ *  its squad check, one tap further in. */
+export function CostCurve({ stats }: { stats: DeckComposition }) {
+  return (
+    <div className="dbs-mini" title={`Cost curve · average ${stats.avg.toFixed(1)}`}>
+      <Curve stats={stats} />
+      <span className="dbs-mini-avg">avg<b>{stats.avg.toFixed(1)}</b></span>
     </div>
   );
 }

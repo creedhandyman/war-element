@@ -2685,7 +2685,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-open { margin-top: 6px; font-size: 11px; padding: 7px 12px; }
 
 /* ── Deck Builder modal ───────────────────────────────────────────────────── */
-.deck-builder { max-width: min(1120px, 96vw); width: 1120px; text-align: left; padding: 20px; }
+.deck-builder { max-width: min(1120px, 96vw); width: 1120px; text-align: left; padding: 18px 20px 20px; display: flex; flex-direction: column; }
 /* Rules book — the How-to-play reference opened from the main menu. */
 .rules-book { max-width: min(680px, 94vw); width: 680px; text-align: left; padding: 18px 20px; display: flex; flex-direction: column; max-height: 90vh; }
 .rules-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
@@ -2704,9 +2704,28 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .rules-steps { padding-left: 20px; }
 .rules-steps li { font-size: 13px; line-height: 1.5; color: var(--ink-dim); margin-bottom: 6px; }
 .rules-done { margin: 12px 0 0; align-self: stretch; }
-.db-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
-.db-head h2 { margin: 0; font-size: 20px; }
-.db-head h2 { text-wrap: balance; }
+.db-head { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex: none; }
+.db-head h2 { margin: 0; font-size: 20px; flex: none; text-wrap: balance; }
+/* THE SQUAD'S NAME IS THE HEADER — it is the thing being edited, with Save
+   beside it. It used to be an input in the rail under a title that told you
+   nothing the screen did not, with Save three rows further down. */
+.db-title {
+  flex: 1; min-width: 0; font: inherit; font-size: var(--fs-5); font-weight: 700; color: var(--ink);
+  padding: 7px 11px; border-radius: 9px; border: 1px solid var(--panel-line); background: var(--void-2);
+}
+.db-title::placeholder { color: var(--ink-faint); font-weight: 600; }
+.db-title:focus { outline: none; border-color: var(--gold-line); }
+.db-save { flex: none; margin: 0; padding: 9px 18px; font-size: var(--fs-3); }
+/* The close sits IN the header row. `.cd-x` is the card panel's absolutely
+   placed corner button, and absolute in a flex row it took no space and sat
+   on the end of the name field. */
+.db-head .cd-x { position: static; flex: none; padding: 6px; }
+/* Nothing changed since the save: a receipt, not a greyed-out button that
+   reads as "you can't save this". */
+.db-save.saved:disabled {
+  background: transparent; box-shadow: none; color: var(--legal);
+  border-color: color-mix(in srgb, var(--legal) 55%, var(--panel-line));
+}
 /* ONE HEIGHT FOR BOTH COLUMNS on a desktop. The rail and the grid each carried
    their own vh cap (66 and 60), so the two never lined up — and inside the
    capped rail the squad list was the flex item that gave way: with Composition
@@ -2714,10 +2733,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    name only. The body has the height now, and the list is what stretches. */
 .db-body { display: flex; gap: 18px; align-items: stretch; height: min(76vh, 720px); }
 .db-side { width: 252px; flex: none; display: flex; flex-direction: column; gap: 8px; min-height: 0; overflow-y: auto; padding-right: 2px; }
-/* The drawer handle is a PHONE affordance. On desktop the rail is a column with
-   room to stay open, so there is nothing to expand and a button saying so would
-   be a control that does nothing. */
-.db-handle { display: none; }
 
 /* ── the squad list ───────────────────────────────────────────────────────
    The builder had no way to SHOW your squad. Removing a card meant finding it
@@ -2773,7 +2788,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The meta column is the first thing to go when the row runs out of width — it
    is context, and the name and the ✕ are not. */
 @media (max-width: 360px) { .dbl-meta { display: none; } }
-.db-name { font-size: 14px; font-weight: 700; padding: 9px 11px; border-radius: 10px; background: var(--void-2); color: var(--ink); border: 1px solid var(--panel-line); }
 .db-count { font-size: 20px; font-weight: 900; }
 /* ── the capacity ruler ───────────────────────────────────────────────────
    One cell per card the deck can hold. Filled cells are what you have picked;
@@ -2813,13 +2827,23 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-actions .lockin { flex: 1; padding: 9px 10px; font-size: 12px; margin: 0; }
 .db-actions .ghost { flex: none; font-size: 11px; padding: 9px 10px; }
 .db-warn { font-size: 11px; color: var(--threat); font-weight: 700; }
-/* Tool pills — Composition / Spellbook / Saved condensed into one row; the
-   active one opens its panel below. Replaces three stacked full-width bars. */
-
-.db-tools { display: flex; gap: 6px; flex-wrap: wrap; }
-.db-tool { flex: 1 1 auto; min-width: 0; padding: 8px 10px; border-radius: 9px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink-dim); font-size: 11px; font-weight: 800; letter-spacing: 0.02em; cursor: pointer; transition: 0.12s; white-space: nowrap; }
-.db-tool:hover { border-color: var(--accent); color: var(--ink); }
-.db-tool.on { border-color: var(--accent); color: var(--ink); background: rgba(167, 139, 250, 0.16); }
+/* ── the tabs ─────────────────────────────────────────────────────────────
+   Cards, Spells and the library over the wide column on a desktop, where the
+   squad is the rail; a phone adds Squad and shows one at a time. The badge is
+   the tab's own count, the dot is the squad check having something to say. */
+.db-tabs { flex: none; display: flex; gap: 2px; border-bottom: 1px solid var(--panel-line); }
+.db-tab {
+  flex: none; display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 12px; margin-bottom: -1px; border: 0; border-bottom: 2px solid transparent;
+  background: none; color: var(--ink-dim); font: inherit; font-size: var(--fs-3); font-weight: 700;
+  cursor: pointer; white-space: nowrap; transition: color 0.12s, border-color 0.12s;
+}
+.db-tab:hover { color: var(--ink); }
+.db-tab.on { color: var(--gold-hi); border-bottom-color: var(--gold-lit); }
+.db-tab:focus-visible { outline: 1px solid var(--gold-line); outline-offset: -2px; }
+.db-tab b { font-size: var(--fs-1); font-weight: 800; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.db-tab.on b { color: var(--gold-lit); }
+.db-tab-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gold-lit); box-shadow: 0 0 5px rgba(232, 200, 119, 0.6); }
 .db-panel { border: 1px solid var(--panel-line); border-radius: 10px; padding: 10px; background: var(--void-2); }
 .db-saved { margin-top: 6px; display: flex; flex-direction: column; gap: 6px; overflow-y: auto; min-height: 0; }
 .db-saved.db-panel { margin-top: 0; }
@@ -2836,6 +2860,37 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The builder's grid takes whatever the column has left. Scoped: `.db-grid` is
    also the Collection's and the Gallery's, and their caps are their own. */
 .deck-builder .db-grid { flex: 1 1 0; min-height: 0; max-height: none; }
+/* ── the cards view ───────────────────────────────────────────────────────
+   Search and the Filters button share a row, the elements are the row under
+   it, and the grid takes everything else. */
+.db-cards { flex: 1; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.db-searchrow { flex: none; display: flex; gap: 8px; }
+.db-searchrow .db-search { flex: 1; min-width: 0; margin-bottom: 0; }
+.db-filbtn {
+  flex: none; display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 12px;
+  border-radius: var(--r-chip); border: 1px solid var(--panel-line); background: var(--void-2);
+  color: var(--ink-dim); font: inherit; font-size: var(--fs-3); font-weight: 700; cursor: pointer;
+}
+.db-filbtn:hover, .db-filbtn.open { border-color: var(--gold-line); color: var(--ink); }
+.db-filbtn.active { border-color: var(--gold-line); color: var(--gold-lit); }
+.db-filbtn b {
+  min-width: 17px; height: 17px; padding: 0 4px; border-radius: var(--r-pill); display: inline-grid; place-items: center;
+  font-size: var(--fs-1); color: #1a140a; background: var(--gold-lit);
+}
+.db-filbtn i { font-style: normal; font-size: var(--fs-1); color: var(--ink-faint); }
+/* A brand-new squad's three ways in, where the eye already is. */
+.db-start {
+  flex: none; padding: 8px 11px; border-radius: 9px; border: 1px dashed var(--gold-line);
+  background: rgba(201, 162, 75, 0.06); font-size: var(--fs-3); line-height: 1.45; color: var(--ink-dim);
+}
+.db-start b { color: var(--ink); }
+/* The squad list's own heading, and the phone's Clear beside it. */
+.dbl-head {
+  flex: none; display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-top: 2px;
+  font-family: var(--head); font-size: var(--fs-1); font-weight: 800; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-faint);
+}
+.dbl-head .db-linkbtn { font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 600; letter-spacing: 0; text-transform: none; }
 .deck-builder .db-side, .deck-builder .db-picked, .deck-builder .db-grid,
 .deck-builder .db-pool > .db-panel, .deck-builder .db-spell-grid {
   scrollbar-width: thin; scrollbar-color: var(--gold-line) transparent;
@@ -3054,12 +3109,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-tpl-els img { width: 16px; height: 16px; object-fit: contain; display: block; }
 .db-tpl-own { margin-left: auto; flex: none; font-size: var(--fs-1); color: var(--ink-faint); font-variant-numeric: tabular-nums; }
 .db-tpl-note { font-size: var(--fs-2); line-height: 1.35; color: var(--ink-dim); }
-/* How many tips the check has, on the collapsed phone bar — the one place the
-   check shows while the drawer is down. */
-.db-handle-tips {
-  flex: none; font-size: var(--fs-1); font-weight: 800; color: #1a140a;
-  background: var(--gold-lit); border-radius: var(--r-pill); padding: 1px 7px;
+/* The cost curve alone, small, over the squad list (DeckStats `CostCurve`).
+   Bars without their counts — the tooltip carries those — and the cost under
+   each at the 10px floor. */
+.dbs-mini { flex: none; display: flex; align-items: flex-end; gap: 10px; padding: 2px 2px 0; }
+.dbs-mini .dbs-curve { flex: 1; height: 40px; }
+.dbs-mini .dbs-barnum { display: none; }
+.dbs-mini .dbs-cost { font-size: var(--fs-1); color: var(--ink-faint); }
+.dbs-mini-avg {
+  flex: none; display: flex; flex-direction: column; align-items: flex-end; padding-bottom: 1px;
+  font-size: var(--fs-1); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-faint);
 }
+.dbs-mini-avg b { font-size: var(--fs-4); font-weight: 800; letter-spacing: 0; color: var(--ink); font-variant-numeric: tabular-nums; }
 
 /* ── Deck composition stats (left panel) ─────────────────────────────── */
 .db-stats { margin-top: 4px; padding: 9px 10px; border: 1px solid var(--panel-line); border-radius: 10px; background: var(--void-2); display: flex; flex-direction: column; gap: 8px; }
@@ -3281,74 +3342,46 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      filters made the cards BIGGER and fewer, which is the opposite of the point.
      The width now comes from the screen. */
   .deck-builder {
-    width: 100%; height: calc(100dvh - 20px); max-height: none; padding: 14px;
-    display: flex; flex-direction: column; overflow: hidden;
+    width: 100%; height: calc(100dvh - 20px); max-height: none; padding: 10px 12px;
+    display: flex; flex-direction: column; gap: 8px; overflow: hidden;
   }
-  /* The title starts hard against the top-left corner, where the mute button
-     floats (6,6 and 28px square) — the S of "Squad" sat under the speaker. */
-  .db-head { flex: none; margin-bottom: 6px; padding-left: 22px; }
-  .db-body { flex: 1 1 auto; min-height: 0; height: auto; flex-direction: column; gap: 10px; }
-  /* In the drawer, which scrolls as a whole. A cap rather than a stretch, so a
-     thirty-card list does not push the tools and the panels off the bottom. */
-  .db-picked { flex: none; min-height: 0; max-height: 30vh; }
-  /* A panel in the drawer keeps its full height and the DRAWER scrolls. As a
-     bare flex item it shrank to fit the drawer's cap instead — the squad shelf
-     measured a few pixels tall with thirty premades inside it, so opening it
-     looked like nothing happened. */
-  .db-drawer-panel { flex: none; }
-  /* ── the deck rail becomes a BAR ────────────────────────────────────────
-     It was a 221px block sitting on top of the pool: deck name, board toggle,
-     count, ruler, Save, the tool pills, and whichever panel was open. That left
-     the card grid 379px of a 844px phone — under half the screen for the one
-     thing you opened this screen to look at.
-
-     Now it is pinned to the bottom showing only what you need WHILE scrolling
-     the pool — the deck's name, how many cards it holds, and whether that is
-     legal — and everything else rises over the pool when you tap it. Adding and
-     reviewing stay the same gesture, because the pool is still behind the
-     drawer rather than replaced by it. */
-  .db-side {
-    order: 2; width: auto; flex: none; gap: 7px;
-    max-height: 84px; overflow: hidden;
-    border-top: 1px solid var(--gold-line); padding-top: 8px; margin-top: 2px;
-    transition: max-height 0.24s ease;
+  /* The name starts past the top-left corner, where the mute button floats
+     (6,6 and 28px square). */
+  .db-head { margin-bottom: 0; padding-left: 26px; gap: 8px; }
+  .db-title { font-size: var(--fs-4); padding: 8px 10px; }
+  /* ── ONE VIEW AT A TIME ─────────────────────────────────────────────────
+     The phone builder was a card pool with a drawer over it, and the drawer
+     held the name, the board toggle, a second count, a second ruler, Save,
+     Fill, Clear, three notes, the check, the list, two tool pills and whichever
+     panel was open — a whole desktop rail folded into 62% of a phone. Now: the
+     tabs, then ONE view filling everything down to the bar, scrolling on its
+     own. Nothing else on the screen scrolls. */
+  .db-tabs { gap: 0; }
+  .db-tab { flex: 1 1 0; min-width: 0; justify-content: center; gap: 4px; padding: 9px 2px; }
+  .db-body { flex: 1 1 auto; min-height: 0; height: auto; display: flex; flex-direction: column; gap: 0; }
+  .db-body > * { flex: 1 1 auto; min-height: 0; }
+  /* A whole screen needs no box drawn around it. */
+  .db-body > .db-panel { border: 0; border-radius: 0; padding: 4px 0 0; margin: 0; background: none; }
+  .db-body > .db-side { width: auto; gap: 10px; padding: 4px 4px 4px 0; overflow-y: auto; overscroll-behavior: contain; }
+  .db-body > .db-side .db-picked { flex: none; min-height: 0; overflow: visible; }
+  .db-body > .db-saved, .db-body > .db-check { overflow-y: auto; overscroll-behavior: contain; }
+  /* ── the bar under the thumb ────────────────────────────────────────────
+     What every tab needs: how full the squad is (tap it for the squad), Fill
+     while there is room, and Save. */
+  .db-notestrip { flex: none; padding: 0 2px; }
+  /* No nav clearance: the Arena hides the nav while the builder is open and the
+     campaign's builder sits above it, so the pre-match margin only pushed the
+     builder up against the top edge. */
+  .wrap.pre-match .overlay > .modal.deck-builder { margin-bottom: 0; }
+  .db-bar { flex: none; display: flex; align-items: center; gap: 8px; padding-top: 8px; border-top: 1px solid var(--gold-line); }
+  .db-bar-count {
+    flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; padding: 4px 2px;
+    border: 0; background: none; color: var(--ink-dim); font: inherit; cursor: pointer; text-align: left;
   }
-  .db-side.open {
-    max-height: 62vh; overflow-y: auto; overscroll-behavior: contain;
-  }
-  /* Collapsed, the bar is the handle plus the ruler and nothing else. Hidden
-     rather than unmounted so opening the drawer does not re-mount the deck
-     list and lose its scroll position. */
-  .db-side:not(.open) > *:not(.db-handle):not(.db-ruler) { display: none; }
-
-  .db-handle {
-    display: flex; align-items: center; gap: 8px; width: 100%;
-    padding: 4px 2px; background: none; border: none; cursor: pointer;
-    color: var(--ink); text-align: left; font-family: var(--font-ui);
-  }
-  .db-handle-lbl {
-    flex: 1; min-width: 0; font-size: var(--fs-3); font-weight: 600;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-  .db-handle-state {
-    flex: none; font-size: var(--fs-2); font-weight: 700; color: var(--ink-dim);
-    font-variant-numeric: tabular-nums;
-  }
-  .db-handle-state.ok { color: var(--legal); }
-  /* Legal but short — gold, not green and not red. The team saves and fights;
-     it is simply bringing less than the node allows. */
-  .db-handle-state.thin { color: var(--gold-lit); }
-  .db-handle-chev { flex: none; color: var(--ink-faint); font-size: var(--fs-3); }
-
-  .db-pool {
-    order: 1; flex: 1 1 auto; min-height: 0; gap: 8px;
-    border-left: none; padding-left: 0; padding-top: 0;
-    /* CLIPS. Everything above is about sharing the squeeze sensibly; this is the
-       guarantee that a miscalculation can never again paint the filter rows over
-       the deck rail below. Both children scroll on their own, so clipping the
-       pool costs nothing reachable. */
-    overflow: hidden;
-  }
+  .db-bar-n { flex: none; font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
+  .db-bar-n b { font-size: var(--fs-5); font-weight: 900; }
+  .db-bar-count .db-ruler { flex: 1; min-width: 0; margin: 0; }
+  .db-bar .db-fill, .db-bar .db-save { flex: none; margin: 0; padding: 10px 14px; font-size: var(--fs-3); }
   /* Filters get their own single scrollable line each instead of wrapping to
      two rows — reclaims ~80px of vertical room for the card pool, and the
      chip-scroll is a familiar mobile pattern. */
@@ -3382,9 +3415,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .col-pool .db-filters { mask-image: none; -webkit-mask-image: none; }
   .db-filters .db-fl, .db-sort .db-fl, .db-elbar .db-fl { flex: none; }
   .db-sort-lbl { flex: none; }
-  /* Tighten the meta stack so the pool sits higher. */
-  .db-name { padding: 9px 12px; }
-  .db-count { margin: 2px 0; }
   /* `flex-basis: 0`, and a FLOOR. With 320 cards the grid's auto basis is its
      whole content height, so the flex shrink landed on the filter box instead
      of here — six rows folded to three with a 500px grid under them. At basis 0
@@ -3403,12 +3433,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    is not optional. A 200px fixed side column beside a pool needs somewhere to
    put both. */
 @media (max-height: 540px) and (min-width: 500px) {
-  .deck-builder { width: 100%; height: calc(100dvh - 12px); max-height: none; padding: 10px 12px; }
-  /* Same corner as the portrait tier: the mute button floats at 6,6. */
-  .db-head { margin-bottom: 4px; padding-left: 22px; }
-  .db-body { flex-direction: row; align-items: stretch; gap: 12px; height: calc(100dvh - 72px); }
-  /* A 200px rail cannot hold a class name AND a card name; the name wins. */
+  .deck-builder { width: 100%; height: calc(100dvh - 12px); max-height: none; padding: 8px 12px 10px; }
+  /* Same corner as the portrait tier: the mute button floats at 6,6. The name
+     is the header, so the title gives its width back. */
+  .db-head { margin-bottom: 6px; padding-left: 26px; gap: 8px; }
+  .db-head h2 { display: none; }
+  .db-title { font-size: var(--fs-4); padding: 6px 10px; }
+  .db-save { padding: 7px 12px; }
+  .db-body { flex: 1 1 auto; min-height: 0; flex-direction: row; align-items: stretch; gap: 12px; height: auto; }
+  /* A 200px rail cannot hold a class name AND a card name; the name wins. And
+     on a 390px-tall screen the list needs the rows the small curve took — the
+     full curve is one tap away in the check. */
   .dbl-meta { display: none; }
+  .db-side .dbs-mini { display: none; }
   /* One scrolling row, as in portrait: on a 390px-tall screen a second row of
      element chips is a row of cards. */
   .db-elbar {
@@ -6196,13 +6233,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .pack-rest:hover { color: var(--ink); background: rgba(255,255,255,0.06); }
 
-/* Confirmation that the squad on screen is the squad on disk. Quiet: it is a
-   receipt, not an announcement. */
-.db-saved-note {
-  margin-top: 8px; font-size: var(--fs-1); color: var(--ink-faint);
-  text-align: center; line-height: 1.4;
-}
-.db-saved-note b { color: var(--ink); font-weight: 600; }
 @keyframes swipeNudge { 0%, 100% { transform: translateY(0); opacity: .55; } 50% { transform: translateY(4px); opacity: 1; } }
 
 /* Everything already turned, so the pack accumulates in front of you rather

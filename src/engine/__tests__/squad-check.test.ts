@@ -169,4 +169,14 @@ describe("the builder is wired to all of it", () => {
   it("reads the check against the size being built to, not the cards held", () => {
     expect(DB).toContain("checkSquad(picked, limits.target)");
   });
+
+  it("is tabs on a phone, not a drawer over the cards", () => {
+    // The phone builder was a card pool with a drawer rising over it, and the
+    // drawer held a whole desktop rail — the crowding that was reported. One
+    // view at a time behind tabs, and the drawer's handle is gone.
+    expect(DB).toContain('role="tablist"');
+    expect(DB).not.toContain("db-handle");
+    // What every tab needs rides in the bar under the thumb.
+    expect(DB).toMatch(/className="db-bar"[\s\S]*fillToCap[\s\S]*\{saveButton\}/);
+  });
 });

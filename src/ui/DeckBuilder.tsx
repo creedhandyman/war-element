@@ -20,11 +20,11 @@ import {
 } from "../data/squad-check";
 import { BUILDABLE_ELEMENTS, cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
 import {
-  AttackRow, ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  AttackRow, ClassRow, CostRow, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   cardHasKeyword, matchesCost, useFilterFold, type AttackFilter, type CostFilter, type RarityFilter, type TribeFilter,
 } from "./filters";
 import { CardView } from "./CardView";
-import { DeckStats, useComposition } from "./DeckStats";
+import { CostCurve, DeckStats, useComposition } from "./DeckStats";
 import { SpIcon } from "./icons";
 
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -34,6 +34,11 @@ const SORTS = [["cost", "Cost"], ["rarity", "Rarity"], ["name", "Name"]] as cons
 type SortKey = (typeof SORTS)[number][0];
 const RARITY_RANK: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3, common: 4 };
 const rarityRank = (r?: string) => (r && r in RARITY_RANK ? RARITY_RANK[r] : 99);
+
+/** The builder's screens. A phone shows one at a time behind tabs; a desktop
+ *  keeps the squad as its rail and tabs the rest. */
+type View = "cards" | "squad" | "spells" | "library" | "check";
+const PHONE_QUERY = "(max-width: 720px)";
 
 /** The check lines a "Show" button can answer by narrowing the pool. The top
  *  end is answered by taking a card OUT, and elements by choosing them in the
@@ -186,11 +191,11 @@ export function DeckBuilder(props: {
    *  saved?") and needs no effect, so it also cannot fight the very save that
    *  set it. */
   const [justSaved, setJustSaved] = useState<{ name: string; sig: string } | null>(null);
-  /** What the last fill did, held the same way as `justSaved`: shown while the
-   *  squad is still exactly what the fill left, gone at the first edit. A fill
-   *  that CHOSE the elements has to say which, or an empty-squad press reads
-   *  as a random pile. */
-  const [fillNote, setFillNote] = useState<{ text: string; sig: string } | null>(null);
+  /** What the last fill, premade or code load did, held the same way as
+   *  `justSaved`: shown while the squad is still exactly what it left, gone at
+   *  the first edit. A fill that CHOSE the elements has to say which, or an
+   *  empty-squad press reads as a random pile. */
+  const [note, setNote] = useState<{ text: string; sig: string } | null>(null);
   /** The card most recently added. The list is in cost order now, so a new card
    *  lands mid-list rather than at the bottom where you last looked; its row
    *  flashes once so it can still be found. */
@@ -223,39 +228,31 @@ export function DeckBuilder(props: {
   const [filtersOpen, toggleFilters] = useFilterFold();
   const [sortBy, setSortBy] = useState<SortKey>("cost");
   const [query, setQuery] = useState("");
-  /** Phone only: the deck rail is a BAR by default and rises over the pool when
-   *  you tap it. Desktop ignores this — the rail is a column there and has the
-   *  room to stay open. */
-  const [deckOpen, setDeckOpen] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
-  const phone = typeof window !== "undefined" && (window.matchMedia?.("(max-width: 720px)").matches ?? false);
-  // THE DECK IS NOT A PANEL ANY MORE. It was one of four things behind a pill,
-  // opening one at a time, and on desktop the pill that started open was
-  // Composition — so the default state of the deck BUILDER was one where you
-  // could not see the deck. You were picking cards blind and finding out what
-  // you had by reading a number. The list is always on screen now, and the
-  // panels are the extras: the squad check, the spellbook, and the squad shelf.
-  //
-  // Nothing starts open. The check is summarised on the rail by its own bar,
-  // which is the part worth seeing without asking.
-  const [panel, setPanel] = useState<"check" | "spells" | "saved" | null>(null);
-  const togglePanel = (p: "check" | "spells" | "saved") => setPanel((cur) => (cur === p ? null : p));
-  // THE SPELLBOOK NEEDS A SQUAD. It is the pool column's other view, so with an
-  // empty squad it rendered as a full-height empty box where the card grid
-  // should be — reported after saving, because `save` calls `reset` and the
-  // panel was left open over the squad it had just cleared. Derived rather than
-  // corrected in an effect: there is no state in which it can be wrong. The
-  // check reads nothing on an empty squad either, so it follows the same rule.
-  const panelShown = panel === "saved" || (panel !== null && picked.length > 0) ? panel : null;
-  /** On a phone a panel opens in the drawer, UNDER the squad list — below the
-   *  fold of a drawer already scrolled to the list. Opening one scrolls it up to
-   *  where the eye is, or the tap reads as having done nothing. */
-  const drawerPanelRef = useRef<HTMLDivElement>(null);
+  /** Phone or not, kept LIVE. It decides the whole shape of the screen now —
+   *  tabs on a phone, rail and pool on anything wider — so turning the phone
+   *  has to re-render the builder, not wait for the next tap to notice. */
+  const [phone, setPhone] = useState(
+    () => typeof window !== "undefined" && (window.matchMedia?.(PHONE_QUERY).matches ?? false),
+  );
   useEffect(() => {
-    if (!phone || !panelShown) return;
-    const reduce = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    drawerPanelRef.current?.scrollIntoView({ block: "start", behavior: reduce ? "auto" : "smooth" });
-  }, [panelShown]);
+    const mq = typeof window !== "undefined" ? window.matchMedia?.(PHONE_QUERY) : undefined;
+    if (!mq) return;
+    const on = () => setPhone(mq.matches);
+    mq.addEventListener?.("change", on);
+    return () => mq.removeEventListener?.("change", on);
+  }, []);
+  /** Which screen of the builder is up.
+   *
+   *  THE SQUAD IS NOT A PANEL. On a desktop it is the rail, always on screen;
+   *  on a phone it is a tab of its own, because it cannot share a phone's
+   *  screen with three hundred cards without one of them becoming a drawer —
+   *  which is what it was, and the drawer was the crowding. The check is a
+   *  step INTO the squad, reached from its bar, with a way back out. */
+  const [view, setView] = useState<View>("cards");
+  // A desktop has no Squad tab — the rail is the squad — so a phone left on it
+  // and turned sideways lands on the cards.
+  const shownView: View = !phone && view === "squad" ? "cards" : view;
 
   const ownedSet = useMemo(() => new Set(story?.owned ?? []), [story?.owned]);
   const pool = useMemo(
@@ -422,7 +419,7 @@ export function DeckBuilder(props: {
     // squad had already chosen them — and only then does it need to say so.
     const chose = els.length === 0 && squadElements(picked).length < 2 && squadElements(lensless.map((c) => c.id)).length > FILL_ELEMENTS_MAX;
     const named = elements.join(" + ");
-    setFillNote({
+    setNote({
       text: chose
         ? `Built around ${named}. Pick elements above the cards to choose your own.`
         : `Filled from ${named}.`,
@@ -498,14 +495,18 @@ export function DeckBuilder(props: {
       setEditingId(null); // an imported deck is a NEW deck, not an edit of yours
       setImporting(false);
       setCodeInput("");
+      setCodeMsg(null);
       const via = from === "link" ? "Shared deck loaded" : "Loaded";
       const switched = board !== buildSize ? ` Switched to ${board}×${board}.` : "";
-      setCodeMsg({
-        ok: true,
+      // Onto the squad it loaded, with the receipt on the note line — the code
+      // line is for showing codes, and the library is not where you are now.
+      setNote({
         text: dropped > 0
           ? `${via}: "${deck.name || "deck"}" — ${dropped} card(s) you do not own were left out.${switched}`
           : `${via}: "${deck.name || "deck"}" — ${usable.length} cards.${switched}`,
+        sig: usable.join(","),
       });
+      setView(phone ? "squad" : "cards");
     } catch (e) {
       setCodeMsg({ ok: false, text: e instanceof Error ? e.message : "That code could not be read." });
     }
@@ -531,11 +532,11 @@ export function DeckBuilder(props: {
     setPickedSpells(sanitizeSpells((d.spells ?? []).filter((s) => !story || story.spellPool.includes(s)), buildSize));
     setName(`${d.name} (copy)`.slice(0, 28));
     setEditingId(null);
-    setPanel(null);
+    setView(phone ? "squad" : "cards");
     setCodeMsg(null);
     // Through the fill's note rather than the code line: that one is set in
     // monospace and breaks anywhere, because its main job is showing a code.
-    setFillNote({
+    setNote({
       text: missing > 0
         ? `Loaded ${d.name} — ${missing} of its cards aren't in your collection yet. Fill tops it back up.`
         : `Loaded ${d.name}. Change anything, then save it as your own.`,
@@ -567,10 +568,24 @@ export function DeckBuilder(props: {
 
   // Back closes a card's detail before the builder under it.
   useBackLayer(props.open && detailId !== null, () => setDetailId(null));
+  // THE PHONE'S BACK BUTTON walks back through the builder before it leaves
+  // it: from the check to the squad, and from any other tab to the cards. A
+  // desktop has no back gesture, so there only the check takes part.
+  useBackLayer(props.open && phone && view !== "cards", () => setView("cards"));
+  useBackLayer(props.open && view === "check", () => setView(phone ? "squad" : "cards"));
 
   if (!props.open) return null;
 
   function toggle(id: string) {
+    // A tap on a full squad used to do nothing at all, which reads as a card
+    // that will not go in. Say why, and where the way out is.
+    if (!pickedSet.has(id) && picked.length >= limits.max) {
+      setNote({
+        text: `The squad is full at ${limits.max}. Take a card out first${phone ? " — the list is on the Squad tab" : ""}.`,
+        sig: picked.join(","),
+      });
+      return;
+    }
     setPicked((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length >= limits.max ? cur : [...cur, id]));
     if (!pickedSet.has(id)) setLastAdded(id);
   }
@@ -607,10 +622,9 @@ export function DeckBuilder(props: {
     setName("");
     setPicked([]);
     setPickedSpells([]);
-    // Back to the pool. You have just emptied the squad, so cards are the only
-    // thing there is to do next — and leaving the spellbook open over nothing is
-    // what the empty-box report was.
-    setPanel(null);
+    // Back to the cards. You have just emptied the squad, so cards are the
+    // only thing there is to do next.
+    setView("cards");
   }
   /** What the squad IS, flattened. Order matters and that is fine: reordering
    *  the picks is an edit like any other. */
@@ -669,8 +683,7 @@ export function DeckBuilder(props: {
     const mine = squadElements(picked);
     if (els.length === 0 && mine.length >= 1 && mine.length <= FILL_ELEMENTS_MAX) setEls(mine);
     setFocus(id);
-    setPanel(null);
-    setDeckOpen(false);
+    setView("cards");
   }
   const toggleEl = (el: Element) =>
     setEls((cur) => (cur.includes(el) ? cur.filter((e) => e !== el) : [...cur, el]));
@@ -751,118 +764,271 @@ export function DeckBuilder(props: {
     return story ? byRung.sort((a, b) => b.owned / b.d.cards.length - a.owned / a.d.cards.length) : byRung;
   })();
 
-  /** The spellbook, rendered in ONE of two places.
-   *
-   *  It browses on the WIDE side on a desktop, and the reason is still good:
-   *  the 224px rail gives a row carrying an effect sentence about eighty pixels
-   *  for the sentence, so the text that is the whole point of the panel came
-   *  out clamped. Choosing spells is the same job as choosing cards — read a
-   *  description, decide, tap — so it happens where that job happens.
-   *
-   *  On a PHONE the rail is full width, so that constraint does not exist, and
-   *  the placement was actively wrong instead: the panel opened at the top of
-   *  the sheet while the button that opened it sits at the very bottom, next to
-   *  Comp and Squads which both open in place. Tapping "Spells" appeared to do
-   *  nothing until you scrolled the whole builder up. So on a phone it opens
-   *  with its siblings, under the tool row.
-   *
-   *  One element, two mount points, because a spellbook maintained twice is a
-   *  spellbook that disagrees with itself. The squad check and the shelf follow
-   *  the same rule now, for the same reason: both are rows of sentences. */
-  const spellPanel = (
-            <div className="db-spells db-panel">
-              <div className="db-pane-head">
-                <b>Spellbook {pickedSpells.length}/{limits.spells}</b>
-                <button className="db-pane-x" onClick={() => setPanel(null)}>{phone ? "Close" : "Back to cards"}</button>
-              </div>
-              <div className="db-spell-hint">
-                {deckEls.size === 0
-                  ? "Add cards to your squad to unlock its element spells."
-                  : story && deckSpells.length === 0
-                  ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
-                  : pickedSpells.length === 0
-                  ? story
-                    ? "None picked — your hero's unlocked spells go in automatically."
-                    : `None picked — the match brings these ${autoBook.length} automatically: ${autoBook.map((id) => getSpell(id).name).join(", ")}. Tap spells to choose your own.`
-                  : "Tap to add. One spell of each cost 6-10, two of each cost 3-5, and as many cheap ones as fit."}
-              </div>
-              {deckSpells.length > 0 && (
-              <div className="db-spell-grid">
-                {deckSpells.map((s) => {
-                  const copies = pickedSpells.filter((x) => x === s.id).length;
-                  const on = copies > 0;
-                  const tierCap = spellCostCap(s.cost);
-                  const atCost = pickedSpells.filter((x) => getSpell(x).cost === s.cost).length;
-                  const capped = atCost >= tierCap;
-                  // Unusable when the book is full OR this cost rung is spent
-                  // on something else — and only while it is not already IN the
-                  // book, because a picked spell must stay tappable: tapping is
-                  // also how you take it back out.
-                  const bookFull = !on && (pickedSpells.length >= limits.spells || capped);
-                  return (
-                    /* WHAT IT DOES, on the tile.
-                       The effect text lived in a `title` and nowhere else — a
-                       hover tooltip, which does not exist on a touch screen at
-                       all, so on a phone there was no way to find out what any
-                       of these did short of casting one in a match and
-                       watching. A picker where the choices are unlabelled is
-                       not a picker. The card pool can get away with art alone
-                       because a card's stats are printed on it; a spell is
-                       nothing but its sentence. */
-                    <button
-                      key={s.id}
-                      className={`db-spell ${on ? "on" : ""}`}
-                      data-el={s.element}
-                      disabled={bookFull}
-                      title={
-                        bookFull
-                          ? pickedSpells.length >= limits.spells
-                            ? "Book is full — remove one first"
-                            : `Cost ${s.cost} is full — you already have ${atCost} spell${atCost === 1 ? "" : "s"} of this cost`
-                          : `${s.name} · cost ${s.cost} — ${
-                              tierCap === Infinity
-                                ? "as many as the book holds"
-                                : `up to ${tierCap} spell${tierCap === 1 ? "" : "s"} of cost ${s.cost}`
-                            }${copies ? ` · you have ${copies}${capped ? " (limit — tap to clear)" : ""}` : ""}`
-                      }
-                      onClick={() => toggleSpell(s.id)}
-                    >
-                      <span className="db-spell-art">
-                        <img src={spellThumbSrc(s.id)} alt="" draggable={false}
-                          onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                      </span>
-                      <span className="db-spell-body">
-                        <span className="db-spell-head">
-                          <b className="db-spell-name">{s.name}</b>
-                          <i className="db-spell-cost" title={`Costs ${s.cost} Magic to cast`}>
-                            {s.cost}
-                          </i>
-                        </span>
-                        <span className="db-spell-text">{s.text}</span>
-                      </span>
-                      {/* THE CORNER SAYS HOW MANY, not just whether. A second
-                          copy that looked identical to the first is a book the
-                          player cannot read back — and the count is what tells
-                          them the next tap adds one more or clears the lot. */}
-                      <span className={`db-spell-mark ${copies > 1 ? "many" : ""}`}>
-                        {copies > 1 ? `×${copies}` : on ? "✓" : "+"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-              )}
-            </div>
+
+  /** What is on screen is still exactly what was saved — the Save button says
+   *  so ("Saved ✓") instead of a line of prose under it. */
+  const savedNow = !!justSaved && justSaved.sig === squadSig(name.trim() || justSaved.name, picked, pickedSpells);
+  /** The last fill, template or code load, while the squad is still exactly
+   *  what it left. */
+  const noteNow = note && note.sig === picked.join(",") ? note.text : null;
+  const backFromCheck: View = phone ? "squad" : "cards";
+  /** Filters hidden behind the Filters button — the search box is on screen,
+   *  so it is not one of them. */
+  const hiddenFilters = filterSummary.length - (query.trim() ? 1 : 0);
+
+  const saveButton = (
+    <button
+      className={`lockin db-save${savedNow ? " saved" : ""}`}
+      disabled={!check.ok || savedNow}
+      onClick={save}
+      title={!check.ok ? check.reason : savedNow ? "No changes since you saved" : undefined}
+    >
+      {savedNow ? "Saved ✓" : editingId ? (phone ? "Update" : "Update squad") : (phone ? "Save" : "Save squad")}
+    </button>
   );
 
-  /** THE SQUAD CHECK — see squad-check.ts. One line per thing the strongest
-   *  premades have in common, each saying why it matters and, where the pool
-   *  can answer it, a Show button that narrows the grid to the cards it wants. */
+  /** THE CAPACITY RULER.
+   *  One cell per card the deck can hold, with min, target and max marked on
+   *  the track. It replaced a line of prose that was three different numbers
+   *  for the same fact, and it answers the question that prose could not: not
+   *  "how many do I have" but "how many more, and when does this become legal".
+   *  Legality is a shape here, not a sentence you have to parse. */
+  const ruler = (
+    <div
+      className="db-ruler"
+      role="img"
+      aria-label={
+        limits.min === limits.max
+          ? `${picked.length} of ${limits.max} cards; a legal deck is exactly ${limits.max}`
+          : `${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`
+      }
+    >
+      {Array.from({ length: limits.max }, (_, i) => {
+        const n = i + 1;
+        const marks = [
+          n <= picked.length ? "on" : "",
+          // Only mark the band when there IS one — story teams have min 1,
+          // where a "minimum" tick is noise. With an exact format min, target
+          // and max are the SAME cell, so the target mark alone carries it.
+          limits.min > 1 && limits.min !== limits.max && n === limits.min ? "min" : "",
+          n === limits.target ? "target" : "",
+          limits.min !== limits.max && n === limits.max ? "max" : "",
+          n <= picked.length && picked.length > limits.max ? "over" : "",
+        ].filter(Boolean).join(" ");
+        return <i key={n} className={`db-cell ${marks}`} />;
+      })}
+    </div>
+  );
+
+  /** The board toggle is a FORMAT control. In the campaign the board belongs to
+   *  the node you are about to fight, so there is nothing to choose — the cap
+   *  is simply stated, and so is the board, because it decides both how big a
+   *  team is worth building and how many spells the book holds. */
+  const formatControl = story ? (
+    <div className="db-storycap">
+      <b>{buildSize}×{buildSize}</b> · carry up to <b>{story.cap}</b>
+      {" "}· <b>{limits.spells}</b> spells
+      {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
+      {/* Opened from prep these are THAT NODE's numbers, not the region's
+          biggest — a ceiling that changes between entrances has to say which
+          fight it belongs to. */}
+      {story.forNode && <span className="db-fornode">for {story.forNode}</span>}
+      {thin && <span className="db-fornode">Room for {limits.max - picked.length} more.</span>}
+    </div>
+  ) : (
+    <div className="db-size" role="group" aria-label="Battlefield">
+      {/* Switching board also switches the spellbook cap (5 / 8), so trim any
+          picks the smaller board can't legally hold. */}
+      <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · {deckLimits(4).target} cards</button>
+      <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · {deckLimits(5).target} cards</button>
+    </div>
+  );
+
+  /** THE CHECK, SUMMARISED. A dot per line and the first thing worth doing, so
+   *  the squad's shape is read without opening anything; the bar opens the
+   *  whole check. Silent while the squad is still on its way — a line only
+   *  goes gold once the empty slots can no longer meet it. */
+  const checkBar = (
+    <button
+      className={`db-checkbar ${tips ? "warn" : okCount === checks.length + 1 ? "ok" : ""}`}
+      onClick={() => setView("check")}
+    >
+      <span className="dcb-top">
+        <b>Squad check</b>
+        <span className="dcb-dots" aria-hidden="true">
+          {checks.map((c) => <i key={c.id} className={c.state} />)}
+          <i className={bookState} />
+        </span>
+        <span className="dcb-n">{okCount}/{checks.length + 1} ›</span>
+      </span>
+      {firstTip && <span className="dcb-tip">{firstTip}</span>}
+    </button>
+  );
+
+  /** THE SQUAD ITSELF — the rail on a desktop, the Squad tab on a phone. The
+   *  only way to remove a card used to be finding it again among three hundred
+   *  in the pool and tapping it a second time, and the filters are no help when
+   *  you are hunting one card you already own. Tap a row to read the card. */
+  const squadPane = (
+    <div className="db-side">
+      {formatControl}
+      {!phone && (
+        <>
+          <div className="db-count" style={{ color: countColor }}>
+            {picked.length} / {limits.target} cards
+            {!check.ok && limits.min > 1 && (
+              <span className="db-hint">
+                {/* The Arena formats are one number, so say the number. */}
+                {limits.min === limits.max ? ` · needs exactly ${limits.max}` : ` · needs ${limits.min}–${limits.max}`}
+              </span>
+            )}
+          </div>
+          {ruler}
+          <div className="db-actions">
+            {/* Says how many it will add, so it is never a surprise. */}
+            <button
+              className="ghost db-fill"
+              disabled={picked.length >= limits.target}
+              title="Top the squad up from the cards on screen — pick elements or filters first to steer it"
+              onClick={fillToCap}
+            >
+              {picked.length === 0
+                ? `Auto-fill ${limits.target}`
+                : picked.length >= limits.target ? "Full" : `Fill +${limits.target - picked.length}`}
+            </button>
+            <button className="ghost" disabled={picked.length === 0 && !name} onClick={reset}>Clear</button>
+          </div>
+          {noteNow && <div className="db-note" role="status">{noteNow}</div>}
+        </>
+      )}
+      {!check.ok && picked.length > 0 && (phone || limits.min === 1) && <div className="db-warn">{check.reason}</div>}
+      {picked.length > 0 && checkBar}
+      {picked.length > 0 && <CostCurve stats={stats} />}
+      <div className="dbl-head">
+        <span>{picked.length ? `${picked.length} card${picked.length === 1 ? "" : "s"} · by cost` : "Your squad"}</span>
+        {phone && picked.length > 0 && <button className="db-linkbtn" onClick={reset}>Clear squad</button>}
+      </div>
+      <div className="db-picked">
+        {picked.length === 0 ? (
+          <div className="db-spell-hint">
+            Nothing picked yet. Tap cards to add them, press Auto-fill, or{" "}
+            <button className="db-linkbtn" onClick={() => setView("library")}>start from a premade</button>.
+          </div>
+        ) : (
+          listed.map((id) => {
+            const d = getDef(id);
+            const heavy = topHeavy && CHECK_PRED.topEnd(d);
+            return (
+              <div key={id} className={`dbl-row${id === lastAdded ? " fresh" : ""}${heavy ? " heavy" : ""}`} data-el={d.element}>
+                <button className="dbl-open" onClick={() => setDetailId(id)} title={`${d.name} — see the card`}>
+                  <span className="dbl-cost">{d.cost}</span>
+                  <span className="dbl-name">{d.name}</span>
+                  {/* The class, and the card view's own 🏹 for a card that
+                      shoots — the two things a name does not say. */}
+                  <span className="dbl-meta" title={`${d.cardClass} · ${d.attackType}`}>
+                    {d.cardClass}{d.attackType === "Ranged" ? " 🏹" : ""}
+                  </span>
+                  <span className="dbl-stats">
+                    <i className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</i>
+                    <i className="s-hp">{d.hp}</i>
+                    <i className="s-sp">{d.sp}</i>
+                  </span>
+                </button>
+                <button className="dbl-x" title={`Remove ${d.name}`} aria-label={`Remove ${d.name}`}
+                  onClick={() => toggle(id)}>✕</button>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </div>
+  );
+
+  /** The spellbook. A tab of its own: on a desktop it takes the wide column,
+   *  where a row carrying an effect sentence has room for the sentence (the old
+   *  224px rail gave it about eighty pixels and clamped it), and on a phone it
+   *  is a whole screen instead of a panel opened under the tool row. */
+  const spellPanel = (
+    <div className="db-spells db-panel">
+      <div className="db-spell-hint">
+        {deckEls.size === 0
+          ? "Add cards to your squad to unlock its element spells."
+          : story && deckSpells.length === 0
+          ? "No spells unlocked for these elements yet — clear nodes in their regions to earn them."
+          : pickedSpells.length === 0
+          ? story
+            ? "None picked — your hero's unlocked spells go in automatically."
+            : `None picked — the match brings these ${autoBook.length} automatically: ${autoBook.map((id) => getSpell(id).name).join(", ")}. Tap spells to choose your own.`
+          : `${pickedSpells.length} of ${limits.spells} picked. One spell of each cost 6-10, two of each cost 3-5, and as many cheap ones as fit.`}
+      </div>
+      {deckSpells.length > 0 && (
+      <div className="db-spell-grid">
+        {deckSpells.map((s) => {
+          const copies = pickedSpells.filter((x) => x === s.id).length;
+          const on = copies > 0;
+          const tierCap = spellCostCap(s.cost);
+          const atCost = pickedSpells.filter((x) => getSpell(x).cost === s.cost).length;
+          const capped = atCost >= tierCap;
+          // Unusable when the book is full OR this cost rung is spent on
+          // something else — and only while it is not already IN the book,
+          // because a picked spell must stay tappable: tapping is also how you
+          // take it back out.
+          const bookFull = !on && (pickedSpells.length >= limits.spells || capped);
+          return (
+            /* WHAT IT DOES, on the tile. A spell is nothing but its sentence,
+               and a hover tooltip does not exist on a touch screen. */
+            <button
+              key={s.id}
+              className={`db-spell ${on ? "on" : ""}`}
+              data-el={s.element}
+              disabled={bookFull}
+              title={
+                bookFull
+                  ? pickedSpells.length >= limits.spells
+                    ? "Book is full — remove one first"
+                    : `Cost ${s.cost} is full — you already have ${atCost} spell${atCost === 1 ? "" : "s"} of this cost`
+                  : `${s.name} · cost ${s.cost} — ${
+                      tierCap === Infinity
+                        ? "as many as the book holds"
+                        : `up to ${tierCap} spell${tierCap === 1 ? "" : "s"} of cost ${s.cost}`
+                    }${copies ? ` · you have ${copies}${capped ? " (limit — tap to clear)" : ""}` : ""}`
+              }
+              onClick={() => toggleSpell(s.id)}
+            >
+              <span className="db-spell-art">
+                <img src={spellThumbSrc(s.id)} alt="" draggable={false}
+                  onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              </span>
+              <span className="db-spell-body">
+                <span className="db-spell-head">
+                  <b className="db-spell-name">{s.name}</b>
+                  <i className="db-spell-cost" title={`Costs ${s.cost} Magic to cast`}>
+                    {s.cost}
+                  </i>
+                </span>
+                <span className="db-spell-text">{s.text}</span>
+              </span>
+              {/* THE CORNER SAYS HOW MANY, not just whether — the count is what
+                  tells the player the next tap adds one more or clears the lot. */}
+              <span className={`db-spell-mark ${copies > 1 ? "many" : ""}`}>
+                {copies > 1 ? `×${copies}` : on ? "✓" : "+"}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      )}
+    </div>
+  );
+
+  /** THE SQUAD CHECK — see squad-check.ts. One line per thing the engine or the
+   *  test games say costs a squad, each saying why and, where the pool can
+   *  answer it, a Show button that narrows the grid to the cards it wants. */
   const checkPanel = (
     <div className="db-check db-panel">
       <div className="db-pane-head">
         <b>Squad check</b>
-        <button className="db-pane-x" onClick={() => setPanel(null)}>{phone ? "Close" : "Back to cards"}</button>
+        <button className="db-pane-x" onClick={() => setView(backFromCheck)}>‹ Back</button>
       </div>
       <p className="dc-sub">
         What the engine's rules and thousands of test games say costs a squad. Tips, not rules — any legal squad saves and fights.
@@ -912,13 +1078,10 @@ export function DeckBuilder(props: {
     </div>
   );
 
-  /** Your squads, the premades to start from, and the codes to share either. */
-  const savedPanel = (
+  /** Your squads, the premades to start from, and the codes to share either.
+   *  Loading anything lands you on the squad it loaded. */
+  const libraryPanel = (
     <div className="db-saved db-panel">
-      <div className="db-pane-head">
-        <b>Squads</b>
-        <button className="db-pane-x" onClick={() => setPanel(null)}>{phone ? "Close" : "Back to cards"}</button>
-      </div>
       {/* Deck codes. Share is enabled whenever there is anything to share —
           deliberately NOT gated on `check.ok`, because a half-built deck is
           worth sending to somebody for an opinion. Import is always open. */}
@@ -947,6 +1110,7 @@ export function DeckBuilder(props: {
           <button className="lockin" onClick={importCode}>Load</button>
         </div>
       )}
+      {codeMsg && <div className={`db-warn ${codeMsg.ok ? "ok" : ""}`}>{codeMsg.text}</div>}
 
       <div className="db-sec-h">Your squads</div>
       {squads.length === 0 && <div className="db-empty">None saved yet.</div>}
@@ -960,11 +1124,13 @@ export function DeckBuilder(props: {
         <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""} ${d.usable.ok ? "" : "locked"}`}>
           <button
             className="db-load"
-            // Load the book with the team. It used to be skipped in
-            // story mode because a team had no book to load; now it has
-            // one, and loading a team to re-tune it must not silently
+            // Load the book with the team — re-tuning a squad must not silently
             // drop the spells it was saved with.
-            onClick={() => { setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice()); setPanel(null); }}
+            onClick={() => {
+              setEditingId(d.id); setName(d.name); setPicked(d.cards.slice()); setPickedSpells((d.spells ?? []).slice());
+              setJustSaved({ name: d.name, sig: squadSig(d.name, d.cards, d.spells ?? []) });
+              setView(phone ? "squad" : "cards");
+            }}
             title={d.usable.ok ? "Load this squad" : `Load to edit — ${d.usable.reason}`}
           >
             <b>{d.name}</b>
@@ -1005,499 +1171,338 @@ export function DeckBuilder(props: {
     </div>
   );
 
-  const panelNode = panelShown === "check" ? checkPanel
-    : panelShown === "spells" ? spellPanel
-    : panelShown === "saved" ? savedPanel
-    : null;
+  /** THE CARDS. Search and the Filters button share a row, the elements are
+   *  one row under it, and everything else folds away — the grid is what this
+   *  screen is for. */
+  const cardsPane = (
+    <div className="db-cards">
+      {/* A brand-new squad on a phone gets the three ways in, in one line,
+          where the eye already is. */}
+      {phone && picked.length === 0 && (
+        <div className="db-start">
+          <b>New squad.</b> Tap cards to add them, or{" "}
+          <button className="db-linkbtn" onClick={fillToCap}>auto-fill {limits.target}</button>, or{" "}
+          <button className="db-linkbtn" onClick={() => setView("library")}>start from a premade</button>.
+        </div>
+      )}
+      <div className="db-searchrow">
+        {/* Three hundred cards behind pills alone means scrolling to find a
+            card you can already name. The filters answer "show me a KIND of
+            card"; this answers "show me THAT card". Matches the name only —
+            matching rules text would turn a search for "Bolt" into every card
+            that mentions it. */}
+        <div className="db-search">
+          <span className="db-search-ico" aria-hidden="true">⌕</span>
+          <input
+            className="db-search-in"
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={shown.length === pool.length ? `Search ${pool.length} cards` : `Search ${shown.length} of ${pool.length} cards`}
+            aria-label="Search cards by name"
+          />
+          {query && (
+            <button className="db-search-x" onClick={() => setQuery("")} aria-label="Clear search">✕</button>
+          )}
+        </div>
+        {/* ONE button for everything but the elements. The count says how
+            many are narrowing the grid while the rows are folded away — an
+            active filter with its controls hidden is a grid that looks broken. */}
+        <button
+          className={`db-filbtn${filtersOpen ? " open" : ""}${hiddenFilters ? " active" : ""}`}
+          onClick={toggleFilters}
+          aria-expanded={filtersOpen}
+        >
+          Filters{hiddenFilters > 0 && <b>{hiddenFilters}</b>}
+          <i aria-hidden="true">{filtersOpen ? "▴" : "▾"}</i>
+        </button>
+      </div>
+      {/* THE ELEMENT ROW, able to hold more than one. Each chip also counts how
+          many of that element are in the squad already, so the row doubles as
+          the squad's element split — the first thing anyone reading a squad
+          asks. */}
+      <div className="db-elbar" role="group" aria-label="Elements">
+        <button
+          className={`db-fl db-el-all ${els.length === 0 ? "on" : ""}`}
+          onClick={() => setEls([])}
+          aria-pressed={els.length === 0}
+        >
+          All
+        </button>
+        {BUILDABLE_ELEMENTS.map((el) => {
+          const on = els.includes(el);
+          const n = countIf((d) => d.element === el, "el");
+          const inSquad = stats.byElement[el] ?? 0;
+          return (
+            <button
+              key={el}
+              className={`db-fl el-fl ${on ? "on" : ""}`}
+              onClick={() => toggleEl(el)}
+              aria-pressed={on}
+              title={`${n} ${el} card${n === 1 ? "" : "s"}${inSquad ? ` · ${inSquad} in your squad` : ""}`}
+              style={{
+                borderColor: EL_COLOR[el],
+                color: EL_COLOR[el],
+                background: on ? `color-mix(in srgb, ${EL_COLOR[el]} 26%, transparent)` : undefined,
+                ...(n === 0 && !on ? { opacity: 0.35 } : null),
+              }}
+            >
+              <img className="el-fl-sig" src={EL_ICON[el]} alt="" draggable={false}
+                onError={(e) => { e.currentTarget.style.display = "none"; }} />
+              {el}
+              {inSquad > 0 && <b className="db-el-n">{inSquad}</b>}
+            </button>
+          );
+        })}
+      </div>
+      {/* A real BOX around the rows, not a fragment: on a phone they never
+          shrink, and a box can be told to scroll instead of spilling. */}
+      {filtersOpen && (
+      <div className="db-filterbox">
+      <ClassRow
+        all={CLASSES}
+        value={classFilter}
+        onChange={setClassFilter}
+        countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
+      />
+      <AttackRow value={atk} onChange={setAtk} countFor={(a) => countIf((d) => d.attackType === a, "atk")} />
+      <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
+      <TribeRow
+        value={tribe}
+        onChange={setTribe}
+        tribes={poolTribes}
+        countFor={(t) => countIf((d) => cardHasTribe(d, t), "tribe")}
+      />
+      <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
+      <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
+      {/* Only once there is a foil in the pool — an always-empty filter is
+          worse than no filter. */}
+      {(foils?.size ?? 0) > 0 && (() => {
+        const n = countIf((d) => isFoil(d.id), "foil");
+        return (
+          <div className="db-sort">
+            <span className="db-sort-lbl">Foil</span>
+            <button
+              className={`db-fl ${foilOnly ? "on" : ""}`}
+              onClick={() => setFoilOnly((v) => !v)}
+              aria-pressed={foilOnly}
+              title={`${n} foil card${n === 1 ? "" : "s"}`}
+              style={n === 0 && !foilOnly ? { opacity: 0.35 } : undefined}
+            >
+              ✦ Foil only
+            </button>
+          </div>
+        );
+      })()}
+      <div className="db-sort">
+        <span className="db-sort-lbl">Sort</span>
+        {SORTS.map(([key, label]) => (
+          <button
+            key={key}
+            className={`db-fl ${sortBy === key ? "on" : ""}`}
+            onClick={() => setSortBy(key)}
+          >
+            {label}
+          </button>
+        ))}
+        <span className="db-shown">
+          {shown.length === pool.length ? `${shown.length} cards` : `${shown.length} shown`}
+        </span>
+        {anyFilter && (
+          <button className="db-fl db-clear" onClick={clearFilters}>Clear</button>
+        )}
+      </div>
+      </div>
+      )}
+      {focus && (
+        <div className={`db-focus ${focusCheck?.state === "ok" ? "met" : ""}`} role="status">
+          <span>
+            Showing <b>{FIX_LABEL[focus]}</b>
+            {els.length ? <> in {els.join(" + ")}</> : null}
+            {focusCheck && (
+              <em>
+                {" "}· {focusCheck.state === "ok"
+                  ? `✓ your squad has ${focusCheck.have}`
+                  : `your squad has ${focusCheck.have} of ${focusCheck.want}`}
+              </em>
+            )}
+          </span>
+          <button onClick={() => setFocus(null)} aria-label={`Stop showing ${FIX_LABEL[focus]}`}>✕</button>
+        </div>
+      )}
+      <div className="db-grid">
+        {shown.length === 0 && (
+          <div className="db-none">
+            No cards match.{" "}
+            {anyFilter && <button className="db-linkbtn" onClick={clearFilters}>Clear the filters</button>}
+          </div>
+        )}
+        {shown.map((d) => {
+          const on = pickedSet.has(d.id);
+          const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
+          return (
+            /* TAP-TO-ADD: the card BODY toggles the pick and a small ⓘ opens
+               the card view. Adding is what you do two dozen times while
+               building; reading the card is what you do when something
+               surprises you. */
+            <div
+              key={d.id}
+              className={`deck-thumb carded db-card ${on ? "selected" : ""} ${foils?.has(d.id) ? "foil" : ""}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={on}
+              title={on ? `${d.name} — tap to remove` : `${d.name} — tap to add`}
+              onClick={() => toggle(d.id)}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(d.id); } }}
+            >
+              <img
+                className="card-art"
+                src={cardThumbSrc(d)}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                onError={(e) => { e.currentTarget.style.display = "none"; }}
+              />
+              <div className="dt-top">
+                {/* One badge, not two: the cost sits ON the element's sigil. */}
+                <span
+                  className="dt-cost"
+                  title={`${d.element} · cost ${d.cost}`}
+                  style={{ borderColor: EL_COLOR[d.element], backgroundImage: `url(${EL_ICON[d.element]})` }}
+                >
+                  <b>{d.cost}</b>
+                </span>
+                {/* The corner READS. Its hit area is padded out past its 22px
+                    face so a thumb can reach it without catching the body. */}
+                <button
+                  className="dt-info"
+                  title={`${d.name} — see the card`}
+                  aria-label={`${d.name} — see the card`}
+                  onClick={(e) => { e.stopPropagation(); setDetailId(d.id); }}
+                >
+                  ⓘ
+                </button>
+                {foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
+              </div>
+              {/* Rarity is absolutely positioned as a vertical strip in the
+                  bottom-right corner. Must stay a direct child of .deck-thumb. */}
+              {rar && (
+                <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
+                  {rar.label}
+                </span>
+              )}
+              <div className="dt-name">{d.name}</div>
+              <div className="dt-stats">
+                <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
+                <span className="s-hp">♥{d.hp}</span>
+                <span className="s-sp"><SpIcon />{d.sp}</span>
+                {on && <span className="dt-in" aria-hidden="true">✓</span>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  /** One place for the tabs, so a phone and a desktop cannot disagree about
+   *  them. A phone has a Squad tab because the squad cannot share its screen
+   *  with the cards; a desktop keeps the squad on screen as the rail. */
+  const tabList: { id: View; label: string; badge?: string; dot?: boolean }[] = [
+    { id: "cards", label: "Cards" },
+    ...(phone ? [{ id: "squad" as View, label: "Squad", badge: `${picked.length}/${limits.target}`, dot: tips > 0 }] : []),
+    { id: "spells", label: "Spells", badge: pickedSpells.length ? `${pickedSpells.length}/${limits.spells}` : "auto" },
+    { id: "library", label: phone ? "Library" : "Squads & premades" },
+  ];
+  const activeTab: View | null = view === "check" ? (phone ? "squad" : null) : shownView;
+  const tabs = (
+    <div className="db-tabs" role="tablist" aria-label="Squad builder">
+      {tabList.map((t) => (
+        <button
+          key={t.id}
+          role="tab"
+          aria-selected={activeTab === t.id}
+          className={`db-tab${activeTab === t.id ? " on" : ""}`}
+          onClick={() => setView(t.id)}
+        >
+          {t.label}
+          {t.badge && <b>{t.badge}</b>}
+          {t.dot && <i className="db-tab-dot" title={firstTip ?? undefined} />}
+        </button>
+      ))}
+    </div>
+  );
+  const viewNode = shownView === "squad" ? squadPane
+    : shownView === "spells" ? spellPanel
+    : shownView === "library" ? libraryPanel
+    : shownView === "check" ? checkPanel
+    : cardsPane;
 
   return (
-    // `on-top` in story mode: the campaign screens (.story-wrap, z-70) sit ABOVE
-    // the plain overlay layer (z-65), so without it "Build a team" opened the
-    // builder UNDERNEATH the collection — invisible there, and then suddenly
-    // visible over the home screen once story mode was closed, because the
-    // builder was still open the whole time.
+    // `on-top` in story mode: the campaign screens sit ABOVE the plain overlay
+    // layer, so without it "Build a team" opened the builder UNDERNEATH the
+    // collection — invisible there, then suddenly visible over the home screen
+    // once story mode was closed.
     <div className={`overlay ${story ? "on-top" : ""}`} onClick={props.onClose}>
-      <div className="modal deck-builder" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal deck-builder${phone ? " phone" : ""}`} aria-label="Squad Builder" onClick={(e) => e.stopPropagation()}>
+        {/* The squad's NAME is the header: it is the thing being edited, and
+            a title reading "Squad Builder" over it told you nothing the screen
+            did not. A desktop keeps the title and Save beside it. */}
         <div className="db-head">
-          <h2>Squad Builder</h2>
+          {!phone && <h2>Squad Builder</h2>}
+          <input
+            className="db-title"
+            placeholder={story ? `${story.element ?? "New"} squad` : "Name your squad"}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            maxLength={28}
+            aria-label="Squad name"
+          />
+          {!phone && saveButton}
           <button className="cd-x" title="Close" onClick={props.onClose}>✕</button>
         </div>
 
-        <div className="db-body">
-          {/* Left on desktop: the squad itself — its name, size, how it reads,
-              and every card in it. On a phone this is a BAR pinned to the bottom
-              that rises into a drawer — the pool owns the screen, because the
-              pool is what you came to read. Collapsed it still shows what you
-              need while scrolling it: how many cards you have, whether that is
-              legal yet, and whether the check has anything to say. */}
-          <div className={`db-side${deckOpen ? " open" : ""}`}>
-            {/* The handle is the whole bar on a phone, and display:none on
-                desktop where the rail never collapses. */}
-            <button
-              className="db-handle"
-              onClick={() => setDeckOpen((v) => !v)}
-              aria-expanded={deckOpen}
-            >
-              <span className="db-handle-lbl">
-                {name.trim() || (story ? `${story.element ?? "New"} squad` : "Untitled squad")}
-                {!story && <> · {buildSize}×{buildSize}</>}
-              </span>
-              {tips > 0 && (
-                <span className="db-handle-tips" title={firstTip ?? undefined}>
-                  {tips} tip{tips === 1 ? "" : "s"}
-                </span>
-              )}
-              <span className={`db-handle-state ${check.ok && !thin ? "ok" : ""} ${thin ? "thin" : ""}`}>
-                {picked.length} / {limits.target}
-                {check.ok ? (thin ? " · thin" : " · legal") : ""}
-              </span>
-              <span className="db-handle-chev" aria-hidden="true">{deckOpen ? "⌄" : "⌃"}</span>
-            </button>
-            <input
-              className="db-name"
-              placeholder={story ? `${story.element ?? "New"} squad` : "Squad name"}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              maxLength={28}
-            />
-            {/* The board toggle is a FORMAT control. In the campaign the board
-                belongs to the node you are about to fight, so there is nothing
-                here to choose — the cap is simply stated. */}
-            {story ? (
-              /* The board is not a choice in the campaign — the node owns it —
-                 but it was not STATED either, and it decides both how big a
-                 team is worth building and how many spells the book holds. A
-                 line reading "carry up to 22" told you neither which fight
-                 that was for nor that the same fight allows eight spells. */
-              <div className="db-storycap">
-                <b>{buildSize}×{buildSize}</b> · carry up to <b>{story.cap}</b>
-                {" "}· <b>{limits.spells}</b> spells
-                {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
-                {/* Opened from prep these are THAT NODE's numbers, not the
-                    region's biggest — building to a set piece and then arriving
-                    at a smaller node over-cap is the failure this replaced, and
-                    a ceiling that changes between entrances has to say which
-                    fight it belongs to. */}
-                {story.forNode && <span className="db-fornode">for {story.forNode}</span>}
-              </div>
-            ) : (
-              <div className="db-size">
-                {/* Switching board also switches the spellbook cap (5 / 8), so trim
-                    any picks the smaller board can't legally hold. */}
-                <button className={buildSize === 4 ? "act" : ""} onClick={() => { setBuildSize(4); setPickedSpells((cur) => cur.slice(0, deckLimits(4).spells)); }}>4×4 · {deckLimits(4).target}</button>
-                <button className={buildSize === 5 ? "act" : ""} onClick={() => setBuildSize(5)}>5×5 · {deckLimits(5).target}</button>
-              </div>
-            )}
-            {/* THE CAPACITY RULER.
-                One cell per card the deck can hold, with min, target and max
-                marked on the track. It replaces a line of prose that was three
-                different numbers for the same fact — "0/20 · 12–20 (aim 18)"
-                sitting next to a "4×4 · 18" toggle — and it answers the question
-                that prose could not: not "how many do I have" but "how many more,
-                and when does this become legal". Legality is a shape here, not a
-                sentence you have to parse. */}
-            <div className="db-count" style={{ color: countColor }}>
-              {picked.length} / {limits.target} cards
-              {thin && (
-                <span className="db-hint">
-                  {" "}· room for {limits.max - picked.length} more
-                </span>
-              )}
-              {!check.ok && limits.min > 1 && (
-                <span className="db-hint">
-                  {/* The Arena formats are one number, so say the number.
-                      "needs 12–20" described a band that no longer exists. */}
-                  {limits.min === limits.max
-                    ? ` · needs exactly ${limits.max}`
-                    : ` · needs ${limits.min}–${limits.max}`}
-                </span>
-              )}
-            </div>
-            <div
-              className="db-ruler"
-              role="img"
-              aria-label={
-                limits.min === limits.max
-                  ? `${picked.length} of ${limits.max} cards; a legal deck is exactly ${limits.max}`
-                  : `${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`
-              }
-            >
-              {Array.from({ length: limits.max }, (_, i) => {
-                const n = i + 1;
-                const marks = [
-                  n <= picked.length ? "on" : "",
-                  // Only mark the band when there IS one — story teams have
-                  // min 1, where a "minimum" tick is noise.
-                  // With an exact format min, target and max are the SAME cell;
-                  // stacking three marks on it just muddies the end of the
-                  // track, so the target mark alone carries it.
-                  limits.min > 1 && limits.min !== limits.max && n === limits.min ? "min" : "",
-                  n === limits.target ? "target" : "",
-                  limits.min !== limits.max && n === limits.max ? "max" : "",
-                  n <= picked.length && picked.length > limits.max ? "over" : "",
-                ].filter(Boolean).join(" ");
-                return <i key={n} className={`db-cell ${marks}`} />;
-              })}
-            </div>
-            <div className="db-actions">
-              <button className="lockin" disabled={!check.ok} onClick={save}>
-                {editingId ? "Update squad" : "Save squad"}
-              </button>
-              {/* Sits BEFORE the clear, because it is the button a new player
-                  needs and "New / clear" is the one they need least. Says how
-                  many it will add, so it is never a surprise. */}
+        {phone ? (
+          /* ONE JOB PER SCREEN. The phone builder was a card pool with a
+             drawer over it, and the drawer held the name, the board toggle, a
+             second count, a second ruler, Save, Fill, Clear, three notes, the
+             check, the list, two tool pills and whichever panel was open — a
+             whole desktop rail folded into 62% of a phone. Tabs now: the cards,
+             the squad, the spellbook, the library. What every tab needs — the
+             count, Fill and Save — sits in the bar at the bottom, under the
+             thumb. */
+          <>
+            {tabs}
+            <div className="db-body">{viewNode}</div>
+            {noteNow && <div className="db-note db-notestrip" role="status">{noteNow}</div>}
+            <div className="db-bar">
               <button
-                className="ghost db-fill"
-                disabled={picked.length >= limits.target}
-                title="Top the squad up from the cards on screen — pick elements or filters first to steer it"
-                onClick={fillToCap}
+                className={`db-bar-count${tips ? " tips" : ""}`}
+                onClick={() => setView("squad")}
+                aria-label={`Your squad: ${picked.length} of ${limits.target} cards`}
               >
-                {picked.length === 0
-                  ? `Auto-fill ${limits.target}`
-                  : picked.length >= limits.target ? "Full" : `Fill +${limits.target - picked.length}`}
-              </button>
-              <button className="ghost" onClick={reset}>Clear</button>
-            </div>
-            {justSaved && justSaved.sig === squadSig(name.trim() || justSaved.name, picked, pickedSpells) && (
-              <div className="db-saved-note" role="status">
-                Saved · <b>{justSaved.name}</b> — still loaded, edit and update any time.
-              </div>
-            )}
-            {fillNote && fillNote.sig === picked.join(",") && (
-              <div className="db-note" role="status">{fillNote.text}</div>
-            )}
-            {codeMsg && <div className={`db-warn ${codeMsg.ok ? "ok" : ""}`}>{codeMsg.text}</div>}
-            {!check.ok && picked.length > 0 && <div className="db-warn">{check.reason}</div>}
-
-            {/* THE CHECK, SUMMARISED. A dot per line and the first thing worth
-                doing, so the squad's shape is read without opening anything;
-                the bar opens the whole check. Silent while the squad is still
-                on its way — a line only goes amber once the empty slots can no
-                longer meet it. */}
-            {picked.length > 0 && (
-              <button
-                className={`db-checkbar ${tips ? "warn" : okCount === checks.length + 1 ? "ok" : ""}`}
-                onClick={() => togglePanel("check")}
-                aria-expanded={panelShown === "check"}
-              >
-                <span className="dcb-top">
-                  <b>Squad check</b>
-                  <span className="dcb-dots" aria-hidden="true">
-                    {checks.map((c) => <i key={c.id} className={c.state} />)}
-                    <i className={bookState} />
-                  </span>
-                  <span className="dcb-n">{okCount}/{checks.length + 1}</span>
+                <span className="db-bar-n">
+                  <b style={{ color: countColor }}>{picked.length}</b>/{limits.target}
                 </span>
-                {firstTip && <span className="dcb-tip">{firstTip}</span>}
+                {ruler}
               </button>
-            )}
-
-            {/* THE SQUAD ITSELF. Always on screen: the only way to remove a
-                card used to be finding it again among three hundred in the pool
-                and tapping it a second time, and the filters are no help
-                because you are hunting one specific card you already own rather
-                than a kind of card. Tap a row to read the card. */}
-            <div className="db-picked db-panel">
-              {picked.length === 0 ? (
-                <div className="db-spell-hint">
-                  Nothing picked yet. Tap cards to add them, press Auto-fill, or{" "}
-                  <button className="db-linkbtn" onClick={() => setPanel("saved")}>start from a premade</button>.
-                </div>
-              ) : (
-                listed.map((id) => {
-                  const d = getDef(id);
-                  const heavy = topHeavy && CHECK_PRED.topEnd(d);
-                  return (
-                    <div key={id} className={`dbl-row${id === lastAdded ? " fresh" : ""}${heavy ? " heavy" : ""}`} data-el={d.element}>
-                      <button className="dbl-open" onClick={() => setDetailId(id)} title={`${d.name} — see the card`}>
-                        <span className="dbl-cost">{d.cost}</span>
-                        <span className="dbl-name">{d.name}</span>
-                        {/* The class, and the card view's own 🏹 for a card that
-                            shoots — the two things the check counts that a
-                            name does not say. */}
-                        <span className="dbl-meta" title={`${d.cardClass} · ${d.attackType}`}>
-                          {d.cardClass}{d.attackType === "Ranged" ? " 🏹" : ""}
-                        </span>
-                        <span className="dbl-stats">
-                          <i className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</i>
-                          <i className="s-hp">{d.hp}</i>
-                          <i className="s-sp">{d.sp}</i>
-                        </span>
-                      </button>
-                      <button className="dbl-x" title={`Remove ${d.name}`} aria-label={`Remove ${d.name}`}
-                        onClick={() => toggle(id)}>✕</button>
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            <div className="db-tools">
-              {/* Offered in the campaign too. It used to be Arena-only, with a
-                  comment saying a story battle is dealt no spellbook — true
-                  when it was written, and false since story fights started
-                  going in with `heroBookFor`. So the campaign HAS been casting
-                  spells; the player just had no say in which ones. The offer is
-                  gated on what the hero has unlocked (see `deckSpells`), and a
-                  team carries its book into the fight. */}
-              {picked.length > 0 && (
-                <button className={`db-tool ${panelShown === "spells" ? "on" : ""}`} onClick={() => togglePanel("spells")}>
-                  Spells {pickedSpells.length ? `${pickedSpells.length}/${limits.spells}` : "· auto"}
+              {picked.length < limits.target && (
+                <button className="ghost db-fill" onClick={fillToCap}>
+                  {picked.length === 0 ? "Auto-fill" : `Fill +${limits.target - picked.length}`}
                 </button>
               )}
-              <button className={`db-tool ${panelShown === "saved" ? "on" : ""}`} onClick={() => togglePanel("saved")}>
-                {`Squads${squads.length ? ` ${squads.length}` : ""} · premades`}
-              </button>
+              {saveButton}
             </div>
-
-            {/* The panels, on a phone, where their buttons are. See `spellPanel`. */}
-            {phone && panelNode && <div className="db-drawer-panel" ref={drawerPanelRef}>{panelNode}</div>}
+          </>
+        ) : (
+          <div className="db-body">
+            {squadPane}
+            <div className="db-pool">
+              {tabs}
+              {viewNode}
+            </div>
           </div>
-
-          {/* Right: the card pool. Tap a card to add it; the ⓘ corner reads it.
-              On a desktop the open panel takes this column instead — the check,
-              the spellbook and the shelf are all rows of sentences, and this is
-              the side with room for a sentence. */}
-          <div className="db-pool">
-            {!phone && panelNode ? panelNode : (<>
-            {/* Three hundred cards behind element and class pills only, on a
-                phone, means scrolling to find a card you can already name. The
-                filters answer "show me a KIND of card"; this answers "show me
-                THAT card", and they are different questions. Matches the name
-                only — matching rules text would turn a search for "Bolt" into
-                every card that mentions it. */}
-            <div className="db-search">
-              <span className="db-search-ico" aria-hidden="true">⌕</span>
-              <input
-                className="db-search-in"
-                type="search"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder={`Search ${pool.length} cards`}
-                aria-label="Search cards by name"
-              />
-              {query && (
-                <button className="db-search-x" onClick={() => setQuery("")} aria-label="Clear search">✕</button>
-              )}
-            </div>
-            {/* THE ELEMENT ROW, out from behind the fold and able to hold more
-                than one. Each chip also counts how many of that element are in
-                the squad already, so the row doubles as the squad's element
-                split — the first thing anyone reading a squad asks. */}
-            <div className="db-elbar" role="group" aria-label="Elements">
-              <button
-                className={`db-fl db-el-all ${els.length === 0 ? "on" : ""}`}
-                onClick={() => setEls([])}
-                aria-pressed={els.length === 0}
-              >
-                All
-              </button>
-              {BUILDABLE_ELEMENTS.map((el) => {
-                const on = els.includes(el);
-                const n = countIf((d) => d.element === el, "el");
-                const inSquad = stats.byElement[el] ?? 0;
-                return (
-                  <button
-                    key={el}
-                    className={`db-fl el-fl ${on ? "on" : ""}`}
-                    onClick={() => toggleEl(el)}
-                    aria-pressed={on}
-                    title={`${n} ${el} card${n === 1 ? "" : "s"}${inSquad ? ` · ${inSquad} in your squad` : ""}`}
-                    style={{
-                      borderColor: EL_COLOR[el],
-                      color: EL_COLOR[el],
-                      background: on ? `color-mix(in srgb, ${EL_COLOR[el]} 26%, transparent)` : undefined,
-                      ...(n === 0 && !on ? { opacity: 0.35 } : null),
-                    }}
-                  >
-                    <img className="el-fl-sig" src={EL_ICON[el]} alt="" draggable={false}
-                      onError={(e) => { e.currentTarget.style.display = "none"; }} />
-                    {el}
-                    {inSquad > 0 && <b className="db-el-n">{inSquad}</b>}
-                  </button>
-                );
-              })}
-            </div>
-            {/* ONE button for the whole filter block. Collapsed, the rows go
-                and the cards come up the screen; what does NOT go is the state
-                of the filters — an active filter with its controls hidden is a
-                grid that looks broken, so the summary below carries it. */}
-            <FilterToggle
-              open={filtersOpen}
-              onToggle={toggleFilters}
-              summary={filterSummary}
-              count={shown.length}
-            />
-            {/* A real BOX around the rows, not a fragment. They are `flex: none`
-                on a phone, so they never shrink — and when an open deck rail
-                squeezes the pool, they spilled straight out of it and painted
-                over the rail, because .db-pool is overflow:visible. Measured at
-                466x860 with the rail open: 49px of overflow, SORT landing on top
-                of the deck handle. A box can be told to scroll instead. */}
-            {filtersOpen && (
-            <div className="db-filterbox">
-            <ClassRow
-              all={CLASSES}
-              value={classFilter}
-              onChange={setClassFilter}
-              countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
-            />
-            <AttackRow value={atk} onChange={setAtk} countFor={(a) => countIf((d) => d.attackType === a, "atk")} />
-            <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
-            <TribeRow
-              value={tribe}
-              onChange={setTribe}
-              tribes={poolTribes}
-              countFor={(t) => countIf((d) => cardHasTribe(d, t), "tribe")}
-            />
-            <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
-            <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
-            {/* Only once there is a foil in the pool — see the Collection's scope
-                for why an always-empty filter is worse than no filter. */}
-            {(foils?.size ?? 0) > 0 && (() => {
-              // Built the same way as the shared pill rows in filters.tsx — a
-              // labelled `db-sort` row, the count in the tooltip, dimmed when the
-              // other filters have emptied it — so it reads as one of them.
-              const n = countIf((d) => isFoil(d.id), "foil");
-              return (
-                <div className="db-sort">
-                  <span className="db-sort-lbl">Foil</span>
-                  <button
-                    className={`db-fl ${foilOnly ? "on" : ""}`}
-                    onClick={() => setFoilOnly((v) => !v)}
-                    aria-pressed={foilOnly}
-                    title={`${n} foil card${n === 1 ? "" : "s"}`}
-                    style={n === 0 && !foilOnly ? { opacity: 0.35 } : undefined}
-                  >
-                    ✦ Foil only
-                  </button>
-                </div>
-              );
-            })()}
-            <div className="db-sort">
-              <span className="db-sort-lbl">Sort</span>
-              {SORTS.map(([key, label]) => (
-                <button
-                  key={key}
-                  className={`db-fl ${sortBy === key ? "on" : ""}`}
-                  onClick={() => setSortBy(key)}
-                >
-                  {label}
-                </button>
-              ))}
-              {/* How many the filters left. Cheap, and it is the difference
-                  between an empty grid reading as "no matches" and reading as
-                  broken — which matters more now that a typo in the search box
-                  can empty it. */}
-              <span className="db-shown">
-                {shown.length === pool.length ? `${shown.length} cards` : `${shown.length} shown`}
-              </span>
-              {anyFilter && (
-                <button className="db-fl db-clear" onClick={clearFilters}>Clear</button>
-              )}
-            </div>
-            </div>
-            )}
-            {focus && (
-              <div className={`db-focus ${focusCheck?.state === "ok" ? "met" : ""}`} role="status">
-                <span>
-                  Showing <b>{FIX_LABEL[focus]}</b>
-                  {els.length ? <> in {els.join(" + ")}</> : null}
-                  {focusCheck && (
-                    <em>
-                      {" "}· {focusCheck.state === "ok"
-                        ? `✓ your squad has ${focusCheck.have}`
-                        : `your squad has ${focusCheck.have} of ${focusCheck.want}`}
-                    </em>
-                  )}
-                </span>
-                <button onClick={() => setFocus(null)} aria-label={`Stop showing ${FIX_LABEL[focus]}`}>✕</button>
-              </div>
-            )}
-            <div className="db-grid">
-              {shown.length === 0 && (
-                <div className="db-none">
-                  No cards match.{" "}
-                  {anyFilter && <button className="db-linkbtn" onClick={clearFilters}>Clear the filters</button>}
-                </div>
-              )}
-              {shown.map((d) => {
-                const on = pickedSet.has(d.id);
-                const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
-                return (
-                  /* TAP-TO-ADD is inverted from the desktop build on purpose:
-                     the card BODY toggles the pick and a small ⓘ opens the card
-                     view. Adding is what you do two dozen times while building a
-                     deck; reading the card is what you do when something
-                     surprises you. On a phone the frequent action gets the big
-                     target, and the rare one gets a corner. */
-                  <div
-                    key={d.id}
-                    className={`deck-thumb carded db-card ${on ? "selected" : ""} ${foils?.has(d.id) ? "foil" : ""}`}
-                    role="button"
-                    tabIndex={0}
-                    aria-pressed={on}
-                    title={on ? `${d.name} — tap to remove` : `${d.name} — tap to add`}
-                    onClick={() => toggle(d.id)}
-                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(d.id); } }}
-                  >
-                    <img
-                      className="card-art"
-                      src={cardThumbSrc(d)}
-                      alt=""
-                      loading="lazy"
-                      decoding="async"
-                      onError={(e) => { e.currentTarget.style.display = "none"; }}
-                    />
-                    <div className="dt-top">
-                      {/* One badge, not two. The cost sits ON the element's
-                          sigil, so the corner spends 20px instead of 42 and
-                          the art keeps the difference. */}
-                      <span
-                        className="dt-cost"
-                        title={`${d.element} · cost ${d.cost}`}
-                        style={{ borderColor: EL_COLOR[d.element], backgroundImage: `url(${EL_ICON[d.element]})` }}
-                      >
-                        <b>{d.cost}</b>
-                      </span>
-                      {/* The corner that used to add now READS. Its hit area is
-                          padded out past its 22px face so a thumb can reach it
-                          without catching the body underneath. */}
-                      <button
-                        className="dt-info"
-                        title={`${d.name} — see the card`}
-                        aria-label={`${d.name} — see the card`}
-                        onClick={(e) => { e.stopPropagation(); setDetailId(d.id); }}
-                      >
-                        ⓘ
-                      </button>
-                      {foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
-                    </div>
-                    {/* Rarity is absolutely positioned (see styles.css) as a vertical
-                        strip in the bottom-right corner — out of the art's face and
-                        clear of the +Add button. Must stay a direct child of .deck-thumb. */}
-                    {rar && (
-                      <span className="dt-rarity" style={{ color: rar.color, borderColor: rar.color }}>
-                        {rar.label}
-                      </span>
-                    )}
-                    <div className="dt-name">{d.name}</div>
-                    <div className="dt-stats">
-                      <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
-                      <span className="s-hp">♥{d.hp}</span>
-                      <span className="s-sp"><SpIcon />{d.sp}</span>
-                      {/* In the stat row rather than a corner badge: the gold rim
-                          says "picked" from across the grid, and this says it
-                          again at the one place you are already reading. */}
-                      {on && <span className="dt-in" aria-hidden="true">✓</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-            </>)}
-          </div>
-        </div>
+        )}
       </div>
 
       {/* Expanded card details — a sub-overlay above the builder. Shared with
