@@ -154,10 +154,21 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
   if (act.melee && !act.arriving) lunge(act.actor, from, aimed.map((a) => a.r), ms);
 }
 
+/** The lunge running on each token, so a second one takes over from the first. */
+const lunging = new WeakMap<HTMLElement, number>();
+
 /** A melee card closing the distance: its token draws back, then drives most
  *  of the way to its target — arriving on the landing frame — and returns.
+ *
+ *  DRAWN BY HAND, a frame at a time, not as a Web Animation. A `translate`
+ *  animation runs on the compositor, which is its whole appeal and exactly the
+ *  trouble: it gives the token a GPU layer of its own for the lunge and takes
+ *  it away after — once per melee turn, at the moment between actions, the
+ *  usual trigger for a phone's one-frame flicker. Set per frame, the translate
+ *  is only paint: the card moves within the board's own layer, and only its
+ *  own few hundred pixels are redrawn, for two-thirds of a second.
  *  `translate`, not `transform`, so it composes with the attacking token's
- *  own pulsing scale instead of replacing it. */
+ *  lift (`scale`) instead of replacing it. */
 function lunge(at: At, from: Rect, targets: Rect[], ms: number) {
   const token = document.querySelector<HTMLElement>(`[data-pos="${at.row},${at.col}"] .token`);
   if (!token) return;
@@ -166,15 +177,55 @@ function lunge(at: At, from: Rect, targets: Rect[], ms: number) {
   const dx = (tx - (from.x + from.w / 2)) * 0.42, dy = (ty - (from.y + from.h / 2)) * 0.42;
   const total = ms + 220;
   const strike = ms / total;
-  token.animate(
-    [
-      { translate: "0px 0px", offset: 0 },
-      { translate: `${-dx * 0.1}px ${-dy * 0.1}px`, offset: strike * 0.4 },
-      { translate: `${dx}px ${dy}px`, offset: strike },
-      { translate: "0px 0px", offset: 1 },
-    ],
-    { duration: total, easing: "ease-in" },
-  );
+  // The spotlight's glow (Board.tsx `.board-spot`) travels with its card, as the
+  // card's own glow did — for as long as the spot is still parked on it. It is
+  // on a layer of its own already, so moving it costs nothing.
+  const key = `${at.row},${at.col}`;
+  const spot = token.closest(".board")?.querySelector<HTMLElement>(".board-spot") ?? null;
+  const t0 = performance.now();
+  const frame = (now: number) => {
+    const u = Math.min(1, Math.max(0, (now - t0) / total));
+    // Home at the end — or at once, for a card taken off the board mid-lunge.
+    const done = u >= 1 || !token.isConnected;
+    const k = lungeAt(u, strike);
+    const shift = done ? "" : `${dx * k}px ${dy * k}px`;
+    token.style.translate = shift;
+    if (spot?.dataset.at === key) spot.style.translate = shift;
+    if (done) lunging.delete(token);
+    else lunging.set(token, requestAnimationFrame(frame));
+  };
+  const running = lunging.get(token);
+  if (running !== undefined) cancelAnimationFrame(running);
+  lunging.set(token, requestAnimationFrame(frame));
+}
+
+/** How far along its line a lunge has the token at `u` (0..1 of its run), as a
+ *  fraction of the full reach: back a tenth, all the way by `strike`, home by
+ *  the end — keyed on an ease-in over the whole run, exactly the timing the
+ *  Web Animation it replaced had (`easing: "ease-in"` on the effect). */
+export function lungeAt(u: number, strike: number): number {
+  const p = easeIn(u);
+  const keys: ReadonlyArray<readonly [number, number]> = [[0, 0], [strike * 0.4, -0.1], [strike, 1], [1, 0]];
+  for (let i = 1; i < keys.length; i++) {
+    const [o0, k0] = keys[i - 1], [o1, k1] = keys[i];
+    if (p <= o1) return o1 > o0 ? k0 + ((k1 - k0) * (p - o0)) / (o1 - o0) : k1;
+  }
+  return 0;
+}
+
+/** CSS `ease-in` — cubic-bezier(0.42, 0, 1, 1) — at `u`. */
+export function easeIn(u: number): number {
+  if (u <= 0) return 0;
+  if (u >= 1) return 1;
+  let lo = 0, hi = 1, t = u;
+  for (let i = 0; i < 30; i++) {
+    const x = 3 * (1 - t) * (1 - t) * t * 0.42 + 3 * (1 - t) * t * t + t * t * t;
+    if (Math.abs(x - u) < 1e-7) break;
+    if (x < u) lo = t;
+    else hi = t;
+    t = (lo + hi) / 2;
+  }
+  return 3 * (1 - t) * t * t + t * t * t;
 }
 
 // ── KEEPING UP ───────────────────────────────────────────────────────────────

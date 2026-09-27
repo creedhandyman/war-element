@@ -375,3 +375,52 @@ describe("a seat's two channels agree", () => {
     }
   });
 });
+
+// THE ATTACK SPOTLIGHT MAKES NO GPU LAYER BETWEEN TURNS. The card taking its
+// turn used to throb — an infinite transform animation on the card itself —
+// and the spotlight moves every step, so every turn made a layer for the new
+// card and broke the last one's: churn at the moment between actions, the
+// usual trigger for a phone's one-frame flicker. Measured on the real Board in
+// Edge (damage numbers aside): 25 layers made or broken over six turns before,
+// none now. The throb lives on `.board-spot`, one element for the battle.
+describe("the attack spotlight holds its layers still", () => {
+  const NL = String.fromCharCode(10);
+  const rule = (sel: string) => {
+    const at = CSS.indexOf(`${NL}${sel} {`);
+    expect(at, `no rule for ${sel}`).toBeGreaterThan(-1);
+    return CSS.slice(at, CSS.indexOf("}", at));
+  };
+  const z = (sel: string) => Number(/z-index:\s*(\d+)/.exec(rule(sel))?.[1]);
+  const animated = (name: string) => {
+    const open = CSS.indexOf("{", CSS.indexOf(`@keyframes ${name}`));
+    let depth = 0, end = open;
+    for (let i = open; i < CSS.length; i++) {
+      if (CSS[i] === "{") depth++;
+      else if (CSS[i] === "}" && --depth === 0) { end = i; break; }
+    }
+    return [...new Set([...CSS.slice(open, end).matchAll(/([a-zA-Z-]+)\s*:/g)].map((m) => m[1]))].sort();
+  };
+
+  it("the lifted card holds still", () => {
+    expect(rule(".token.attacking")).not.toContain("animation");
+    expect(rule(".token.attacking")).toMatch(/[\s;{]scale:\s*1\.\d+/);
+  });
+
+  it("the pulse is on the spot, and animates only what the compositor moves", () => {
+    expect(rule(".board-spot")).toContain("spotpulse");
+    expect(animated("spotpulse")).toEqual(["opacity", "scale"]);
+  });
+
+  it("the spot sits over every card and under the numbers", () => {
+    // A slot is not a stacking context: a card drawn above a GPU layer it
+    // overlaps is pulled onto a layer of its own to stay above it.
+    expect(z(".board-spot")).toBeGreaterThan(z(".token.attacking"));
+    expect(z(".board-spot")).toBeGreaterThan(z(".token.lunging.fx-up"));
+    expect(z(".board-spot")).toBeLessThan(z(".fx-float"));
+    expect(z(".board-spot")).toBeLessThan(z(".fx-dmg-stack"));
+  });
+
+  it("reduced motion holds the pulse still", () => {
+    expect(CSS).toMatch(/prefers-reduced-motion: reduce\)\s*\{\s*\.board-spot\s*\{\s*animation:\s*none;?\s*\}/);
+  });
+});

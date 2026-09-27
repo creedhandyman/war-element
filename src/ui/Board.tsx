@@ -1,3 +1,4 @@
+import { useLayoutEffect, useRef } from "react";
 import type { BossTelegraph, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import type { StrikeZone } from "./attack-zone";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
@@ -186,6 +187,44 @@ export function Board(props: {
   const oppName = (game.humans ?? ["P1"]).length > 1 ? enemyOf(props.viewPlayer) : "Opponent";
   // Recon Ping: exposed for the round it was cast in, and no longer.
   const revealed = (opp.handRevealedUntilRound ?? -1) >= game.round;
+  // THE SPOTLIGHT'S PULSE (.board-spot in styles.css): one element for the
+  // whole battle, parked over the card taking its turn — the speed queue's
+  // head, the card Token lifts as `.attacking` — and moved on as the queue
+  // advances, so its GPU layer is made once and after that only moved. Placed
+  // by layout offsets (px the board lays out in, blind to any transform on an
+  // ancestor), sized to the card's lifted face, and placed again whenever the
+  // board changes size.
+  const boardRef = useRef<HTMLDivElement>(null);
+  const spotRef = useRef<HTMLElement>(null);
+  const bq = game.battle;
+  const headId = game.phase === "battle" && bq && bq.index < bq.queue.length ? bq.queue[bq.index] : null;
+  const headPos = headId ? (game.cards[headId]?.pos ?? null) : null;
+  const headAt = headPos ? `${headPos.row},${headPos.col}` : null;
+  useLayoutEffect(() => {
+    const board = boardRef.current, spot = spotRef.current;
+    if (!board || !spot || !headAt) return;
+    const park = () => {
+      const slot = board.querySelector<HTMLElement>(`[data-pos="${headAt}"]`);
+      const token = slot?.querySelector<HTMLElement>(":scope > .token");
+      const brow = slot?.offsetParent as HTMLElement | null | undefined;
+      if (!slot || !token || !brow) return;
+      const lift = parseFloat(getComputedStyle(token).scale) || 1;
+      const w = token.offsetWidth * lift, h = token.offsetHeight * lift;
+      spot.style.left = `${brow.offsetLeft + slot.offsetLeft + token.offsetLeft - (w - token.offsetWidth) / 2}px`;
+      spot.style.top = `${brow.offsetTop + slot.offsetTop + token.offsetTop - (h - token.offsetHeight) / 2}px`;
+      spot.style.width = `${w}px`;
+      spot.style.height = `${h}px`;
+      // Whose it is, for the melee lunge: the glow travels with its card, and
+      // only while it is still that card's (use-spell-impacts.ts `lunge`).
+      spot.dataset.at = headAt;
+      spot.style.translate = "";
+    };
+    park();
+    if (typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(park);
+    ro.observe(board);
+    return () => ro.disconnect();
+  }, [headAt]);
   return (
     <div className="board-area">
       {/* Fog of war: the opponent's hand is face-down; their deck is hidden —
@@ -235,7 +274,7 @@ export function Board(props: {
       {/* `tight` = a board with more than four columns, where every tile is
           smaller and the tokens have to shed furniture to keep the stat row on
           one line. Keyed on the size, not on a literal 5, so a 6x6 inherits it. */}
-      <div className={`board${game.boardSize > 4 ? " tight" : ""}`}>
+      <div className={`board${game.boardSize > 4 ? " tight" : ""}`} ref={boardRef}>
         {/* Fields (Cost-6 terrain) — a board-wide haze in the element colour,
             framed like a wall. pointer-events:none so slots stay clickable. */}
         {/* Standing terrain is ONE battlefield even though it is stored as an
@@ -376,6 +415,7 @@ export function Board(props: {
             })}
           </div>
         ))}
+        {headPos && <i ref={spotRef} className="board-spot" aria-hidden="true" />}
       </div>
     </div>
   );
