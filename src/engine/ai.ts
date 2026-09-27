@@ -404,8 +404,9 @@ function findSpellCast(state: GameState, player: PlayerId): Intent | null {
     const killable = enemies.filter((t) => estimateVolley(dmg, 1, pen, t) >= t.curHp);
     if (killable.length === 0) continue;
     // Prefer finishing an invader parked on our Home row, else the lowest HP.
+    // (Not in Domination: there is no Home row there — see chooseBattleAction.)
     const target =
-      killable.find((t) => t.pos!.row === myHome) ??
+      killable.find((t) => !state.domination && t.pos!.row === myHome) ??
       killable.reduce((b, t) => (t.curHp < b.curHp ? t : b));
     if (canCastSpell(state, player, spell.id, { targetId: target.instanceId }).ok)
       return { type: "CAST_SPELL", player, spellId: spell.id, targetId: target.instanceId };
@@ -1741,8 +1742,16 @@ export function chooseBattleAction(state: GameState, instanceId: string): Battle
 
   // Capture awareness: an invader standing on our own Home row dies first,
   // before it survives to a permanent capture.
+  //
+  // NOT IN DOMINATION, where nothing is captured and no Home row means
+  // anything (the trap placer already says so). `homeRow` is row 0 for EVERY
+  // seat but P1, and the top shrine P1 walks in by is on row 0 — so in a
+  // four-way match every AI treated P1's fresh arrivals as invaders and killed
+  // them first. Measured over 30 all-AI four-seat matches: P1 won 3, the others
+  // 8-10; with this off, 7 / 7 / 9 / 7.
   const myHome = homeRow(card.owner, state.boardSize);
-  const invaders = skill.guardsHome ? targets.filter((t) => t.pos!.row === myHome) : [];
+  const invaders = skill.guardsHome && !state.domination
+    ? targets.filter((t) => t.pos!.row === myHome) : [];
   const pool = invaders.length > 0 ? invaders : targets;
 
   // Kill the lowest-HP target we can actually finish…

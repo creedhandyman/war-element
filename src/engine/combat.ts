@@ -718,8 +718,25 @@ export function defeatCard(
  *
  *  The inverse of pushBack, which only ever moves a card AWAY. Returns whether
  *  it actually moved. */
+/** `selfShields`, capped by `selfShieldsMax` when a card declares one — the
+ *  same cap the round tick honours (phases.ts). Three Specials declared a cap
+ *  (Timberer's 9 among them) and neither reader looked at it, so a Special on
+ *  a cooldown stacked shields without end. Returns what was actually gained. */
+function braceSelfShields(caster: CardInstance, params: Record<string, number | string>): number {
+  const shields = num(params, "selfShields");
+  if (shields <= 0) return 0;
+  const cap = num(params, "selfShieldsMax") || Infinity;
+  const gain = Math.max(0, Math.min(shields, cap - caster.curShields));
+  caster.curShields += gain;
+  return gain;
+}
+
 export function dragInto(draft: GameState, victim: CardInstance, row: number): boolean {
   if (!victim.pos || row < 0 || row >= draft.boardSize) return false;
+  // Deep Roots, Braced Stance: a card that cannot be pushed, pulled or knocked
+  // back cannot be dragged either. Every other forced move checked this and
+  // Bog Ambush's drag did not, so it moved Old Timer and Sakuroot anyway.
+  if (getDef(victim.defId).pushImmune) return false;
   if (victim.pos.row === row) return false;
   const free = (c: number) => !cardAt(draft, row, c) && !draft.slots[row][c].capturedBy;
   const cols = [...Array(draft.boardSize).keys()].sort(
@@ -3660,11 +3677,8 @@ function applySelfRiders(
   }
   const sp = num(params, "selfSp");
   if (sp !== 0) caster.spBonus += sp;
-  const shields = num(params, "selfShields"); // Timberer: brace behind the felled tree
-  if (shields > 0) {
-    caster.curShields += shields;
-    draft.log.push(`${label(draft, caster)} braces (+${shields} shield).`);
-  }
+  const shields = braceSelfShields(caster, params); // Timberer: brace behind the felled tree
+  if (shields > 0) draft.log.push(`${label(draft, caster)} braces (+${shields} shield).`);
   // Permanent +DMG per use (Volcanon's Bad Temper). Routed through the SAME cap
   // as the on-hit passive, because on Volcanon they are one ability with two
   // triggers — capping only the passive would move the whole ramp onto Eruption.
@@ -5517,10 +5531,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     draft.log.push(`${label(draft, attacker)} crystallizes the team's armour (BLOCK ${block} to ${allies.length} ally(ies) for ${rounds}r).`);
   },
   warCry(draft, attacker, _targets, params) {
-    const sh = num(params, "selfShields");
+    const sh = braceSelfShields(attacker, params);
     const buffDmg = num(params, "buffDmg");
     const rounds = num(params, "buffRounds", 1);
-    if (sh) attacker.curShields += sh;
     const allies = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
     if (buffDmg > 0) for (const a of allies) applyTimedBuff(a, buffDmg, 0, rounds);
     draft.log.push(`${label(draft, attacker)} lets out a War Cry (+${sh} shields, +${buffDmg} DMG to ${allies.length} all(y/ies) for ${rounds}r).`);
