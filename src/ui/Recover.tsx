@@ -48,7 +48,7 @@ export class ScreenBoundary extends Component<{ children: ReactNode; onClose?: (
                 Back
               </button>
             )}
-            <button type="button" className="bbtn gold" onClick={() => window.location.reload()}>
+            <button type="button" className="lockin" onClick={() => window.location.reload()}>
               {live ? "Reload now (ends the match)" : "Reload"}
             </button>
           </div>
@@ -80,7 +80,7 @@ export class AppBoundary extends Component<{ children: ReactNode }, State> {
           <p>Your progress is saved. Reload to pick up where you left off.</p>
           <code>{this.state.error.message}</code>
           <div className="recover-row">
-            <button type="button" className="bbtn gold" onClick={() => window.location.reload()}>
+            <button type="button" className="lockin" onClick={() => window.location.reload()}>
               Reload
             </button>
           </div>

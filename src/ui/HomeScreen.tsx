@@ -232,9 +232,10 @@ export function HomeScreen(props: {
               mid-thought. Small on purpose — a new player should be reading the
               onboarding card above, not this. */}
           <button
-            className="home-acct"
+            className="home-acct rules"
             onClick={props.onRules}
             title="The rules — win conditions, phases, keywords and statuses"
+            aria-label="Rules"
           >
             {"❓"}
             <span>Rules</span>

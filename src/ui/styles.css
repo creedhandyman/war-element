@@ -5126,7 +5126,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   white-space: nowrap; flex: none;
 }
 .home-lvl b { color: var(--gold-lit); font-size: 11px; }
-.home-name { font-size: 13px; font-weight: 600; color: var(--ink); }
+.home-name {
+  font-size: 13px; font-weight: 600; color: var(--ink);
+  /* The one part of the row that may give way: a long hero name ellipsizes
+     instead of pushing the account pills off the end of a phone. */
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 /* `p-shard` / `p-ess`, NOT `shard` / `ess`: those are the global currency GLYPHS
    (9px, clip-pathed to a diamond) and putting one on the pill turned the whole
    pill into a 9px diamond with the number clipped out of it. A modifier that
@@ -6575,8 +6580,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   padding: 4px 10px; border-radius: 999px; cursor: pointer;
   background: rgba(6, 7, 12, .72); border: 1px solid var(--panel-line);
   color: var(--ink-dim); font-size: 11px; font-weight: 700;
+  white-space: nowrap; flex: none;
 }
 .home-acct:hover { border-color: var(--gold-line); color: var(--ink); }
+/* ON A PHONE THE ROW DOES NOT FIT. Avatar, name, level, two purses and two
+   pills want 369px, and a 375px screen has 343px inside the row's padding — so
+   "Sign in" wrapped onto two lines and "Rules" sat flush against the glass.
+   The gaps tighten and the Rules pill keeps its ❓ and gives up the word; the
+   button keeps "Rules" as its accessible name. Measured at 375x812. */
+@media (max-width: 400px) {
+  .home-you { gap: 6px; }
+  .home-acct.rules { padding: 4px 8px; }
+  .home-acct.rules span { display: none; }
+}
 .modal.acct { width: min(430px, 94vw); display: flex; flex-direction: column; gap: 11px; }
 .acct-head { display: flex; align-items: center; }
 .acct-head h2 { margin: 0; flex: 1; }

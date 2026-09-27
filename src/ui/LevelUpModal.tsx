@@ -80,7 +80,7 @@ export function LevelUpModal(props: {
           Every level pays shards · every {MILESTONE_EVERY} pays a bonus · every {PACK_EVERY} a free pack
         </p>
 
-        <button className="bb" onClick={props.onClose}>Collect</button>
+        <button className="lockin" onClick={props.onClose}>Collect</button>
       </div>
     </div>
   );
