@@ -8,6 +8,8 @@ import {
   squadUsableIn, squadsFor, type Squad,
 } from "../../data/squads";
 import { loadStory, rawStoredLoadouts } from "../../data/story";
+import { deckLimits, premadeDecksFor } from "../../data/custom-decks";
+import { createInitialState } from "../index";
 
 // jsdom is not on in this project, so stand up the smallest localStorage that
 // behaves like the real one for these calls.
@@ -47,6 +49,22 @@ describe("squads — saving", () => {
   it("drops cards the build no longer has", () => {
     saveSquad({ name: "Stale", cards: ["aqua_subcool", "card_that_was_deleted"] });
     expect(loadSquads()[0].cards).toEqual(["aqua_subcool"]);
+  });
+
+  it("plays a squad saved without a spellbook with the derived book, not with none", () => {
+    // The bug this pins. `sanitizeSpells` turned a missing book into `[]`, the
+    // engine reads `[]` as "chose none", and the Arena passes a squad's book
+    // straight through — so a squad saved without opening the Spells panel
+    // started every match with zero spells against an opponent holding five.
+    const pre = premadeDecksFor(4)[0];
+    saveSquad({ name: "No book", cards: pre.cards, spells: [], boardSize: 4 });
+    const [sq] = loadSquads();
+    expect(sq.spells, "an empty book loads as absent").toBeUndefined();
+    const s = createInitialState(1, sq.cards, pre.cards, ["P1"], sq.spells, pre.spells, 4);
+    expect(s.players.P1.spellbook).toHaveLength(deckLimits(4).spells);
+    // A book that WAS chosen is kept exactly as chosen.
+    saveSquad({ name: "Book", cards: pre.cards, spells: ["pyro_spark"], boardSize: 4 });
+    expect(loadSquads().find((x) => x.name === "Book")!.spells).toEqual(["pyro_spark"]);
   });
 
   it("deletes", () => {

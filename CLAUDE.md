@@ -3384,6 +3384,39 @@ region.
   mounted all session, so it needs the prop-sync effect — without it the board
   freezes at the first render of the APP.
 
+- **An empty spellbook was NO spellbook in the Arena** (fixed 2026-09-27).
+  `clean` in squads.ts turned a missing book into `[]`, `resolveDeckSpells`
+  passed it through, and the engine reads `[]` as "chose none" — so every squad
+  saved without opening Spells fought with zero spells under a builder line
+  promising an automatic book. Measured on the fill's 28 pair squads against
+  the 4x4 premades: 44.0% with no book, 52.4% with the derived one, 26 of 28
+  better. An empty book now loads as `undefined`, which derives.
+
+- **The Squad Check says only what was measured** (`data/squad-check.ts`).
+  Three lines: two 1-cost cards (the engine's `OPENING_CHEAP_MIN` opening
+  guarantee), a 7+ ceiling equal to the heaviest premade on the shelf (4 of
+  18, 6 of 30 — a test pins it to the shelf), and not one element (the
+  ladder's mono sweep). The obvious checklist was built first and ablated on
+  the fill's own squads, 3,360 games a line, and most of it MEASURED WRONG:
+  six cheap cards by cutting the dearest -4.3, curve-neutrally +0.1, swapping
+  every Tank for the best same-cost card of another class **+5.6** (18 of 26
+  better), the whole checklist -4.6. Do not re-add Tank / Support / cheap /
+  reach advice without an ablation. The Tank result is also a balance question
+  for the owner — the swaps take the best card on offer, which flatters any
+  swap a little, but no other swap measured came within four points of it.
+
+- **Element count is not a power lever.** The old whole-pool Auto-fill was one
+  deterministic stride over all eight elements: 30.3% on 4x4, 62.8% on 5x5.
+  Offset strides over the same pool won 52-80 and 31-71; pair strides span
+  26-92. Which cards land decides it. Auto-fill builds around a pair (or your
+  element picks) because that reads as a squad, and says which. It is still
+  `autoDeck` inside the pair — striding each element to an even share lost
+  7.0 on 5x5 (5,040 games a side, held on fresh seeds) and was noise on 4x4.
+
+- The builder's list rows are `.dbl-*`. They were `.dp-row` — the Arena squad
+  picker's row class — and the later rule had been overriding the picker's
+  padding, radius and border.
+
 ## Rejoining an online match — `net/resume.ts` + the `sync` handshake
 
 Online has no server copy of a match (Realtime broadcast, "no DB, no auth"), so a

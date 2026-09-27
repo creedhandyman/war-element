@@ -33,9 +33,11 @@ describe("the Deck Builder's foil filter", () => {
 
   it("re-runs the grid when it changes", () => {
     // Left out of the memo's deps, the toggle would flip and the grid would
-    // not move until something else re-ran it.
-    const deps = DB.match(/\}, \[pool, filter, classFilter[^\]]*\]\);/)?.[0] ?? "";
-    expect(deps, "foilOnly is a dependency of `shown`").toContain("foilOnly");
+    // not move until something else re-ran it. The filtering memo is
+    // `lensless` now (every filter but the squad check's lens), and `shown`
+    // sorts what it returns.
+    const deps = DB.match(/\}, \[pool, els, classFilter[^\]]*\]\);/)?.[0] ?? "";
+    expect(deps, "foilOnly is a dependency of the filtering memo").toContain("foilOnly");
     expect(deps, "and so is the foil set").toContain("foils");
   });
 

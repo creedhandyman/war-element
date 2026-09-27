@@ -50,10 +50,18 @@ function clean(s: Squad): Squad {
   // `suit` was a squad's hero pin. Heroes are gone, so an old save's pin is
   // dropped here rather than carried forward.
   const { suit: _retired, ...rest } = s as Squad & { suit?: unknown };
+  // AN EMPTY BOOK IS AN ABSENT ONE. `sanitizeSpells` turns a missing book into
+  // `[]`, and the engine reads `[]` as "chose none" — so every squad saved
+  // without opening the Spells panel walked into the Arena with NO spellbook,
+  // five casts down on an opponent holding five, under a builder line that
+  // promised the book would be "auto-filled from your deck's elements at match
+  // start". The type above already says what absent means. Nothing a player
+  // can do in the builder chooses an empty book on purpose.
+  const spells = sanitizeSpells(s.spells, s.boardSize ?? 5);
   return {
     ...rest,
     cards: s.cards.filter((id) => CARD_INDEX[id] && isBuildable(id)),
-    spells: sanitizeSpells(s.spells, s.boardSize ?? 5),
+    spells: spells.length ? spells : undefined,
   };
 }
 

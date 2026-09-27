@@ -213,6 +213,24 @@ export function CostRow(props: {
   );
 }
 
+// ── attack ─────────────────────────────────────────────────────────────────
+/** Melee or Ranged. Not the Ranger CLASS: plenty of Mages and Supports shoot,
+ *  and "what can hit a card standing behind a wall" is a question about how a
+ *  card attacks, not what it is called. The builder's squad check counts reach
+ *  on this axis, so the filter has to be able to ask it. */
+export const ATTACKS = ["Melee", "Ranged"] as const;
+export type AttackFilter = (typeof ATTACKS)[number] | "ALL";
+
+export function AttackRow(props: {
+  value: AttackFilter;
+  onChange: (v: AttackFilter) => void;
+  countFor?: (a: (typeof ATTACKS)[number]) => number;
+}) {
+  return (
+    <Row label="Attack" all={ATTACKS} value={props.value} onChange={props.onChange} countFor={props.countFor} />
+  );
+}
+
 // ── element / class, the two every grid already had ────────────────────────
 export function ElementRow(props: {
   value: Element | "ALL";
