@@ -355,7 +355,8 @@ function fire(all: SpellFx[]) {
           break;
         }
         case "arrive": {
-          const r = squareRect(f.at);
+          // A mythic's signature draws its own entrance on its square.
+          const r = signed ? null : squareRect(f.at);
           if (r) l.play({ kind: "arrive", rect: r, element: f.element, variant: f.variant });
           break;
         }
