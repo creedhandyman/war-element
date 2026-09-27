@@ -4304,6 +4304,13 @@ export function App() {
    *  look away from the board to read. One interaction to learn, on every size.
    *  `.wrap.wheel-up` still hides the button row, so the two never both show. */
   const wheelUp = iActBattle && wheelAt !== null && !delivering;
+  /** The action bar stays tucked for the whole of your card's turn, its
+   *  attack's flight included. Keyed on `wheelUp` alone, it grew back for the
+   *  ~450ms the ring stands down while the attack is delivered, and folded
+   *  away again as the next card's ring came up — a bounce between every one
+   *  of your actions. Nothing can be pressed in that flight anyway (the input
+   *  shield), so hiding the row through it hides nothing usable. */
+  const barTucked = iActBattle && wheelAt !== null;
   // A lined-up card belongs to one moment of one card's turn. A new acting
   // card, a verb armed or cancelled, or the ring going down drops it, so a
   // later tap cannot open a card on the strength of one made before.
@@ -4554,7 +4561,7 @@ export function App() {
     <MatchLayout
       logCollapsed={logCollapsed}
       preMatch={!started}
-      wheelUp={wheelUp}
+      wheelUp={barTucked}
       mobilePanel={mobilePanel}
       setMobilePanel={setMobilePanel}
       logIsStrip={logIsStrip}

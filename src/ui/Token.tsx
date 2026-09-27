@@ -424,6 +424,7 @@ export function Token(props: {
   return (
     <div
       className={cls}
+      data-iid={card.instanceId}
       data-el={def.element}
       title={`${def.name} — click to inspect (full art, stats, Special & passives)${def.special ? `\n\n${def.special.name}: ${def.special.text}` : ""}`}
     >

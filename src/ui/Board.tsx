@@ -137,6 +137,52 @@ function objectiveAt(
   return undefined;
 }
 
+// ── BETWEEN ACTIONS ─────────────────────────────────────────────────────────
+// A battle step lands in one frame: HP, a push, and the spotlight passing to
+// the next card all changed at once, so every handoff was a jump cut. These
+// turn the jumps into motion without slowing the game — each plays inside the
+// pause the next step already waits (see App's auto-advance).
+
+/** The spotlight passing from one card to the next, and the lift easing across. */
+const HANDOFF_MS = 260;
+/** A card sliding to a new square (a push, a pull, a charge, a move). */
+const SLIDE_MS = 280;
+
+/** Two looks at one continuing match — not a new match, a rematch, or a board
+ *  come back from game over, where nothing should animate across. */
+const sameMatch = (a: GameState, b: GameState) =>
+  a.phase !== "gameover" && b.round >= a.round && b.boardSize === a.boardSize;
+const easeOut = (k: number) => 1 - Math.pow(1 - k, 3);
+const easeInOut = (k: number) => (k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2);
+const reducedMotion = () =>
+  typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+/** Drive a card's style by hand for `ms`. Paint, not a compositor animation,
+ *  on purpose: a card is not on a GPU layer of its own, and a transition or a
+ *  Web Animation would make it one for every handoff and break it again after —
+ *  the churn the spotlight was rebuilt to avoid (styles.css .token.attacking).
+ *  One tween per card and key; a new one takes over from the last. */
+const tweens = new WeakMap<HTMLElement, Map<string, number>>();
+function tween(el: HTMLElement, key: string, ms: number, frame: (k: number) => void, done: () => void) {
+  let mine = tweens.get(el);
+  if (!mine) tweens.set(el, (mine = new Map()));
+  const running = mine.get(key);
+  if (running !== undefined) cancelAnimationFrame(running);
+  const t0 = performance.now();
+  const step = (now: number) => {
+    const k = Math.min(1, (now - t0) / ms);
+    if (k >= 1 || !el.isConnected) {
+      mine!.delete(key);
+      done();
+      return;
+    }
+    frame(k);
+    mine!.set(key, requestAnimationFrame(step));
+  };
+  frame(0);
+  mine.set(key, requestAnimationFrame(step));
+}
+
 export function Board(props: {
   game: GameState;
   legalSlots: Pos[]; // summon/move destinations (green)
@@ -200,31 +246,104 @@ export function Board(props: {
   const headId = game.phase === "battle" && bq && bq.index < bq.queue.length ? bq.queue[bq.index] : null;
   const headPos = headId ? (game.cards[headId]?.pos ?? null) : null;
   const headAt = headPos ? `${headPos.row},${headPos.col}` : null;
+  // THE HANDOFF. The spotlight GLIDES from the card that acted to the next one
+  // (a Web Animation on the spot, which is on a layer of its own already, so
+  // nothing new is made), and the lift eases across — the card that acted
+  // settles as the next one rises — instead of both snapping in the frame the
+  // step lands.
+  const lastHead = useRef<string | null>(null);
   useLayoutEffect(() => {
     const board = boardRef.current, spot = spotRef.current;
+    const fromId = lastHead.current;
+    lastHead.current = headId;
     if (!board || !spot || !headAt) return;
-    const park = () => {
+    const handoff = fromId !== null && fromId !== headId && !reducedMotion();
+    const park = (glide: boolean) => {
       const slot = board.querySelector<HTMLElement>(`[data-pos="${headAt}"]`);
       const token = slot?.querySelector<HTMLElement>(":scope > .token");
       const brow = slot?.offsetParent as HTMLElement | null | undefined;
       if (!slot || !token || !brow) return;
       const lift = parseFloat(getComputedStyle(token).scale) || 1;
       const w = token.offsetWidth * lift, h = token.offsetHeight * lift;
-      spot.style.left = `${brow.offsetLeft + slot.offsetLeft + token.offsetLeft - (w - token.offsetWidth) / 2}px`;
-      spot.style.top = `${brow.offsetTop + slot.offsetTop + token.offsetTop - (h - token.offsetHeight) / 2}px`;
+      const x = brow.offsetLeft + slot.offsetLeft + token.offsetLeft - (w - token.offsetWidth) / 2;
+      const y = brow.offsetTop + slot.offsetTop + token.offsetTop - (h - token.offsetHeight) / 2;
+      const x0 = parseFloat(spot.style.left), y0 = parseFloat(spot.style.top);
+      spot.style.left = `${x}px`;
+      spot.style.top = `${y}px`;
       spot.style.width = `${w}px`;
       spot.style.height = `${h}px`;
       // Whose it is, for the melee lunge: the glow travels with its card, and
       // only while it is still that card's (use-spell-impacts.ts `lunge`).
       spot.dataset.at = headAt;
       spot.style.translate = "";
+      if (glide && Number.isFinite(x0) && Number.isFinite(y0) && (x0 !== x || y0 !== y))
+        spot.animate(
+          [{ transform: `translate(${x0 - x}px, ${y0 - y}px)` }, { transform: "none" }],
+          { duration: HANDOFF_MS, easing: "cubic-bezier(0.45, 0, 0.25, 1)" },
+        );
     };
-    park();
+    park(handoff);
+    if (handoff) {
+      const was = board.querySelector<HTMLElement>(`.token[data-iid="${fromId}"]`);
+      const now = board.querySelector<HTMLElement>(`.token[data-iid="${headId}"]`);
+      const lift = now ? parseFloat(getComputedStyle(now).scale) || 1 : 1;
+      for (const [el, a, b] of [[was, lift, 1], [now, 1, lift]] as const) {
+        if (!el) continue;
+        tween(el, "lift", HANDOFF_MS, (k) => { el.style.scale = String(a + (b - a) * easeInOut(k)); }, () => { el.style.scale = ""; });
+      }
+    }
     if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(park);
+    const ro = new ResizeObserver(() => park(false));
     ro.observe(board);
     return () => ro.disconnect();
-  }, [headAt]);
+  }, [headAt, headId]);
+
+  // CARDS SLIDE. A push, a pull, a charge or a move used to take a card off one
+  // square and put it on another in a single frame. Each card's square is
+  // remembered (layout offsets, blind to any transform), and one that changed
+  // square is drawn from where it was to where it is — and a card that has
+  // just arrived settles in — a hand-driven paint tween like the lift's.
+  const squares = useRef<{ game: GameState; view: PlayerId; w: number; at: Map<string, [number, number]> } | null>(null);
+  useLayoutEffect(() => {
+    const board = boardRef.current;
+    if (!board) return;
+    const prev = squares.current;
+    const at = new Map<string, [number, number]>();
+    for (const tok of board.querySelectorAll<HTMLElement>(".token[data-iid]")) {
+      const slot = tok.parentElement, brow = slot?.offsetParent as HTMLElement | null | undefined;
+      if (!slot || !brow) continue;
+      at.set(tok.dataset.iid!, [brow.offsetLeft + slot.offsetLeft, brow.offsetTop + slot.offsetTop]);
+    }
+    squares.current = { game, view: props.viewPlayer, w: board.offsetWidth, at };
+    // A board that changed size, or turned round for the other seat, moved
+    // every card at once: that is a reflow, not a move.
+    if (!prev || prev.game === game || prev.view !== props.viewPlayer || prev.w !== board.offsetWidth ||
+        !sameMatch(prev.game, game) || reducedMotion()) return;
+    for (const [iid, [x, y]] of at) {
+      const tok = board.querySelector<HTMLElement>(`.token[data-iid="${iid}"]`);
+      if (!tok) continue;
+      const was = prev.at.get(iid);
+      if (!was) {
+        // Arrived this step (a summon, a spawn): it settles in rather than blinking on.
+        tok.style.transition = "none"; // `.token` transitions its transform; this is driven by hand
+        tween(tok, "arrive", 220, (k) => {
+          const e = easeOut(k);
+          tok.style.opacity = String(e);
+          tok.style.transform = `scale(${0.82 + 0.18 * e})`;
+        }, () => { tok.style.opacity = ""; tok.style.transform = ""; tok.style.transition = ""; });
+        continue;
+      }
+      if (was[0] === x && was[1] === y) continue;
+      const dx = was[0] - x, dy = was[1] - y;
+      // Over its neighbours while it travels, under the spotlight and the numbers.
+      tok.style.zIndex = "7";
+      tok.style.transition = "none"; // `.token` transitions its transform; this is driven by hand
+      tween(tok, "slide", SLIDE_MS, (k) => {
+        const e = 1 - easeOut(k);
+        tok.style.transform = `translate(${dx * e}px, ${dy * e}px)`;
+      }, () => { tok.style.transform = ""; tok.style.transition = ""; tok.style.zIndex = ""; });
+    }
+  });
   return (
     <div className="board-area">
       {/* Fog of war: the opponent's hand is face-down; their deck is hidden —
