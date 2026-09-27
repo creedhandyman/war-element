@@ -39,7 +39,7 @@ import { VOID_TOWER_ROUNDS } from "../engine/types";
 import {
   type VoidBoss,
   bodyCap, bossDefeated, bossEnraged, bossesOnFloor, floorCleared, floorOpen,
-  TAME_SCALE, TAME_USES, VOID_BOSSES, summonBudget, tameUsesLeft, towerProgress, trialEventId, voidFloors,
+  TAME_SCALE, TAME_USES, VOID_BOSSES, summonBudget, tameScaleFor, tameUsesLeft, towerProgress, trialEventId, voidFloors,
 } from "../data/void-tower";
 import { BossDetail } from "./BossDetail";
 
@@ -243,7 +243,13 @@ export function VoidTower(props: {
         <b>Clear a floor and every boss on it turns ENRAGED</b> — stronger than the
         one you beat, and worth going back down for. Beat a boss while it is
         enraged and it fights <b>for you</b> in your next {TAME_USES} battles at{" "}
-        {Math.round(TAME_SCALE * 100)}% of everything it has. One tamed boss per
+        {Math.round(TAME_SCALE * 100)}% of everything it has
+        {/* ...unless it has its own scale (`tameScaleFor`): Thunderfangs, whose
+            pack does not come with it, fights at full strength. */}
+        {VOID_BOSSES.filter((b) => tameScaleFor(b.cardId) !== TAME_SCALE).map((b) => {
+          const k = tameScaleFor(b.cardId);
+          return ` (${getDef(b.cardId).name} at ${k >= 1 ? "full strength" : `${Math.round(k * 100)}%`})`;
+        }).join("")}. One tamed boss per
         fight, chosen on its page;
         a use is spent whether you win or lose.
       </p>

@@ -230,7 +230,7 @@ import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import {
-  ENRAGE_SCALE, TAME_SCALE, VOID_GATE, bossWallSeats, voidBossById, voidBossElements,
+  ENRAGE_SCALE, VOID_GATE, bossWallSeats, tameScaleFor, voidBossById, voidBossElements,
   voidBossSeat, voidGateSeats,
 } from "../data/void-tower";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
@@ -2303,7 +2303,9 @@ export function App() {
       // boss is: on the board at round one, outside the economy. It has to be —
       // a 12-cost mythic is not something a tower fight ever affords,
       // so a tamed boss you had to buy would be a tamed boss you never fielded.
-      // Half of everything (`TAME_SCALE`) and three battles is what pays for it.
+      // A fraction of everything (`TAME_SCALE`, or the boss's own `tameScale`:
+      // Thunderfangs fights at full strength) and three battles is what pays
+      // for it.
       //
       // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
       // The gates stand in the row IN FRONT of home, so this square is free.
@@ -2313,7 +2315,7 @@ export function App() {
           const ally = summonCard(fresh, "P1", bossFight.ally, mySeat as never);
           ally.summonedThisRound = false;
           ally.tamed = true;
-          scaleInstance(ally, TAME_SCALE);
+          scaleInstance(ally, tameScaleFor(bossFight.ally));
         }
       }
     }

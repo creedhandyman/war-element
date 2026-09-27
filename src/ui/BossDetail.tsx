@@ -29,11 +29,18 @@ import { VOID_TOWER_ROUNDS } from "../engine/types";
 import { describeOwnPassives } from "./card-text";
 import {
   ENRAGE_SCALE, TAME_SCALE, TAME_USES, type VoidBoss,
-  bodyCap, bossDefeated, bossEnraged, summonBudget, tameUsesLeft, tamedRoster, tamedStats,
+  bodyCap, bossDefeated, bossEnraged, summonBudget, tameScaleFor, tameUsesLeft, tamedRoster, tamedStats,
 } from "../data/void-tower";
 
 /** The scale multipliers as a percentage, for prose. */
 const pct = (n: number) => `${Math.round(n * 100)}%`;
+
+/** How THIS boss fights once tamed, for prose: most at a fraction of
+ *  everything they have, Thunderfangs at full strength (`tameScaleFor`). */
+const tamedAt = (cardId: string) => {
+  const k = tameScaleFor(cardId);
+  return k >= 1 ? "at full strength" : `at ${pct(k)} of everything it has`;
+};
 
 export function BossDetail(props: {
   boss: VoidBoss;
@@ -124,8 +131,8 @@ export function BossDetail(props: {
               </div>
               <p>
                 {def.name} fights for you in your next <b>{myUses || TAME_USES}</b>{" "}
-                battle{(myUses || TAME_USES) === 1 ? "" : "s"}, at {pct(TAME_SCALE)} of
-                everything it has — bring it from any boss's page.
+                battle{(myUses || TAME_USES) === 1 ? "" : "s"}, {tamedAt(boss.cardId)} — bring
+                it from any boss's page.
               </p>
               {/* A stat the card does not have is left out entirely — Rotroot
                   has no shields, and a "SHLD 0 → 0" cell is a row of noise in
@@ -160,7 +167,7 @@ export function BossDetail(props: {
             <b>It has not forgotten.</b> Clearing Floor {boss.floor} left every boss on it
             enraged — this one comes back at {pct(ENRAGE_SCALE)} of its old strength, Special
             included. Beat it like that and it fights <b>for you</b> in your next{" "}
-            {TAME_USES} battles, at {pct(TAME_SCALE)} of everything it has.
+            {TAME_USES} battles, {tamedAt(boss.cardId)}.
             {myUses > 0 && <> You have <b>{myUses}</b> left on it — winning again refills to {TAME_USES}.</>}
           </div>
         )}
@@ -199,7 +206,14 @@ export function BossDetail(props: {
           <div className="bd-stable">
             <div className="bd-stable-head">
               Bring a tamed boss
-              <span>{pct(TAME_SCALE)} strength · one per fight · spends a use even if you lose</span>
+              <span>
+                {pct(TAME_SCALE)} strength
+                {/* ...except a boss with its own scale (Thunderfangs, full). */}
+                {stable.filter(({ boss: t }) => tameScaleFor(t.cardId) !== TAME_SCALE)
+                  .map(({ boss: t }) => `, ${getDef(t.cardId).name} ${tamedAt(t.cardId).replace(" of everything it has", "")}`)
+                  .join("")}
+                {" "}· one per fight · spends a use even if you lose
+              </span>
             </div>
             <div className="bd-stable-row">
               <button

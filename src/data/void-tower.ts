@@ -81,6 +81,9 @@ export const bodyTotal = (d: CardDef): number =>
 export interface VoidBoss {
   /** The boss's card id in CARDS (flagged `boss: true`). */
   cardId: string;
+  /** What this boss fights at when TAMED, where that is not `TAME_SCALE`.
+   *  Read through `tameScaleFor`, never directly. */
+  tameScale?: number;
   /** Which floor's caps this fight is tuned to. */
   floor: number;
   /** Element A — where the tribe comes from. */
@@ -285,6 +288,17 @@ export const VOID_BOSSES: VoidBoss[] = [
   },
   {
     cardId: "boss_thunderfangs",
+    // TAMED AT FULL STRENGTH (owner's call, 2026-09-27: "not to the same level
+    // of, say, a Vulcanyx"). Its boss strength is mostly BORROWED from a pack
+    // (Pack Law) that does not come along when it changes sides, and its
+    // printed body is the smallest on Floor 3 by design. At 70% it was the
+    // weakest ally on the floor. Measured as the player's ally across the four
+    // Floor 4 fights (8 decks x 12 seeds each, 384 fights): win 4.7% at 70%,
+    // 5.7% at 85%, 9.4% at 100%, against Vulcanyx's 7.6% at 70%; ally damage
+    // 132 -> 203 against Vulcanyx's 213. Bringing two Spark Wind Wolves along
+    // instead measured 4.4%: the wolves die at once. The boss FIGHT is
+    // untouched: this is read only where a tamed ally is seated.
+    tameScale: 1,
     floor: 3,
     tribeElement: "GALE",
     mechanicElement: "BOLT",
@@ -663,6 +677,12 @@ export const floorOpen = (eventsDone: string[], floor: number): boolean =>
  *  re-tune would have left the game describing a card it no longer fielded. */
 export const TAME_SCALE = 0.7;
 
+/** What THIS boss fights at when tamed: its own `tameScale` (Thunderfangs, at
+ *  full strength), else `TAME_SCALE`. The one reader, used by the board (App),
+ *  the preview (`tamedStats`) and every line of copy that quotes a strength. */
+export const tameScaleFor = (cardId: string): number =>
+  voidBossById(cardId)?.tameScale ?? TAME_SCALE;
+
 /** Battles a taming is good for. Spent on ENTERING a fight with it, win or
  *  lose — the honest reading, and the one that cannot be farmed by conceding. */
 export const TAME_USES = 3;
@@ -723,11 +743,12 @@ export const tameUsesLeft = (
  *  never OVER-promises. A tamed boss is always at least as good as the numbers
  *  the player was shown, never worse. */
 export function tamedStats(def: CardDef): { dmg: number; hp: number; shields: number; sp: number } {
+  const k = tameScaleFor(def.id);
   return {
-    dmg: Math.floor(def.dmg * TAME_SCALE),
-    hp: Math.max(1, Math.round(def.hp * TAME_SCALE)),
-    shields: Math.max(0, Math.round(def.shields * TAME_SCALE)),
-    sp: def.sp > 0 ? Math.max(1, Math.floor(def.sp * TAME_SCALE)) : 0,
+    dmg: Math.floor(def.dmg * k),
+    hp: Math.max(1, Math.round(def.hp * k)),
+    shields: Math.max(0, Math.round(def.shields * k)),
+    sp: def.sp > 0 ? Math.max(1, Math.floor(def.sp * k)) : 0,
   };
 }
 

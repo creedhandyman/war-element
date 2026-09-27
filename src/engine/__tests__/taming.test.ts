@@ -15,8 +15,10 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import {
   ENRAGE_SCALE, TAME_SCALE, TAME_USES, VOID_BOSSES,
-  bossEnraged, tameUsesLeft, tamedRoster, tamedStats, trialEventId,
+  bossEnraged, tameScaleFor, tameUsesLeft, tamedRoster, tamedStats, trialEventId,
 } from "../../data/void-tower";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   GIFTS, applyGifts, loadStory, newSave, saveStory, spendTame, tameBoss, type StorySave,
 } from "../../data/story";
@@ -112,7 +114,7 @@ describe("the reveal shows the body the player actually gets", () => {
     it(`${b.cardId}: the preview never over-promises`, () => {
       const def = getDef(b.cardId);
       const s = bigPrepState();
-      const inst = scaleInstance(place(s, b.cardId, "P1", 4, 2), TAME_SCALE);
+      const inst = scaleInstance(place(s, b.cardId, "P1", 4, 2), tameScaleFor(b.cardId));
       const preview = tamedStats(def);
       // HP and shields are absolute on the instance — these are exact.
       expect(preview.hp, "HP is exact").toBe(inst.maxHp);
@@ -128,13 +130,41 @@ describe("the reveal shows the body the player actually gets", () => {
 
   it("and it really is REDUCED, not a rounding of nothing", () => {
     // Guards the guard: a `tamedStats` that returned the printed numbers
-    // untouched would pass every over-promise check above.
-    for (const b of VOID_BOSSES) {
+    // untouched would pass every over-promise check above. Every boss at the
+    // shared scale; the one with its own full-strength scale is the next test.
+    for (const b of VOID_BOSSES.filter((v) => tameScaleFor(v.cardId) < 1)) {
       const def = getDef(b.cardId);
       const t = tamedStats(def);
       expect(t.hp, `${b.cardId} hp`).toBeLessThan(def.hp);
       expect(t.dmg, `${b.cardId} dmg`).toBeLessThan(def.dmg);
     }
+  });
+});
+
+describe("Thunderfangs is tamed at full strength", () => {
+  // Owner's call, 2026-09-27: "not to the same level of, say, a Vulcanyx".
+  // Its boss strength is borrowed from a pack that does not come along, so at
+  // 70% it was the weakest ally on its floor. Measured as the player's ally
+  // across the four Floor 4 fights (384 fights each): 4.7% at 70%, 9.4% at
+  // 100%, Vulcanyx 7.6%. See its VOID_BOSSES entry.
+  it("fights at 100%, and it is the only boss off the shared scale", () => {
+    expect(tameScaleFor("boss_thunderfangs")).toBe(1);
+    const off = VOID_BOSSES.filter((v) => tameScaleFor(v.cardId) !== TAME_SCALE).map((v) => v.cardId);
+    expect(off).toEqual(["boss_thunderfangs"]);
+    expect(tameScaleFor("boss_vulcanyx")).toBe(TAME_SCALE);
+  });
+
+  it("the preview shows its printed card, unreduced", () => {
+    const def = getDef("boss_thunderfangs");
+    expect(tamedStats(def)).toEqual({ dmg: def.dmg, hp: def.hp, shields: def.shields, sp: def.sp });
+  });
+
+  it("the board seats it through the same reader, and the copy says so", () => {
+    const read = (f: string) => readFileSync(join(__dirname, "..", "..", "ui", f), "utf8");
+    expect(read("App.tsx")).toContain("scaleInstance(ally, tameScaleFor(bossFight.ally));");
+    expect(read("App.tsx")).not.toContain("scaleInstance(ally, TAME_SCALE)");
+    expect(read("BossDetail.tsx")).toContain('k >= 1 ? "at full strength"');
+    expect(read("VoidTower.tsx")).toContain("tameScaleFor(b.cardId) !== TAME_SCALE");
   });
 });
 

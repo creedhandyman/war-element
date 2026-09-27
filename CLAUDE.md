@@ -1801,6 +1801,19 @@ one you had to buy is one you would never field); **one per fight**; enraged
 means **buffed stats**, not just a label; a use is spent on **entering**, win or
 lose (paying at settle would make it farmable by conceding at round one).
 
+**One boss has its own scale: Thunderfangs is tamed at FULL strength**
+(`VoidBoss.tameScale`, read only through `tameScaleFor`; owner, 2026-09-27: "not
+to the same level of, say, a Vulcanyx"). Its boss strength is borrowed from a
+pack (Pack Law) that does not change sides with it, and its printed body is Floor
+3's smallest by design, so at 0.7 it was the weakest ally on its floor. Measured
+as the player's ally across the four Floor 4 fights (8 premades x 12 seeds each,
+384 fights, both sides AI, set up like `startArenaMatch`): win 4.7% at 0.7, 5.7%
+at 0.85, 9.4% at 1.0, against Vulcanyx 7.6% at 0.7 (Xilty 43.8, Hoarfell 13.5,
+no ally 0.0); ally damage 132 -> 203 against Vulcanyx's 213. Bringing two Spark
+Wind Wolves along instead measured 4.4%: they die at once. The board (App), the
+preview (`tamedStats`) and the copy (BossDetail, the tower footer) all read
+`tameScaleFor`; the boss FIGHT is untouched.
+
 ## TOWER DIFFICULTY TARGETS (owner's, and the tower is NOT there yet)
 
 Boss win %. Floors 1-2 judged BARE; floors 3-4 judged WITH A TAMED ALLY,
