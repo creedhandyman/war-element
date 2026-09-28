@@ -594,7 +594,33 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    full brightness rather than switched off: the glow IS the cue, so it has to
    stay legible; only the motion goes. */
 @media (prefers-reduced-motion: reduce) {
-  .slot-glow { animation: none !important; opacity: 1; }
+  .slot-glow, .slot-cue { animation: none !important; opacity: 1; }
+}
+/* THE STANDING CUES — a threatened Home slot, a contested Point, the Well, a
+ * boss's blast zone — get a layer of their own, for the same reason and in the
+ * same way as the glow above. They are not interaction states: they stay lit
+ * for rounds at a time, and on a Domination board a dozen-plus of them can be
+ * lit at once, so they are the pulses most often on screen. Each used to
+ * animate `box-shadow` or `border-color` on the tile itself, which repaints
+ * the tile, and the tile lives in the BOARD's layer, so the whole board was
+ * re-rastered every frame for as long as any of them was up. Measured in Edge
+ * on a 7x7 four-way at round 17: 26 fps with the GPU pinned at 100%, 55 fps
+ * once they stopped repainting.
+ *
+ * So the tile keeps the DIM end of its old pulse as a still shadow, and this
+ * layer carries the difference up to the bright end, fading in and out on
+ * opacity alone. A separate element from `.slot-glow` because a square can be
+ * both — a contested Point you are aiming at, a blast square you may target —
+ * and one layer would have to drop one of the two.
+ *
+ * `.slot-cue` sits under the glow (it comes first in Slot.tsx) and under the
+ * token, where a shadow on the tile itself always was. Every cue sets inset,
+ * border AND shadow, so when two apply the later one wins cleanly rather than
+ * blending into a mixture of both. */
+.slot-cue {
+  position: absolute; inset: 0; z-index: 0;
+  border-radius: inherit; pointer-events: none;
+  opacity: 0;
 }
 /* the tile whose card is taking its turn pulses in its row colour */
 .slot.acting { z-index: 3; }
@@ -610,12 +636,24 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* The arcane compass sigil, tinted to the row colour. Dimmed to ~a third of its
    old 0.15: empty slots were competing with the cards for attention, and an
-   OCCUPIED card should always be the brightest thing on the board. */
+   OCCUPIED card should always be the brightest thing on the board.
+
+   THE MASK IS A PNG, AND THAT IS A FRAME-RATE DECISION. It was the SVG, and a
+   vector mask is not drawn once and kept: every time a tile is re-rastered the
+   browser re-runs the SVG's paths — two dashed rings among them, the slowest
+   thing a path can be asked to do — for every square in that tile, at the
+   screen's full pixel density. Measured in Edge on a full 5x5 boss fight, the
+   sigil was over HALF the GPU raster time of every battle step: 191 ms of it
+   per step with the SVG, 84 with no sigil at all, and 91 with the same shape
+   as a 256px alpha PNG.
+   Same mask, same tint, same 5%, and at 5% nobody can see the difference
+   between a vector and a raster. tile-sigil.svg stays as the source: render it
+   to a 256px alpha-only PNG if the drawing ever changes. */
 .slot::before {
   content: ""; position: absolute; inset: 11%; z-index: 0; pointer-events: none;
   background: var(--tile); opacity: 0.05;
-  -webkit-mask: url("/tile-sigil.svg") center / contain no-repeat;
-  mask: url("/tile-sigil.svg") center / contain no-repeat;
+  -webkit-mask: url("/tile-sigil.png") center / contain no-repeat;
+  mask: url("/tile-sigil.png") center / contain no-repeat;
 }
 .slot.legal { border-color: var(--legal); }
 .slot.legal > .slot-glow {
@@ -650,8 +688,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    it drained the element rim and the card art, which are what you read the
    board by; opacity alone is enough to say "not acting right now". */
 .slot.grayed .token { opacity: 0.7; transition: opacity 0.2s; }
-.slot.contested { border-color: var(--threat); animation: threatpulse 1s infinite; }
-@keyframes threatpulse { 0%, 100% { border-color: rgba(229, 83, 61, 0.6); } 50% { border-color: var(--threat); } }
+/* A threatened Home slot. The tile's border holds the dim red and the cue lays
+   the full red exactly over it — the cue is the tile's BORDER box (inset by
+   the border's width, same radius), so the ring it draws is the border. */
+.slot.contested { border-color: rgba(229, 83, 61, 0.6); }
+.slot.contested > .slot-cue {
+  inset: -1.5px; border: 1.5px solid var(--threat); box-shadow: none;
+  --glow-min: 0; animation: glowpulse 1s infinite;
+}
 /* Captured ground — permanently dead, nobody may summon or move here. The old
    look was a gold border + gold inner glow, which on YOUR home row (--tile-your
    is also gold, #ffcf6b) was nearly invisible: a captured home slot read as just
@@ -883,12 +927,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     rgba(180, 92, 255, 0.26) 0 6px,
     rgba(180, 92, 255, 0.08) 6px 12px
   );
-  animation: blastpulse 1s infinite;
+  /* The dim end of the old pulse, still. The zone can cover most of a 5x5 on
+     the round it lands, so this was the costliest pulse in a boss fight. */
+  box-shadow: inset 0 0 0 2px rgba(180, 92, 255, 0.75), inset 0 0 22px rgba(180, 92, 255, 0.32), 0 0 12px var(--blast-soft);
   z-index: 2;
 }
-@keyframes blastpulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(180, 92, 255, 0.75), inset 0 0 22px rgba(180, 92, 255, 0.32), 0 0 12px var(--blast-soft); }
-  50% { box-shadow: inset 0 0 0 2px var(--blast), inset 0 0 34px rgba(180, 92, 255, 0.52), 0 0 22px rgba(180, 92, 255, 0.42); }
+/* After the threatened-Home cue, so a blast square that is ALSO a threatened
+   Home slot reads as the blast — the louder of the two, as its border already
+   did. (The Domination cues come later in the file, but a boss is never fought
+   on that map.) */
+.slot.blast > .slot-cue {
+  inset: 0; border: 0;
+  box-shadow: inset 0 0 0 2px var(--blast), inset 0 0 34px rgba(180, 92, 255, 0.3), 0 0 22px rgba(180, 92, 255, 0.3);
+  --glow-min: 0; animation: glowpulse 1s infinite;
 }
 /* A ROW OR COLUMN ATTACK ABOUT TO LAND — lit for STRIKE_HOLD_MS (App.tsx)
    before the step that fires it is applied (ui/attack-zone.ts). The line
@@ -937,11 +988,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .boss-clock.now {
   color: #f7edff; background: linear-gradient(180deg, #b45cff, #7a2fc4);
   border-color: #dcb8ff; font-size: 10px;
-  animation: clocknow 0.9s infinite;
+  box-shadow: 0 0 8px rgba(180, 92, 255, 0.6);
 }
-@keyframes clocknow {
-  0%, 100% { box-shadow: 0 0 8px rgba(180, 92, 255, 0.6); }
-  50% { box-shadow: 0 0 18px rgba(180, 92, 255, 0.95); }
+/* Its beat on a layer of its own (see .slot-cue): the badge used to animate its
+   own shadow, which re-rastered the layer it sat in every frame of the round. */
+.boss-clock.now::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 18px rgba(180, 92, 255, 0.9);
+  opacity: 0; --glow-min: 0; animation: glowpulse 0.9s infinite;
 }
 /* The badge sits over the top-left of the token, which is exactly where the
    name starts — on the board it read "NOW" over a half-eaten "Rotroot". Move
@@ -1048,7 +1102,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-mod.debuff { color: var(--stat-dmg); border-left: 3px solid var(--stat-dmg); }
 .freeze-overlay { position: absolute; inset: 0; z-index: 3; border-radius: 8px; pointer-events: none; background: linear-gradient(160deg, rgba(140, 200, 255, 0.28), rgba(60, 120, 200, 0.16)); box-shadow: inset 0 0 16px rgba(160, 215, 255, 0.55); }
 .token.selected { outline: 2px solid var(--your-home-glow); outline-offset: 1px; }
-.token.acting { outline: 2px solid var(--accent); outline-offset: 1px; animation: qnext 1.3s infinite; }
+/* The card waiting on YOUR call. The token keeps the dim ring; its ::before is
+   the token's border box (inset by the border's width, same radius) and draws
+   the same outline at full strength, fading in and out on opacity — the ring
+   used to animate `outline-color` on the token, a repaint every frame for as
+   long as the player took to decide. */
+.token.acting { outline: 2px solid rgba(167, 139, 250, 0.4); outline-offset: 1px; }
+.token.acting::before {
+  content: ""; position: absolute; inset: -1.5px; border-radius: inherit; pointer-events: none;
+  outline: 2px solid var(--accent); outline-offset: 1px;
+  opacity: 0; --glow-min: 0; animation: glowpulse 1.3s infinite;
+}
 /* Attack spotlight: the card taking its turn in the speed queue grows and
    lifts above its neighbours so it's obvious who's acting.
 
@@ -1233,7 +1297,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .st-sp { color: var(--stat-sp); }
 /* The one stat that still wants to be its own pill: it is a call to action, not a
    readout, so it gets back the padding and corners the shared plate dropped. */
-.st-sp.can-move { color: #06251a; background: var(--legal); padding: 0 3px; border-radius: 4px; text-shadow: none; box-shadow: 0 0 10px rgba(78, 203, 143, 0.7); animation: movepulse 1.5s ease-in-out infinite; }
+/* Its glow is a ::after at z-index -1: the pill is not a stacking context, so
+   that places it at the bottom of `.tk-stats` (which is one) — under the pill's
+   own fill and under the neighbouring numerals, exactly where the pill's own
+   box-shadow used to paint. Only its opacity moves; animating the shadow
+   repainted every one of your movable cards on every frame of your turn. */
+.st-sp.can-move { position: relative; color: #06251a; background: var(--legal); padding: 0 3px; border-radius: 4px; text-shadow: none; }
+.st-sp.can-move::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 14px rgba(78, 203, 143, 0.9);
+  --glow-min: 0.45; animation: glowpulse 1.5s ease-in-out infinite;
+}
 .st-dmg { color: var(--stat-dmg); } .st-hp { color: var(--stat-hp); } .st-sh { color: var(--stat-sh); }
 /* HP flashes red on damage, green on healing so combat reads at a glance. */
 .st-hp.hp-hit { animation: hpHit 0.65s ease-out; }
@@ -1374,9 +1448,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .qrow.mine { background: rgba(232, 200, 119, 0.12); border-color: var(--gold-line); }
 .qrow.enemy { background: rgba(110, 140, 240, 0.12); border-color: rgba(140, 160, 220, 0.35); }
 .qrow.mine .qsp { color: var(--gold-lit); } .qrow.enemy .qsp { color: var(--steel-lit); }
-.qrow.next { outline: 2px solid var(--accent); animation: qnext 1.3s infinite; }
+/* The row up next. Same split as .token.acting: the row holds the dim ring and
+   its ::after — the row's border box — draws the bright one on opacity. It
+   pulses through every step of every battle, and animating `outline-color`
+   re-rastered the queue's layer on every frame of the match. */
+.qrow.next { position: relative; outline: 2px solid rgba(167, 139, 250, 0.4); }
+.qrow.next::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  outline: 2px solid var(--accent);
+  opacity: 0; --glow-min: 0; animation: glowpulse 1.3s infinite;
+}
 .qrow.done { opacity: 0.35; }
-@keyframes qnext { 0%, 100% { outline-color: rgba(167, 139, 250, 0.4); } 50% { outline-color: var(--accent); } }
 .qsp { width: 20px; text-align: right; font-size: 10px; color: var(--ink-faint); font-weight: 700; flex: none; }
 .qname { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qtag { font-size: 8px; font-weight: 800; padding: 1px 5px; border-radius: 5px; letter-spacing: 0.05em; flex: none; }
@@ -1449,9 +1531,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    that leaks. If the leak is ever closed (give the portrait .hand-float
    `position: relative`), --z-drawer/--z-sheet can come back down. */
 .hcard:hover { transform: translateY(-32px) scale(1.14); z-index: 50 !important; box-shadow: 0 24px 46px rgba(0, 0, 0, 0.7), 0 0 26px color-mix(in srgb, var(--el, #000) 55%, transparent); }
-.hcard.summonable { border-color: var(--legal); animation: cardglow 1.8s ease-in-out infinite; cursor: grab; }
+/* A card you can play now. The drop shadow holds still; the green glow is the
+   ::before — the card's border box — fading on opacity. It animated the card's
+   own box-shadow, so every playable card in your hand repainted every frame of
+   your turn. (::before is the locked veil's, but a card is never locked AND
+   playable, so the two never want it at once.) */
+.hcard.summonable { border-color: var(--legal); box-shadow: 0 14px 30px rgba(0, 0, 0, 0.6); cursor: grab; }
+.hcard.summonable::before {
+  content: ""; position: absolute; inset: -2px; border-radius: 11px; pointer-events: none;
+  box-shadow: 0 0 18px rgba(78, 203, 143, 0.5);
+  opacity: 0; --glow-min: 0; animation: glowpulse 1.8s ease-in-out infinite;
+}
 .hcard.summonable:active { cursor: grabbing; }
-@keyframes cardglow { 0%, 100% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 0 rgba(78,203,143,0); } 50% { box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 18px rgba(78,203,143,0.5); } }
 /* Can't-summon-yet cards read as locked behind a translucent veil — the art
    stays visible through it, and the cost gem/sigil (z-index 4) ride ABOVE the
    veil so the reason it's locked stays bright.
@@ -1877,7 +1968,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .pass-dots { display: flex; gap: 4px; align-items: center; }
 .pd { width: 9px; height: 9px; border-radius: 50%; background: var(--panel-line); border: 1px solid var(--ink-faint); }
 .pd.on { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(167, 139, 250, 0.6); }
-.mv { font-size: 10px; color: var(--legal); font-weight: 700; }
+/* inline-block so its opacity pulse (.mv.ready) can run on the compositor; the
+   same in both states, so the move being spent does not reflow the bar. */
+.mv { display: inline-block; font-size: 10px; color: var(--legal); font-weight: 700; }
 .mv.used { color: var(--ink-faint); text-decoration: line-through; }
 
 /* battle prompt */
@@ -1907,27 +2000,44 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .bbtn:disabled { opacity: 0.4; cursor: default; }
 /* ── Guiding nudges: soft, non-blocking cues that point at what you CAN do.
    Each yields to the real armed/active states — they only show while idle. ── */
-.mv.ready { animation: mvpulse 1.5s ease-in-out infinite; }
-@keyframes mvpulse { 0%, 100% { opacity: 0.72; text-shadow: none; } 50% { opacity: 1; text-shadow: 0 0 8px var(--legal-soft); } }
+/* Breathes on opacity alone. The glow under the letters used to breathe with
+   it — a text-shadow, which is a repaint per frame — and now simply stays. */
+.mv.ready { text-shadow: 0 0 8px var(--legal-soft); animation: mvpulse 1.5s ease-in-out infinite; }
+@keyframes mvpulse { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
 /* Special affordable & off-cooldown, nothing armed yet → breathe its rim. */
-.bbtn.spec.ready { border-color: var(--accent); animation: readyglow 1.7s ease-in-out infinite; }
-.bbtn.tal.ready { border-color: var(--gold-lit); animation: readyglowGold 1.7s ease-in-out infinite; }
-@keyframes readyglow { 0%, 100% { box-shadow: 0 0 4px rgba(167, 139, 250, 0.25); } 50% { box-shadow: 0 0 14px rgba(167, 139, 250, 0.6); } }
-@keyframes readyglowGold { 0%, 100% { box-shadow: 0 0 4px rgba(232, 200, 119, 0.3); } 50% { box-shadow: 0 0 15px rgba(232, 200, 119, 0.65); } }
+/* Each ready-glow is a ::after of the control — its own box, no fill, only the
+   shadow — fading on opacity instead of animating the control's box-shadow. */
+.bbtn.spec.ready { position: relative; border-color: var(--accent); }
+.bbtn.tal.ready { position: relative; border-color: var(--gold-lit); }
+.bbtn.spec.ready::after, .bbtn.tal.ready::after,
+.spellchip.ready::after, .spellbook-toggle.has-ready::after, .pass-btn.nudge::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  opacity: 0; animation: glowpulse 1.7s ease-in-out infinite;
+}
+.bbtn.spec.ready::after { --glow-min: 0.3; box-shadow: 0 0 14px rgba(167, 139, 250, 0.6); }
+.bbtn.tal.ready::after { --glow-min: 0.3; box-shadow: 0 0 15px rgba(232, 200, 119, 0.65); }
 /* Nothing left to do but Pass → gently pull the eye to it. */
-.pass-btn.nudge { animation: passnudge 1.5s ease-in-out infinite; }
-@keyframes passnudge {
-  0%, 100% { box-shadow: 0 0 24px rgba(232, 200, 119, 0.4), 0 4px 14px rgba(0, 0, 0, 0.5); }
-  50% { box-shadow: 0 0 32px rgba(232, 200, 119, 0.85), 0 4px 14px rgba(0, 0, 0, 0.5); transform: translateY(-1px); }
+/* The button's own gold glow (.lockin) is the dim end; the ::after adds the
+   rest, and the nudge's 1px lift is `translate`, which the compositor moves. */
+.pass-btn.nudge { position: relative; animation: passnudge 1.5s ease-in-out infinite; }
+.pass-btn.nudge::after {
+  --glow-min: 0; box-shadow: 0 0 32px rgba(232, 200, 119, 0.6);
+  animation-duration: 1.5s;
 }
+@keyframes passnudge { 0%, 100% { translate: 0 0; } 50% { translate: 0 -1px; } }
 /* A spell you can actually cast right now → soft element-tinted ready-glow. */
-.spellchip.ready { border-color: color-mix(in srgb, var(--el, var(--legal)) 60%, transparent); animation: chipready 1.8s ease-in-out infinite; }
-@keyframes chipready {
-  0%, 100% { box-shadow: 0 0 5px color-mix(in srgb, var(--el, #7dd3fc) 25%, transparent); }
-  50% { box-shadow: 0 0 14px color-mix(in srgb, var(--el, #7dd3fc) 55%, transparent); }
+.spellchip.ready { border-color: color-mix(in srgb, var(--el, var(--legal)) 60%, transparent); }
+.spellchip.ready::after {
+  --glow-min: 0.35; box-shadow: 0 0 14px color-mix(in srgb, var(--el, #7dd3fc) 55%, transparent);
+  animation-duration: 1.8s;
 }
-/* Collapsed book holds a castable spell → glow the toggle so it's worth opening. */
-.spellbook-toggle.has-ready { border-color: var(--gold-lit); animation: readyglowGold 1.9s ease-in-out infinite; }
+/* Collapsed book holds a castable spell → glow the toggle so it's worth opening.
+   Its own drop shadow now stays under the glow; the old animation replaced it. */
+.spellbook-toggle.has-ready { position: relative; border-color: var(--gold-lit); }
+.spellbook-toggle.has-ready::after {
+  --glow-min: 0.3; box-shadow: 0 0 15px rgba(232, 200, 119, 0.65);
+  animation-duration: 1.9s;
+}
 .bp-text { font-size: 10.5px; color: var(--ink-dim); }
 /* Armed-special description — accent the name in the Special's purple. */
 .spec-desc { color: var(--ink); line-height: 1.35; }
@@ -6505,25 +6615,58 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    spends ::after on the bottom scrim, and .tk-top/.tk-bottom sit at z-index 1,
    so a full-bleed sheen at z-2 would wash over the name and the stat row — the
    two things that have to stay readable in a fight. This sits over the ART and
-   under the text, which is exactly where a foil belongs. */
+   under the text, which is exactly where a foil belongs. It is the WINDOW —
+   clip, corners and blend; the sheen that moves through it is .foil-sheen. */
 .tk-foil {
   position: absolute; inset: 0; z-index: 0; pointer-events: none;
   border-radius: inherit; overflow: hidden;
+  mix-blend-mode: screen;
+}
+/* A foil in the HAND — the same window, where the card's ::after sheen used to
+   be (last child, z 2: over the plate, under the cost gem). That ::after was
+   the card's scrim as well, and the sheen's background replaced the scrim's,
+   so a foil in hand has never had one; hiding it keeps that look exactly. */
+.hcard.carded.foil::after { display: none; }
+.hcard.carded > .hc-foil {
+  position: absolute; inset: 0; z-index: 2; pointer-events: none;
+  border-radius: 9px; overflow: hidden;
+  mix-blend-mode: screen;
+}
+/* THE SHEEN IN A FIGHT MOVES ON `transform`, and that is the whole point of it.
+ *
+ * The collection's sheen (.foil::after, below) slides its BACKGROUND, which is
+ * a repaint of the card on every frame — fine for a card you are looking at,
+ * ruinous on a board: the token lives in the board's layer, so every foil you
+ * fielded re-rastered the board sixty times a second for the whole match.
+ * Measured in Edge on a full 5x5, a board of foils took the fight from 54 fps
+ * to 31.
+ *
+ * So this is ONE TILE of the same gradient laid out as an element — 260% of
+ * the card, the size .foil::after gives its background tile — and it travels
+ * one tile's width, -80% to +20% of itself: the transform twin of foilSweep's
+ * 130% -> -32.5% (see the note on those keyframes). A single tile is enough
+ * without the repeat: the gradient is clear for its first 22% and last 22%, so
+ * whatever edge is in the window at the ends of the loop is transparent. Same
+ * stops, same angle, same box, same speed; the compositor moves it without
+ * painting anything. */
+.foil-sheen::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: 0; width: 260%;
   /* The DECK BUILDER's gradient, exactly — same stops, same opacities. This
      used to be a dimmed copy (0.16/0.26/0.24/0.24/0.14, stops 24-80%) so a
      shiny read as noticeably duller in a fight than in the collection: the same
-     card, two finishes. It keeps its own z-index and element (see above), which
-     is what still protects the name and stat row; only the SHEEN matches. */
+     card, two finishes. The token and the hand keep their own windows (above),
+     which is what still protects the name and stat row; only the SHEEN matches. */
   background: linear-gradient(
     115deg,
     transparent 22%, rgba(255, 255, 255, 0.20) 34%,
     rgba(120, 230, 255, 0.34) 42%, rgba(255, 200, 255, 0.30) 50%,
     rgba(255, 240, 160, 0.30) 58%, rgba(255, 255, 255, 0.18) 66%, transparent 78%
   );
-  background-size: 260% 100%;   /* must match .foil::after — foilSweep's one-tile
-                                   shift is derived from this exact number */
-  mix-blend-mode: screen;
-  animation: foilSweep 2.25s linear infinite;
+  animation: foilSlide 2.25s linear infinite;
+}
+@keyframes foilSlide {
+  from { transform: translateX(-80%); }
+  to { transform: translateX(20%); }
 }
 /* Identifiable while still — the sheen alone says nothing in a screenshot, and
    a battle token has no room for the FOIL badge the collection uses. The rim
@@ -6683,7 +6826,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   /* Foils — the sheen is the identity, the sweep is the flourish. Keep the
      first, drop the second; the ✦ mark carries it when both are gone. */
   .foil::after { animation: none; background-position: 50% 0; opacity: 0.55; }
-  .tk-foil { animation: none; background-position: 50% 0; opacity: 0.5; }
+  .tk-foil { opacity: 0.5; }
+  .hc-foil { opacity: 0.55; }
+  /* Parked where background-position 50% parks the collection's: -0.8 of a
+     card, which is -30.77% of a sheen 2.6 cards wide. */
+  .foil-sheen::before { animation: none; transform: translateX(-30.77%); }
 }
 
 /* ══════════════════════════════════════════════════════════════════════════
@@ -7714,13 +7861,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border-color: rgba(240, 92, 92, 0.65);
 }
 .slot.obj-contested {                 /* both sides have a body on it */
-  box-shadow: inset 0 0 0 2px rgba(255, 158, 46, 0.90), inset 0 0 18px rgba(255, 158, 46, 0.26);
+  /* The dim end of the pulse, held still; the bright end rides the cue layer
+     (see .slot-cue). Its ring is opaque so it covers this one outright, and its
+     glow is weaker than the old peak's 0.34 because it lands on top of this
+     0.18 rather than replacing it. */
+  box-shadow: inset 0 0 0 2px rgba(255, 158, 46, 0.70), inset 0 0 14px rgba(255, 158, 46, 0.18);
   border-color: rgba(255, 158, 46, 0.85);
-  animation: objpulse 1.1s ease-in-out infinite;
 }
-@keyframes objpulse {
-  0%, 100% { box-shadow: inset 0 0 0 2px rgba(255, 158, 46, 0.70), inset 0 0 14px rgba(255, 158, 46, 0.18); }
-  50%      { box-shadow: inset 0 0 0 2px rgba(255, 190, 90, 1),    inset 0 0 22px rgba(255, 158, 46, 0.34); }
+.slot.obj-contested > .slot-cue {
+  inset: 0; border: 0;
+  box-shadow: inset 0 0 0 2px rgba(255, 190, 90, 1), inset 0 0 22px rgba(255, 158, 46, 0.2);
+  --glow-min: 0; animation: glowpulse 1.1s ease-in-out infinite;
 }
 
 /* Captured ground keeps its hazard stripes — they say "nothing may enter here",
@@ -7775,6 +7926,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Closed ground shows the STATE through its letter, not through a ring — a
    square nothing can stand on should not look like a square you can take. */
 .slot.dom-closed.obj { box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.72); animation: none; border-color: rgba(150, 150, 170, 0.30); }
+/* ...and the ring's pulse, which lives on the cue layer now (.slot-cue), goes
+   dark with it — the `animation: none` above only reaches the tile. */
+.slot.dom-closed.obj > .slot-cue { display: none; }
 
 /* ── WHAT YOU CAN DO OUTRANKS WHAT THE GROUND IS ──────────────────────────
    The terrain block above says the interaction states "still read on top of
@@ -7895,11 +8049,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle at 50% 50%,
     rgba(64, 210, 125, 0.30), rgba(64, 210, 125, 0.06) 72%);
   border-color: rgba(90, 230, 150, 0.65);
-  animation: wellpulse 2.4s ease-in-out infinite;
+  /* The pulse's dim end, still; the cue layer brings it up to the old 0.42. */
+  box-shadow: inset 0 0 12px rgba(64, 210, 125, 0.20);
 }
-@keyframes wellpulse {
-  0%, 100% { box-shadow: inset 0 0 12px rgba(64, 210, 125, 0.20); }
-  50%      { box-shadow: inset 0 0 22px rgba(64, 210, 125, 0.42); }
+.slot.dom-well > .slot-cue {
+  inset: 0; border: 0;
+  box-shadow: inset 0 0 22px rgba(64, 210, 125, 0.28);
+  --glow-min: 0; animation: glowpulse 2.4s ease-in-out infinite;
 }
 .slot.dom-well::before {
   content: "✚";

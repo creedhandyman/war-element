@@ -438,7 +438,7 @@ export function Token(props: {
       />
       {/* A real element rather than ::after — the token already spends its
           ::after on the bottom scrim that keeps the stat row readable. */}
-      {props.foil && <span className="tk-foil" aria-hidden="true" />}
+      {props.foil && <span className="tk-foil foil-sheen" aria-hidden="true" />}
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}

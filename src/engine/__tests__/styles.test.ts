@@ -17,7 +17,7 @@
  *  made exactly that mistake and reported a phantom imbalance.
  */
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 // Read from DISK, not through Vite.  looks
@@ -238,7 +238,9 @@ describe("a foil is one finish, everywhere", () => {
     // opacities - so the same card read as two different finishes depending on
     // which screen you were looking at. They are one gradient now, and this is
     // what stops the two drifting apart again the next time either is tuned.
-    expect(gradient(".tk-foil")).toBe(gradient(".foil::after"));
+    // (The fight's sheen is `.foil-sheen::before` now - the token's and the
+    // hand's - because it moves on transform; see the next test.)
+    expect(gradient(".foil-sheen::before")).toBe(gradient(".foil::after"));
   });
 
   it("keeps the sweep in step with the tile it was derived from", () => {
@@ -246,11 +248,33 @@ describe("a foil is one finish, everywhere", () => {
     // that animates with foilSweep and sizes its tile differently does not look
     // slightly off, it snaps back mid-loop - which is the flicker the comment
     // above the keyframes exists to explain.
-    for (const sel of [".foil::after", ".tk-foil"]) {
-      const body = rule(sel);
-      expect(body, `${sel} rides foilSweep`).toContain("foilSweep");
-      expect(body, `${sel} sizes its tile to match`).toContain("260% 100%");
+    const body = rule(".foil::after");
+    expect(body, ".foil::after rides foilSweep").toContain("foilSweep");
+    expect(body, ".foil::after sizes its tile to match").toContain("260% 100%");
+  });
+
+  it("slides the fight's sheen exactly one tile, on transform", () => {
+    // The same rule for the transform version: the sheen IS one tile, 260% of
+    // the card, so a loop must carry it exactly its own width - 100% - or it
+    // snaps back mid-loop. And it must move on `transform`, never on
+    // background-position: a foil on the board repainted the board's whole
+    // layer every frame of a match (54 fps -> 31 on a full 5x5 in Edge).
+    const body = rule(".foil-sheen::before");
+    expect(body, "the sheen is one 260% tile").toMatch(/width:\s*260%/);
+    expect(body, "rides foilSlide").toContain("foilSlide");
+    const at = CSS.indexOf("@keyframes foilSlide");
+    expect(at, "no foilSlide keyframes").toBeGreaterThan(-1);
+    const open = CSS.indexOf("{", at);
+    let depth = 0, end = open;
+    for (let i = open; i < CSS.length; i++) {
+      if (CSS[i] === "{") depth++;
+      else if (CSS[i] === "}" && --depth === 0) { end = i; break; }
     }
+    const kf = CSS.slice(at, end);
+    const xs = [...kf.matchAll(/translateX\((-?[\d.]+)%\)/g)].map((m) => Number(m[1]));
+    expect(xs, "from and to, as translateX percentages").toHaveLength(2);
+    expect(xs[1] - xs[0], "one tile of travel").toBe(100);
+    expect(kf, "nothing but transform moves").not.toMatch(/background/);
   });
 });
 
@@ -316,11 +340,55 @@ describe("board-state cues are composited, not repainted", () => {
     const repaints = used
       .filter((n) => (kf[n] ?? ["?"]).some((p) => !GPU.has(p)))
       .sort();
-    expect(repaints).toEqual([
-      "bdrage", "blastpulse", "cardglow", "chipready", "clocknow", "foilSweep",
-      "gd-pulse", "movepulse", "mvpulse", "objpulse", "passnudge", "qnext",
-      "rarBreathe", "readyglow", "readyglowGold", "threatpulse", "wellpulse",
-    ]);
+    // Down from seventeen. What is left is off the battle screen: the boss
+    // detail sheet, the guide ring, the pack reveal, and the collection's foil
+    // (the fight's foil slides on transform - `.foil-sheen`). The battle's
+    // own pulses went to opacity layers, measured in Edge: a 7x7 four-way went
+    // from 26 fps to 55, a full 5x5 of foils from 31 to 54.
+    expect(repaints).toEqual(["bdrage", "foilSweep", "gd-pulse", "rarBreathe"]);
+  });
+
+  it("no battle cue animates the element it sits on", () => {
+    // The standing cues and the ready-glows all hold their dim end still on
+    // the element and pulse the rest on a child layer's opacity. An
+    // `animation` back on one of these rules is a repaint every frame again -
+    // and the cue on a tile repaints the BOARD's layer, not just the tile.
+    const RULES = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+    for (const sel of [
+      ".slot.contested", ".slot.obj-contested", ".slot.dom-well", ".slot.blast",
+      ".boss-clock.now", ".token.acting", ".qrow.next", ".hcard.summonable",
+      ".spellchip.ready", ".bbtn.spec.ready", ".bbtn.tal.ready",
+      ".spellbook-toggle.has-ready", ".st-sp.can-move",
+    ]) {
+      const at = RULES.indexOf(NL + sel + " {");
+      expect(at, `no rule for ${sel}`).toBeGreaterThan(-1);
+      const body = RULES.slice(at, RULES.indexOf("}", at));
+      expect(body, `${sel} animates itself again`).not.toMatch(/animation\s*:/);
+    }
+  });
+
+  it("the standing cues pulse on their own layer", () => {
+    const kf = keyframes();
+    for (const sel of [".slot.contested", ".slot.obj-contested", ".slot.dom-well", ".slot.blast"]) {
+      const at = CSS.indexOf(NL + sel + " > .slot-cue {");
+      expect(at, `no cue for ${sel}`).toBeGreaterThan(-1);
+      const body = CSS.slice(at, CSS.indexOf("}", at));
+      const name = /animation:\s*([\w-]+)/.exec(body)?.[1] ?? "";
+      expect(kf[name], `${sel}'s cue animates ${name}`).toEqual(["opacity"]);
+    }
+  });
+
+  it("draws the tile sigil from a raster mask", () => {
+    // The SVG was HALF of every battle step's GPU raster time on a full 5x5
+    // (vector paths, two of them dashed, re-run for every tile at the screen's
+    // full density). A PNG of the same shape costs next to nothing. Pointing
+    // the mask back at the SVG would look identical and quietly bring it back.
+    const at = CSS.indexOf(NL + ".slot::before {");
+    expect(at, "no .slot::before rule").toBeGreaterThan(-1);
+    const body = CSS.slice(at, CSS.indexOf("}", at));
+    expect(body).toMatch(/mask:\s*url\("\/tile-sigil\.png"\)/);
+    expect(body).not.toContain("tile-sigil.svg");
+    expect(readdirSync(join(__dirname, "..", "..", "..", "public"))).toContain("tile-sigil.png");
   });
 });
 

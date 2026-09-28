@@ -3131,6 +3131,49 @@ a 111px gallery tile at 3x — the tile size measured at a 375px viewport. If ar
 ever reads soft on a high-DPI tablet, raise `SIZES["cards"]` and re-run with
 `--force`; that is the number to move, not the call sites.
 
+## A big board lags on the GPU, not the engine — what repaints every frame
+
+Owner report 2026-09-28: "trouble keeping up" in boss fights on a full 5x5 and
+much worse on the 7x7. Measured before touching anything: the engine and AI
+are about 1 ms per `advance()` even in a four-seat 7x7, and React's commit is
+~2 ms. The GPU was the bottleneck — its main thread pinned near 100%, nearly
+all of it re-rasterising page tiles at the phone's pixel density.
+
+Two causes, both fixed in one change:
+
+- **Always-on animations of paint properties** (`box-shadow`, `border-color`,
+  `outline-color`, `text-shadow`, `background-position`) repaint their element
+  every frame. A tile is not a layer, so a pulse on a tile re-rasterises the
+  BOARD's layer, every frame, for as long as it is lit. The contested Points
+  and the Well on the 7x7, a threatened Home slot, a boss's blast zone and
+  clock, the speed queue's next row, the card awaiting your call, every
+  playable card and ready button, and every FOIL's sweep did this. Each now
+  keeps the dim end of its pulse still on the element and fades the bright end
+  in on a child layer's `opacity` (`.slot-cue` in Slot.tsx for the tiles,
+  pseudo-elements for the rest); the foil sheen is a 260% `.foil-sheen::before`
+  that slides one tile on `transform`. `styles.test.ts` ratchets the repainting
+  always-on animations down to four, all off the battle screen.
+- **The tile sigil was an SVG mask** — vector paths (two dashed rings) re-run
+  for every square in a tile every time the tile rasterised. It was over half
+  the GPU raster work of a battle step. `public/tile-sigil.png` is the same
+  shape as a 256px alpha PNG; the test pins the mask to it.
+
+Measured in headless Edge at a 412x915 phone viewport, DPR 2.625, before ->
+after: 7x7 four-way battle 31 -> 54 fps (GPU busy 98% -> 24%); full 5x5 boss
+fight with foils 31 -> 54 fps (98% -> 36%); idle on YOUR turn, with foils,
+25-33 fps with the GPU at 100% -> 56 fps at 10-12% and zero repaints. Every
+pulse was screenshotted frozen at its dim and bright points on both builds;
+they match (the one real difference, a ring on the closed citadels, is fixed).
+
+**The rule going forward:** an animation that runs for more than a moment
+animates `opacity` or `transform` only, on a layer of its own. Anything else
+is a repaint per frame, and on the board that is a whole-board raster.
+
+**What is left:** with the CPU throttled 4x (a phone), the MAIN thread is now
+the limit — ~77% busy in a 7x7 battle: React commits ~11 ms per step and style
+recalculation ~58 ms per step. The GPU side is done; the next win is fewer
+elements re-rendering and restyling per step.
+
 ## The bundle — what is in it, and what is NOT in the first chunk
 
 Read the composition off the build's own sourcemap rather than guessing (

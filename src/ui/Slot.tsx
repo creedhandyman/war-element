@@ -129,11 +129,16 @@ export function Slot(props: {
         props.onDrop(props.row, props.col);
       }}
     >
+      {/* The standing cues (a threatened Home slot, a contested Point, the
+          Well, a boss's blast zone) — the same trick on a layer of their own,
+          under the glow, so a square can wear one of each. See .slot-cue. */}
+      <i className="slot-cue" aria-hidden="true" />
       {/* The board-state glow (acting / legal / movable / target / preview).
           Its own layer so the shadow is painted once and only its opacity is
-          animated — see .slot-glow in styles.css. Always rendered and always
-          first: it costs nothing while transparent, and one stable element is
-          cheaper than mounting and unmounting one on every state change. */}
+          animated — see .slot-glow in styles.css. Always rendered, and ahead
+          of everything but the cue: it costs nothing while transparent, and
+          one stable element is cheaper than mounting and unmounting one on
+          every state change. */}
       <i className="slot-glow" aria-hidden="true" />
       {/* A row/column attack about to land. Its own element, not a pseudo:
           ::after already belongs to traps and closed squares, and this must

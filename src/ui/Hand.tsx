@@ -290,6 +290,10 @@ export function Hand(props: {
                   <span className="hc-bar-hp" />
                 </div>
               </div>
+              {/* The foil's sheen, last so it paints over the plate the way the
+                  card's ::after sheen did — moved by the compositor now, not
+                  repainted (see .foil-sheen). */}
+              {props.foils?.has(def.id) && <span className="hc-foil foil-sheen" aria-hidden="true" />}
             </div>
           );
         })}
