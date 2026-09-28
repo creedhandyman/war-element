@@ -412,7 +412,7 @@ export function StoryPrep(props: {
           {boss ? (
             <span>
               Held by <b>{getDef(boss).name}</b>
-              {borderBossScale(node) < 1 && ` at ${Math.round(borderBossScale(node) * 100)}% strength`}
+              {borderBossScale(node) < 1 && ` and its brood at ${Math.round(borderBossScale(node) * 100)}% strength`}
               {" "}· slay it to cross, under the tower's rules
             </span>
           ) : (

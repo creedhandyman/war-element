@@ -1507,15 +1507,23 @@ engine runtime and no React, so it stays testable headlessly
   player won 0 of 60 at both, so Basilisk and Nightshrike took them. Shipped
   (60 fights a cell, a full 30-card deck; whole-collection stride / `regionFill`):
   GA Smolder 82/93%, GB Basilisk 52/87%, GC Basilisk 52/98%, GC2 Smolder
-  82/87%, GE Nightshrike 68/40%, GF Hoarfell (at 60%) 26/34%, GS Skeleeze 18/35%,
+  82/87%, GE Nightshrike 68/40%, GF Hoarfell (side at 80%) 19/32%, GS Spindle
+  (side at 46%) 45/32%,
   against the first run's own gate fights at 0-77% (mostly ~40%). Early borders
-  are the easy end, Act V's the hard end. **The Arctic Gate is Hoarfell by the
-  owner's call** (2026-09-28, over Permafrost's 40%), a floor-3 boss with no
-  ally — the one border off floors 1-2, named in the test. At full strength it
-  was a wall (5% with Fill), so by the owner's next call it fights there at
-  60% of its Tower strength (`HARD_BORDER_SCALE` / `borderBossScale`, applied
-  by `seatVoidBoss({ scale })` through `scaleInstance`; the Tower's own fight
-  is untouched): 34% with Fill, beside Skeleeze. The sweep is in the comment.
+  are the easy end, Act V's the hard end. **The last two borders are the
+  owner's picks** (2026-09-28): Hoarfell (floor 3) at the Arctic Gate over
+  Permafrost, Spindle (floor 5) at the Shadow Border over Skeleeze — the two
+  borders off floors 1-2, named in the test. Both were walls at full strength
+  (5% and 0% with Fill), so both fight below their Tower strength
+  (`HARD_BORDER_SCALE`: GF 0.8, GS 0.46, read by `borderBossScale`). **The
+  scale covers the WHOLE ENEMY SIDE, not the boss**: `seatVoidBoss({ scale })`
+  sets `GameState.sideScale.P2`, and `summonCard` — the one door every card,
+  token and spawn comes through — scales each P2 arrival with `scaleInstance`.
+  Scaling the boss alone could not move Spindle (7% at 30%): its line is "kill
+  the brood, not the eye", and the nine-Watcher formation is the fight. The
+  Tower's own fights never set `sideScale`. Both land at 32% with Fill; the
+  curves are STEEP there (Spindle 12% -> 50% between 0.50 and 0.45), so move
+  them in small steps. The sweeps are in the comment.
   A tower buff can wall a border overnight: re-run the borders after one.
   **The deck decides these numbers as much as the boss does**: premade decks
   trimmed to 15 cards lost to Smolder 92% of the time, where the story deck

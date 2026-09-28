@@ -2861,6 +2861,12 @@ export interface GameState {
    *  match — see `slayWin` in phases.ts. Set by the encounter, never by a
    *  player choice, and inert everywhere else. */
   voidTower?: true;
+  /** A SIDE PLAYING BELOW FULL STRENGTH: every card that seat brings onto the
+   *  board — seated, summoned or spawned — is scaled through `scaleInstance` as
+   *  it arrives (`summonCard`, the one door). Set only by a Hard-mode story
+   *  border (`HARD_BORDER_SCALE`), where a Void Tower boss and its brood fight
+   *  below their Tower strength; absent everywhere else. */
+  sideScale?: Partial<Record<PlayerId, number>>;
   /** Round-1 gold paid to P1 against a body seated outside the economy.
    *
    *  A THRONE stands its Mythic on the board before round one, for nothing,

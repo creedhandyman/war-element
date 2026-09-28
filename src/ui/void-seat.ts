@@ -33,15 +33,21 @@ export function seatVoidBoss(
   // Scores this match as a boss fight: no slot race, and killing the boss
   // IS the win (see the `voidTower` branch in doCleanupPhase).
   fresh.voidTower = true;
+  // A WHOLE SIDE BELOW ITS TOWER STRENGTH: a Hard border's boss AND its brood
+  // (`HARD_BORDER_SCALE`). Set before the boss is seated, because every card
+  // P2 brings on from here is scaled as it arrives (`GameState.sideScale`) —
+  // the boss, its wall, its formation and every token they spawn. The brood
+  // is the point: Spindle's own line is "kill the brood, not the eye", and
+  // scaling the eye alone moved nothing. Never with a rage: a border is not a
+  // trial.
+  if (!opts.enraged && opts.scale != null && opts.scale !== 1)
+    fresh.sideScale = { ...fresh.sideScale, P2: opts.scale };
   const inst = summonCard(fresh, "P2", bossId, seat as never);
   inst.summonedThisRound = false;
   // ENRAGED: the taming trial. The same boss, angrier — scaled through the
   // one multiplier the whole feature runs on, so its Special is stronger
   // too and not just its body.
   if (opts.enraged) scaleInstance(inst, ENRAGE_SCALE);
-  // ...or WEAKER than the Tower's: a Hard border boss held below its Tower
-  // strength (`HARD_BORDER_SCALE`). Never both — a border is not a trial.
-  else if (opts.scale != null && opts.scale !== 1) scaleInstance(inst, opts.scale);
   // ...and SOME BOSSES HAVE A WALL OF THEIR OWN. Kheiringer opens behind
   // three Lava Gates: placed here, at setup, because a summon lands on the
   // summoner's home row and she would otherwise have played her gates

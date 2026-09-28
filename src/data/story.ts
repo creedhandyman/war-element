@@ -2648,9 +2648,9 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
 });
 
 /** WHO GUARDS EACH BORDER in Hard mode: a Void Tower boss that fights for one
- *  side of it, from the tower's FIRST TWO FLOORS — with one exception the
- *  owner chose. Each land guards its own shore: both roads into PYRO meet
- *  Smolder, both into AQUA meet Basilisk.
+ *  side of it, from the tower's FIRST TWO FLOORS — with two exceptions the
+ *  owner chose for the last borders. Each land guards its own shore: both
+ *  roads into PYRO meet Smolder, both into AQUA meet Basilisk.
  *
  *  Floors 3 and up are tuned around a tamed ally fighting beside the player,
  *  and a campaign fight has none. Measured (both sides AI), the first picks were
@@ -2668,8 +2668,8 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *    GC      Basilisk        52%   98%     42%
  *    GC2     Smolder         82%   87%     77%
  *    GE      Nightshrike     68%   40%     17%
- *    GF      Hoarfell (60%)  26%   34%     40%
- *    GS      Skeleeze        18%   35%      0%
+ *    GF      Hoarfell (80%)  19%   32%     40%
+ *    GS      Spindle  (46%)  45%   32%      0%
  *
  *  "Fill" is `regionFill`, the region's own element plus its twelve heaviest
  *  imports; "whole" strides the whole collection, which is what Fill built on a
@@ -2677,47 +2677,59 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *  borders — the same four early fights ran 35-52%, and the owner found the
  *  bosses unbeatable.
  *
- *  THE ARCTIC GATE IS HOARFELL BY THE OWNER'S CALL (2026-09-28: "Replace
- *  Permafrost with Hoarfell"), fought at 60% of its Tower strength by the
- *  owner's next one (`HARD_BORDER_SCALE`). At full strength it was the run's
- *  wall, a floor-3 boss with no tamed ally: 5% with Fill, overrun in most of
- *  its wins. It is the one border off floors 1-2, and the test names it.
+ *  THE LAST TWO BORDERS ARE THE OWNER'S PICKS (2026-09-28): Hoarfell at the
+ *  Arctic Gate ("Replace Permafrost with Hoarfell") and Spindle, the Tower's
+ *  floor-5 apex, at the Shadow Border (in place of Skeleeze, 35% with Fill).
+ *  Both were walls at full strength with no tamed ally — Hoarfell 5% with
+ *  Fill, Spindle 0% — so both fight below their Tower strength
+ *  (`HARD_BORDER_SCALE`), by the owner's call to bring them in line and keep
+ *  them hard. They are the two borders off floors 1-2, and the test names them.
  *  Ids, not imports: this file stays pure data, and a test pins every id to
- *  VOID_BOSSES, to a side of its border and — Hoarfell apart — to floors 1-2. */
+ *  VOID_BOSSES, to a side of its border and — those two apart — floors 1-2. */
 export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GA: "boss_smolder",     // LEAF -> PYRO, the Southern Burn: LEAF/PYRO
   GB: "boss_basilisk",    // LEAF -> AQUA, Eastleaf Port: LEAF/AQUA
   GC: "boss_basilisk",    // PYRO -> AQUA, Sunfall Harbor: AQUA's guard, as at Eastleaf
   GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
   GE: "boss_nightshrike", // the airship lanes to the Gray Continent: a GALE sky-hunter
-  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick, at 60% (below)
-  GS: "boss_skeleeze",    // the Shadow Border: DUSK, with the Gray Continent's GALE
+  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick, at 80% (below)
+  GS: "boss_spindle",     // the Shadow Border: VOID/DUSK/BOLT, the owner's pick, at 46%
 };
 
-/** HOW STRONG a border's boss stands there, as a share of its Tower self,
- *  where that is not all of it. Scaled through the same one multiplier a tamed
- *  ally or an enraged trial runs on (`scaleInstance`: HP, shields, damage and
- *  its Special), at seating (`seatVoidBoss`), so the Tower's own fight is
- *  untouched.
+/** HOW STRONG a border's boss AND ITS BROOD stand there, as a share of their
+ *  Tower selves, where that is not all of it. The whole enemy side is scaled
+ *  (`GameState.sideScale`, set by `seatVoidBoss`): the boss, its wall, its
+ *  formation and every token they spawn, each through `scaleInstance` as it
+ *  arrives — HP, shields, damage and Specials, the one multiplier a tamed ally
+ *  or an enraged trial runs on. The Tower's own fights are untouched.
  *
- *  Owner, 2026-09-28, on Hoarfell at the Arctic Gate: "reduce the power of
- *  Hoarfell until it's in line with the others in the win rate. This one
- *  should be hard, it's one of the last bosses you fight." Measured there with
- *  a full Tower deck, player win % (Fill deck / whole-collection stride):
+ *  THE SIDE, NOT THE BOSS. Owner, 2026-09-28, on Hoarfell: "reduce the power
+ *  of Hoarfell until it's in line with the others in the win rate. This one
+ *  should be hard, it's one of the last bosses you fight" — then "do the same
+ *  for Spindle at the Shadow Border". Hoarfell shipped first as a boss-only
+ *  60%; Spindle could not be done that way at all. Its own line is "kill the
+ *  brood, not the eye", and scaling the eye alone moved nothing: at 30% of its
+ *  strength the player still won 7%. Its nine-Watcher floor-5 formation is the
+ *  fight. So the scale covers the side, and Hoarfell was re-measured onto it.
  *
- *      strength   Fill   whole
- *        100%       5%     3%    60 fights
- *         85%      18%     2%    60
- *         75%      23%    10%    60
- *         65%      31%    21%    180
- *         60%      34%    26%    120   <- shipped
- *         55%      48%    35%    60
- *         45%      77%    57%    60
+ *  Measured at each border with a full Tower deck, player win % (Fill deck /
+ *  whole-collection stride), 60 fights a cell unless noted:
  *
- *  60% sits beside Skeleeze at the Shadow Border (35% with Fill), the other
- *  last border, and under Nightshrike (40%): the hard end of the run, no
- *  longer a wall. */
-export const HARD_BORDER_SCALE: Readonly<Record<string, number>> = { GF: 0.6 };
+ *      Hoarfell, the Arctic Gate          Spindle, the Shadow Border
+ *      side    Fill   whole               side    Fill   whole
+ *      100%      5%     3%                 80%      0%     0%
+ *       90%     18%     3%                 60%     10%    10%
+ *       85%     20%     8%                 50%     12%    23%
+ *       82%     28%    23%   (120)         48%     28%    41%   (120)
+ *       80%     32%    19%   (180) <-      46%     32%    45%   (120) <-
+ *       76%     43%    33%   (120)         45%     50%    48%
+ *       70%     77%    58%                 40%     67%    68%
+ *
+ *  Both land at 32% with Fill, under Nightshrike (40%): the hard end of the
+ *  run, and no longer walls. Both curves are STEEP around the pick — Spindle
+ *  goes 12% -> 50% between 50% and 45% — so move these in small steps and
+ *  re-measure. */
+export const HARD_BORDER_SCALE: Readonly<Record<string, number>> = { GF: 0.8, GS: 0.46 };
 export const borderBossScale = (node: StoryNode): number => HARD_BORDER_SCALE[node.id] ?? 1;
 
 /** The boss standing on this border, in Hard mode. Null on the first run and

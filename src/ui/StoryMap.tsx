@@ -303,7 +303,7 @@ function NodePanel(props: {
       {boss && face && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
           Held by <b>{face.name}</b>, a Void Tower boss
-          {borderBossScale(node) < 1 && <> — here at {Math.round(borderBossScale(node) * 100)}% of its Tower strength</>}.
+          {borderBossScale(node) < 1 && <> — it and its brood fight here at {Math.round(borderBossScale(node) * 100)}% of their Tower strength</>}.
           {" "}Slay it to cross, with a full Tower deck: up to <b>{fightCap(save, region, node)}</b> cards
           {gate.ok && <span className="np-tick"> ✓ ready</span>}
         </p>

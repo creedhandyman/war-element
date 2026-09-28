@@ -30,7 +30,7 @@ import { summarize } from "../../net/account";
 import { firstFightWon, onboardingStep } from "../../ui/Onboarding";
 import { broodOf, seatVoidBoss } from "../../ui/void-seat";
 import { SPELLS, getSpell, spellCapForBoard } from "../spells";
-import { cardAt, createInitialState } from "../state";
+import { cardAt, createInitialState, summonCard } from "../state";
 
 const GATES = ALL_NODES.filter(isGate);
 const rarityOf = (id: string) => getDef(id).rarity ?? "rare";
@@ -374,10 +374,11 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
   it("each is a real tower boss, from the floors a campaign deck can meet", () => {
     // Floors 3 and up are tuned around a TAMED ALLY fighting beside the player
     // (see void-tower.ts); a campaign fight has none, and measured they were
-    // walls — Hoarfell and Spindle won 5% and 0%. The one exception is the
-    // owner's own pick, made knowing it (2026-09-28): Hoarfell holds the Arctic
-    // Gate as the run's wall. Any other floor-3+ border is a mistake.
-    const OWNER_PICKS: Record<string, string> = { GF: "boss_hoarfell" };
+    // walls — Hoarfell and Spindle won 5% and 0%. The exceptions are the
+    // owner's own picks for the last two borders (2026-09-28), fought below
+    // their Tower strength (HARD_BORDER_SCALE). Any other floor-3+ border is a
+    // mistake.
+    const OWNER_PICKS: Record<string, string> = { GF: "boss_hoarfell", GS: "boss_spindle" };
     for (const [gate, id] of Object.entries(HARD_BORDER_BOSS)) {
       const boss = voidBossById(id);
       expect(boss, `${gate}: ${id}`).not.toBeNull();
@@ -385,6 +386,7 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
       expect(VOID_BOSSES.some((b) => b.cardId === id)).toBe(true);
     }
     expect(HARD_BORDER_BOSS.GF).toBe("boss_hoarfell");
+    expect(HARD_BORDER_BOSS.GS).toBe("boss_spindle");
   });
 
   it("each fights for one side of its border", () => {
@@ -447,33 +449,50 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
     expect(gateCheck({ ...firstRun, deck: unfit.slice(0, capFirst) }, gate).ok, "the first run still asks").toBe(false);
   });
 
-  it("Hoarfell holds the Arctic Gate below its Tower strength, and only there", () => {
+  it("the last two borders fight below their Tower strength, brood and all", () => {
     // Owner, 2026-09-28: "reduce the power of Hoarfell until it's in line with
-    // the others in the win rate. This one should be hard, it's one of the
-    // last bosses you fight." Measured in HARD_BORDER_SCALE's comment.
-    const gf = GATES.find((g) => g.id === "GF")!;
-    expect(HARD_BORDER_BOSS.GF).toBe("boss_hoarfell");
-    expect(borderBossScale(gf)).toBe(HARD_BORDER_SCALE.GF);
-    expect(HARD_BORDER_SCALE.GF).toBeGreaterThan(0);
-    expect(HARD_BORDER_SCALE.GF).toBeLessThan(1);
-    for (const g of GATES.filter((x) => x.id !== "GF")) expect(borderBossScale(g), g.id).toBe(1);
-
-    const seated = (opts?: { scale: number }) => {
-      const enc = buildVoidEncounter(voidBossById("boss_hoarfell")!);
-      const s = createInitialState(7, ["leaf_sakuroot"], enc.deck, ["P1"], [], enc.spells, enc.boardSize,
-        undefined, undefined, { P2: enc.stacked.P2 });
-      seatVoidBoss(s, "boss_hoarfell", opts);
+    // the others in the win rate. This one should be hard" — then "do the same
+    // for Spindle at the Shadow Border". Measured in HARD_BORDER_SCALE's
+    // comment. The WHOLE enemy side is scaled: Spindle's fight is its brood.
+    const scaled = ["GF", "GS"];
+    for (const g of GATES) {
+      const sc = borderBossScale(g);
+      if (!scaled.includes(g.id)) { expect(sc, g.id).toBe(1); continue; }
+      expect(sc, g.id).toBe(HARD_BORDER_SCALE[g.id]);
+      expect(sc, g.id).toBeGreaterThan(0);
+      expect(sc, g.id).toBeLessThan(1);
+    }
+    for (const gate of scaled) {
+      const id = HARD_BORDER_BOSS[gate];
+      const scale = HARD_BORDER_SCALE[gate];
+      const fresh = () => {
+        const enc = buildVoidEncounter(voidBossById(id)!);
+        return {
+          enc,
+          s: createInitialState(7, ["leaf_sakuroot"], enc.deck, ["P1"], [], enc.spells, enc.boardSize,
+            undefined, undefined, { P2: enc.stacked.P2 }),
+        };
+      };
+      // At the border: the boss at its border's strength...
+      const { enc, s } = fresh();
+      seatVoidBoss(s, id, { scale });
       const seat = voidBossSeat(s.boardSize);
-      return cardAt(s, seat.row, seat.col)!;
-    };
-    // At the border: HP down, and the one multiplier its damage and Special read.
-    const atGate = seated({ scale: borderBossScale(gf) });
-    expect(atGate.statScale).toBe(HARD_BORDER_SCALE.GF);
-    expect(atGate.maxHp).toBe(Math.round(getDef("boss_hoarfell").hp * HARD_BORDER_SCALE.GF));
-    // The Tower's own Hoarfell is untouched.
-    const inTower = seated();
-    expect(inTower.statScale ?? 1).toBe(1);
-    expect(inTower.maxHp).toBe(getDef("boss_hoarfell").hp);
+      const boss = cardAt(s, seat.row, seat.col)!;
+      expect(boss.statScale, `${gate} boss`).toBe(scale);
+      expect(boss.maxHp, `${gate} boss HP`).toBe(Math.round(getDef(id).hp * scale));
+      // ...the brood that arrives after it too, and nothing of the player's.
+      const brood = summonCard(s, "P2", enc.stacked.P2[0], { row: 0, col: 0 } as never);
+      expect(brood.statScale, `${gate} brood`).toBe(scale);
+      const mine = summonCard(s, "P1", "leaf_sakuroot", { row: s.boardSize - 1, col: 0 } as never);
+      expect(mine.statScale ?? 1, `${gate}: the player's card`).toBe(1);
+      // The Tower's own fight is untouched.
+      const tower = fresh().s;
+      seatVoidBoss(tower, id);
+      expect(tower.sideScale).toBeUndefined();
+      const own = cardAt(tower, seat.row, seat.col)!;
+      expect(own.statScale ?? 1).toBe(1);
+      expect(own.maxHp).toBe(getDef(id).hp);
+    }
     // ...and the campaign seats its border bosses at their border's strength.
     const app = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8");
     expect(app).toContain("seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });");

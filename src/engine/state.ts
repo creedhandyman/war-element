@@ -1152,6 +1152,12 @@ export function summonCard(
     inst.maxHp = mask.hp;
     inst.curShields = mask.shields;
   }
+  // A SIDE BELOW FULL STRENGTH (`GameState.sideScale`): a Hard-mode border's
+  // Void Tower boss and everything it fields. Here, at the one door, so a token
+  // the brood spawns mid-fight arrives scaled like the card that spawned it.
+  // After the disguise, which would otherwise overwrite the size it sets.
+  const side = draft.sideScale?.[player];
+  if (side != null && side !== 1) scaleInstance(inst, side);
   // A PERMANENT ELEMENT GRANT ALREADY IN FORCE covers everything that arrives
   // after it resolved — spawned tokens included. This lived in the SUMMON
   // reducer, which is the hand's door only, so a body a card SPAWNED came in
