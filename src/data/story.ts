@@ -2634,8 +2634,9 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
 });
 
 /** WHO GUARDS EACH BORDER in Hard mode: a Void Tower boss that fights for one
- *  side of it, from the tower's FIRST TWO FLOORS. Each land guards its own
- *  shore: both roads into PYRO meet Smolder, both into AQUA meet Basilisk.
+ *  side of it, from the tower's FIRST TWO FLOORS — with one exception the
+ *  owner chose. Each land guards its own shore: both roads into PYRO meet
+ *  Smolder, both into AQUA meet Basilisk.
  *
  *  Floors 3 and up are tuned around a tamed ally fighting beside the player,
  *  and a campaign fight has none. Measured (both sides AI), the first picks were
@@ -2647,29 +2648,34 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *  them. What shipped, 60 fights a cell, each with a FULL Tower deck (30 cards,
  *  `BORDER_BOSS_DECK`), beside the first run's own gate fight:
  *
- *    border  boss          Fill  built  first run
- *    GA      Smolder        82%   93%     42%
- *    GB      Basilisk       52%   87%     40%
- *    GC      Basilisk       52%   98%     42%
- *    GC2     Smolder        82%   87%     77%
- *    GE      Nightshrike    68%   40%     17%
- *    GF      Permafrost     40%   27%     40%
- *    GS      Skeleeze       18%   35%      0%
+ *    border  boss          whole  Fill  first run
+ *    GA      Smolder         82%   93%     42%
+ *    GB      Basilisk        52%   87%     40%
+ *    GC      Basilisk        52%   98%     42%
+ *    GC2     Smolder         82%   87%     77%
+ *    GE      Nightshrike     68%   40%     17%
+ *    GF      Hoarfell         3%    5%     40%
+ *    GS      Skeleeze        18%   35%      0%
  *
- *  "Fill" strides the whole collection across all eight elements (what that
- *  button builds on a Hard run); "built" is the region's own element plus its
- *  twelve heaviest imports. Held to the Hard ladder instead — 15 cards at the
- *  first borders — the same four early fights ran 35-52%, and the owner found
- *  the bosses unbeatable. Ids, not imports: this file stays pure data, and a
- *  test pins every id to VOID_BOSSES, to floors 1-2 and to a side of its
- *  border. */
+ *  "Fill" is `regionFill`, the region's own element plus its twelve heaviest
+ *  imports; "whole" strides the whole collection, which is what Fill built on a
+ *  Hard run before it. Held to the Hard ladder instead — 15 cards at the first
+ *  borders — the same four early fights ran 35-52%, and the owner found the
+ *  bosses unbeatable.
+ *
+ *  THE ARCTIC GATE IS HOARFELL BY THE OWNER'S CALL (2026-09-28: "Replace
+ *  Permafrost with Hoarfell"), knowing it is the run's wall: a floor-3 boss
+ *  with no tamed ally, overrun in most of its 57 wins in 60. Permafrost ran
+ *  40% there. It is the one border off floors 1-2, and the test names it.
+ *  Ids, not imports: this file stays pure data, and a test pins every id to
+ *  VOID_BOSSES, to a side of its border and — Hoarfell apart — to floors 1-2. */
 export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GA: "boss_smolder",     // LEAF -> PYRO, the Southern Burn: LEAF/PYRO
   GB: "boss_basilisk",    // LEAF -> AQUA, Eastleaf Port: LEAF/AQUA
   GC: "boss_basilisk",    // PYRO -> AQUA, Sunfall Harbor: AQUA's guard, as at Eastleaf
   GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
   GE: "boss_nightshrike", // the airship lanes to the Gray Continent: a GALE sky-hunter
-  GF: "boss_permafrost",  // the Arctic Gate: the ice wall itself, AQUA/BORE
+  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick — the run's wall
   GS: "boss_skeleeze",    // the Shadow Border: DUSK, with the Gray Continent's GALE
 };
 

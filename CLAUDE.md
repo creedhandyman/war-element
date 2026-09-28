@@ -1505,12 +1505,14 @@ engine runtime and no React, so it stays testable headlessly
   PYRO meet Smolder, both into AQUA meet Basilisk. Overclock held two borders
   until its own buff the same day (9x2, 72 HP, three Drones); after it the
   player won 0 of 60 at both, so Basilisk and Nightshrike took them. Shipped
-  (60 fights a cell, a full 30-card deck; whole-collection Fill / region-built):
+  (60 fights a cell, a full 30-card deck; whole-collection stride / `regionFill`):
   GA Smolder 82/93%, GB Basilisk 52/87%, GC Basilisk 52/98%, GC2 Smolder
-  82/87%, GE Nightshrike 68/40%, GF Permafrost 40/27%, GS Skeleeze 18/35%,
+  82/87%, GE Nightshrike 68/40%, GF Hoarfell 3/5%, GS Skeleeze 18/35%,
   against the first run's own gate fights at 0-77% (mostly ~40%). Early borders
-  are the easy end, Act V's the hard end. A tower buff can wall a border
-  overnight: re-run the borders after one.
+  are the easy end, Act V's the hard end. **The Arctic Gate is Hoarfell by the
+  owner's call** (2026-09-28, over Permafrost's 40%): a floor-3 boss with no
+  ally, the run's deliberate wall — the one border off floors 1-2, named in the
+  test. A tower buff can wall a border overnight: re-run the borders after one.
   **The deck decides these numbers as much as the boss does**: premade decks
   trimmed to 15 cards lost to Smolder 92% of the time, where the story deck
   (with its Mythics) won 52%. Re-measure with the deck the player really has.

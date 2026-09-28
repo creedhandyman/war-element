@@ -371,13 +371,17 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
   it("each is a real tower boss, from the floors a campaign deck can meet", () => {
     // Floors 3 and up are tuned around a TAMED ALLY fighting beside the player
     // (see void-tower.ts); a campaign fight has none, and measured they were
-    // walls — Hoarfell and Spindle won 5% and 0%.
+    // walls — Hoarfell and Spindle won 5% and 0%. The one exception is the
+    // owner's own pick, made knowing it (2026-09-28): Hoarfell holds the Arctic
+    // Gate as the run's wall. Any other floor-3+ border is a mistake.
+    const OWNER_PICKS: Record<string, string> = { GF: "boss_hoarfell" };
     for (const [gate, id] of Object.entries(HARD_BORDER_BOSS)) {
       const boss = voidBossById(id);
       expect(boss, `${gate}: ${id}`).not.toBeNull();
-      expect(boss!.floor, `${gate}: ${id}`).toBeLessThanOrEqual(2);
+      if (OWNER_PICKS[gate] !== id) expect(boss!.floor, `${gate}: ${id}`).toBeLessThanOrEqual(2);
       expect(VOID_BOSSES.some((b) => b.cardId === id)).toBe(true);
     }
+    expect(HARD_BORDER_BOSS.GF).toBe("boss_hoarfell");
   });
 
   it("each fights for one side of its border", () => {
