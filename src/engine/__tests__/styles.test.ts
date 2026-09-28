@@ -441,3 +441,31 @@ describe("the hand card's plate sits on the card", () => {
     expect(CSS).toMatch(/\n\.hand-readout \{ display: none; \}/);
   });
 });
+
+// THE STORY MAP FITS ITS COLUMN. `.story-canvas` was `width: 100%` plus a 24px
+// margin, a box wider than the column holding it: the map column scrolled
+// sideways (558 wide, 582 of scroll) and could be left scrolled with the map's
+// left edge cut off, and on a phone the 16px margin was dead. The width now
+// subtracts the gutter on both sides, and both read ONE variable — so a tier
+// that sets a bare margin or width moves half of the pair and is refused here.
+describe("the story map fits its column", () => {
+  // Every rule for exactly `.story-canvas` (not `.story-canvas.arted`), with
+  // comments stripped so prose about the old rule cannot satisfy a check.
+  const bare = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+  const [base, ...tiers] = [...bare.matchAll(/(?:^|\n)\s*\.story-canvas\s*\{([^}]*)\}/g)].map((m) => m[1]);
+
+  it("is the column less its gutter on both sides, and a tier moves only the gutter", () => {
+    expect(tiers.length, "the phone tier's rule").toBeGreaterThan(0);
+    expect(base).toMatch(/[\s;]margin:\s*var\(--map-gutter\);/);
+    expect(base).toMatch(/[\s;]width:\s*calc\(100% - 2 \* var\(--map-gutter\)\);/);
+    for (const tier of tiers) {
+      expect(tier).toMatch(/--map-gutter:/);
+      expect(tier).not.toMatch(/(?:^|[\s;])(?:margin(?:-left|-right|-inline(?:-start|-end)?)?|width)\s*:/);
+    }
+  });
+
+  it("never grows: a flex item that grows stretches the painted map out of shape", () => {
+    expect(base).toMatch(/[\s;]flex:\s*none;/);
+    for (const tier of tiers) expect(tier).not.toMatch(/(?:^|[\s;])flex(?:-grow)?\s*:/);
+  });
+});

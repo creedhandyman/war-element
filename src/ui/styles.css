@@ -4551,10 +4551,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* `flex: none` is load-bearing: `.story-body` turns into a COLUMN on phones, and
    a growable item would stretch to fill the height — overriding aspect-ratio and
    scaling the painted map to ~3x tall, since the art is drawn with
-   `background-size: 100% 100%`. Never give this box a flex grow factor. */
+   `background-size: 100% 100%`. Never give this box a flex grow factor.
+   The width is the column LESS the gutter on both sides. It was `width: 100%`
+   plus a margin, a box wider than its column: centred, it sat flush at x=0 with
+   its right margin hanging off the edge, so the map column scrolled sideways
+   (558 wide, 582 of scroll) and could be left scrolled with the map's left edge
+   cut off. On a phone the margin was simply dead and the map ran edge to edge
+   past the squad strip's gutter. One variable feeds the margin AND the width,
+   so a gutter change cannot put them out of step again. */
 .story-canvas {
-  position: relative; margin: 24px; flex: none; align-self: center;
-  min-width: 0; width: 100%; max-width: 1180px;
+  --map-gutter: 24px;
+  position: relative; margin: var(--map-gutter); flex: none; align-self: center;
+  min-width: 0; width: calc(100% - 2 * var(--map-gutter)); max-width: 1180px;
   /* Node and label sizes are expressed in cqw so they track the map rather than
      the viewport — the same node reads correctly at 380px and at 1180px. */
   container-type: inline-size;
@@ -4837,7 +4845,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      nothing overlaps. */
   .story-main { flex: none; overflow: visible; }
   .story-side { width: auto; border-left: 0; border-top: 1px solid var(--panel-line); }
-  .story-canvas { margin: 16px; }
+  .story-canvas { --map-gutter: 16px; }
 }
 
 /* ── Story Mode — choose a map ───────────────────────────────────────────────

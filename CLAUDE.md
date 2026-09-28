@@ -1264,9 +1264,16 @@ engine runtime and no React, so it stays testable headlessly
   `background-size: 100% 100%`); and every `.edge` needs
   `vector-effect: non-scaling-stroke`, or the `viewBox="0 0 100 100"` +
   `preserveAspectRatio="none"` combination scales `stroke-width: 2` into a
-  ~20px slab. Node/badge sizes are `cqw`-based off `container-type: inline-size`
-  on the canvas, so they track the map rather than the viewport — 54px at
-  desktop's 1180px cap, ~41px on a phone.
+  ~20px slab. A third: the canvas is `width: calc(100% - 2 * var(--map-gutter))`
+  with `margin: var(--map-gutter)`, and a breakpoint changes the VARIABLE, never
+  the margin. It was `width: 100%` plus a margin, wider than its own column:
+  `.story-main` scrolled sideways (558 wide, 582 of scroll at ~900px) and could
+  be left scrolled with the map's left edge cut off, while on a phone the 16px
+  margin was dead and the map ran past the squad strip's gutter.
+  `styles.test.ts` pins this and `flex: none`. Node/badge sizes are
+  `cqw`-based off `container-type: inline-size` on the canvas, so they track the
+  map rather than the viewport — 42px at desktop's 1180px cap, the 23px floor
+  on a phone.
 - **Border gates (§7)**: a region is entered by CLEARING A GATE, not by clearing
   the previous Throne — the Throne only unlocks the gate. Gates are nodes of
   `kind: "gate"` on the SOURCE region's map, and `region.requires` lists the
