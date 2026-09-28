@@ -66,9 +66,11 @@ export function StoryResult(props: {
           </p>
         ) : (
           <p>
+            {/* Every roll is a foil roll as well (`withFoils` in story.ts), and
+                this line is where the player learns what the capture bought. */}
             {captured > 0
-              ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}.</>
-              : <>Won by elimination — no slots padlocked, so one roll.</>}
+              ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}, {rolls === 1 ? "also a 1-in-100 foil roll" : "each also a 1-in-100 foil roll"}.</>
+              : <>Won by elimination — no slots padlocked, so one roll, also a 1-in-100 foil roll.</>}
           </p>
         )}
 

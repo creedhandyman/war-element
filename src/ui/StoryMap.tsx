@@ -229,6 +229,12 @@ function NodePanel(props: {
   // A node whose whole pool is already owned can never pay out. Saying so is
   // the difference between "unlucky" and "broken" from the player's side.
   const exhausted = pool.every((id) => owned.has(id));
+  // FOILS DROP HERE TOO: every slot padlocked is a 1-in-100 roll for a foil of
+  // one of these cards (`withFoils` in story.ts), and nothing on the map said
+  // so. Tagged in the list, so the player can see which they already hold, and
+  // stated under the drops — it is what a finished node still pays.
+  const foils = new Set(save.hero?.shiny ?? []);
+  const allFoil = pool.length > 0 && pool.every((id) => foils.has(id));
   const blightAdds = blightAddsFor(save, props.region, node);
   const contested = terrainContested(save, props.region);
   // A gate refuses on deck SHAPE, not on progress — so it needs its own reason
@@ -334,6 +340,9 @@ function NodePanel(props: {
                 />
               </button>
               <span className="npr-name">
+                {!isGate(node) && foils.has(id) && (
+                  <i className="foil-tag inline" title="You hold this card in foil">✦</i>
+                )}
                 {d.name}
                 {over && (
                   <span
@@ -415,6 +424,17 @@ function NodePanel(props: {
           <p className="np-drops">
             Recruit rolls are earned by <b>capture</b> — one per slot you padlock.
             {cleared && " Repeat clears pay full recruit odds."}
+          </p>
+        )
+      )}
+      {open && !isGate(node) && pool.length > 0 && (
+        allFoil ? (
+          <p className="np-foils done">You hold every card here in foil.</p>
+        ) : (
+          <p className="np-foils">
+            <i className="foil-tag inline" aria-hidden="true">✦</i>
+            <b>Foils drop here.</b> Every slot you padlock is a 1-in-100 shot at a foil of one
+            of these cards{exhausted ? "" : " — one you don't have yet joins you in foil"}.
           </p>
         )
       )}

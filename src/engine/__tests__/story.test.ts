@@ -2241,17 +2241,80 @@ describe("foils are farmable in the campaign", () => {
     }
   });
 
-  it("only ever names cards from THAT node, and never one you do not own", () => {
+  it("only ever names cards from THAT node, and never leaves one you do not own", () => {
     const owned = pool.slice(0, Math.max(1, pool.length - 1));
     const save: StorySave = { ...newSave(), collection: owned, cleared: [leaf.nodes[0].id] };
     for (let s = 0; s < 3000; s++) {
       for (const id of rollRecruits(save, node, 2, seeded(s)).shiny) {
-        // A win can be shiny too, so the card is either newly won or already held.
+        // A foil of a card you do not have brings the card with it, so every
+        // foil is either already held or recruited this clear.
         const r = rollRecruits(save, node, 2, seeded(s));
         expect(owned.includes(id) || r.won.includes(id), `${id} is from nowhere`).toBe(true);
         expect(pool, `${id} is not on this node`).toContain(id);
       }
     }
+  });
+});
+
+describe("every padlocked slot is a 1-in-100 foil roll on a card from the node", () => {
+  // The rule the node panel states. It used to roll only on cards you already
+  // OWNED, without repeats: one owned card meant one foil roll however many
+  // slots you padlocked, and a first clear that recruited nothing had none.
+  const node = leaf.nodes[2];
+  const pool = recruitablePool(node);
+  const fresh = (): StorySave => ({ ...newSave(), cleared: [leaf.nodes[0].id] }); // past the opener
+  /** A scripted `rand`. Recruit rolls read (pick, chance), foil rolls read
+   *  (pick, shiny) — both as `rand() * 100 < odds` — so 0.999 misses a recruit
+   *  and 0 lands a foil. Running off the end of the script fails the test. */
+  const script = (values: number[]) => {
+    let i = 0;
+    return () => {
+      if (i >= values.length) throw new Error(`rand called ${i + 1} times, scripted ${values.length}`);
+      return values[i++];
+    };
+  };
+  const missThenFoil = (rolls: number) => script([
+    ...Array.from({ length: rolls }, () => [0, 0.999]).flat(),
+    ...Array.from({ length: rolls }, () => [0, 0]).flat(),
+  ]);
+
+  it("one roll per slot, even owning none of the node's cards", () => {
+    const n = Math.min(3, pool.length);
+    const r = rollRecruits(fresh(), node, n, missThenFoil(n));
+    expect(r.shiny.length, "every slot rolled a foil, and every roll landed").toBe(n);
+    for (const id of r.shiny) expect(pool, `${id} is not on this node`).toContain(id);
+  });
+
+  it("a foil of a card you do not have yet joins you in foil", () => {
+    const r = rollRecruits(fresh(), node, 1, missThenFoil(1));
+    expect(r.shiny).toEqual([pool[0]]);
+    expect(r.won, "it arrives as a recruit").toEqual([pool[0]]);
+    expect(r.missed, "not also banked as a miss").not.toContain(pool[0]);
+    const s = applyClear(fresh(), node, r);
+    expect(s.collection).toContain(pool[0]);
+    expect(isShiny(s, pool[0])).toBe(true);
+  });
+
+  it("a win by elimination still gets its one roll", () => {
+    expect(rollRecruits(fresh(), node, 0, missThenFoil(1)).shiny.length).toBe(1);
+  });
+
+  it("measures one in a hundred per slot", () => {
+    const seeded = (seed: number) => {
+      let x = seed + 0x6d2b79f5;
+      return () => {
+        x = (x + 0x6d2b79f5) | 0;
+        let t = Math.imul(x ^ (x >>> 15), 1 | x);
+        t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    };
+    const slots = 3, runs = 20000;
+    let foils = 0;
+    for (let s = 0; s < runs; s++) foils += rollRecruits(fresh(), node, slots, seeded(s)).shiny.length;
+    const perRoll = foils / (runs * slots);
+    expect(perRoll * 100, `${foils} foils in ${runs * slots} rolls`).toBeGreaterThan(SHINY_CHANCE * 0.75);
+    expect(perRoll * 100, `${foils} foils in ${runs * slots} rolls`).toBeLessThan(SHINY_CHANCE * 1.3);
   });
 });
 

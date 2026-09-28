@@ -5262,6 +5262,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .story-result.wide .mr-sides { grid-template-columns: 1fr; }
 }
 .np-drops.exhausted { color: var(--ink-faint); font-style: italic; }
+/* The node panel's foil line: its own row, in the foil's colours, because it is
+   the one reward a finished node still pays and the drops line never said so. */
+.np-foils {
+  font-size: 12px; line-height: 1.5; margin: 8px 0 6px; padding: 6px 9px;
+  color: #d9ecf7; border-radius: 6px;
+  background: linear-gradient(90deg, rgba(127, 215, 255, 0.10), rgba(255, 190, 255, 0.07));
+  border: 1px solid rgba(127, 215, 255, 0.28);
+}
+.np-foils b { color: #fff; }
+.np-foils.done { color: var(--ink-faint); font-style: italic; background: none; border-color: transparent; padding: 0; }
 
 /* Story Mode — the collection. Reuses the deck builder's card thumbs and filter
    pills so a card reads identically in both places; only the locked state, the

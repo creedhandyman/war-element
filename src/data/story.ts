@@ -1499,10 +1499,13 @@ export function craftCard(save: StorySave, defId: string): StorySave {
  *  code path. At 1% a pack carries roughly a one-in-twenty chance — rare enough
  *  to be worth shouting about, common enough to exist.
  *
- *  Rolled per CARD ACQUIRED rather than per pack or per clear, and duplicates
- *  roll too: a card you already own coming back shiny is the one thing that
- *  makes a duplicate worth seeing, and it costs nothing to allow because a
- *  shiny is cosmetic. Nothing about a shiny changes a stat, a cost or a rule. */
+ *  A PACK rolls it per CARD PULLED rather than per pack, and duplicates roll
+ *  too: a card you already own coming back shiny is the one thing that makes a
+ *  duplicate worth seeing, and it costs nothing to allow because a shiny is
+ *  cosmetic. Nothing about a shiny changes a stat, a cost or a rule.
+ *
+ *  STORY rolls it per SLOT PADLOCKED instead, on one of the node's cards — see
+ *  `withFoils` in `rollRecruits`. */
 export const SHINY_CHANCE = 1;
 
 /** Roll one acquisition. `rand` is injected so a test can pin it. */
@@ -3422,7 +3425,8 @@ export interface RecruitResult {
   /** Cards that rolled and missed, with their pity now one step higher. */
   missed: string[];
   rolls: number;
-  /** Of the cards won, the ones that came in foil. */
+  /** Cards that came out in foil this clear: any card on the node, owned or
+   *  not. One that was not owned is in `won` as well — it joins you in foil. */
   shiny: string[];
 }
 
@@ -3441,6 +3445,8 @@ export interface RecruitResult {
  * node repeatedly, so late runs are increasingly targeted at the one card you
  * still want — and duplicates can never occur.
  *
+ * Every roll is ALSO a foil roll — see `withFoils` below.
+ *
  * `rand` is injected so this is deterministic under test.
  */
 export function rollRecruits(
@@ -3454,30 +3460,41 @@ export function rollRecruits(
   const won: string[] = [];
   const missed: string[] = [];
 
-  /** Foils roll on cards you ALREADY OWN, at the same 1 in 100 a pack uses.
+  /** EVERY ROLL IS ALSO A FOIL ROLL: one per slot padlocked (the same `rolls`,
+   *  so an elimination win still gets its one), each a 1-in-100 shot
+   *  (`SHINY_CHANCE`) at a foil of a card from THIS node — any card on it you
+   *  do not already hold in foil, owned or not, including one this clear just
+   *  recruited. That is the rule the node panel states, word for word.
    *
-   *  They used to roll only on `won`, so a foil was available exactly once per
-   *  card — the clear that first handed it over — and a node whose roster you
-   *  had finished could never produce one again. That is the opposite of how
-   *  the Shop works: `openPack` rolls every card it pulls, duplicates included,
-   *  and skips only what you already hold in foil. Story had no way to chase a
-   *  shiny at all, which made the rarest thing in the game unfarmable.
+   *  A foil of a card you do not have yet BRINGS THE CARD: it joins you in foil,
+   *  as a recruit, so a foil is never a flag on a card you cannot play.
    *
-   *  Skips anything already held in foil for the same reason `openPack` does —
-   *  a second shiny of the same card is nothing — and cannot pick the same card
-   *  twice in one clear. */
-  const heldFoil = new Set(save.hero?.shiny ?? []);
-  const foilable = recruitablePool(node)
-    .filter((id) => save.collection.includes(id) && !heldFoil.has(id));
-  function dupeFoils(exclude: readonly string[]): string[] {
-    const pool = foilable.filter((id) => !exclude.includes(id));
-    const out: string[] = [];
-    for (let i = 0; i < rolls && pool.length; i++) {
-      const pick = pool[Math.floor(rand() * pool.length) % pool.length];
-      pool.splice(pool.indexOf(pick), 1);
-      if (rollShiny(rand)) out.push(pick);
+   *  It used to roll per slot only on cards you already OWNED, without repeats —
+   *  so a player who owned one card of a node got one foil roll however many
+   *  slots they padlocked, and a first clear that recruited nothing got none —
+   *  plus a separate roll on each fresh recruit. Before that it rolled only on
+   *  cards WON, so a finished node could never produce a foil at all.
+   *
+   *  The pick is made among the cards it could still foil, so no roll is spent
+   *  on one already foiled this clear: every slot really is a roll while the
+   *  node has anything left to foil. */
+  function withFoils(wonNow: string[], missedNow: string[]): RecruitResult {
+    const held = new Set(save.hero?.shiny ?? []);
+    const candidates = [...new Set([...recruitablePool(node), ...wonNow])];
+    const shiny: string[] = [];
+    for (let i = 0; i < rolls; i++) {
+      const left = candidates.filter((id) => !held.has(id) && !shiny.includes(id));
+      if (!left.length) break;
+      const pick = left[Math.floor(rand() * left.length) % left.length];
+      if (rollShiny(rand)) shiny.push(pick);
     }
-    return out;
+    const joined = shiny.filter((id) => !save.collection.includes(id) && !wonNow.includes(id));
+    return {
+      won: [...wonNow, ...joined],
+      missed: missedNow.filter((id) => !joined.includes(id)),
+      rolls,
+      shiny,
+    };
   }
 
   // The opening battle pays out in full, no dice. Checked BEFORE the empty-pool
@@ -3487,21 +3504,15 @@ export function rollRecruits(
   const openingRegion = regionOfNode(node.id);
   if (openingRegion && isOpeningNode(openingRegion, node)) {
     const opened = guaranteedDrops(openingRegion, node).filter((id) => !save.collection.includes(id));
-    return {
-      won: opened, missed: [], rolls,
-      shiny: [...opened.filter(() => rollShiny(rand)), ...dupeFoils(opened)],
-    };
+    return withFoils(opened, []);
   }
-  // A finished node still rolls — that is the whole point of the change above.
-  if (!eligible.length) return { won, missed, rolls, shiny: dupeFoils([]) };
+  // A finished node still rolls, for foils.
+  if (!eligible.length) return withFoils([], []);
 
   // A Throne's Mythic is a guaranteed recruit on first clear: no RNG on a
   // story-critical unlock.
   if (node.kind === "throne" && !isCleared(save, node.id)) {
-    return {
-      won: [...eligible], missed, rolls,
-      shiny: [...eligible.filter(() => rollShiny(rand)), ...dupeFoils(eligible)],
-    };
+    return withFoils([...eligible], missed);
   }
 
   const pool = [...eligible];
@@ -3515,10 +3526,7 @@ export function rollRecruits(
       missed.push(pick);
     }
   }
-  return {
-    won, missed, rolls,
-    shiny: [...won.filter(() => rollShiny(rand)), ...dupeFoils(won)],
-  };
+  return withFoils(won, missed);
 }
 
 /** Fold a clear + its recruits into the save. Pure — returns a new save. */
