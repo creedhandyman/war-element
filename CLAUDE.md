@@ -1441,6 +1441,13 @@ engine runtime and no React, so it stays testable headlessly
   StorySquad all read it. `squadCapInRegion(cleared, region)` is the first
   run's ladder alone: never call it with a save in hand. The deck-size ladder
   (`deckCapFor`, 6 up to 30) still resets and still applies.
+  **...and every spell** (owner, same day): `spellsUnlockedIn` treats every
+  region as fully walked on a Hard run, so `heroSpellShelf` is all 80 — the
+  deck builder's campaign offer (`spellPool`), the automatic book and team
+  books all read it. A first run can finish on the Thrones alone, a region's
+  depth short of its top spells (LEAF's shortest road to L14 is nine nodes), so
+  this is more than the first run's shelf. The book's size (5/8), the cost-tier
+  law and the builder's own-elements-only offer still apply.
   **Clears now have two readers, and new code must pick one.** `save.cleared`
   is the MAP: open nodes, the deck-cap ladder, squad limits, Blight, musters.
   `everCleared(save)` is the player's HISTORY: spells (`spellsUnlockedIn` —

@@ -465,7 +465,8 @@ function HardOffer(props: { onStart: () => void }) {
         <>
           <p>
             <b>The map starts over</b> — every node, the deck-size ladder and the Blight. Your
-            cards, spells, shards and saved teams all come with you.
+            cards, spells, shards and saved teams all come with you: every card fights in
+            every region, and every spell is unlocked.
           </p>
           <div className="hard-offer-row">
             <button className="ghost" onClick={() => setAsking(false)}>Not yet</button>

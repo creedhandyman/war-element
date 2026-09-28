@@ -14,7 +14,8 @@ import {
   borderBossFor, buildFormation, campaignComplete, canStartHard, capForNode, deckCapFor,
   everCleared, fightBoardFor, fightCap, gateCheck, hardFormationSize, heroSpellShelf, isGate,
   isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
-  SQUAD_BASE, squadIsOfferable, squadLimitFor, startHardMode,
+  SQUAD_BASE, bookForLoadout, heroBookFor, spellsUnlockedIn, squadIsOfferable, squadLimitFor,
+  startHardMode,
   type StoryNode, type StorySave,
 } from "../../data/story";
 import {
@@ -24,6 +25,7 @@ import { playerStats } from "../../data/player";
 import { summarize } from "../../net/account";
 import { firstFightWon, onboardingStep } from "../../ui/Onboarding";
 import { broodOf, seatVoidBoss } from "../../ui/void-seat";
+import { SPELLS, getSpell, spellCapForBoard } from "../spells";
 import { cardAt, createInitialState } from "../state";
 
 const GATES = ALL_NODES.filter(isGate);
@@ -117,6 +119,31 @@ describe("starting Hard mode", () => {
     const hard = startHardMode(done);
     expect(heroSpellShelf(done).length).toBeGreaterThan(0);
     expect(heroSpellShelf(hard)).toEqual(heroSpellShelf(done));
+  });
+
+  it("unlocks every spell in the game, not only the ones the first run walked for", () => {
+    // Owner, 2026-09-27: the whole collection, spells included. A campaign can
+    // be finished on the required Thrones alone, a region's depth short of its
+    // top spells; this save walked ONE node per region, so its first-run shelf
+    // is the eight cost-1s.
+    const beeline: StorySave = { ...newSave(), cleared: [...REQUIRED_THRONES] };
+    expect(heroSpellShelf(beeline).every((id) => getSpell(id).cost === 1)).toBe(true);
+    const hard = startHardMode(beeline);
+    expect(isHard(hard)).toBe(true);
+    const all = SPELLS.map((sp) => sp.id);
+    expect([...heroSpellShelf(hard)].sort()).toEqual([...all].sort());
+    // Still cheapest first, which is what the automatic book fills from.
+    const costs = heroSpellShelf(hard).map((id) => getSpell(id).cost);
+    expect(costs).toEqual([...costs].sort((a, b) => a - b));
+    for (const region of REGIONS)
+      expect(spellsUnlockedIn(hard, region).length, region.id).toBe(
+        SPELLS.filter((sp) => sp.element === region.element).length);
+    // A team's book keeps a finisher the first run never walked far enough for,
+    // and the board's cap still trims it.
+    const finisher = SPELLS.find((sp) => sp.cost === 10)!.id;
+    expect(bookForLoadout(hard, { id: "t", name: "t", cards: [], spells: [finisher] }, 4)).toEqual([finisher]);
+    expect(bookForLoadout(beeline, { id: "t", name: "t", cards: [], spells: [finisher] }, 4)).not.toContain(finisher);
+    expect(heroBookFor(hard, 4).length).toBe(spellCapForBoard(4));
   });
 
   it("never walks a veteran through the first fight again", () => {

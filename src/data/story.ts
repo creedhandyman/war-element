@@ -1378,12 +1378,18 @@ export const ESSENCE_PER_CLEAR: Record<NodeKind, number> = {
  *  unlock table to maintain — clear n nodes in a region and its spells up to
  *  cost n are yours. Ten nodes gets the element's whole book, and every region
  *  has more nodes than that, so finishing a region always finishes its spells.
+ *
+ *  HARD MODE unlocks every spell (owner, 2026-09-27: the whole collection,
+ *  spells included, as it is for the cards). A first run can reach every
+ *  Throne without walking ten nodes of a region — LEAF's shortest road to L14
+ *  is nine — so a veteran's shelf could still be missing finishers. The book's
+ *  size and the cost-tier law are format rules and still apply.
  */
 export function spellsUnlockedIn(save: StorySave, region: StoryRegion): string[] {
   // EVER cleared: a spell once earned stays earned. Hard mode resets the map,
-  // not the hero's book.
+  // not the hero's book — and on a Hard run every region counts as walked.
   const walked = everCleared(save);
-  const depth = region.nodes.filter((n) => walked.includes(n.id)).length;
+  const depth = isHard(save) ? Infinity : region.nodes.filter((n) => walked.includes(n.id)).length;
   return SPELLS
     .filter((sp) => sp.element === region.element && sp.cost <= depth)
     .map((sp) => sp.id);
