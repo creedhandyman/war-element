@@ -280,7 +280,7 @@ import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
-  everCleared, isHard, borderBossFor, startHardMode, fightBoardFor, fightCap, type StoryNode,
+  everCleared, isHard, borderBossFor, startHardMode, resumeHardMode, fightBoardFor, fightCap, type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
@@ -5371,6 +5371,11 @@ export function App() {
             // Back to where the campaign opens: the map just reset, and the only
             // node open anywhere is the first region's first.
             navDo({ t: "pickRegion", regionId: REGIONS[0].id });
+          }}
+          onResumeHard={() => {
+            const next = resumeHardMode(story);
+            if (next === story) return;
+            setStory(next); saveStory(next);
           }}
         />
       )}

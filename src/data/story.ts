@@ -2553,6 +2553,55 @@ export function startHardMode(save: StorySave): StorySave {
     cleared: [],
     blight: {},
     squads: undefined,
+    gifts: withHardMark(save.gifts),
+  };
+}
+
+/** HARD MODE MUST SURVIVE AN OLDER BUILD — owner-reported 2026-09-28: LEAF
+ *  cleared on Hard, left, came back, and the map was a first run with the
+ *  Hard clears on it and no way back.
+ *
+ *  A build from before Hard mode existed rebuilds this save from the fields it
+ *  knows (`loadStory` is a whitelist, and so was every version of it), so the
+ *  first time one touches the save and writes it back, `hardRun` and
+ *  `firstRunCleared` are gone while `cleared` stays. What that older loader
+ *  does keep is every string in the gifts ledger. So Hard also writes this
+ *  mark there, and `loadStory` restores the flag from the mark or from the
+ *  first-run record, whichever survived. Harmless to the gifts themselves:
+ *  `applyGifts` only looks for its own ids. */
+export const HARD_MARK = "hard-run";
+const withHardMark = (gifts: readonly string[] | undefined): string[] =>
+  [...new Set([...(gifts ?? []), HARD_MARK])];
+
+/** The proof a campaign was won, kept in the collection itself: every required
+ *  Throne's Mythic — the card that Throne hands over on its first clear. */
+export const THRONE_MYTHICS: readonly string[] = REQUIRED_THRONES
+  .map((id) => throneSeatedCard(nodeById(id)!))
+  .filter((id): id is string => !!id);
+
+/** A save that lost its Hard run before `HARD_MARK` existed: not on Hard, the
+ *  campaign not finished on this map, yet every required Throne's Mythic in
+ *  the collection. Offered a way back — the owner's own save needed one.
+ *
+ *  Owning all eight without having won the campaign means crafting a DAWN
+ *  Mythic from DAWN essence, which only DAWN's own nodes pay, so in practice it
+ *  is a finished campaign; and switching on is opt-in either way. */
+export function canResumeHard(save: StorySave): boolean {
+  return !isHard(save) && !campaignComplete(save)
+    && THRONE_MYTHICS.every((id) => save.collection.includes(id));
+}
+
+/** Put this map back on Hard, right where it stands: `cleared` is kept, not
+ *  reset (it is the Hard run's own progress), and the mark is written so it
+ *  cannot happen again. The first run's record is lost with the flag; what is
+ *  certain is that every required Throne fell, so that much goes back in. */
+export function resumeHardMode(save: StorySave): StorySave {
+  if (!canResumeHard(save)) return save;
+  return {
+    ...save,
+    hardRun: 1,
+    firstRunCleared: [...new Set([...(save.firstRunCleared ?? []), ...REQUIRED_THRONES])],
+    gifts: withHardMark(save.gifts),
   };
 }
 
@@ -3359,6 +3408,12 @@ export function loadStory(): StorySave {
     // Saves written before squads were per-region carried a single travelling
     // one. Fold it into its region and drop it, so an in-flight campaign is not
     // asked to re-pack where it already had.
+    // HARD MODE, restored if an older build stripped it (see `HARD_MARK`): the
+    // mark in the gifts ledger, or the first run's record, is enough.
+    if (!isHard(save) && (save.firstRunCleared?.length || save.gifts?.includes(HARD_MARK))) {
+      save.hardRun = 1;
+      save.gifts = withHardMark(save.gifts);
+    }
     const legacy = p.squad;
     if (legacy && typeof legacy === "object" && typeof legacy.region === "string" &&
         !save.squads![legacy.region] && REGIONS.some((r) => r.id === legacy.region))

@@ -1434,6 +1434,20 @@ engine runtime and no React, so it stays testable headlessly
   finished run is kept in `firstRunCleared`. Everything else rides through
   untouched: collection, hero (shards, essence, foils, chosen book), teams,
   per-region decks, pity, tamed bosses.
+  **Hard must survive an older build** (owner-reported 2026-09-28: LEAF cleared
+  on Hard, left, came back to a first run with the Hard clears on it and no way
+  back). `loadStory` is a WHITELIST and every version of it was: a build from
+  before a field existed drops that field the first time it writes the save,
+  and keeps everything it knows. Nothing in the current app drops `hardRun`
+  (every writer spreads the save; checked), so the strip came from outside it.
+  The fix is to leave a trace old loaders keep: they keep every string in the
+  `gifts` ledger, so `startHardMode` writes `HARD_MARK` there, and `loadStory`
+  restores `hardRun` from the mark or from `firstRunCleared`. A save that had
+  already lost all three gets `canResumeHard` (not on Hard, campaign not done on
+  this map, yet every required Throne's Mythic owned — `THRONE_MYTHICS`) and a
+  "Back to Hard mode?" banner on the map that puts it back on Hard WITHOUT
+  resetting `cleared`. **Any new field that must outlive old builds needs the
+  same treatment** — a copy in a list old loaders pass through.
   **The whole collection plays everywhere** (owner, same day): `squadLimitFor(
   save, region)` is null on a Hard run, so every region is home ground from the
   first node — what the first run only gets once DUSK's Throne falls.

@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, canStartHard,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, canResumeHard,
+  canStartHard,
   deckCapFor, fieldedBy, fightCap, gateCheck, isBlightNode, isCleared, isGate, isHard, isOpen,
   isOverflow, isRegionCleared, recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
@@ -47,6 +48,8 @@ export function StoryMap(props: {
   onFocusHandled?: () => void;
   /** Start HARD MODE: offered on a finished first campaign (`canStartHard`). */
   onStartHard?: () => void;
+  /** Put a save back on Hard that lost its flag (`canResumeHard`). */
+  onResumeHard?: () => void;
 }) {
   const { region, save } = props;
   const [selId, setSelId] = useState<string | null>(null);
@@ -138,6 +141,7 @@ export function StoryMap(props: {
             of a 1440px screen. */}
         <div className="story-main">
           {props.onStartHard && canStartHard(save) && <HardOffer onStart={props.onStartHard} />}
+          {props.onResumeHard && canResumeHard(save) && <HardResume onResume={props.onResumeHard} />}
           <div
             className={`story-canvas ${region.art ? "arted" : ""}`}
             style={{
@@ -441,6 +445,36 @@ function NodePanel(props: {
 
       {previewId && (
         <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
+      )}
+    </div>
+  );
+}
+
+/** The way back for a save that lost its Hard run (`canResumeHard`). Two taps,
+ *  like the offer: nothing is wiped, but there is no switching back. */
+function HardResume(props: { onResume: () => void }) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <div className="hard-offer">
+      {!asking ? (
+        <>
+          <p>
+            <b>Back to Hard mode?</b> Your collection holds every region's Throne Mythic, so this
+            campaign has been won before. This map can go back on Hard right where it stands.
+          </p>
+          <button className="lockin" onClick={() => setAsking(true)}>Hard mode</button>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>Your progress on this map stays.</b> Bigger squads, a Void Tower boss on every border,
+            your whole collection and every spell — and no switching back.
+          </p>
+          <div className="hard-offer-row">
+            <button className="ghost" onClick={() => setAsking(false)}>Not yet</button>
+            <button className="lockin" onClick={props.onResume}>Back to Hard mode</button>
+          </div>
+        </>
       )}
     </div>
   );

@@ -16,7 +16,7 @@ import {
   everCleared, fightBoardFor, fightCap, gateCheck, hardFormationSize, heroSpellShelf, isGate,
   isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
   SQUAD_BASE, bookForLoadout, heroBookFor, spellsUnlockedIn, squadIsOfferable, squadLimitFor,
-  startHardMode,
+  startHardMode, HARD_MARK, THRONE_MYTHICS, canResumeHard, resumeHardMode,
   type StoryNode, type StorySave,
 } from "../../data/story";
 import {
@@ -187,9 +187,108 @@ describe("starting Hard mode", () => {
         ...JSON.parse([...store.values()][0]), hardRun: "yes", firstRunCleared: ["L1", "NOPE", 7],
       }));
       const junk = loadStory();
-      expect(junk.hardRun).toBeUndefined();
+      // The junk flag is not trusted — but the save is a Hard run, and the
+      // first-run record and the ledger's mark both say so, so it comes back
+      // as a real one rather than being dropped to a first run.
+      expect(junk.hardRun).toBe(1);
       expect(junk.firstRunCleared).toEqual(["L1"]);
     } finally { g.localStorage = prior; }
+  });
+});
+
+describe("Hard mode survives an older build (owner-reported 2026-09-28)", () => {
+  // "After completing the leaf region on hard, I left and then came back, and
+  // now it is reset to the normal mode without a method to go back." A build
+  // from before Hard mode rebuilds the save from the fields it knows: `cleared`
+  // stays, `hardRun` and `firstRunCleared` go. These pin both halves of the
+  // fix — the save heals itself, and one that already lost everything can go
+  // back.
+  const withStorage = (run: (store: Map<string, string>) => void) => {
+    const store = new Map<string, string>();
+    const g = globalThis as { localStorage?: unknown };
+    const prior = g.localStorage;
+    g.localStorage = {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => void store.set(k, v),
+      removeItem: (k: string) => void store.delete(k),
+    };
+    try { run(store); } finally { g.localStorage = prior; }
+  };
+  /** The Hard run LEAF was cleared on — then written back by an older build. */
+  const leafOnHard = (): StorySave => ({
+    ...startHardMode(finished()),
+    cleared: REGIONS[0].nodes.filter((n) => !isGate(n)).map((n) => n.id),
+  });
+  const stripped = (s: StorySave, keep: Partial<Record<"hardRun" | "firstRunCleared" | "gifts", boolean>> = {}) => {
+    const raw = JSON.parse(JSON.stringify(s)) as Record<string, unknown>;
+    if (!keep.hardRun) delete raw.hardRun;
+    if (!keep.firstRunCleared) delete raw.firstRunCleared;
+    if (!keep.gifts) raw.gifts = (raw.gifts as string[]).filter((x) => x !== HARD_MARK);
+    return JSON.stringify(raw);
+  };
+
+  it("starting Hard writes a mark into the ledger an older build keeps", () => {
+    expect(startHardMode(finished()).gifts).toContain(HARD_MARK);
+  });
+
+  it("a save stripped by an older build loads as Hard again, its map intact", () => {
+    withStorage((store) => {
+      const before = leafOnHard();
+      saveStory(before);
+      const key = [...store.keys()][0];
+      store.set(key, stripped(before, { gifts: true }));
+      const back = loadStory();
+      expect(isHard(back)).toBe(true);
+      expect(back.cleared).toEqual(before.cleared);
+      expect(back.gifts).toContain(HARD_MARK);
+    });
+  });
+
+  it("...and so does one that lost only the flag, from its first-run record", () => {
+    withStorage((store) => {
+      const before = leafOnHard();
+      saveStory(before);
+      const key = [...store.keys()][0];
+      store.set(key, stripped(before, { firstRunCleared: true }));
+      expect(isHard(loadStory())).toBe(true);
+    });
+  });
+
+  it("a first run is never mistaken for one", () => {
+    withStorage(() => {
+      saveStory({ ...finished(), cleared: ["L1", "L2"] });
+      expect(isHard(loadStory())).toBe(false);
+    });
+  });
+
+  it("a save that lost every trace can go back to Hard, where it stands", () => {
+    withStorage((store) => {
+      const before = leafOnHard();
+      saveStory(before);
+      const key = [...store.keys()][0];
+      store.set(key, stripped(before));   // no flag, no record, no mark
+      const lost = loadStory();
+      expect(isHard(lost)).toBe(false);
+      expect(THRONE_MYTHICS.length).toBe(REQUIRED_THRONES.length);
+      expect(canResumeHard(lost)).toBe(true);
+      const back = resumeHardMode(lost);
+      expect(isHard(back)).toBe(true);
+      expect(back.cleared, "the map is kept, not reset").toEqual(before.cleared);
+      expect(back.gifts).toContain(HARD_MARK);
+      for (const id of REQUIRED_THRONES) expect(back.firstRunCleared).toContain(id);
+      expect(canResumeHard(back), "offered once").toBe(false);
+    });
+  });
+
+  it("offers the way back only where it belongs", () => {
+    // A first run without the Thrones' Mythics: nothing to go back to.
+    const early: StorySave = { ...newSave(), cleared: ["L1"] };
+    expect(canResumeHard(early)).toBe(false);
+    // A finished first run gets the ordinary offer, not this one.
+    expect(canResumeHard(finished())).toBe(false);
+    expect(canStartHard(finished())).toBe(true);
+    // A Hard run already is one.
+    expect(canResumeHard(leafOnHard())).toBe(false);
   });
 });
 
