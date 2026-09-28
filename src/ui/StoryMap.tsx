@@ -297,8 +297,8 @@ function NodePanel(props: {
 
       {boss && face && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
-          Held by <b>{face.name}</b>, a Void Tower boss. Slay it to cross — it takes a full
-          {" "}<b>{fightCap(save, region, node)}</b>-card deck
+          Held by <b>{face.name}</b>, a Void Tower boss. Slay it to cross, with a full Tower
+          deck: up to <b>{fightCap(save, region, node)}</b> cards
           {gate.ok && <span className="np-tick"> ✓ ready</span>}
         </p>
       )}

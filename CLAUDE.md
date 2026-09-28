@@ -1477,17 +1477,26 @@ engine runtime and no React, so it stays testable headlessly
   and the seating is `seatVoidBoss` in `ui/void-seat.ts`, the ONE door shared
   with the Tower's `startArenaMatch` (boss, wall, Fortress Gates, rage, ally).
   Tower rules (slay to win, overrun, the 30-round clock); no terrain, no tamed
-  ally; `gateCheck` keeps the exact deck size and drops the composition demand.
+  ally. **A full Tower deck, not the Hard ladder** (owner, 2026-09-28: "not
+  allowing you to use a full deck to be able to defeat the boss"): `fightCap`
+  returns `BORDER_BOSS_DECK` (30) for a Hard border boss, so prep fills to 30
+  and the builder opened from prep is sized for it (App's `builderCap` /
+  `builderBoard` read `fightCap` / `fightBoardFor` there). `gateCheck` lets any
+  deck from 1 up to that cross and drops the composition demand; the first
+  run's gates keep their exact size. The ladder (15 at the first borders) had
+  the Tower's bosses fought with half a Tower deck.
   **Floors 1-2 only**: floors 3+ are tuned around a tamed ally and were walls —
   Hoarfell at the Arctic Gate won 2 of 40, Spindle at the Shadow Border 0 of 40,
   and no DAWN boss cleared 8%. Each land guards its own shore: both roads into
   PYRO meet Smolder, both into AQUA meet Basilisk. Overclock held two borders
   until its own buff the same day (9x2, 72 HP, three Drones); after it the
   player won 0 of 60 at both, so Basilisk and Nightshrike took them. Shipped
-  (60 fights a cell, the whole-collection deck): GA Smolder 52%, GB Basilisk
-  35%, GC Basilisk 35%, GC2 Smolder 52%, GE Nightshrike 62%, GF Permafrost 40%,
-  GS Skeleeze 18%, against the first run's own gate fights at 0-77% (mostly
-  ~40%). A tower buff can wall a border overnight: re-run the borders after one.
+  (60 fights a cell, a full 30-card deck; whole-collection Fill / region-built):
+  GA Smolder 82/93%, GB Basilisk 52/87%, GC Basilisk 52/98%, GC2 Smolder
+  82/87%, GE Nightshrike 68/40%, GF Permafrost 40/27%, GS Skeleeze 18/35%,
+  against the first run's own gate fights at 0-77% (mostly ~40%). Early borders
+  are the easy end, Act V's the hard end. A tower buff can wall a border
+  overnight: re-run the borders after one.
   **The deck decides these numbers as much as the boss does**: premade decks
   trimmed to 15 cards lost to Smolder 92% of the time, where the story deck
   (with its Mythics) won 52%. Re-measure with the deck the player really has.

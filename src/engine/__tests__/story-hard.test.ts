@@ -10,7 +10,8 @@
 import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import {
-  ALL_NODES, BORDER_BOSS_BOARD, HARD_BORDER_BOSS, REGIONS, REQUIRED_THRONES, boardForNode,
+  ALL_NODES, BIG_BOARD_CAP, BORDER_BOSS_BOARD, BORDER_BOSS_DECK, HARD_BORDER_BOSS, REGIONS,
+  REQUIRED_THRONES, boardForNode,
   borderBossFor, buildFormation, campaignComplete, canStartHard, capForNode, deckCapFor,
   everCleared, fightBoardFor, fightCap, gateCheck, hardFormationSize, heroSpellShelf, isGate,
   isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
@@ -305,7 +306,22 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
     }
   });
 
-  it("asks for a full deck but no composition", () => {
+  it("takes a full Tower deck at every border, whatever the Hard ladder says", () => {
+    // Owner, 2026-09-28: "not allowing you to use a full deck to be able to
+    // defeat the boss". The Tower fights these bosses with a full 5x5 deck and
+    // builds each encounter as half of one; the Hard ladder is 15 at the first
+    // borders.
+    for (const gate of GATES) {
+      const region = regionOfNode(gate.id)!;
+      const standing: StorySave = { ...hard, cleared: [...gate.requires] };
+      expect(fightCap(standing, region, gate), gate.id).toBe(BORDER_BOSS_DECK);
+      expect(BORDER_BOSS_DECK).toBe(BIG_BOARD_CAP);
+    }
+    const first = GATES[0];
+    expect(deckCapFor([...first.requires]), "the ladder there is lower").toBeLessThan(BORDER_BOSS_DECK);
+  });
+
+  it("lets any deck up to a full one cross, and asks no composition", () => {
     const gate = GATES.find((g) => g.demand)!;
     const region = regionOfNode(gate.id)!;
     // Open it: the gate's prerequisites cleared on both runs.
@@ -317,8 +333,10 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
       const d = getDef(id);
       return gate.demand!.kind === "class" ? d.cardClass !== gate.demand!.value : d.attackType !== gate.demand!.value;
     }).slice(0, cap);
-    expect(gateCheck({ ...hardRun, deck: unfit }, gate).ok).toBe(true);
-    expect(gateCheck({ ...hardRun, deck: unfit.slice(1) }, gate).ok, "the deck size still counts").toBe(false);
+    expect(unfit.length).toBe(cap);
+    expect(gateCheck({ ...hardRun, deck: unfit }, gate).ok, "a full deck").toBe(true);
+    expect(gateCheck({ ...hardRun, deck: unfit.slice(0, 12) }, gate).ok, "less than full may cross").toBe(true);
+    expect(gateCheck({ ...hardRun, deck: [] }, gate).ok, "but not nothing").toBe(false);
     const capFirst = fightCap(firstRun, region, gate);
     expect(gateCheck({ ...firstRun, deck: unfit.slice(0, capFirst) }, gate).ok, "the first run still asks").toBe(false);
   });

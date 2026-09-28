@@ -411,7 +411,7 @@ export function StoryPrep(props: {
           )}
           <span>
             Squad cap <b>{cap}</b>
-            {cap > STANDARD_CAP && " · the big board opens it up"}
+            {boss ? " · a full Tower deck" : cap > STANDARD_CAP && " · the big board opens it up"}
             {cap < ladder && squadLimit === null && ` · ${ladder} allowed on a set piece`}
           </span>
           {/* Away from home the squad is usually the binding constraint, and it

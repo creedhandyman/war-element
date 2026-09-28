@@ -1328,9 +1328,12 @@ export function packSquad(save: StorySave, region: StoryRegion, cards: string[])
  *
  *  Used by `gateCheck` alone. A gate demands a FULL deck, and
  *  a gate asking for the ladder's 15 while the player can field 14 is a gate
- *  nobody can pass. Reading the pool means the demand is always satisfiable. */
+ *  nobody can pass. Reading the pool means the demand is always satisfiable.
+ *
+ *  A Hard border boss is the exception to the ladder: it takes a full Tower
+ *  deck (`BORDER_BOSS_DECK`), whatever the rest of the run is capped at. */
 export function fightCap(save: StorySave, region: StoryRegion, node: StoryNode): number {
-  const ceiling = capForNode(save.cleared, region, node);
+  const ceiling = borderBossFor(save, node) ? BORDER_BOSS_DECK : capForNode(save.cleared, region, node);
   const pool = poolForRegion(save, region).length;
   return pool > 0 ? Math.min(ceiling, pool) : ceiling;
 }
@@ -2308,15 +2311,23 @@ export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
   // ladder may already allow for set pieces.
   const region = regionOfNode(node.id);
   const cap = region ? fightCap(save, region, node) : deckCapFor(save.cleared);
+  // A Hard border is held by a boss, not a checkpoint: no composition demand,
+  // and not an EXACT deck either. Anything up to a full Tower deck may cross,
+  // and prep fills it to full by default — being turned away while holding a
+  // full deck was the owner's report ("not allowing you to use a full deck").
+  if (borderBossFor(save, node)) {
+    if (save.deck.length === 0) reasons.push("You have no deck. Build one to face the boss.");
+    else if (save.deck.length > cap)
+      reasons.push(`Your deck is ${save.deck.length}/${cap}. Drop ${save.deck.length - cap}.`);
+    return { ok: reasons.length === 0, reasons };
+  }
   if (save.deck.length !== cap)
     reasons.push(
       save.deck.length < cap
         ? `Your deck is ${save.deck.length}/${cap}. A gate takes a full deck — add ${cap - save.deck.length} more.`
         : `Your deck is ${save.deck.length}/${cap}. Drop ${save.deck.length - cap}.`,
     );
-  // A Hard border is held by a boss rather than a checkpoint: no composition
-  // demand, only the full deck and the boss to slay.
-  if (node.demand && !borderBossFor(save, node)) {
+  if (node.demand) {
     const have = demandMet(save.deck, node.demand);
     if (have < node.demand.count)
       reasons.push(
@@ -2550,20 +2561,25 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *  clock). Overclock held Sunfall Harbor and the Gray Continent Ports until its
  *  own buff the same day (9x2, 72 HP, three Drones a cast); after it the player
  *  won 0 of 60 at both, overrun every time, so Basilisk and Nightshrike took
- *  them. What shipped, 60 fights a cell, with the deck the harness auto-builds
- *  from a Hard run's whole collection, beside the first run's own gate fight:
+ *  them. What shipped, 60 fights a cell, each with a FULL Tower deck (30 cards,
+ *  `BORDER_BOSS_DECK`), beside the first run's own gate fight:
  *
- *    border  boss        Hard   first run      border  boss        Hard   first run
- *    GA      Smolder      52%     42%           GE      Nightshrike  62%     17%
- *    GB      Basilisk     35%     40%           GF      Permafrost   40%     40%
- *    GC      Basilisk     35%     42%           GS      Skeleeze     18%      0%
- *    GC2     Smolder      52%     77%
+ *    border  boss          Fill  built  first run
+ *    GA      Smolder        82%   93%     42%
+ *    GB      Basilisk       52%   87%     40%
+ *    GC      Basilisk       52%   98%     42%
+ *    GC2     Smolder        82%   87%     77%
+ *    GE      Nightshrike    68%   40%     17%
+ *    GF      Permafrost     40%   27%     40%
+ *    GS      Skeleeze       18%   35%      0%
  *
- *  That deck is a stride across all eight elements, the floor of what a player
- *  brings rather than the norm: built from the region's own element plus its
- *  heaviest imports, the same fights ran GC Basilisk 88% and GS Skeleeze 27%.
- *  Ids, not imports: this file stays pure data, and a test pins every id to
- *  VOID_BOSSES, to floors 1-2 and to a side of its border. */
+ *  "Fill" strides the whole collection across all eight elements (what that
+ *  button builds on a Hard run); "built" is the region's own element plus its
+ *  twelve heaviest imports. Held to the Hard ladder instead — 15 cards at the
+ *  first borders — the same four early fights ran 35-52%, and the owner found
+ *  the bosses unbeatable. Ids, not imports: this file stays pure data, and a
+ *  test pins every id to VOID_BOSSES, to floors 1-2 and to a side of its
+ *  border. */
 export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GA: "boss_smolder",     // LEAF -> PYRO, the Southern Burn: LEAF/PYRO
   GB: "boss_basilisk",    // LEAF -> AQUA, Eastleaf Port: LEAF/AQUA
@@ -2583,6 +2599,12 @@ export const borderBossFor = (save: StorySave, node: StoryNode): string | null =
  *  encounter (`buildVoidEncounter`) is built for — not the gate's 7x7. A test
  *  pins the two together. */
 export const BORDER_BOSS_BOARD = 5;
+
+/** ...with a FULL deck for that board, the one the Tower fights it with: the
+ *  encounter is built as half of it plus the boss. The Hard run's ladder
+ *  (15 at the first borders) is for the run's own fights; a Void Trial held
+ *  to it fought the Tower's boss with half a Tower deck. Owner, 2026-09-28. */
+export const BORDER_BOSS_DECK = BIG_BOARD_CAP;
 
 /** The board THIS save fights `node` on: `boardForNode`, except where a Hard
  *  border boss has taken the crossing. */

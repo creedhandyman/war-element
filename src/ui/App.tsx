@@ -280,7 +280,7 @@ import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
-  everCleared, isHard, borderBossFor, startHardMode, type StoryNode,
+  everCleared, isHard, borderBossFor, startHardMode, fightBoardFor, fightCap, type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
@@ -918,13 +918,17 @@ export function App() {
    *  two, and it is the only one where the number on screen is the number the
    *  fight will use. */
   const prepRegion = prepNode ? (regionOfNode(prepNode.id) ?? region) : null;
+  // A Hard border boss is the exception to the ladder: it takes a full Tower
+  // deck (`fightCap`) on the Tower's board (`fightBoardFor`), and a builder
+  // sized by the ladder would not let that deck be built.
+  const prepBoss = prepNode ? borderBossFor(story, prepNode) : null;
   const builderCap = prepNode && prepRegion
     ? Math.min(
-        capForNode(story.cleared, prepRegion, prepNode),
+        prepBoss ? fightCap(story, prepRegion, prepNode) : capForNode(story.cleared, prepRegion, prepNode),
         storyBuilderOwned.length || Number.POSITIVE_INFINITY,
       )
     : storyBuilderCap;
-  const builderBoard = prepNode && prepRegion ? boardForNode(prepRegion, prepNode) : storyBuilderBoard;
+  const builderBoard = prepNode && prepRegion ? fightBoardFor(story, prepRegion, prepNode) : storyBuilderBoard;
 
   // Deck selection = a premade or custom deck (the old two-core pairing is gone).
   // Each side defaults to a different premade so a match is one tap away.
