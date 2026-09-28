@@ -24,10 +24,11 @@
  */
 import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
-import type { GameState, PlayerId } from "../engine";
-import { seatsOf } from "../engine";
+import { voidBossElements } from "../data/void-tower";
+import type { CardInstance, GameState, PlayerId } from "../engine";
+import { effectiveDmg, effectiveMaxHp, seatsOf } from "../engine";
 import { DeckSeat } from "./DeckPickerSheet";
-import { suitFor } from "./shared";
+import { cardArtSrc, suitFor } from "./shared";
 
 /** How long the screen holds before the match begins. Short on purpose — this
  *  is a flourish in front of a fight someone is waiting to play, and every
@@ -38,18 +39,54 @@ const HOLD_MS = 4200;
 const readSide = (state: GameState, p: PlayerId): string[] =>
   [...state.players[p].deck, ...state.players[p].hand.map((h) => h.defId)];
 
-function Detail(props: { cards: string[] }) {
-  const { cards } = props;
+/** The BOSS standing on a seat's side at the deal, if there is one.
+ *
+ *  A Void Tower boss is seated straight onto the board at setup, OUTSIDE the
+ *  deck — so `readSide` never sees it. This screen named the fight "Rotroot"
+ *  and then wore Zombination's face and listed four Zombinations as the top of
+ *  the curve: the one card the whole fight is about was the one card missing
+ *  from it. The Quick match seat already faced itself with the boss; this is
+ *  the same answer for the screen after it.
+ *
+ *  The dearest boss-flagged card, so a boss's own wall (cost 0) can never be
+ *  mistaken for it, and never a TAMED one — that is a boss fighting for the
+ *  player, not the opponent this seat is introducing. */
+const bossOn = (state: GameState, p: PlayerId): CardInstance | null => {
+  let best: CardInstance | null = null;
+  for (const c of Object.values(state.cards)) {
+    if (c.owner !== p || !c.pos || c.tamed || !getDef(c.defId).boss) continue;
+    if (!best || getDef(c.defId).cost > getDef(best.defId).cost) best = c;
+  }
+  return best;
+};
+
+function Detail(props: { cards: string[]; boss?: { state: GameState; inst: CardInstance } | null }) {
+  const { cards, boss } = props;
   const avg = cards.length ? cards.reduce((s, id) => s + getDef(id).cost, 0) / cards.length : 0;
-  // The top of the curve, dearest first.
-  const top = [...cards].sort((a, b) => getDef(b).cost - getDef(a).cost).slice(0, 4);
+  // The top of the curve, dearest first — one line shorter when the boss heads
+  // the list, so the panel keeps its height.
+  const top = [...cards].sort((a, b) => getDef(b).cost - getDef(a).cost).slice(0, boss ? 3 : 4);
+  const bossDef = boss ? getDef(boss.inst.defId) : null;
   return (
     <div className="pvi-detail">
       <div className="pvi-meta">
-        <span><b>{cards.length}</b> cards</span>
+        <span><b>{cards.length}</b> {boss ? "in the brood" : "cards"}</span>
         <span>avg cost <b>{avg.toFixed(1)}</b></span>
       </div>
       <div className="pvi-top">
+        {boss && bossDef && (
+          /* Its LIVE numbers, read off the instance: an enraged trial is the
+             same card scaled up, and the card's printed line would undersell
+             exactly the fight that was made harder. */
+          <span className="pvi-card boss" data-el={bossDef.element}>
+            <b>BOSS</b>
+            <em>{bossDef.name}</em>
+            <i>
+              {effectiveDmg(boss.state, boss.inst)}×{bossDef.hits} · {effectiveMaxHp(boss.state, boss.inst)} HP
+              {boss.inst.curShields ? ` · ${boss.inst.curShields} shields` : ""}
+            </i>
+          </span>
+        )}
         {top.map((id, i) => {
           const d = getDef(id);
           return (
@@ -82,7 +119,7 @@ export function VersusIntro(props: {
   // re-shuffle the panels under everyone.
   const [mine] = useState(() => readSide(game, me));
   const [foes] = useState(() =>
-    seatsOf(game).filter((p) => p !== me).map((p) => ({ seat: p, cards: readSide(game, p) })));
+    seatsOf(game).filter((p) => p !== me).map((p) => ({ seat: p, cards: readSide(game, p), boss: bossOn(game, p) })));
   // Two seats keep the big side-by-side reveal they have always had; three or
   // four stack the opponents into a narrower column each, because four full
   // panels do not fit and shrinking all of them would cost the 1v1 nothing to
@@ -131,9 +168,13 @@ export function VersusIntro(props: {
             <div className="pvi-col" key={f.seat}>
               <DeckSeat
                 side="foe"
-                flag={`${many ? "" : "OPPONENT · "}${suitFor(game.seatSuits, f.seat).glyph} ${f.seat}`}
-                label={names?.[f.seat] ?? "Their deck"}
+                flag={`${many ? "" : f.boss ? "BOSS · " : "OPPONENT · "}${suitFor(game.seatSuits, f.seat).glyph} ${f.seat}`}
+                label={names?.[f.seat] ?? (f.boss ? getDef(f.boss.defId).name : "Their deck")}
                 cards={f.cards}
+                /* The boss's face and the boss's two elements — the same pair
+                   the Quick match seat shows — rather than the brood's. */
+                artOverride={f.boss ? cardArtSrc(getDef(f.boss.defId)) : undefined}
+                elements={f.boss ? voidBossElements(f.boss.defId) : undefined}
               />
               {/* THE TELL. The opponent's suit is dealt fresh each match and
                   decides how its AI plays, so saying which style you are about
@@ -151,7 +192,7 @@ export function VersusIntro(props: {
                   free-for-all the seat and the deck name are what you need to
                   tell three strangers apart; the lists are on the board in a
                   minute either way. */}
-              {!many && <Detail cards={f.cards} />}
+              {!many && <Detail cards={f.cards} boss={f.boss ? { state: game, inst: f.boss } : null} />}
             </div>
           ))}
         </div>

@@ -5933,6 +5933,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .pvi-card i { font-style: normal; font-size: var(--fs-1); color: var(--ink-faint); margin-left: auto; white-space: nowrap; }
+/* A boss fight's BOSS heads the list. It stands on the board rather than in
+   the deck, so it is marked as the centrepiece rather than merely listed first. */
+.pvi-card.boss { background: rgba(201, 162, 75, 0.1); box-shadow: inset 0 0 0 1px var(--gold-line); }
+.pvi-card.boss b { font-size: var(--fs-1); letter-spacing: 0.08em; }
 .pvi-mid { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; }
 .pvi-vs {
   font-family: var(--head); font-size: var(--fs-5); letter-spacing: 0.1em;
