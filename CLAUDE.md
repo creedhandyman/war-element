@@ -1507,12 +1507,16 @@ engine runtime and no React, so it stays testable headlessly
   player won 0 of 60 at both, so Basilisk and Nightshrike took them. Shipped
   (60 fights a cell, a full 30-card deck; whole-collection stride / `regionFill`):
   GA Smolder 82/93%, GB Basilisk 52/87%, GC Basilisk 52/98%, GC2 Smolder
-  82/87%, GE Nightshrike 68/40%, GF Hoarfell 3/5%, GS Skeleeze 18/35%,
+  82/87%, GE Nightshrike 68/40%, GF Hoarfell (at 60%) 26/34%, GS Skeleeze 18/35%,
   against the first run's own gate fights at 0-77% (mostly ~40%). Early borders
   are the easy end, Act V's the hard end. **The Arctic Gate is Hoarfell by the
-  owner's call** (2026-09-28, over Permafrost's 40%): a floor-3 boss with no
-  ally, the run's deliberate wall — the one border off floors 1-2, named in the
-  test. A tower buff can wall a border overnight: re-run the borders after one.
+  owner's call** (2026-09-28, over Permafrost's 40%), a floor-3 boss with no
+  ally — the one border off floors 1-2, named in the test. At full strength it
+  was a wall (5% with Fill), so by the owner's next call it fights there at
+  60% of its Tower strength (`HARD_BORDER_SCALE` / `borderBossScale`, applied
+  by `seatVoidBoss({ scale })` through `scaleInstance`; the Tower's own fight
+  is untouched): 34% with Fill, beside Skeleeze. The sweep is in the comment.
+  A tower buff can wall a border overnight: re-run the borders after one.
   **The deck decides these numbers as much as the boss does**: premade decks
   trimmed to 15 cards lost to Smolder 92% of the time, where the story deck
   (with its Mythics) won 52%. Re-measure with the deck the player really has.

@@ -7,6 +7,8 @@
 // that READ node clears but are the player's history — spells, the tutorial,
 // the profile's count, the cloud-save summary), the formations, and the border
 // bosses and how they are seated.
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import {
@@ -17,6 +19,7 @@ import {
   isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
   SQUAD_BASE, bookForLoadout, heroBookFor, spellsUnlockedIn, squadIsOfferable, squadLimitFor,
   startHardMode, HARD_MARK, THRONE_MYTHICS, canResumeHard, resumeHardMode,
+  HARD_BORDER_SCALE, borderBossScale,
   type StoryNode, type StorySave,
 } from "../../data/story";
 import {
@@ -442,6 +445,38 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
     expect(gateCheck({ ...hardRun, deck: [] }, gate).ok, "but not nothing").toBe(false);
     const capFirst = fightCap(firstRun, region, gate);
     expect(gateCheck({ ...firstRun, deck: unfit.slice(0, capFirst) }, gate).ok, "the first run still asks").toBe(false);
+  });
+
+  it("Hoarfell holds the Arctic Gate below its Tower strength, and only there", () => {
+    // Owner, 2026-09-28: "reduce the power of Hoarfell until it's in line with
+    // the others in the win rate. This one should be hard, it's one of the
+    // last bosses you fight." Measured in HARD_BORDER_SCALE's comment.
+    const gf = GATES.find((g) => g.id === "GF")!;
+    expect(HARD_BORDER_BOSS.GF).toBe("boss_hoarfell");
+    expect(borderBossScale(gf)).toBe(HARD_BORDER_SCALE.GF);
+    expect(HARD_BORDER_SCALE.GF).toBeGreaterThan(0);
+    expect(HARD_BORDER_SCALE.GF).toBeLessThan(1);
+    for (const g of GATES.filter((x) => x.id !== "GF")) expect(borderBossScale(g), g.id).toBe(1);
+
+    const seated = (opts?: { scale: number }) => {
+      const enc = buildVoidEncounter(voidBossById("boss_hoarfell")!);
+      const s = createInitialState(7, ["leaf_sakuroot"], enc.deck, ["P1"], [], enc.spells, enc.boardSize,
+        undefined, undefined, { P2: enc.stacked.P2 });
+      seatVoidBoss(s, "boss_hoarfell", opts);
+      const seat = voidBossSeat(s.boardSize);
+      return cardAt(s, seat.row, seat.col)!;
+    };
+    // At the border: HP down, and the one multiplier its damage and Special read.
+    const atGate = seated({ scale: borderBossScale(gf) });
+    expect(atGate.statScale).toBe(HARD_BORDER_SCALE.GF);
+    expect(atGate.maxHp).toBe(Math.round(getDef("boss_hoarfell").hp * HARD_BORDER_SCALE.GF));
+    // The Tower's own Hoarfell is untouched.
+    const inTower = seated();
+    expect(inTower.statScale ?? 1).toBe(1);
+    expect(inTower.maxHp).toBe(getDef("boss_hoarfell").hp);
+    // ...and the campaign seats its border bosses at their border's strength.
+    const app = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8");
+    expect(app).toContain("seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });");
   });
 
   it("is seated like a Void Trial: the boss, its board and the Fortress Gates", () => {

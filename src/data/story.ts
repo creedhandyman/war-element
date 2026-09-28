@@ -2668,7 +2668,7 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *    GC      Basilisk        52%   98%     42%
  *    GC2     Smolder         82%   87%     77%
  *    GE      Nightshrike     68%   40%     17%
- *    GF      Hoarfell         3%    5%     40%
+ *    GF      Hoarfell (60%)  26%   34%     40%
  *    GS      Skeleeze        18%   35%      0%
  *
  *  "Fill" is `regionFill`, the region's own element plus its twelve heaviest
@@ -2678,9 +2678,10 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
  *  bosses unbeatable.
  *
  *  THE ARCTIC GATE IS HOARFELL BY THE OWNER'S CALL (2026-09-28: "Replace
- *  Permafrost with Hoarfell"), knowing it is the run's wall: a floor-3 boss
- *  with no tamed ally, overrun in most of its 57 wins in 60. Permafrost ran
- *  40% there. It is the one border off floors 1-2, and the test names it.
+ *  Permafrost with Hoarfell"), fought at 60% of its Tower strength by the
+ *  owner's next one (`HARD_BORDER_SCALE`). At full strength it was the run's
+ *  wall, a floor-3 boss with no tamed ally: 5% with Fill, overrun in most of
+ *  its wins. It is the one border off floors 1-2, and the test names it.
  *  Ids, not imports: this file stays pure data, and a test pins every id to
  *  VOID_BOSSES, to a side of its border and — Hoarfell apart — to floors 1-2. */
 export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
@@ -2689,9 +2690,35 @@ export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GC: "boss_basilisk",    // PYRO -> AQUA, Sunfall Harbor: AQUA's guard, as at Eastleaf
   GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
   GE: "boss_nightshrike", // the airship lanes to the Gray Continent: a GALE sky-hunter
-  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick — the run's wall
+  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick, at 60% (below)
   GS: "boss_skeleeze",    // the Shadow Border: DUSK, with the Gray Continent's GALE
 };
+
+/** HOW STRONG a border's boss stands there, as a share of its Tower self,
+ *  where that is not all of it. Scaled through the same one multiplier a tamed
+ *  ally or an enraged trial runs on (`scaleInstance`: HP, shields, damage and
+ *  its Special), at seating (`seatVoidBoss`), so the Tower's own fight is
+ *  untouched.
+ *
+ *  Owner, 2026-09-28, on Hoarfell at the Arctic Gate: "reduce the power of
+ *  Hoarfell until it's in line with the others in the win rate. This one
+ *  should be hard, it's one of the last bosses you fight." Measured there with
+ *  a full Tower deck, player win % (Fill deck / whole-collection stride):
+ *
+ *      strength   Fill   whole
+ *        100%       5%     3%    60 fights
+ *         85%      18%     2%    60
+ *         75%      23%    10%    60
+ *         65%      31%    21%    180
+ *         60%      34%    26%    120   <- shipped
+ *         55%      48%    35%    60
+ *         45%      77%    57%    60
+ *
+ *  60% sits beside Skeleeze at the Shadow Border (35% with Fill), the other
+ *  last border, and under Nightshrike (40%): the hard end of the run, no
+ *  longer a wall. */
+export const HARD_BORDER_SCALE: Readonly<Record<string, number>> = { GF: 0.6 };
+export const borderBossScale = (node: StoryNode): number => HARD_BORDER_SCALE[node.id] ?? 1;
 
 /** The boss standing on this border, in Hard mode. Null on the first run and
  *  on every node that is not a gate. */

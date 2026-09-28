@@ -27,7 +27,7 @@ export function broodOf(bossId: string): string[] {
 export function seatVoidBoss(
   fresh: GameState,
   bossId: string,
-  opts: { enraged?: boolean; ally?: string | null } = {},
+  opts: { enraged?: boolean; ally?: string | null; scale?: number } = {},
 ): void {
   const seat = voidBossSeat(fresh.boardSize);
   // Scores this match as a boss fight: no slot race, and killing the boss
@@ -39,6 +39,9 @@ export function seatVoidBoss(
   // one multiplier the whole feature runs on, so its Special is stronger
   // too and not just its body.
   if (opts.enraged) scaleInstance(inst, ENRAGE_SCALE);
+  // ...or WEAKER than the Tower's: a Hard border boss held below its Tower
+  // strength (`HARD_BORDER_SCALE`). Never both — a border is not a trial.
+  else if (opts.scale != null && opts.scale !== 1) scaleInstance(inst, opts.scale);
   // ...and SOME BOSSES HAVE A WALL OF THEIR OWN. Kheiringer opens behind
   // three Lava Gates: placed here, at setup, because a summon lands on the
   // summoner's home row and she would otherwise have played her gates

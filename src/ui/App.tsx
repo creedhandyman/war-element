@@ -280,7 +280,8 @@ import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
-  everCleared, isHard, borderBossFor, startHardMode, resumeHardMode, fightBoardFor, fightCap, type StoryNode,
+  everCleared, isHard, borderBossFor, borderBossScale, startHardMode, resumeHardMode, fightBoardFor, fightCap,
+  type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, regionsOpenedBy, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
@@ -5413,7 +5414,7 @@ export function App() {
                 enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 },
                 undefined, { P1: [...foilIds] });
               trial.aiSkill = autoRung;
-              seatVoidBoss(trial, borderBoss);
+              seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });
               enterStoryFight(trial, node, getDef(borderBoss).name);
               return;
             }

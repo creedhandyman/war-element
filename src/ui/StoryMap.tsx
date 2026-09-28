@@ -9,7 +9,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, canResumeHard,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, borderBossScale,
+  canResumeHard,
   canStartHard,
   deckCapFor, fieldedBy, fightCap, gateCheck, isBlightNode, isCleared, isGate, isHard, isOpen,
   isOverflow, isRegionCleared, recruitChance, recruitablePool, regionOfNode, terrainContested,
@@ -301,8 +302,9 @@ function NodePanel(props: {
 
       {boss && face && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
-          Held by <b>{face.name}</b>, a Void Tower boss. Slay it to cross, with a full Tower
-          deck: up to <b>{fightCap(save, region, node)}</b> cards
+          Held by <b>{face.name}</b>, a Void Tower boss
+          {borderBossScale(node) < 1 && <> — here at {Math.round(borderBossScale(node) * 100)}% of its Tower strength</>}.
+          {" "}Slay it to cross, with a full Tower deck: up to <b>{fightCap(save, region, node)}</b> cards
           {gate.ok && <span className="np-tick"> ✓ ready</span>}
         </p>
       )}

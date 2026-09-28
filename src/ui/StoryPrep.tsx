@@ -15,7 +15,7 @@ import { getDef } from "../data/cards";
 import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
   regionFill,
-  borderBossFor, deckCapFor, deckForRegion, fieldedBy, fightBoardFor, fightCap, isGate, loadoutLegal, localCards,
+  borderBossFor, borderBossScale, deckCapFor, deckForRegion, fieldedBy, fightBoardFor, fightCap, isGate, loadoutLegal, localCards,
   isHard, packSquad, packableFor, poolForRegion, rememberDeck,
   squadFor, squadIsExplicit, squadIsOfferable, squadLimitFor,
   type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
@@ -410,7 +410,11 @@ export function StoryPrep(props: {
 
         <div className="sp-facts">
           {boss ? (
-            <span>Held by <b>{getDef(boss).name}</b> · slay it to cross, under the tower's rules</span>
+            <span>
+              Held by <b>{getDef(boss).name}</b>
+              {borderBossScale(node) < 1 && ` at ${Math.round(borderBossScale(node) * 100)}% strength`}
+              {" "}· slay it to cross, under the tower's rules
+            </span>
           ) : (
             <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
           )}
