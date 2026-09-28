@@ -11309,10 +11309,14 @@ export const CARDS: CardDef[] = [
       // could not TARGET one, so the answer needed the answer. `antiAir` lifts
       // only the FLYING dodge — `ranged` would have worked too and would also
       // have thrown away this Special's printed radius.
+      // DMG 5 -> 10, the owner's call (2026-09-27): the Special was the part of
+      // the kit nobody felt. Bare, against the first eight 5x5 premades x 24
+      // seeds, 192 fights a setting: boss win 33.9% at 5, 47.4% at 10,
+      // 57.8% at 15 — Floor 2's target is 60.
       params: {
-        antiAir: 1, dmg: 5, targets: 3, drain: 2, reach: 2 },
+        antiAir: 1, dmg: 10, targets: 3, drain: 2, reach: 2 },
       targetSide: "enemy",
-      text: "5 DMG and DRAIN 2 max HP from up to 3 opponents within 2 spaces.",
+      text: "10 DMG and DRAIN 2 max HP from up to 3 opponents within 2 spaces.",
     },
   },
   {
