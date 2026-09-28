@@ -16,8 +16,8 @@ import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
   autoDeck,
   borderBossFor, deckCapFor, deckForRegion, fieldedBy, fightBoardFor, fightCap, isGate, loadoutLegal, localCards,
-  packSquad, packableFor, poolForRegion, rememberDeck,
-  squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
+  isHard, packSquad, packableFor, poolForRegion, rememberDeck,
+  squadFor, squadIsExplicit, squadIsOfferable, squadLimitFor,
   type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
 } from "../data/story";
 import {
@@ -57,8 +57,9 @@ export function StoryPrep(props: {
   const ladder = deckCapFor(save.cleared);
   // The squad: away from home you field what you packed and nothing else, so
   // every "which cards do I have" question below reads the POOL, not the whole
-  // collection. At home the pool IS the collection and none of this shows.
-  const squadLimit = squadCapInRegion(save.cleared, region);
+  // collection. At home the pool IS the collection and none of this shows —
+  // and a Hard run is at home everywhere (`squadLimitFor`).
+  const squadLimit = squadLimitFor(save, region);
   const pool = poolForRegion(save, region);
   // Packing is OFFERED, never forced. This used to be `needsSquad(...)`, which
   // meant the campaign stopped and demanded a modal the first time you walked
@@ -417,7 +418,9 @@ export function StoryPrep(props: {
               is the one the player can do nothing about from here — so say which
               it is, and say where it can be changed. */}
           {squadLimit === null ? (
-            <span className="sp-home">Home ground · your whole collection is here</span>
+            <span className="sp-home">
+              {isHard(save) ? "Hard mode" : "Home ground"} · your whole collection is here
+            </span>
           ) : (
             <span>
               <b>{local}</b> {region.element} here

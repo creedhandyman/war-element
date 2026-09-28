@@ -24,7 +24,7 @@ import {
 } from "./filters";
 import { getDef } from "../data/cards";
 import {
-  autoSquad, localCards, packSquad, packableFor, squadCapInRegion, squadFor,
+  autoSquad, isHard, localCards, packSquad, packableFor, squadFor, squadLimitFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
@@ -43,7 +43,8 @@ export function StorySquad(props: {
   onPreview: (defId: string) => void;
 }) {
   const { save, region } = props;
-  const limit = squadCapInRegion(save.cleared, region);
+  // None at home, and none anywhere on a Hard run.
+  const limit = squadLimitFor(save, region);
   const locals = localCards(save, region);
   const [editing, setEditing] = useState(false);
   // The explicit squad if one was chosen, otherwise the one the campaign picked
@@ -114,7 +115,11 @@ export function StorySquad(props: {
       <section className="squad-strip home">
         <div className="sq-head">
           <span className="sq-title">Your squad here</span>
-          <span className="sq-note">home ground — every card you own fights</span>
+          <span className="sq-note">
+            {isHard(save)
+              ? "Hard mode — every card you own fights, in every region"
+              : "home ground — every card you own fights"}
+          </span>
         </div>
         <div className="sq-row">
           {[...locals].slice(0, 12).map((id) => (

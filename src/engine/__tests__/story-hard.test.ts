@@ -13,7 +13,8 @@ import {
   ALL_NODES, BORDER_BOSS_BOARD, HARD_BORDER_BOSS, REGIONS, REQUIRED_THRONES, boardForNode,
   borderBossFor, buildFormation, campaignComplete, canStartHard, capForNode, deckCapFor,
   everCleared, fightBoardFor, fightCap, gateCheck, hardFormationSize, heroSpellShelf, isGate,
-  isHard, isOpen, loadStory, newSave, regionOfNode, saveStory, startHardMode,
+  isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
+  SQUAD_BASE, squadIsOfferable, squadLimitFor, startHardMode,
   type StoryNode, type StorySave,
 } from "../../data/story";
 import {
@@ -90,6 +91,25 @@ describe("starting Hard mode", () => {
     expect(hard.deck).toEqual(done.deck);
     // ...and the finished campaign stays on the record.
     expect([...(hard.firstRunCleared ?? [])].sort()).toEqual([...done.cleared].sort());
+  });
+
+  it("plays with the whole collection, in every region, from the first node", () => {
+    // Owner, 2026-09-27: no travelling squad on a Hard run. Every region is home
+    // ground, the way the first run only makes it once DUSK's Throne falls.
+    const hard = startHardMode(finished());
+    const owned = [...hard.collection].sort();
+    for (const region of REGIONS) {
+      expect(squadLimitFor(hard, region), region.id).toBeNull();
+      expect([...poolForRegion(hard, region)].sort(), region.id).toEqual(owned);
+      expect(squadIsOfferable(hard, region), region.id).toBe(false);
+      expect(packSquad(hard, region, owned.slice(0, 3)), `${region.id}: nothing to pack`).toBe(hard);
+    }
+    // The first run keeps its limit: away from home, before any Throne, the
+    // twelve it packed and nothing else from abroad.
+    const firstRun: StorySave = { ...finished(), cleared: [] };
+    const away = REGIONS[1];
+    expect(squadLimitFor(firstRun, away)).toBe(SQUAD_BASE);
+    expect(poolForRegion(firstRun, away).length).toBeLessThan(firstRun.collection.length);
   });
 
   it("keeps every spell the hero earned — spells unlock off clears, and the map reset", () => {

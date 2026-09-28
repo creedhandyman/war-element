@@ -1423,10 +1423,17 @@ engine runtime and no React, so it stays testable headlessly
   region's required Throne (`REQUIRED_THRONES`, `campaignComplete`) and the map
   offers a second run: `HardOffer` in StoryMap, two taps because the first one
   says what goes. `startHardMode` sets `hardRun: 1` and empties `cleared`,
-  `blight` and `squads` (`squadFor` does not clamp, so an old squad would carry
-  more than a fresh run allows); the finished run is kept in `firstRunCleared`.
-  Everything else rides through untouched: collection, hero (shards, essence,
-  foils, chosen book), teams, per-region decks, pity, tamed bosses.
+  `blight` and `squads` (dead weight: a Hard run has no squad limit); the
+  finished run is kept in `firstRunCleared`. Everything else rides through
+  untouched: collection, hero (shards, essence, foils, chosen book), teams,
+  per-region decks, pity, tamed bosses.
+  **The whole collection plays everywhere** (owner, same day): `squadLimitFor(
+  save, region)` is null on a Hard run, so every region is home ground from the
+  first node — what the first run only gets once DUSK's Throne falls.
+  `poolForRegion`, `autoSquad`, `packSquad`, `squadIsOfferable`, StoryPrep and
+  StorySquad all read it. `squadCapInRegion(cleared, region)` is the first
+  run's ladder alone: never call it with a save in hand. The deck-size ladder
+  (`deckCapFor`, 6 up to 30) still resets and still applies.
   **Clears now have two readers, and new code must pick one.** `save.cleared`
   is the MAP: open nodes, the deck-cap ladder, squad limits, Blight, musters.
   `everCleared(save)` is the player's HISTORY: spells (`spellsUnlockedIn` —
@@ -1443,10 +1450,13 @@ engine runtime and no React, so it stays testable headlessly
   double everywhere; EVERY region musters; the opener's one-for-one welcome and
   the first battle's free placement (App, `!isHard`) are first-run only.
   Measured (both sides AI, 16 nodes across all regions, a veteran's deck
-  auto-built from the whole collection, 40 fights a cell): 73% against
-  first-run squads, 54% against Hard's. The climbs bite (LEAF's Throne
-  100 -> 28%, AQUA's 63 -> 20%, a GALE Warden 95 -> 40%); the first few fights
-  stay gentle, since a six-card cap can still be six Mythics.
+  auto-built from the region's element plus its heaviest imports, 40 fights a
+  cell): 73% against first-run squads, 54% against Hard's. The climbs bite
+  (LEAF's Throne 100 -> 28%, AQUA's 63 -> 20%, a GALE Warden 95 -> 40%); the
+  first few fights stay gentle, since a six-card cap can still be six Mythics.
+  A deck strided across the WHOLE collection (Fill, on a Hard run) is far
+  weaker (LEAF's Throne 0%): eight elements give up the terrain and every
+  pairing. Prep opens on the remembered team for the region, not on Fill.
   **A Void Tower boss holds every border** (`HARD_BORDER_BOSS`, `borderBossFor`):
   a Void Trial with the story deck. The encounter is `buildVoidEncounter`, the
   board is the tower's 5x5 (`fightBoardFor` / `BORDER_BOSS_BOARD`, pinned equal),
@@ -1456,11 +1466,14 @@ engine runtime and no React, so it stays testable headlessly
   ally; `gateCheck` keeps the exact deck size and drops the composition demand.
   **Floors 1-2 only**: floors 3+ are tuned around a tamed ally and were walls —
   Hoarfell at the Arctic Gate won 2 of 40, Spindle at the Shadow Border 0 of 40,
-  and no DAWN boss cleared 8%. Shipped (60 fights a cell): GA Smolder 52%,
-  GB Basilisk 35%, GC Overclock 43%, GC2 Smolder 27%, GE Overclock 27%,
-  GF Permafrost 40%, GS Skeleeze 27%, against the first run's own gate fights
-  at 0-77% (mostly ~40%). The same harbour takes a different guard per side on
-  purpose: from AQUA, Overclock won 0 of 60 (its drones overran the home row).
+  and no DAWN boss cleared 8%. Each land guards its own shore: both roads into
+  PYRO meet Smolder, both into AQUA meet Basilisk. Overclock held two borders
+  until its own buff the same day (9x2, 72 HP, three Drones); after it the
+  player won 0 of 60 at both, so Basilisk and Nightshrike took them. Shipped
+  (60 fights a cell, the whole-collection deck): GA Smolder 52%, GB Basilisk
+  35%, GC Basilisk 35%, GC2 Smolder 52%, GE Nightshrike 62%, GF Permafrost 40%,
+  GS Skeleeze 18%, against the first run's own gate fights at 0-77% (mostly
+  ~40%). A tower buff can wall a border overnight: re-run the borders after one.
   **The deck decides these numbers as much as the boss does**: premade decks
   trimmed to 15 cards lost to Smolder 92% of the time, where the story deck
   (with its Mythics) won 52%. Re-measure with the deck the player really has.

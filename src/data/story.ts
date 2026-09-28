@@ -1161,6 +1161,16 @@ export function squadCapInRegion(
   return squadCapFor(cleared);
 }
 
+/** The squad limit THIS SAVE plays under in `region`: `squadCapInRegion`,
+ *  except in Hard mode, where there is none anywhere (owner, 2026-09-27). A
+ *  Hard run is played with the whole collection from its first node: every
+ *  region is home ground, as the first run only makes it once DUSK falls.
+ *  Every reader that holds a save goes through this; `squadCapInRegion` is the
+ *  first run's ladder alone. */
+export function squadLimitFor(save: StorySave, region: StoryRegion): number | null {
+  return isHard(save) ? null : squadCapInRegion(save.cleared, region);
+}
+
 /** The cards actually available to build a deck from in `region`.
  *
  *  At HOME — a region whose Throne you hold, or anywhere once DUSK has fallen —
@@ -1187,12 +1197,12 @@ export const squadFor = (save: StorySave, region: StoryRegion): string[] =>
 
 /** Everything available to build a deck from in `region`.
  *
- *  At HOME — a region whose Throne you hold, or anywhere once DUSK has fallen —
- *  the whole collection. AWAY it is the region's own element plus whatever you
- *  packed, and nothing else: foreign cards left behind stay behind until you
- *  walk back. */
+ *  At HOME — a region whose Throne you hold, anywhere once DUSK has fallen, or
+ *  anywhere at all in Hard mode — the whole collection. AWAY it is the region's
+ *  own element plus whatever you packed, and nothing else: foreign cards left
+ *  behind stay behind until you walk back. */
 export function poolForRegion(save: StorySave, region: StoryRegion): string[] {
-  const limit = squadCapInRegion(save.cleared, region);
+  const limit = squadLimitFor(save, region);
   if (limit === null) return [...save.collection];
   // A squad you have actually chosen wins. Otherwise one is picked FOR you —
   // the campaign must never stop and demand a modal before a fight it could
@@ -1254,7 +1264,7 @@ export function autoDeck(pool: readonly string[], cap: number): string[] {
  *  honest — every card is priced at 5*cost + 10 — so the most expensive things
  *  you own really are the biggest. */
 export function autoSquad(save: StorySave, region: StoryRegion): string[] {
-  const limit = squadCapInRegion(save.cleared, region);
+  const limit = squadLimitFor(save, region);
   if (limit === null) return [];
   return [...packableFor(save, region)]
     .sort((a, b) => getDef(b).cost - getDef(a).cost || a.localeCompare(b))
@@ -1275,7 +1285,7 @@ export const packableFor = (save: StorySave, region: StoryRegion): string[] =>
  *  FOREIGN ones before you could play. The pool auto-packs now (see
  *  `autoSquad`); this only decides whether to show the "Squad" button. */
 export const squadIsOfferable = (save: StorySave, region: StoryRegion): boolean => {
-  const limit = squadCapInRegion(save.cleared, region);
+  const limit = squadLimitFor(save, region);
   if (limit === null) return false;
   return packableFor(save, region).length > limit;
 };
@@ -1303,7 +1313,7 @@ export const squadIsExplicit = (save: StorySave, region: StoryRegion): boolean =
  *  cards actually owned, and stored under this region so returning here finds
  *  it again instead of re-opening the picker. */
 export function packSquad(save: StorySave, region: StoryRegion, cards: string[]): StorySave {
-  const limit = squadCapInRegion(save.cleared, region);
+  const limit = squadLimitFor(save, region);
   // At home there is nothing to pack — the whole collection is already yours.
   if (limit === null) return save;
   const owned = [...new Set(cards)].filter((id) => save.collection.includes(id));
@@ -2437,16 +2447,20 @@ const tribesOf = (d: { tribe?: string | string[] }): string[] =>
 
 // ── Hard mode (owner, 2026-09-27) ───────────────────────────────────────────
 // Beat every region's required Throne and the campaign offers a second run. The
-// MAP starts over (node clears, and with them the deck-size ladder; Blight;
-// packed squads) while the collection, spells, shards, level and saved teams carry
-// over. Every fight fields a BIGGER squad (`HARD_FORMATION_SCALE`, and more of
+// MAP starts over (node clears, and with them the deck-size ladder; Blight)
+// while the collection, spells, shards, level and saved teams carry over, and
+// the WHOLE collection is playable everywhere: no squad limit (`squadLimitFor`). Every fight fields a BIGGER squad (`HARD_FORMATION_SCALE`, and more of
 // it Legendary and Epic, `HARD_QUOTA_BONUS`), and every border is guarded by a
 // Void Tower boss instead of a patrol, fought under tower rules
 // (`HARD_BORDER_BOSS`). Owner's choices: bigger squads rather than scaled-up
 // stats, and a run started by a button rather than the map wiping itself the
 // moment the last Throne falls.
 
-export const isHard = (save: StorySave): boolean => (save.hardRun ?? 0) > 0;
+/** Is this save on a Hard run? A function declaration so it is hoisted for the
+ *  readers above it (`squadLimitFor`). */
+export function isHard(save: StorySave): boolean {
+  return (save.hardRun ?? 0) > 0;
+}
 
 /** Every node this save has EVER cleared: this run and every run before it.
  *
@@ -2472,11 +2486,10 @@ export const canStartHard = (save: StorySave): boolean => !isHard(save) && campa
 /** Start the Hard run: the map resets, the cards stay.
  *
  *  `cleared` empties, which by itself resets everything that reads it: which
- *  nodes and regions are open, the deck-size ladder (`deckCapFor`), the squad
- *  limits and the region musters. Blight is world progress and resets with it.
- *  Packed squads go too: `squadFor` does not clamp, so a squad packed at the old
- *  limit would carry more foreign cards than a fresh run allows. What was
- *  cleared is kept on the record in `firstRunCleared`. */
+ *  nodes and regions are open, the deck-size ladder (`deckCapFor`) and the
+ *  region musters. Blight is world progress and resets with it. There is no
+ *  squad limit on a Hard run (`squadLimitFor`), so packed squads are cleared as
+ *  dead weight. What was cleared is kept on the record in `firstRunCleared`. */
 export function startHardMode(save: StorySave): StorySave {
   if (!canStartHard(save)) return save;
   return {
@@ -2494,12 +2507,17 @@ export function startHardMode(save: StorySave): StorySave {
  *  (`formationSize`); Hard brings half as many again.
  *
  *  Measured at 16 nodes across all eight regions (both sides AI, 40 fights a
- *  cell), with a veteran's deck auto-built from the whole collection: it wins
- *  73% on average against the first run's squads and 54% against Hard's. The
- *  climbs are where it bites: LEAF's Throne 100% -> 28%, a LEAF Landmark
- *  73% -> 5%, AQUA's Throne 63% -> 20%, a GALE Warden 95% -> 40%. Its first few
- *  fights stay the gentlest part: a six-card cap is six cards however good
- *  they are, but they can be Mythics. */
+ *  cell), with a veteran's deck auto-built from the region's own element plus
+ *  its heaviest imports: it wins 73% on average against the first run's squads
+ *  and 54% against Hard's. The climbs are where it bites: LEAF's Throne
+ *  100% -> 28%, a LEAF Landmark 73% -> 5%, AQUA's Throne 63% -> 20%, a GALE
+ *  Warden 95% -> 40%. Its first few fights stay the gentlest part: a six-card
+ *  cap is six cards however good they are, but they can be Mythics.
+ *
+ *  A deck strided across the WHOLE collection — what Fill builds on a Hard
+ *  run, where every region is home ground — does far worse (LEAF's Throne 0%):
+ *  eight elements at once give up the region's terrain and every pairing. The
+ *  prep screen opens on the player's remembered team for the region instead. */
 export const HARD_FORMATION_SCALE = 1.5;
 export const hardFormationSize = (cap: number): number =>
   Math.round(formationSize(cap) * HARD_FORMATION_SCALE);
@@ -2513,33 +2531,36 @@ export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: numb
 });
 
 /** WHO GUARDS EACH BORDER in Hard mode: a Void Tower boss that fights for one
- *  side of it, from the tower's FIRST TWO FLOORS.
+ *  side of it, from the tower's FIRST TWO FLOORS. Each land guards its own
+ *  shore: both roads into PYRO meet Smolder, both into AQUA meet Basilisk.
  *
  *  Floors 3 and up are tuned around a tamed ally fighting beside the player,
- *  and a campaign fight has none. Measured with the deck a Hard run carries to
- *  each border (the whole collection, auto-built to the border's cap; both
- *  sides AI), the first picks were walls: Hoarfell at the Arctic Gate won 2 of
- *  40 and Spindle at the Shadow Border 0 of 40, and no DAWN boss cleared 8%
- *  (Helion's fights all ran out the clock). What shipped, 60 fights a cell,
- *  beside the first run's own gate fight at each border in the same harness:
+ *  and a campaign fight has none. Measured (both sides AI), the first picks were
+ *  walls: Hoarfell at the Arctic Gate won 2 of 40 and Spindle at the Shadow
+ *  Border 0 of 40, and no DAWN boss cleared 8% (Helion's fights all ran out the
+ *  clock). Overclock held Sunfall Harbor and the Gray Continent Ports until its
+ *  own buff the same day (9x2, 72 HP, three Drones a cast); after it the player
+ *  won 0 of 60 at both, overrun every time, so Basilisk and Nightshrike took
+ *  them. What shipped, 60 fights a cell, with the deck the harness auto-builds
+ *  from a Hard run's whole collection, beside the first run's own gate fight:
  *
  *    border  boss        Hard   first run      border  boss        Hard   first run
- *    GA      Smolder      52%     42%           GE      Overclock    27%     17%
+ *    GA      Smolder      52%     42%           GE      Nightshrike  62%     17%
  *    GB      Basilisk     35%     40%           GF      Permafrost   40%     40%
- *    GC      Overclock    43%     42%           GS      Skeleeze     27%      0%
- *    GC2     Smolder      27%     77%
+ *    GC      Basilisk     35%     42%           GS      Skeleeze     18%      0%
+ *    GC2     Smolder      52%     77%
  *
- *  The same harbour takes a different guard from each side on purpose:
- *  Overclock from the PYRO side, but from the AQUA side it won 0 of 60 (its
- *  drones overran the home row every time), so the water road meets Smolder.
+ *  That deck is a stride across all eight elements, the floor of what a player
+ *  brings rather than the norm: built from the region's own element plus its
+ *  heaviest imports, the same fights ran GC Basilisk 88% and GS Skeleeze 27%.
  *  Ids, not imports: this file stays pure data, and a test pins every id to
  *  VOID_BOSSES, to floors 1-2 and to a side of its border. */
 export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GA: "boss_smolder",     // LEAF -> PYRO, the Southern Burn: LEAF/PYRO
   GB: "boss_basilisk",    // LEAF -> AQUA, Eastleaf Port: LEAF/AQUA
-  GC: "boss_overclock",   // PYRO -> AQUA, Sunfall Harbor: PYRO's harbour guard
+  GC: "boss_basilisk",    // PYRO -> AQUA, Sunfall Harbor: AQUA's guard, as at Eastleaf
   GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
-  GE: "boss_overclock",   // the airship lanes to the Gray Continent: BOLT's engines
+  GE: "boss_nightshrike", // the airship lanes to the Gray Continent: a GALE sky-hunter
   GF: "boss_permafrost",  // the Arctic Gate: the ice wall itself, AQUA/BORE
   GS: "boss_skeleeze",    // the Shadow Border: DUSK, with the Gray Continent's GALE
 };
