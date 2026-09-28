@@ -14,7 +14,7 @@ import { useEffect, useRef, useState } from "react";
 import { getDef } from "../data/cards";
 import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
-  autoDeck,
+  regionFill,
   borderBossFor, deckCapFor, deckForRegion, fieldedBy, fightBoardFor, fightCap, isGate, loadoutLegal, localCards,
   isHard, packSquad, packableFor, poolForRegion, rememberDeck,
   squadFor, squadIsExplicit, squadIsOfferable, squadLimitFor,
@@ -75,7 +75,10 @@ export function StoryPrep(props: {
     const n = owned(s.cards).length;
     return n > 0 && n <= cap;
   });
-  /** Top a seed deck up from the pool, in pool order, to the cap.
+  /** Top a seed deck up from the pool to the cap, by the Fill button's own
+   *  rule (`regionFill`): the region's element first, then the heaviest
+   *  imports. It used to pad in pool order, which on a Hard run or at home is
+   *  the whole collection in the order it was recruited.
    *
    *  Filtering a remembered deck through the squad leaves holes: a team built in
    *  LEAF, carried to PYRO, keeps only the cards that were packed — which landed
@@ -84,11 +87,9 @@ export function StoryPrep(props: {
    *  a default: everything below still edits it. */
   const fill = (seed: string[]) => {
     const out = [...new Set(seed)].slice(0, cap);
-    for (const id of pool) {
-      if (out.length >= cap) break;
-      if (!out.includes(id)) out.push(id);
-    }
-    return out;
+    if (out.length >= cap) return out;
+    const taken = new Set(out);
+    return [...out, ...regionFill(pool.filter((id) => !taken.has(id)), cap - out.length, region.element)];
   };
   const [deck, setDeck] = useState<string[]>(
     // This region's own remembered team comes first — walking away and back
@@ -169,10 +170,14 @@ export function StoryPrep(props: {
    *  would look at and rebuild by hand. Ties go to the rarer card, then the
    *  heavier stat line, using the budget the cost formula itself uses.
    *
+   *  ...and it strides the REGION'S cards (`regionFill`): its own element plus
+   *  the twelve heaviest from elsewhere. A stride over a whole collection — the
+   *  pool at home and on a Hard run — came out as all eight elements at once.
+   *
    *  It is a DEFAULT, not a commitment: everything else on this screen still
    *  edits what it produces. */
   const fillToCap = () => {
-    setDeck(autoDeck(pool, cap));
+    setDeck(regionFill(pool, cap, region.element));
     // The deck is no longer the squad's, so stop claiming it is — the chip above
     // is the one thing on this screen that says which squad you are fielding.
     setPickedTeam(null);

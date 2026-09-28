@@ -411,7 +411,11 @@ export function DeckBuilder(props: {
     const room = limits.target - picked.length;
     if (room <= 0) return;
     const candidates = lensless.map((c) => c.id);
-    const { cards, elements } = fillSquad(picked, candidates, limits.target, { elements: els });
+    // THE CAMPAIGN builds for the region it is standing in, the same way the
+    // prep screen's Fill does (`regionFill`): its element and the heaviest
+    // imports. An element picked in the row still says otherwise.
+    const region = story?.element && els.length === 0 ? story.element : undefined;
+    const { cards, elements } = fillSquad(picked, candidates, limits.target, { elements: els, region });
     if (!cards.length) return;
     const next = [...picked, ...cards];
     setPicked(next);
@@ -420,9 +424,11 @@ export function DeckBuilder(props: {
     const chose = els.length === 0 && squadElements(picked).length < 2 && squadElements(lensless.map((c) => c.id)).length > FILL_ELEMENTS_MAX;
     const named = elements.join(" + ");
     setNote({
-      text: chose
-        ? `Built around ${named}. Pick elements above the cards to choose your own.`
-        : `Filled from ${named}.`,
+      text: region
+        ? `Built around ${region}, with your heaviest cards from elsewhere. Pick elements above the cards to choose your own.`
+        : chose
+          ? `Built around ${named}. Pick elements above the cards to choose your own.`
+          : `Filled from ${named}.`,
       sig: next.join(","),
     });
     // And the SPELLBOOK, which is behind a tool pill and therefore invisible

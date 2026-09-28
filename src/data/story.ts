@@ -1256,6 +1256,40 @@ export function autoDeck(pool: readonly string[], cap: number): string[] {
     : Array.from({ length: cap }, (_, i) => ranked[Math.floor((i * ranked.length) / cap)]);
 }
 
+/** THE FILL FOR A REGION: its own element plus the twelve heaviest cards you
+ *  own from anywhere else, then `autoDeck`'s cost stride over the two (owner,
+ *  2026-09-28: "make the Fill button favor the region's element").
+ *
+ *  Striding the whole pool — which is what the pool IS at home, and everywhere
+ *  on a Hard run — spread a deck across all eight elements and gave up the
+ *  region's terrain and every pairing. Measured on a Hard run, both sides AI,
+ *  40 fights a cell over 16 nodes and every border:
+ *
+ *      fill                              nodes   borders
+ *      stride the whole pool              29%      48%    (what it was)
+ *      the region's element only          41%      38%
+ *      the region's + a partner element   39%      54%
+ *      the region's + its 12 heaviest     53%      58%    <- this
+ *
+ *  The region's element alone is not it: a one-element deck lost at the
+ *  borders (Eastleaf Port 33%, the Gray Continent Ports 25%). Twelve is
+ *  `SQUAD_BASE` and heaviest-first is `autoSquad`'s rule, so away from home on
+ *  a first run — where the pool is already the region's cards plus the squad
+ *  packed for it — this is close to the deck Fill always built. Tops up from
+ *  the rest of the pool when the two run short of the cap. */
+export function regionFill(pool: readonly string[], cap: number, element: string): string[] {
+  if (cap <= 0) return [];
+  const owned = [...new Set(pool)];
+  const local = owned.filter((id) => getDef(id).element === element);
+  const imports = owned.filter((id) => getDef(id).element !== element)
+    .sort((a, b) => getDef(b).cost - getDef(a).cost || a.localeCompare(b))
+    .slice(0, SQUAD_BASE);
+  const core = autoDeck([...local, ...imports], cap);
+  if (core.length >= cap) return core;
+  const taken = new Set(core);
+  return [...core, ...autoDeck(owned.filter((id) => !taken.has(id)), cap - core.length)];
+}
+
 /** The squad chosen for you when you have not chosen one: the strongest foreign
  *  cards you own, by cost. Deterministic, so walking into a region twice without
  *  touching the picker gives the same team both times.

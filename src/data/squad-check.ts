@@ -31,7 +31,7 @@
  *  tested against the shelf they were read from.
  */
 import { getDef } from "./cards";
-import { autoDeck } from "./story";
+import { autoDeck, regionFill } from "./story";
 import { OPENING_CHEAP_COST, OPENING_CHEAP_MIN } from "../engine/state";
 import type { CardDef, Element } from "../engine/types";
 
@@ -122,6 +122,11 @@ export interface FillOptions {
    *  who lit four chips asked for four elements, and narrowing that to a pair
    *  would be the fill overruling the one control that says what to build. */
   elements?: readonly Element[];
+  /** THE CAMPAIGN: the element of the region the squad is being built for.
+   *  With no element picked in the row, the fill is the campaign's own Fill
+   *  (`regionFill`) — the region's element plus the heaviest imports — rather
+   *  than a pair. The Arena passes nothing and keeps its pairs. */
+  region?: string;
   rand?: () => number;
 }
 
@@ -199,6 +204,10 @@ export function fillSquad(
   if (room <= 0) return { cards: [], elements: [] };
   const have = new Set(picked);
   const pool = [...new Set(candidates)].filter((id) => !have.has(id));
+  if (opts.region && !opts.elements?.length) {
+    const cards = regionFill(pool, room, opts.region);
+    return { cards, elements: squadElements(cards) };
+  }
   const elements = fillElements(picked, pool, room, opts);
   const inEls = pool.filter((id) => elements.includes(getDef(id).element));
   return { cards: autoDeck(inEls, room), elements };

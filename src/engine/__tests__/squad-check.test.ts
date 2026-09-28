@@ -157,7 +157,12 @@ describe("the builder is wired to all of it", () => {
   const DB = readFileSync(join(__dirname, "..", "..", "ui", "DeckBuilder.tsx"), "utf8");
 
   it("hands the element row to the fill", () => {
-    expect(DB).toContain("fillSquad(picked, candidates, limits.target, { elements: els })");
+    expect(DB).toContain("fillSquad(picked, candidates, limits.target, { elements: els, region })");
+  });
+
+  it("in the campaign, fills for the region unless the element row says otherwise", () => {
+    // `regionFill` (story.ts): the region's element plus the heaviest imports.
+    expect(DB).toContain("const region = story?.element && els.length === 0 ? story.element : undefined;");
   });
 
   it("fills from every filter but the check's lens", () => {
