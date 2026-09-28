@@ -1,9 +1,10 @@
+import { memo } from "react";
 import type { BossTelegraph, CardInstance, GameState, PlayerId, TrapState } from "../engine";
 import { enemyOf, getSpell, homeRow } from "../engine";
 import { EL_COLOR } from "./shared";
 import { Token } from "./Token";
 
-export function Slot(props: {
+function SlotView(props: {
   game: GameState;
   row: number;
   col: number;
@@ -242,3 +243,31 @@ This is your last turn to move out of the red.`
     </div>
   );
 }
+
+/** Props Board builds FRESH on every render — the Domination terrain, a Point
+ *  holder's suit, a strike's order — compared by value; everything else by
+ *  identity. `game` above all: it is a new object on every step, so a square
+ *  still re-renders whenever the match moves on, and skips it only for the
+ *  renders that change nothing it shows (a highlight elsewhere on the board). */
+type SlotProps = Parameters<typeof SlotView>[0];
+const BY_VALUE: ReadonlySet<string> = new Set(["terrain", "poiSuit", "strike"]);
+const shallowSame = (a: unknown, b: unknown): boolean => {
+  if (!a || !b || typeof a !== "object" || typeof b !== "object") return false;
+  const ka = Object.keys(a), kb = Object.keys(b);
+  return ka.length === kb.length &&
+    ka.every((k) => Object.is((a as Record<string, unknown>)[k], (b as Record<string, unknown>)[k]));
+};
+function slotPropsEqual(prev: SlotProps, next: SlotProps): boolean {
+  const a = prev as Record<string, unknown>, b = next as Record<string, unknown>;
+  const keys = Object.keys(a);
+  if (keys.length !== Object.keys(b).length) return false;
+  return keys.every((k) => Object.is(a[k], b[k]) || (BY_VALUE.has(k) && shallowSame(a[k], b[k])));
+}
+
+/** ONE SQUARE, AND IT ONLY REDRAWS WHEN IT CHANGED. A battle step used to
+ *  re-render every square on the board about five times — a 7x7 is 49 of them,
+ *  each with its card — because anything App re-rendered for (the strike being
+ *  lit, the step landing, the effects' pacing tick) took the whole board with
+ *  it. Measured with the CPU slowed to a phone's, that was most of the main
+ *  thread's work in a battle. */
+export const Slot = memo(SlotView, slotPropsEqual);

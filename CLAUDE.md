@@ -3200,10 +3200,31 @@ they match (the one real difference, a ring on the closed citadels, is fixed).
 animates `opacity` or `transform` only, on a layer of its own. Anything else
 is a repaint per frame, and on the board that is a whole-board raster.
 
-**What is left:** with the CPU throttled 4x (a phone), the MAIN thread is now
-the limit — ~77% busy in a 7x7 battle: React commits ~11 ms per step and style
-recalculation ~58 ms per step. The GPU side is done; the next win is fewer
-elements re-rendering and restyling per step.
+**The main thread, next (same day).** With the CPU throttled 4x (a phone) the
+main thread was the limit, and a battle step made App render ~5 times — the
+strike lit, the step landing, the effects' pacing tick, a nested update — each
+redrawing every square, every card and the speed queue, and re-reading layout
+mid-commit. `Board`, `Slot` and `SpeedQueue` are `memo` now; App hands the board
+props that keep their identity (`boardAim`/`boardPickCounts` kept BY VALUE via
+`useSameValue`, because the selection state is reset with a fresh `[]` all over
+App; `boardHandlers` call the latest handler through refs); `Slot` compares the
+three objects Board rebuilds per render (terrain, POI suit, strike) by value.
+Board indexes cards by square once per render, its card-slide pass reads no
+layout on a render of the same game, the spotlight keeps ONE ResizeObserver,
+and `--bar-h` is measured only when the bar is a new node (its observer does the
+rest) instead of on every App render. At 4x: React work per step roughly
+halved, long-task time per step on a full 5x5 ~30 -> ~17 ms. `board-memo.test.ts`
+guards the wiring — an inline array or arrow function handed to `<Board>`
+silently switches the memo off.
+
+**What is left:** the browser's own per-frame work while effects play (~50 ms
+of style, ~30 of paint, ~30 of layerize per step at 4x). Chromium re-styles
+every running CSS animation on each main frame, and while the Pixi ticker runs
+there is a main frame every vsync — so each always-on pulse and foil sheen
+costs a little per frame even though the GPU animates it. Options (owner's
+call, all visible): pause the decorative loops while effects play, or run the
+effects at 30 fps on slow devices. The Pixi ticker itself is ~9% of the main
+thread at 4x, about a quarter of it re-tessellating Graphics every frame.
 
 ## The bundle — what is in it, and what is NOT in the first chunk
 

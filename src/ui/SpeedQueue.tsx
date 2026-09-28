@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { GameState } from "../engine";
 import { GALE_SP_CAP, boardCards, effectiveSp, getDef, plannedAction } from "../engine";
 import { EL_COLOR } from "./shared";
@@ -11,7 +12,7 @@ const TAG_HELP: Record<string, string> = {
   SKIP: "No legal action: nothing in range to attack and no Special it can afford or fire. It will pass its turn.",
 };
 
-export function SpeedQueue(props: { game: GameState }) {
+function SpeedQueueView(props: { game: GameState }) {
   const { game } = props;
   const inBattle = game.phase === "battle" && game.battle !== null;
 
@@ -90,3 +91,8 @@ export function SpeedQueue(props: { game: GameState }) {
     </div>
   );
 }
+
+/** Redrawn only when the game moves on. It reads nothing but the game, and it
+ *  was redrawn for every render App made — about five per battle step — each
+ *  time asking every card on the board what it plans to do. */
+export const SpeedQueue = memo(SpeedQueueView);

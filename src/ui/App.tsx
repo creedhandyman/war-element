@@ -389,6 +389,25 @@ function condenseLog(lines: string[]): { text: string; count: number; chatter: b
   return out;
 }
 
+/** The previous value for as long as the new one is equal to it BY VALUE.
+ *
+ *  For the props the memoized Board is handed that App rebuilds with the same
+ *  contents: the selection state is reset with a fresh `[]` in some twenty
+ *  places, so a list derived from it was a new array on renders where nothing
+ *  on the board had changed — and that alone redrew every square. The ref is
+ *  written during render, the same way `VersusIntro` keeps its latest callback. */
+function useSameValue<T>(value: T, same: (a: T, b: T) => boolean): T {
+  const ref = useRef(value);
+  if (ref.current !== value && !same(ref.current, value)) ref.current = value;
+  return ref.current;
+}
+const samePositions = (a: readonly Pos[], b: readonly Pos[]) =>
+  a.length === b.length && a.every((p, i) => p.row === b[i].row && p.col === b[i].col);
+const sameCounts = (a: Record<string, number>, b: Record<string, number>) => {
+  const ka = Object.keys(a);
+  return ka.length === Object.keys(b).length && ka.every((k) => a[k] === b[k]);
+};
+
 /** Where the player is in the menus — as much of it as an update reload can
  *  put back (stale-chunks.ts `resumePlace`). */
 interface ResumePlace {
@@ -2857,16 +2876,29 @@ export function App() {
   // Publish the live height of the bottom control bar as `--bar-h` on :root. The
   // mobile floating hand anchors above it (calc(var(--bar-h) + …)), so it clears
   // the bar no matter how tall it renders (button wrap, safe-area, phone size).
-  // Synced before paint on every render (the bar remounts across phases and its
-  // height flips with the compact class), and a ResizeObserver — re-pointed at
-  // the current node each render — catches reflows that happen without a render
-  // (orientation change, mobile address-bar show/hide).
+  // The bar remounts across phases, so each render checks it is still the node
+  // being watched — and only a NEW node is measured here, before paint. After
+  // that its ResizeObserver does the following: its height flipping with the
+  // compact class, a button wrapping, an orientation change or the mobile
+  // address bar are all resizes, and an observer reports those before the
+  // frame is painted.
+  //
+  // It used to measure on EVERY render and write the property every time, even
+  // unchanged: a forced layout in the middle of each commit, and a new
+  // observer, several times per battle step.
   const barRoRef = useRef<ResizeObserver | null>(null);
+  const barNodeRef = useRef<HTMLElement | null>(null);
+  const barHRef = useRef("");
   useLayoutEffect(() => {
     const bar = bottomRef.current;
-    if (!bar) return;
-    const apply = () =>
-      document.documentElement.style.setProperty("--bar-h", `${Math.round(bar.getBoundingClientRect().height)}px`);
+    if (!bar || bar === barNodeRef.current) return;
+    barNodeRef.current = bar;
+    const apply = () => {
+      const h = `${Math.round(bar.getBoundingClientRect().height)}px`;
+      if (h === barHRef.current) return;
+      barHRef.current = h;
+      document.documentElement.style.setProperty("--bar-h", h);
+    };
     apply();
     barRoRef.current?.disconnect();
     if (typeof ResizeObserver !== "undefined") {
@@ -4525,6 +4557,44 @@ export function App() {
   useBackLayer(rulesOpen, () => setRulesOpen(false));
   useBackLayer(galleryOpen, () => setGalleryOpen(false));
 
+  // THE BOARD IS MEMOIZED (Board.tsx), so what it is handed has to keep its
+  // identity through the renders that change nothing on it. These were built
+  // inline in the JSX below — a new array, a new object, three new functions on
+  // every render — and every render App made for anything at all redrew all of
+  // the squares. A battle step makes about five.
+  const boardAim = useSameValue(
+    useMemo(() => [...aimArea, ...aimSpellCells], [aimArea, aimSpellCells]), samePositions);
+  // An aim anchor is a crosshair, not a hit count: "x1 · 1 hit(s) assigned" on
+  // the corner of a burst about to hit four bodies is the wrong noun and the
+  // wrong number, so the badge stays off.
+  const boardPickCounts = useSameValue(useMemo(() => (aimedArea ? {} : picks.reduce<Record<string, number>>((acc, id) => {
+    acc[id] = (acc[id] ?? 0) + 1;
+    return acc;
+  }, {})), [aimedArea, picks]), sameCounts);
+  // The handlers keep one identity and call this render's function, so what a
+  // tap does is exactly what it was — only the redraw is gone.
+  const slotClickRef = useRef(onSlotClick);
+  slotClickRef.current = onSlotClick;
+  const slotOverRef = useRef(onSlotDragOver);
+  slotOverRef.current = onSlotDragOver;
+  const slotDropRef = useRef(onSlotDrop);
+  slotDropRef.current = onSlotDrop;
+  const boardHandlers = useMemo(() => ({
+    click: (row: number, col: number) => slotClickRef.current(row, col),
+    over: (row: number, col: number) => slotOverRef.current(row, col),
+    drop: (row: number, col: number) => slotDropRef.current(row, col),
+  }), []);
+  // The log panel's rows only change when the log does.
+  const logEntries = useMemo(() => condenseLog(game.log.slice(-60)).map((e, i) => (
+    <div
+      key={i}
+      className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
+    >
+      {e.text}
+      {e.count > 1 && <span className="log-x">×{e.count}</span>}
+    </div>
+  )), [game.log]);
+
   return (
     // `pre-match`: the battle chrome renders unconditionally — it always has —
     // so before a match there was an empty board, an empty log and an idle
@@ -4544,17 +4614,7 @@ export function App() {
       musicMuted={musicMuted}
       onToggleMusic={toggleMusic}
       ribbon={<PhaseRibbon game={game} />}
-      logEntries={
-        condenseLog(game.log.slice(-60)).map((e, i) => (
-          <div
-            key={i}
-            className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
-          >
-            {e.text}
-            {e.count > 1 && <span className="log-x">×{e.count}</span>}
-          </div>
-        ))
-      }
+      logEntries={logEntries}
       board={
         <>
           <Board
@@ -4564,18 +4624,12 @@ export function App() {
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}
             previewArea={previewArea}
-            aimArea={[...aimArea, ...aimSpellCells]}
+            aimArea={boardAim}
             blast={blast}
             strike={remoteStrike ?? strike}
             telegraphs={telegraphs}
             stagedSlot={stagedSlot}
-            // An aim anchor is a crosshair, not a hit count: "x1 · 1 hit(s)
-            // assigned" on the corner of a burst about to hit four bodies is
-            // the wrong noun and the wrong number, so the badge stays off.
-            pickCounts={aimedArea ? {} : picks.reduce<Record<string, number>>((acc, id) => {
-              acc[id] = (acc[id] ?? 0) + 1;
-              return acc;
-            }, {})}
+            pickCounts={boardPickCounts}
             hasSelection={sel !== null}
             movableIds={movableIds}
             // ...or, mid-battle, the card next to the ring that one tap has lined
@@ -4594,9 +4648,9 @@ export function App() {
                 : null
             }
             viewPlayer={view}
-            onSlotClick={onSlotClick}
-            onSlotDragOver={onSlotDragOver}
-            onSlotDrop={onSlotDrop}
+            onSlotClick={boardHandlers.click}
+            onSlotDragOver={boardHandlers.over}
+            onSlotDrop={boardHandlers.drop}
           />
 
           {/* THE SECOND PRESS for a two-row sweep. Same shape and same place as

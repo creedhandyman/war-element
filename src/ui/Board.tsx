@@ -1,5 +1,5 @@
-import { useLayoutEffect, useRef } from "react";
-import type { BossTelegraph, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
+import { memo, useEffect, useLayoutEffect, useRef } from "react";
+import type { BossTelegraph, CardInstance, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import type { StrikeZone } from "./attack-zone";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
@@ -183,7 +183,7 @@ function tween(el: HTMLElement, key: string, ms: number, frame: (k: number) => v
   mine.set(key, requestAnimationFrame(step));
 }
 
-export function Board(props: {
+function BoardView(props: {
   game: GameState;
   legalSlots: Pos[]; // summon/move destinations (green)
   legalTargetIds: string[]; // battle-phase / spell target picks
@@ -226,6 +226,14 @@ export function Board(props: {
   const ascending = Array.from({ length: game.boardSize }, (_, i) => i);
   const rows: number[] = props.viewPlayer === "P2" ? [...ascending].reverse() : ascending;
   const cols: number[] = ascending; // columns stay left-to-right (vertical flip only)
+  // Every card by square, once per render, rather than a scan of the whole
+  // card list for each of up to 49 squares. First one wins, as in `cardAt`.
+  const cardByPos = new Map<string, CardInstance>();
+  for (const c of Object.values(game.cards)) {
+    if (!c.pos) continue;
+    const at = `${c.pos.row},${c.pos.col}`;
+    if (!cardByPos.has(at)) cardByPos.set(at, c);
+  }
   // The two crests that used to sit above and below the board are gone; the
   // per-square objective highlight says what they said, and says it about the
   // squares that matter rather than about whole rows.
@@ -252,10 +260,13 @@ export function Board(props: {
   // settles as the next one rises — instead of both snapping in the frame the
   // step lands.
   const lastHead = useRef<string | null>(null);
+  /** Re-parks the spot where it stands — what a resize asks for. */
+  const reparkRef = useRef<(() => void) | null>(null);
   useLayoutEffect(() => {
     const board = boardRef.current, spot = spotRef.current;
     const fromId = lastHead.current;
     lastHead.current = headId;
+    reparkRef.current = null;
     if (!board || !spot || !headAt) return;
     const handoff = fromId !== null && fromId !== headId && !reducedMotion();
     const park = (glide: boolean) => {
@@ -283,6 +294,7 @@ export function Board(props: {
         );
     };
     park(handoff);
+    reparkRef.current = () => park(false);
     if (handoff) {
       const was = board.querySelector<HTMLElement>(`.token[data-iid="${fromId}"]`);
       const now = board.querySelector<HTMLElement>(`.token[data-iid="${headId}"]`);
@@ -292,11 +304,22 @@ export function Board(props: {
         tween(el, "lift", HANDOFF_MS, (k) => { el.style.scale = String(a + (b - a) * easeInOut(k)); }, () => { el.style.scale = ""; });
       }
     }
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(() => park(false));
+  }, [headAt, headId]);
+  // ...and placed again when the board changes size. ONE observer for the
+  // board's life: it used to be made and dropped on every step, and a new one
+  // reports straight away, which re-parked — and re-measured — every hand-off
+  // a second time.
+  useEffect(() => {
+    const board = boardRef.current;
+    if (!board || typeof ResizeObserver === "undefined") return;
+    let first = true;
+    const ro = new ResizeObserver(() => {
+      if (first) { first = false; return; } // the report every new observer makes
+      reparkRef.current?.();
+    });
     ro.observe(board);
     return () => ro.disconnect();
-  }, [headAt, headId]);
+  }, []);
 
   // CARDS SLIDE. A push, a pull, a charge or a move used to take a card off one
   // square and put it on another in a single frame. Each card's square is
@@ -308,6 +331,13 @@ export function Board(props: {
     const board = boardRef.current;
     if (!board) return;
     const prev = squares.current;
+    // The same game from the same seat: nothing has moved, so nothing is read.
+    // Reading a card's offset makes the browser lay the page out mid-commit,
+    // and this ran on every render of the board — a handful per battle step,
+    // most of them for a highlight, not a move. (A resize in between is still
+    // safe: the width check below sees it at the next step and skips the
+    // slides, as it always has.)
+    if (prev && prev.game === game && prev.view === props.viewPlayer) return;
     const at = new Map<string, [number, number]>();
     for (const tok of board.querySelectorAll<HTMLElement>(".token[data-iid]")) {
       const slot = tok.parentElement, brow = slot?.offsetParent as HTMLElement | null | undefined;
@@ -451,7 +481,7 @@ export function Board(props: {
                 );
               })}
             {cols.map((col) => {
-              const card = cardAt(game, row, col);
+              const card = cardByPos.get(`${row},${col}`) ?? null;
               const isLegalSlot = props.legalSlots.some((p) => p.row === row && p.col === col);
               // Traps are CONCEALED: the viewer sees only their own. Rendering
               // the opponent's — even faintly — would defeat the mechanic, so
@@ -539,3 +569,10 @@ export function Board(props: {
     </div>
   );
 }
+
+/** The board, redrawn only when something it shows changed. App re-renders
+ *  for plenty the board does not show — the effects' pacing tick, a hint, the
+ *  action bar tucking away — and each of those used to redraw every square.
+ *  Its props are memoized in App for exactly this; a new array or callback
+ *  there on every render would quietly switch this off. */
+export const Board = memo(BoardView);
