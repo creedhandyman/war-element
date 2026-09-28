@@ -43,6 +43,10 @@ export interface StoryResultPayload {
   /** Cards that came out SHINY, including ones already owned — those are not in
    *  `won`, and a finished node now pays in nothing else. */
   shiny?: string[];
+  /** A region this win OPENED — a border crossed for the first time. Closing
+   *  the result goes straight to its map: the owner asked for it, and the
+   *  region you just fought your way into is the one you came to play. */
+  opened?: string;
 }
 
 export interface StoryNav {
@@ -131,7 +135,11 @@ export function storyNav(s: StoryNav, a: StoryAction): StoryNav {
     case "result":
       return { ...s, result: a.result };
     case "closeResult":
-      return { ...s, result: null, fightNode: null, open: true, view: "map" };
+      return {
+        ...s,
+        regionId: s.result?.opened ?? s.regionId,
+        result: null, fightNode: null, open: true, view: "map",
+      };
     case "builder":
       return { ...s, builder: a.open };
   }

@@ -36,6 +36,9 @@ export function StoryResult(props: {
   foils?: ReadonlySet<string>;
   /** HARD MODE: the Void Tower boss that held this border, when one did. */
   boss?: string | null;
+  /** The region this win opened. Done takes you to its map, so the button says
+   *  where it is going rather than "back". */
+  opened?: string;
   onDone: () => void;
 }) {
   const { node, game, won, captured, firstClear, lost } = props;
@@ -131,7 +134,9 @@ export function StoryResult(props: {
           </>
         )}
 
-        <button className="lockin" onClick={props.onDone}>Back to the map</button>
+        <button className="lockin" onClick={props.onDone}>
+          {props.opened ? `On to ${props.opened.toUpperCase()}` : "Back to the map"}
+        </button>
       </div>
     </div>
   );

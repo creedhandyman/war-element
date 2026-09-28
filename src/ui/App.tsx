@@ -282,7 +282,7 @@ import {
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
   everCleared, isHard, borderBossFor, startHardMode, resumeHardMode, fightBoardFor, fightCap, type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
-  regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
+  regionOfNode, regionsOpenedBy, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
   PLACED_CARDS, ALL_NODES,
 } from "../data/story";
@@ -1495,6 +1495,9 @@ export function App() {
     reportSkillMatch(true);
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
     const result = rollRecruits(story, storyNode, captured);
+    // Read off the save BEFORE the clear lands: what this border opens is what
+    // was shut until now (a region with another road in is already open).
+    const opened = regionsOpenedBy(story, storyNode)[0]?.id;
     setStory((prev) => {
       // Shards for the win, then the clear. The Arena pays too (below) — shards
       // are the one currency you can earn without walking the campaign.
@@ -1502,7 +1505,7 @@ export function App() {
       saveStory(next);
       return next;
     });
-    navDo({ t: "result", result: { node: storyNode, won: result.won, shiny: result.shiny, captured } });
+    navDo({ t: "result", result: { node: storyNode, won: result.won, shiny: result.shiny, captured, opened } });
   }, [started, storyNode, game, storyResult, story]);
   // An Arena match settles up here: shards for the win, and the Gauntlet run
   // advances or ends.
@@ -5326,6 +5329,7 @@ export function App() {
           boss={borderBossFor(story, storyResult.node)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           foils={foilIds}
+          opened={storyResult.opened}
           onDone={finishStoryResult}
         />
       )}

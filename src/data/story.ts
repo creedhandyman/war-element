@@ -1095,6 +1095,20 @@ export const nodeById = (id: string): StoryNode | undefined => ALL_NODES.find((n
 export const regionOfNode = (id: string): StoryRegion | undefined =>
   REGIONS.find((r) => r.nodes.some((n) => n.id === id));
 
+/** The regions clearing `node` would OPEN — shut on `save`, and gated by it.
+ *
+ *  Only regions that were closed count: a region opens when ANY of its gates
+ *  falls (`isRegionOpen`), so the second road into AQUA, or a gate re-fought,
+ *  opens nothing new. Ordered the way the gate's own `opens` names them, which
+ *  is the order its copy reads out — Gate E's three come back GALE first. */
+export function regionsOpenedBy(save: StorySave, node: StoryNode): StoryRegion[] {
+  const order = node.opens ?? [];
+  const rank = (r: StoryRegion) => (order.includes(r.id) ? order.indexOf(r.id) : order.length);
+  return REGIONS
+    .filter((r) => !isRegionOpen(save, r) && (r.requires ?? []).includes(node.id))
+    .sort((a, b) => rank(a) - rank(b));
+}
+
 // ── the starter deck ────────────────────────────────────────────────────────
 // One card. Sakuroot, and nothing else.
 //
