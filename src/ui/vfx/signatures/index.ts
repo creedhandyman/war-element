@@ -1,6 +1,6 @@
 /** Every mythic's signature, by card id (see types.ts). A module that has not
  *  been drawn exports null, and its card plays its element's look like any
- *  other; so does a mythic missing from this list, the bosses included. */
+ *  other; so does a mythic missing from this list. */
 import type { Signature } from "./types";
 import { OAKGRE } from "./oakgre";
 import { TRINEZER } from "./trinezer";
@@ -19,6 +19,28 @@ import { HYDROGON } from "./hydrogon";
 import { SKULLKING } from "./skullking";
 import { COREBORER } from "./coreborer";
 import { EQUESTRIAN } from "./equestrian";
+import { ROTROOT } from "./boss-rotroot";
+import { SKELEEZE } from "./boss-skeleeze";
+import { XILTY } from "./boss-xilty";
+import { PERMAFROST } from "./boss-permafrost";
+import { OVERCLOCK } from "./boss-overclock";
+import { NIGHTSHRIKE } from "./boss-nightshrike";
+import { BASILISK } from "./boss-basilisk";
+import { HELION } from "./boss-helion";
+import { HOARFELL } from "./boss-hoarfell";
+import { VULCANYX } from "./boss-vulcanyx";
+import { THUNDERFANGS } from "./boss-thunderfangs";
+import { UMBRANOVA } from "./boss-umbranova";
+import { CRYOVEX } from "./boss-cryovex";
+import { KAZEHAYA } from "./boss-kazehaya";
+import { SPINDLE } from "./boss-spindle";
+import { KHEIRINGER } from "./boss-kheiringer";
+import { SKYBREAKER } from "./boss-skybreaker";
+import { CONTINENTAL } from "./boss-continental";
+import { KATO } from "./boss-kato";
+import { KATO_PROWLFORM } from "./boss-kato-prowlform";
+import { KATO_STORMWING } from "./boss-kato-stormwing";
+import { SMOLDER } from "./boss-smolder";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -38,6 +60,30 @@ const ALL: Record<string, Signature | null> = {
   dusk_skullking: SKULLKING,
   bore_the_coreborer: COREBORER,
   dawn_equestrian: EQUESTRIAN,
+  // THE BOSSES — mythic too, and the fights they end.
+  boss_rotroot: ROTROOT,
+  boss_skeleeze: SKELEEZE,
+  boss_xilty: XILTY,
+  boss_permafrost: PERMAFROST,
+  boss_overclock: OVERCLOCK,
+  boss_nightshrike: NIGHTSHRIKE,
+  boss_basilisk: BASILISK,
+  boss_helion: HELION,
+  boss_hoarfell: HOARFELL,
+  boss_vulcanyx: VULCANYX,
+  boss_thunderfangs: THUNDERFANGS,
+  boss_thunderfangs_2: THUNDERFANGS, // Stormform: the same run, harder
+  boss_umbranova: UMBRANOVA,
+  boss_cryovex: CRYOVEX,
+  boss_kazehaya: KAZEHAYA,
+  boss_spindle: SPINDLE,
+  boss_kheiringer: KHEIRINGER,
+  boss_skybreaker: SKYBREAKER,
+  boss_continental: CONTINENTAL,
+  boss_kato: KATO,
+  boss_kato_2: KATO_PROWLFORM,
+  boss_kato_3: KATO_STORMWING,
+  boss_smolder: SMOLDER,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(

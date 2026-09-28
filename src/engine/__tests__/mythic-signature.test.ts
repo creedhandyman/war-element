@@ -156,4 +156,9 @@ describe("a mythic's signature move", () => {
     const mythic = new Set(CARDS.filter((c) => c.rarity === "mythic").map((c) => c.id));
     for (const key of Object.keys(SIGNATURES)) expect(mythic.has(key)).toBe(true);
   });
+
+  it("every mythic — each collectible and each boss — fires its own move", () => {
+    const unsigned = CARDS.filter((c) => c.rarity === "mythic" && !SIGNATURES[c.id]).map((c) => c.id);
+    expect(unsigned).toEqual([]);
+  });
 });
