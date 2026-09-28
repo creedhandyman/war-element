@@ -1252,19 +1252,20 @@ engine runtime and no React, so it stays testable headlessly
   region map's width/height, not a grid unit — resolution-independent, and the
   art can be re-exported at any size without moving a node. Maps live at
   `public/maps/<region>.webp` and are referenced by `region.art`. The maps are
-  **3:2** (1536×1024); `MAP_RATIO` in StoryMap holds the canvas to it, and the
-  edge SVG uses `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` so edges
-  and nodes share one coordinate space with no px maths.
+  **3:2** (1536×1024) or **4:3** (1440×1080), carried per region as `region.artRatio`
+  (`MAP_RATIO`, 3:2, is only the fallback) and the canvas holds it; the road
+  and fog SVGs use `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` so
+  roads, fog and nodes share one coordinate space with no px maths.
   To eyeball placement, render markers onto the art with PIL rather than
   screenshotting — the node ids and edges plot straight from `story.ts`.
   Two CSS rules are load-bearing and were both learned the hard way on a phone:
   `.story-canvas` must be `flex: none` (`.story-body` becomes a COLUMN on
   phones, and a growable canvas stretches to fill the height, overriding
   `aspect-ratio` and scaling the art ~3x tall since it is drawn with
-  `background-size: 100% 100%`); and every `.edge` needs
-  `vector-effect: non-scaling-stroke`, or the `viewBox="0 0 100 100"` +
-  `preserveAspectRatio="none"` combination scales `stroke-width: 2` into a
-  ~20px slab. A third: the canvas is `width: calc(100% - 2 * var(--map-gutter))`
+  `background-size: 100% 100%`); and every stroked road class (`.trail`,
+  `.trail-case`) needs `vector-effect: non-scaling-stroke` on its base rule, or
+  the `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` combination scales
+  `stroke-width: 2` into a ~20px slab (`styles.test.ts` pins it). A third: the canvas is `width: calc(100% - 2 * var(--map-gutter))`
   with `margin: var(--map-gutter)`, and a breakpoint changes the VARIABLE, never
   the margin. It was `width: 100%` plus a margin, wider than its own column:
   `.story-main` scrolled sideways (558 wide, 582 of scroll at ~900px) and could
@@ -1273,7 +1274,25 @@ engine runtime and no React, so it stays testable headlessly
   `styles.test.ts` pins this and `flex: none`. Node/badge sizes are
   `cqw`-based off `container-type: inline-size` on the canvas, so they track the
   map rather than the viewport — 42px at desktop's 1180px cap, the 23px floor
-  on a phone.
+  on a phone (Thrones 54/29).
+  **The map's look** (2026-09-28, mocked on LEAF, then shipped to all eight):
+  a node is a MEDALLION. The button is a bare hit area and spans draw the
+  marker — `sn-ground` (a shadow it stands on), `sn-glow`, `sn-pulse` (OPEN
+  nodes only, opacity/transform so it passes the infinite-animation ratchet),
+  `sn-rim` (metal) and `sn-face` (enamel). State is the rim's metal: iron
+  locked, the region's `--el` open, gold cleared, bronze for a gate, violet
+  for Blight, gold when selected or keyboard-focused. The shape rides on the
+  rim and face (hex Landmarks, diamond Thrones, arched gates) — never clip the
+  button itself: a clip-path cuts its border, shadow and outline with it,
+  which is why the old hexes needed a drop-shadow stack for an edge. Roads are
+  bowed quadratic paths (`roadPath`; the bend is taken on SCREEN through the
+  ratio, the side alternates by id) over a dark casing; `live` = out of cleared
+  ground, `next` = to a fight open right now. Fog of war is an SVG mask over the
+  art with a soft hole per cleared or open node (`FOG_R`, a share of the map's
+  WIDTH, `ry` scaled by the ratio so the hole is round on screen), drawn above
+  the roads and below the nodes so a locked node is still findable. A region
+  with EVERY node cleared drops the fog altogether, so its corners (title
+  cartouche, tribe legend, exits) come back too.
 - **Border gates (§7)**: a region is entered by CLEARING A GATE, not by clearing
   the previous Throne — the Throne only unlocks the gate. Gates are nodes of
   `kind: "gate"` on the SOURCE region's map, and `region.requires` lists the

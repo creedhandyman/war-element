@@ -33,6 +33,30 @@ const KIND_LABEL: Record<StoryNode["kind"], string> = {
  *  coordinates land on the same landmark at every viewport size. */
 const MAP_RATIO = 1536 / 1024;
 
+/** A road between two nodes, as an SVG path in the map's percentage space. It
+ *  bows a little rather than running dead straight, so the map reads as trails
+ *  walked across the painting and not a wiring diagram. The bend is taken on
+ *  SCREEN — x is stretched by the map's `ratio` first — so a road bows the same
+ *  whichever way it runs, and `flip` picks the side (`roadFlips`, by id) so
+ *  neighbouring roads do not all lean the same way. */
+const ROAD_BOW = 0.14;
+function roadPath(a: StoryNode["at"], b: StoryNode["at"], ratio: number, flip: boolean): string {
+  const ax = a.x * ratio, bx = b.x * ratio;
+  const dx = bx - ax, dy = b.y - a.y;
+  const len = Math.hypot(dx, dy) || 1;
+  const k = ROAD_BOW * len * (flip ? -1 : 1);
+  const cx = ((ax + bx) / 2 - (dy / len) * k) / ratio;
+  const cy = (a.y + b.y) / 2 + (dx / len) * k;
+  return `M ${a.x} ${a.y} Q ${cx.toFixed(2)} ${cy.toFixed(2)} ${b.x} ${b.y}`;
+}
+const roadFlips = (a: string, b: string) =>
+  [...(a + b)].reduce((s, ch) => s + ch.charCodeAt(0), 0) % 2 === 1;
+
+/** How far the fog lifts around a reached node, as a share of the map's WIDTH.
+ *  The hole's height is scaled by the ratio, so it is round on screen rather
+ *  than stretched with the viewBox. */
+const FOG_R = 12;
+
 export function StoryMap(props: {
   region: StoryRegion;
   save: StorySave;
@@ -88,6 +112,14 @@ export function StoryMap(props: {
 
   const total = region.nodes.length;
   const done = region.nodes.filter((n) => isCleared(save, n.id)).length;
+
+  const ratio = region.artRatio ?? MAP_RATIO;
+  // The ground you have reached: every cleared or open node lifts the fog
+  // around it, so the map fills in as the campaign walks across it. With every
+  // node cleared the fog goes entirely, corners and all — the whole painting is
+  // the reward for finishing it.
+  const revealed = nodes.filter((n) => isCleared(save, n.id) || isOpen(save, n));
+  const fogged = done < total;
   const regionCards = region.nodes.flatMap((n) => n.roster);
   const haveHere = regionCards.filter((id) => owned.has(id)).length;
   // Blight is only real once the region is finished, so it only reads out then --
@@ -150,20 +182,49 @@ export function StoryMap(props: {
               backgroundImage: region.art ? `url(${region.art})` : undefined,
             }}
           >
-            {/* viewBox 0 0 100 100 + non-uniform scaling lets the edges use the same
-                percentage coordinates as the nodes, with no px maths anywhere. */}
+            {/* viewBox 0 0 100 100 + non-uniform scaling lets the roads use the same
+                percentage coordinates as the nodes, with no px maths anywhere. A
+                road out of cleared ground is `live`; the one to a fight you can
+                take right now is `next` and runs brightest. */}
             <svg
               className="story-edges"
               viewBox="0 0 100 100"
               preserveAspectRatio="none"
               aria-hidden="true"
             >
-              {edges.map((e, i) => (
-                <line key={i}
-                  x1={e.from.at.x} y1={e.from.at.y} x2={e.to.at.x} y2={e.to.at.y}
-                  className={e.live ? "edge live" : "edge"} />
-              ))}
+              {edges.map((e, i) => {
+                const d = roadPath(e.from.at, e.to.at, ratio, roadFlips(e.from.id, e.to.id));
+                const next = e.live && isOpen(save, e.to) && !isCleared(save, e.to.id);
+                return (
+                  <g key={i}>
+                    <path d={d} className="trail-case" />
+                    <path d={d} className={`trail ${e.live ? "live" : ""} ${next ? "next" : ""}`} />
+                  </g>
+                );
+              })}
             </svg>
+            {/* The fog: a veil over the whole painting, masked open around every
+                node you have reached. Over the roads, under the nodes — a locked
+                node stays findable in the dark. */}
+            {fogged && (
+              <svg className="story-fog" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <radialGradient id={`fog-hole-${region.id}`}>
+                    <stop offset="0%" stopColor="#000" />
+                    <stop offset="55%" stopColor="#000" />
+                    <stop offset="100%" stopColor="#000" stopOpacity="0" />
+                  </radialGradient>
+                  <mask id={`fog-${region.id}`} maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+                    <rect width="100" height="100" fill="#fff" />
+                    {revealed.map((n) => (
+                      <ellipse key={n.id} cx={n.at.x} cy={n.at.y} rx={FOG_R} ry={FOG_R * ratio}
+                        fill={`url(#fog-hole-${region.id})`} />
+                    ))}
+                  </mask>
+                </defs>
+                <rect width="100" height="100" className="fog-veil" mask={`url(#fog-${region.id})`} />
+              </svg>
+            )}
             {nodes.map((n) => {
               const open = isOpen(save, n), cleared = isCleared(save, n.id);
               const state = cleared ? "cleared" : open ? "open" : "locked";
@@ -178,6 +239,12 @@ export function StoryMap(props: {
                   onClick={() => setSelId(n.id)}
                   aria-label={`${n.id} ${n.name}, ${KIND_LABEL[n.kind]}, ${state}`}
                 >
+                  {/* The medallion, in layers — see `.story-node` in styles.css. */}
+                  <span className="sn-ground" aria-hidden="true" />
+                  <span className="sn-glow" aria-hidden="true" />
+                  {state === "open" && <span className="sn-pulse" aria-hidden="true" />}
+                  <span className="sn-rim" aria-hidden="true" />
+                  <span className="sn-face" aria-hidden="true" />
                   <span className="sn-id">{n.id}</span>
                   {n.kind === "throne" && <span className="sn-crown">{n.required ? "★" : "☆"}</span>}
                   {isGate(n) && <span className="sn-gate" aria-hidden="true">⇥</span>}

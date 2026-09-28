@@ -4794,124 +4794,183 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      the viewport — the same node reads correctly at 380px and at 1180px. */
   container-type: inline-size;
 }
-/* A thin road over dense canopy needs a casing or it disappears into the art. */
-.story-edges {
-  position: absolute; inset: 0; pointer-events: none;
-  filter: drop-shadow(0 0 2px rgba(0, 0, 0, .95));
-}
-/* vector-effect is load-bearing: the edge SVG uses viewBox 0 0 100 100 with
-   preserveAspectRatio="none", so WITHOUT this a stroke-width of 2 is scaled by
-   the viewBox ratio and renders as a ~20px slab. Keep it on every edge rule. */
-.story-edges .edge {
-  stroke: rgba(255, 255, 255, .2); stroke-width: 1.5; stroke-linecap: round;
+/* The roads: a dark casing under a dotted trail, bowed a little (`roadPath`)
+   so they read as paths walked across the painting — a thin line over dense
+   canopy with no casing disappears into the art. A road out of ground you hold
+   runs gold; the one to a fight you can take now runs brightest.
+   vector-effect is load-bearing: the road SVG uses viewBox 0 0 100 100 with
+   preserveAspectRatio="none", so WITHOUT it a stroke-width of 2 is scaled by
+   the viewBox ratio and renders as a ~20px slab. Keep it on the base rule of
+   every stroked class — styles.test holds them to it. */
+.story-edges { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.story-edges .trail-case {
+  fill: none; stroke: rgba(0, 0, 0, .5); stroke-width: 5; stroke-linecap: round;
   vector-effect: non-scaling-stroke;
 }
-.story-edges .edge.live { stroke: var(--gold-lit); stroke-width: 2; opacity: .65; }
+.story-edges .trail {
+  fill: none; stroke: rgba(240, 230, 205, .55); stroke-width: 2; stroke-linecap: round;
+  stroke-dasharray: .5 6; vector-effect: non-scaling-stroke;
+}
+.story-edges .trail.live { stroke: var(--gold-lit); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.story-edges .trail.next { stroke: var(--gold-hi); stroke-width: 3; }
 
+/* Unexplored ground: a veil the campaign burns away as it arrives. StoryMap's
+   mask cuts a soft hole around every cleared or open node. Over the roads and
+   under the nodes, so a locked node stays findable in the dark. */
+.story-fog { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.story-fog .fog-veil { fill: rgba(6, 8, 12, .5); }
+
+/* A node is a MEDALLION standing on the painting. The button is a bare hit
+   area and the marker is drawn by layers inside it — ground shadow, glow,
+   pulse, rim, face — so a hexagon or a diamond can carry a metal rim AND a
+   glow. The old look clipped the button itself, and a clip-path cuts away a
+   border, a box-shadow and an outline alike, which is why its hexes needed a
+   stack of drop-shadows just to show an edge.
+   Sized against the MAP (cqw), not the viewport: a fixed 54px node covers a
+   third of a phone-width map and a sliver of a desktop one. Deliberately small
+   — the painting is the thing being read, and a node is a pin on it.
+   Every node is anchored by its CENTRE, so `at` names the landmark itself. */
 .story-node {
   position: absolute; transform: translate(-50%, -50%);
-  /* Sized against the MAP (cqw), not the viewport: a fixed 54px node covers a
-     third of a phone-width map and a sliver of a desktop one. Deliberately
-     small and translucent — the painting is the thing being read, and a node
-     is a pin on it, not a tile covering it. */
   width: clamp(23px, 3.6cqw, 42px); height: clamp(23px, 3.6cqw, 42px);
-  border-radius: 10px; cursor: pointer;
-  background: rgba(9, 9, 14, .42); backdrop-filter: blur(2px);
-  border: 1.5px solid rgba(255, 255, 255, .22); color: var(--ink);
-  display: grid; place-items: center; font-weight: 800;
-  font-size: clamp(8px, 1.05cqw, 12px);
+  padding: 0; border: none; background: none; cursor: pointer;
+  display: grid; place-items: center; isolation: isolate;
+  color: var(--ink); font-family: var(--head); font-weight: 700;
+  font-size: clamp(8px, 1.02cqw, 12px); letter-spacing: .02em;
   text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
-  transition: transform .12s ease, box-shadow .12s ease, background .12s ease;
+  transition: transform .12s ease;
 }
-.story-node.landmark { border-radius: 5px; }
-.story-node.throne { width: clamp(27px, 4.3cqw, 50px); height: clamp(27px, 4.3cqw, 50px); border-radius: 50%; }
-.story-node.open {
-  border-color: var(--el); color: var(--ink);
-  background: color-mix(in srgb, var(--el) 14%, rgba(9, 9, 14, .5));
-  box-shadow: 0 0 10px -3px var(--el), 0 1px 6px rgba(0, 0, 0, .7);
-}
-.story-node.cleared { border-color: var(--gold-line); color: var(--gold); background: rgba(20, 19, 28, .5); }
-.story-node.locked {
-  /* Legible but recessive. Three passes to land this: .55 opacity vanished into
-     the canopy, .82 was a solid plate over the painting, .34 vanished again.
-     Glass with enough edge to find. */
-  background: rgba(6, 6, 10, .5); border-color: rgba(255, 255, 255, .24);
-  color: var(--ink-dim);
-}
-/* Landmarks and Thrones — an Act's set pieces — are hexagons. Same set that
-   gets the 5x5 board (`BIG_BATTLE_KINDS`), so the shape on the map and the size
-   of the battlefield say the same thing.
-   Placed after the state rules on purpose — .open and .cleared set border-color,
-   and a clipped border renders as disconnected fragments along the box edges
-   rather than following the hexagon, so it has to be turned off for all three
-   states. The silhouette carries the shape and the fill carries the state. */
-.story-node.hex {
-  border-radius: 0;
-  border-style: none;
-  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
-  background: rgba(9, 9, 14, .62);
-  /* A clipped element can show neither a border nor a box-shadow — both are cut
-     to the same silhouette, so the edge and the glow the round nodes get simply
-     vanished. `filter: drop-shadow` is the one thing that DOES follow a
-     clip-path, so the outline is four 1px offset copies and the glow a fifth
-     blurred one. Both colours are variables, which is what lets each state
-     re-tint the edge without restating the whole stack. */
-  --edge: rgba(255, 255, 255, .24);
-  --glow: rgba(0, 0, 0, .7);
-  filter:
-    drop-shadow(1px 0 0 var(--edge)) drop-shadow(-1px 0 0 var(--edge))
-    drop-shadow(0 1px 0 var(--edge)) drop-shadow(0 -1px 0 var(--edge))
-    drop-shadow(0 0 7px var(--glow));
-}
-/* Thrones — the Mythic fights — are DIAMONDS, so the boss of an Act reads apart
-   from its Landmarks at a glance. Same override rules as the hexagon: the clip
-   replaces the shape, the border is off because a clipped border fragments, and
-   the fill carries the state. Listed after `.hex` so it wins on the Thrones,
-   which carry both classes. */
-.story-node.throne.hex {
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-/* Each state re-tints the edge and the glow; the filter stack above is unchanged,
-   which is why the outline survives every state instead of being replaced. */
-.story-node.hex.open {
-  background: color-mix(in srgb, var(--el) 46%, rgba(9, 9, 14, .8));
-  --edge: var(--el);
-  --glow: color-mix(in srgb, var(--el) 75%, transparent);
-}
-.story-node.hex.cleared {
-  background: color-mix(in srgb, var(--gold-line) 40%, rgba(20, 19, 28, .85));
-  --edge: var(--gold-line);
-}
-.story-node.hex.locked { background: rgba(9, 9, 14, .62); --edge: rgba(255, 255, 255, .24); }
-.story-node.hex:hover:not(.locked) { --glow: var(--gold-hi); }
-/* The selection ring is an `outline`, which a clip-path also cuts. Re-tinting
-   the glow keeps the edge outline intact — replacing `filter` outright would
-   have dropped it. */
-.story-node.hex.sel { outline: none; --edge: var(--gold-lit); --glow: var(--gold-lit); }
-.story-node.hex:focus-visible { outline: none; --edge: var(--gold-hi); --glow: var(--gold-hi); }
+.story-node.throne { width: clamp(29px, 4.6cqw, 54px); height: clamp(29px, 4.6cqw, 54px); }
+.story-node:hover:not(.locked) { transform: translate(-50%, -50%) scale(1.12); }
+.story-node.sel { transform: translate(-50%, -50%) scale(1.16); }
+.sn-ground, .sn-glow, .sn-pulse, .sn-rim, .sn-face { position: absolute; pointer-events: none; }
+.sn-id { position: relative; z-index: 3; pointer-events: none; }
 
-.story-node:hover:not(.locked) {
-  transform: translate(-50%, -50%) scale(1.14);
-  background: rgba(9, 9, 14, .78);
+/* The ground it stands on: a soft oval shadow just below centre, so the marker
+   sits ON the painting instead of hovering over it. */
+.sn-ground {
+  z-index: 0; left: 50%; top: 58%; width: 132%; height: 62%;
+  transform: translateX(-50%); border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(0, 0, 0, .72) 0%, rgba(0, 0, 0, .34) 46%, transparent 72%);
 }
-.story-node.sel { outline: 2px solid var(--gold-lit); outline-offset: 3px; }
-.story-node:focus-visible { outline: 2px solid var(--gold-hi); outline-offset: 3px; }
-.sn-id { pointer-events: none; }
+/* A glow behind the medallion, in the state's colour. Unclipped, so it works
+   for every shape; lit only where it means something. */
+.sn-glow {
+  z-index: 0; inset: -45%; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, var(--glow-c, var(--el)) 0%, transparent 62%);
+  transition: opacity .12s ease;
+}
+.story-node.open .sn-glow { opacity: .55; }
+.story-node.sel .sn-glow { opacity: .75; --glow-c: var(--gold-lit); }
+.story-node:hover:not(.locked) .sn-glow { opacity: .7; }
+/* The rim: the state's colour as metal, lit from the top left. */
+.sn-rim {
+  z-index: 1; inset: 0; border-radius: 50%;
+  background: linear-gradient(145deg, var(--rim-hi, #cfd3dc) 0%, var(--rim, #6b7080) 48%, var(--rim-lo, #262932) 100%);
+  box-shadow: 0 2px 5px rgba(0, 0, 0, .7);
+}
+/* The face: a dark enamel disc, tinted by the state. */
+.sn-face {
+  z-index: 2; inset: 13%; border-radius: 50%;
+  background: radial-gradient(circle at 38% 32%, var(--face-hi, #3a3d47) 0%, var(--face, #16181e) 58%, var(--face-lo, #0a0b0f) 100%);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, .2), inset 0 -2px 4px rgba(0, 0, 0, .6);
+}
+
+/* Landmarks and Thrones — an Act's set pieces — are hexagons: the same set that
+   gets the 5x5 board (`BIG_BATTLE_KINDS`), so the shape on the map and the size
+   of the battlefield say the same thing. Thrones, the Mythic fights, are
+   DIAMONDS, so an Act's boss reads apart from its Landmarks at a glance —
+   listed after `.hex`, since a Throne carries both classes. Gates are
+   archways. The rim and the face carry the silhouette, so the metal follows. */
+.story-node.hex .sn-rim,
+.story-node.hex .sn-face {
+  border-radius: 0; box-shadow: none;
+  clip-path: polygon(50% 0%, 93% 25%, 93% 75%, 50% 100%, 7% 75%, 7% 25%);
+}
+.story-node.hex .sn-face { inset: 12%; }
+.story-node.throne.hex .sn-rim,
+.story-node.throne.hex .sn-face { clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%); }
+.story-node.throne.hex .sn-face { inset: 17%; }
+.story-node.gate .sn-rim,
+.story-node.gate .sn-face { border-radius: 50% 50% 14% 14% / 62% 62% 14% 14%; }
+
+/* LOCKED: cold iron, dim — findable, not inviting. */
+.story-node.locked { color: rgba(236, 232, 222, .58); }
+.story-node.locked .sn-rim { --rim-hi: #9a9ea8; --rim: #4d515b; --rim-lo: #1b1d23; }
+.story-node.locked .sn-face { --face-hi: #2a2c34; --face: #131419; --face-lo: #08090c; }
+/* OPEN: the region's own colour, lit — the fights you can take next. */
+.story-node.open { color: #fff; text-shadow: 0 0 6px color-mix(in srgb, var(--el) 80%, transparent), 0 1px 2px #000; }
+.story-node.open .sn-rim {
+  --rim-hi: color-mix(in srgb, var(--el) 50%, #fff);
+  --rim: var(--el);
+  --rim-lo: color-mix(in srgb, var(--el) 40%, #000);
+}
+.story-node.open .sn-face {
+  --face-hi: color-mix(in srgb, var(--el) 55%, #1a1c22);
+  --face: color-mix(in srgb, var(--el) 26%, #101114);
+  --face-lo: #07080a;
+}
+/* CLEARED: gold — ground you hold. */
+.story-node.cleared { color: var(--gold-hi); }
+.story-node.cleared .sn-rim { --rim-hi: #fff1c4; --rim: var(--gold); --rim-lo: #5a4417; }
+.story-node.cleared .sn-face { --face-hi: #40341f; --face: #1c170d; --face-lo: #0b0906; }
+/* A gate is a doorway, not a fight: bronze whatever its state, and gold rather
+   than element-tinted where it glows. */
+.story-node.gate { --el: var(--gold-lit); }
+.story-node.gate .sn-rim { --rim-hi: #ffe9b0; --rim: #a07c36; --rim-lo: #3a2b10; }
+/* A Blight Node is not the region's colour — it is the thing occupying it. */
+.story-node.blight { --el: #b47dff; }
+.story-node.blight .sn-rim { --rim-hi: #e6d8ff; --rim: #8a5cd0; --rim-lo: #2e1650; }
+/* Selected: the rim turns gold, on every shape. Keyboard focus lights the same
+   way, because an outline would draw a square around a hexagon. */
+.story-node.sel .sn-rim { --rim-hi: #fff7da; --rim: var(--gold-hi); --rim-lo: var(--gold); }
+.story-node:focus-visible { outline: none; }
+.story-node:focus-visible .sn-glow { opacity: .8; --glow-c: var(--gold-hi); }
+.story-node:focus-visible .sn-rim { --rim-hi: #fff; --rim: var(--gold-hi); --rim-lo: var(--gold); }
+
+/* The pulse, on OPEN nodes only: where the campaign can go next. Opacity and
+   transform only — styles.test holds every infinite animation to those two. */
+.sn-pulse {
+  z-index: 0; inset: -6%; border-radius: 50%;
+  border: 2px solid var(--el);
+  animation: sn-pulse 2.4s ease-out infinite;
+}
+@keyframes sn-pulse {
+  0% { opacity: .85; transform: scale(.9); }
+  100% { opacity: 0; transform: scale(1.75); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sn-pulse { animation: none; opacity: .45; }
+}
+
+/* The badges ride over the medallion. */
+.sn-lock, .sn-tick, .sn-left, .sn-crown, .sn-gate, .sn-blight { position: absolute; z-index: 4; pointer-events: none; }
 .sn-lock, .sn-tick, .sn-left, .sn-crown {
-  position: absolute; font-size: clamp(7px, .95cqw, 10px); pointer-events: none;
+  font-size: clamp(7px, .95cqw, 10px);
   text-shadow: 0 1px 3px rgba(0, 0, 0, .95);
 }
-.sn-lock { top: -6px; right: -6px; }
-.sn-tick { top: -6px; right: -4px; color: var(--gold-lit); font-size: clamp(9px, 1.25cqw, 13px); }
+.sn-lock { top: -5px; right: -5px; filter: grayscale(1) brightness(1.3); opacity: .8; }
+/* The tick is a gold seal. */
+.sn-tick {
+  top: -4px; right: -4px;
+  width: clamp(11px, 1.5cqw, 16px); height: clamp(11px, 1.5cqw, 16px);
+  display: grid; place-items: center; border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #fff1c4, var(--gold) 60%, #6b5019);
+  color: #2a1f08; text-shadow: none; font-weight: 900;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .8);
+}
 .sn-crown { top: -8px; left: -3px; color: var(--gold-lit); font-size: clamp(9px, 1.3cqw, 14px); }
 .sn-left {
   bottom: -7px; right: -7px; background: var(--el); color: #0b0b0f;
   min-width: clamp(11px, 1.6cqw, 16px); height: clamp(11px, 1.6cqw, 16px);
-  border-radius: 9px; display: grid; place-items: center; font-size: clamp(7px, .95cqw, 10px);
+  border-radius: 9px; display: grid; place-items: center;
+  box-shadow: 0 0 0 1.5px #0b0b0f, 0 1px 3px rgba(0, 0, 0, .8);
 }
+.sn-gate { top: -8px; right: -6px; font-size: 12px; color: var(--gold-hi); }
 /* Blight reads in DUSK's own violet, never in the region's colour -- it is the
    thing that does NOT belong to the region. */
-.sn-blight { position: absolute; bottom: -7px; left: -5px; font-size: clamp(8px, 1.1cqw, 11px); color: #b47dff; pointer-events: none; }
+.sn-blight { bottom: -7px; left: -5px; font-size: clamp(8px, 1.1cqw, 11px); color: #b47dff; }
+.story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
 /* The painted region map. Nodes sit on it by percentage, so the art and the
    layout can never drift apart. */
 .story-canvas.arted {
@@ -4919,24 +4978,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border-radius: 10px; border: 1px solid var(--panel-line);
   box-shadow: inset 0 0 90px rgba(0, 0, 0, .55);
 }
-/* Every node is anchored by its CENTRE, so `at` names the landmark itself. */
-.story-canvas.arted .story-node { transform: translate(-50%, -50%); }
-.story-canvas.arted .story-node.sel { transform: translate(-50%, -50%) scale(1.12); }
-.story-canvas.arted .story-edges { position: absolute; inset: 0; width: 100%; height: 100%; }
-/* A Blight Node is not the region's colour -- it is the thing occupying it. */
-/* A gate is a doorway, not a fight — squared off and gold rather than element-tinted. */
-.story-node.gate {
-  --el: var(--gold-lit);
-  border-radius: 4px; border-style: dashed;
-  border-color: var(--gold); color: var(--gold-hi);
-}
-.sn-gate { position: absolute; top: -8px; right: -6px; font-size: 12px; color: var(--gold-hi); pointer-events: none; }
-.story-node.blight {
-  --el: #b47dff;
-  border-color: #8a5cd0; color: #e6d8ff;
-  box-shadow: 0 0 14px rgba(180, 125, 255, .45);
-}
-.story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
 .story-blight { color: #b47dff; }
 .story-blight b { color: #b47dff; letter-spacing: .12em; }
 /* HARD MODE, said on every map: the same nodes, a different run. */

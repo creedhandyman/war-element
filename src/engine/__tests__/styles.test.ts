@@ -537,3 +537,29 @@ describe("the story map fits its column", () => {
     for (const tier of tiers) expect(tier).not.toMatch(/(?:^|[\s;])flex(?:-grow)?\s*:/);
   });
 });
+
+// THE MAP'S ROADS KEEP THEIR WIDTH. The road SVG shares the nodes' percentage
+// coordinates through viewBox 0 0 100 100 + preserveAspectRatio="none", which
+// SCALES a stroke along with the box: without `vector-effect: non-scaling-stroke`
+// a 2-wide trail renders as a ~20px slab. It was learned on a phone once, for
+// the old straight edges, and the roads became two new stroked classes — so
+// every stroked class under `.story-edges` must carry it on its base rule.
+describe("the story map's roads keep their width", () => {
+  const RULES = CSS.replace(/\/\*[\s\S]*?\*\//g, "");
+  const stroked = [...new Set(
+    [...RULES.matchAll(/\.story-edges\s+\.([\w-]+)[^{]*\{[^}]*stroke-width/g)].map((m) => m[1]),
+  )];
+
+  it("draws the roads as a casing and a trail", () => {
+    expect(stroked).toContain("trail-case");
+    expect(stroked).toContain("trail");
+  });
+
+  it("every stroked road class holds its width against the viewBox", () => {
+    for (const cls of stroked) {
+      const base = new RegExp(`\\.story-edges \\.${cls} \\{([^}]*)\\}`).exec(RULES)?.[1];
+      expect(base, `no base rule for .story-edges .${cls}`).toBeTruthy();
+      expect(base, `.story-edges .${cls}`).toMatch(/vector-effect:\s*non-scaling-stroke/);
+    }
+  });
+});
