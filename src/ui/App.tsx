@@ -18,13 +18,11 @@ import {
   effectiveDmg,
   effectiveSpecialCost,
   enemyOf,
-  FLOW_MODES,
   getDef,
   getSpell,
   spellPickKind,
   homeRow,
   centreHomeSeat,
-  liquidGivesHit,
   legalMoves,
   legalWallRows,
   needsInput,
@@ -274,6 +272,7 @@ import { StoryResult } from "./StoryResult";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
 import { VersusIntro } from "./VersusIntro";
+import { FlowChangeModal } from "./FlowChangeModal";
 import { ActionWheel, underWheel, wheelTap, type WheelVerb } from "./ActionWheel";
 import { browserBackStack } from "./back-stack";
 import { useBackLayer } from "./use-back-layer";
@@ -5109,65 +5108,17 @@ export function App() {
 
       {game.pendingFlow && game.cards[game.pendingFlow] && (() => {
         const flowCard = game.cards[game.pendingFlow!];
-        // Only the card's OWNER resolves its Flow Change. Online, the other
-        // player must not be able to pick for it — they see a waiting note.
-        const flowMine = !online || flowCard.owner === online.myId;
-        if (!flowMine)
-          return (
-            <div className="overlay">
-              <div className="modal flow-modal">
-                <h1>Flow Change</h1>
-                <p>
-                  ⏳ {game.pendingFlowAll ? "Downpour is re-shaping their side" : <><b>{getDef(flowCard.defId).name}</b> is flowing into being</>} —
-                  your opponent is choosing the boost.
-                </p>
-              </div>
-            </div>
-          );
         return (
-          <div className="overlay">
-            <div className="modal flow-modal">
-              <h1>Flow Change</h1>
-              <p>
-                {game.pendingFlowAll ? (
-                  <>
-                    <b>Downpour</b> — the tide re-shapes your{" "}
-                    {getDef(flowCard.defId).element} side. Choose this round's boost
-                    for <b>all</b> of them.
-                  </>
-                ) : (
-                  <>
-                    <b>{getDef(flowCard.defId).name}</b> flows into being —
-                    choose its boost. It keeps it for good.
-                  </>
-                )}
-              </p>
-              <div className="flow-opts">
-                {(["water", "ice", "steam"] as const).map((mode) => {
-                  // Liquid reads "+1 hit" on a multi-hit card for BOTH paths now.
-                  // The summon pick is permanent again, and the permanent path
-                  // grants the extra hit rather than +2 per hit — so restricting
-                  // this to Downpour would print the wrong number on the one
-                  // choice the player actually makes.
-                  const multiHit = liquidGivesHit(flowCard);
-                  const blurb =
-                    mode === "water" && multiHit ? "+1 hit" : FLOW_MODES[mode].blurb;
-                  return (
-                    <button
-                      key={mode}
-                      className={`flow-opt flow-${mode}`}
-                      onClick={() =>
-                        dispatch({ type: "FLOW_CHANGE", player: flowCard.owner, instanceId: flowCard.instanceId, mode })
-                      }
-                    >
-                      <span className="flow-label">{FLOW_MODES[mode].label}</span>
-                      <span className="flow-blurb">{blurb}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
+          <FlowChangeModal
+            game={game}
+            card={flowCard}
+            // Only the card's OWNER resolves its Flow Change. Online, the other
+            // player must not be able to pick for it — they see it waiting.
+            mine={!online || flowCard.owner === online.myId}
+            onPick={(mode) =>
+              dispatch({ type: "FLOW_CHANGE", player: flowCard.owner, instanceId: flowCard.instanceId, mode })
+            }
+          />
         );
       })()}
 

@@ -2099,16 +2099,133 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .cd-actions { display: flex; gap: 8px; margin-top: 18px; }
 .cd-actions .lockin { flex: 1; }
 
-/* Flow Change choice (AQUA summon) */
-.flow-modal { max-width: min(440px, 94vw); }
-.flow-opts { display: flex; gap: 10px; margin-top: 4px; }
-.flow-opt { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 16px 10px; border-radius: 12px; background: var(--void-2); border: 1px solid var(--panel-line); color: var(--ink); cursor: pointer; transition: 0.15s; }
-.flow-opt:hover { transform: translateY(-2px); border-color: var(--accent); }
-.flow-label { font-size: 15px; font-weight: 800; }
-.flow-blurb { font-size: 12px; font-weight: 700; color: var(--ink-dim); }
-.flow-water:hover { border-color: #2f8fd6; box-shadow: 0 0 16px rgba(47,143,214,0.35); }
-.flow-ice:hover { border-color: #8fc3ff; box-shadow: 0 0 16px rgba(143,195,255,0.35); }
-.flow-steam:hover { border-color: #c9d6e8; box-shadow: 0 0 16px rgba(201,214,232,0.3); }
+/* ── AQUA Flow Change (FlowChangeModal.tsx) ───────────────────────────────
+   The card that just landed, then its three forms as rows, each with the one
+   stat it moves, before -> after. Every form wears its colour AT REST, not on
+   hover: phones have no hover, and the colour is how the three tell apart. */
+.modal.flow-modal {
+  --aqua: #4d94e8;
+  width: min(440px, 94vw); padding: 20px; text-align: left;
+  background: radial-gradient(130% 70% at 50% -12%, rgba(77, 148, 232, 0.24), transparent 62%), var(--panel);
+  border-color: rgba(77, 148, 232, 0.5);
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 44px rgba(77, 148, 232, 0.16);
+  animation: flowIn 0.26s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes flowIn { from { opacity: 0; transform: translateY(14px) scale(0.97); } }
+.flow-head { display: flex; align-items: center; gap: 14px; margin-bottom: 16px; }
+.flow-art {
+  flex: none; width: 68px; height: 68px; border-radius: 14px; overflow: hidden;
+  border: 2px solid var(--aqua); background: #0b1c34; box-shadow: 0 0 20px rgba(77, 148, 232, 0.35);
+}
+.flow-art img { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 16%; }
+/* Downpour: the whole side it lands on, overlapped. */
+.flow-kin { flex: none; display: flex; align-items: center; padding-left: 16px; }
+.flow-kin img, .flow-kin-more {
+  width: 44px; height: 44px; margin-left: -16px; border-radius: 50%; border: 2px solid var(--aqua);
+  box-shadow: 0 0 0 2px var(--panel); background: #0b1c34; object-fit: cover; object-position: 50% 16%;
+}
+.flow-kin-more { display: grid; place-items: center; font-size: 13px; font-weight: 800; color: var(--ink); }
+.flow-title { min-width: 0; }
+.flow-kicker {
+  display: inline-flex; align-items: center; gap: 6px; color: #8cc6ff;
+  font-size: 11px; font-weight: 800; letter-spacing: 0.16em; text-transform: uppercase;
+}
+.flow-kicker svg { width: 14px; height: 14px; }
+.flow-modal h1 { margin: 3px 0 2px; font-size: 22px; line-height: 1.15; overflow-wrap: anywhere; }
+.flow-modal .flow-sub { margin: 0; font-size: 13px; line-height: 1.35; color: var(--ink-dim); }
+.flow-opts { display: flex; flex-direction: column; gap: 10px; }
+.flow-opt, .flow-chip { --fc: #3b9dff; --fc-deep: #0e2a4d; }
+.flow-opt.flow-ice, .flow-chip.flow-ice { --fc: #a6ecff; --fc-deep: #0f3444; }
+.flow-opt.flow-steam, .flow-chip.flow-steam { --fc: #d6dfec; --fc-deep: #262d3b; }
+.flow-opt {
+  display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 12px;
+  width: 100%; padding: 12px 14px; border-radius: 14px; text-align: left; font: inherit; color: var(--ink); cursor: pointer;
+  background: linear-gradient(115deg, var(--fc-deep), rgba(10, 12, 20, 0.92) 78%);
+  border: 1px solid color-mix(in srgb, var(--fc) 45%, transparent);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--fc) 22%, transparent), 0 4px 14px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+  animation: flowOpt 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+}
+.flow-opt:nth-child(2) { animation-delay: 0.05s; }
+.flow-opt:nth-child(3) { animation-delay: 0.1s; }
+@keyframes flowOpt { from { opacity: 0; transform: translateY(8px); } }
+.flow-opt:hover, .flow-opt:focus-visible {
+  outline: none; transform: translateY(-2px); border-color: var(--fc);
+  box-shadow: 0 0 0 1px var(--fc), 0 8px 24px color-mix(in srgb, var(--fc) 32%, transparent);
+}
+.flow-opt:active { transform: scale(0.98); }
+.flow-ic {
+  display: grid; place-items: center; width: 46px; height: 46px; border-radius: 12px; color: #fff;
+  background: radial-gradient(circle at 34% 28%, color-mix(in srgb, var(--fc) 70%, #fff), color-mix(in srgb, var(--fc) 45%, var(--fc-deep)) 70%);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--fc) 40%, transparent), inset 0 -3px 8px rgba(0, 0, 0, 0.25);
+}
+.flow-ice .flow-ic, .flow-steam .flow-ic { color: #0c1a26; }
+.flow-ic svg { width: 24px; height: 24px; }
+.flow-body { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.flow-label { font-family: var(--head); font-size: 16px; font-weight: 800; letter-spacing: 0.04em; color: var(--fc); }
+.flow-effect { font-size: 14.5px; font-weight: 800; }
+.flow-tide { display: inline-flex; align-items: center; gap: 4px; font-size: 11.5px; color: var(--ink-dim); }
+.flow-tide svg { flex: none; width: 12px; height: 12px; }
+.flow-delta { display: flex; flex-direction: column; align-items: flex-end; gap: 1px; font-variant-numeric: tabular-nums; }
+.flow-delta i { font-style: normal; font-size: 10px; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; }
+.flow-delta-row { display: inline-flex; align-items: baseline; gap: 5px; white-space: nowrap; }
+.flow-delta s { text-decoration: none; font-size: 14px; font-weight: 700; color: var(--ink-faint); }
+.flow-delta em { font-style: normal; font-size: 12px; color: var(--ink-faint); }
+.flow-delta b { font-size: 20px; font-weight: 800; }
+.flow-delta b svg { width: 0.8em; height: 0.8em; margin-right: 1px; }
+.flow-modal .flow-foot {
+  display: flex; align-items: flex-start; gap: 8px; margin: 14px 0 0; padding: 10px 12px;
+  font-size: 12px; line-height: 1.45; color: var(--ink-dim);
+  border-radius: 10px; background: rgba(77, 148, 232, 0.08); border: 1px solid rgba(77, 148, 232, 0.2);
+}
+.flow-foot svg { flex: none; width: 15px; height: 15px; margin-top: 1px; color: #8cc6ff; }
+.flow-foot b { color: var(--ink); }
+/* The other seat choosing, online: the same three forms, read-only, breathing.
+   The breath is a glow ring on ::after fading in and out — opacity only, so the
+   loop never repaints (styles.test.ts keeps that list from growing). */
+.flow-chips { display: flex; gap: 8px; }
+.flow-chip {
+  position: relative; flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px; border-radius: 12px; text-align: center;
+  background: linear-gradient(160deg, var(--fc-deep), rgba(10, 12, 20, 0.9));
+  border: 1px solid color-mix(in srgb, var(--fc) 35%, transparent);
+}
+.flow-chip::after {
+  content: ""; position: absolute; inset: -1px; border-radius: inherit; pointer-events: none;
+  border: 1px solid var(--fc); box-shadow: 0 0 14px color-mix(in srgb, var(--fc) 30%, transparent);
+  opacity: 0; animation: flowWait 1.8s ease-in-out infinite;
+}
+.flow-chip:nth-child(2)::after { animation-delay: 0.3s; }
+.flow-chip:nth-child(3)::after { animation-delay: 0.6s; }
+@keyframes flowWait { 50% { opacity: 1; } }
+.flow-chip .flow-ic { width: 34px; height: 34px; border-radius: 10px; }
+.flow-chip .flow-ic svg { width: 18px; height: 18px; }
+.flow-chip b { font-family: var(--head); font-size: 13px; color: var(--fc); }
+.flow-chip small { font-size: 11px; font-weight: 700; color: var(--ink-dim); }
+/* Narrow phones: the rows keep their three columns, a size down. */
+@media (max-width: 380px) {
+  .modal.flow-modal { padding: 16px 14px; }
+  .flow-art { width: 56px; height: 56px; }
+  .flow-opt { grid-template-columns: 38px minmax(0, 1fr) auto; gap: 10px; padding: 10px 12px; }
+  .flow-opt .flow-ic { width: 38px; height: 38px; }
+  .flow-opt .flow-ic svg { width: 20px; height: 20px; }
+  .flow-delta b { font-size: 18px; }
+}
+/* Phones on their side: too short for three rows, wide enough for three
+   columns side by side. */
+@media (max-height: 540px) and (min-width: 500px) {
+  .modal.flow-modal { width: min(620px, 94vw); padding: 14px 16px; }
+  .flow-head { margin-bottom: 10px; }
+  .flow-art { width: 52px; height: 52px; }
+  .flow-opts { flex-direction: row; }
+  .flow-opt { flex: 1; min-width: 0; grid-template-columns: 1fr; justify-items: center; gap: 6px; padding: 10px 8px; text-align: center; }
+  .flow-body, .flow-delta { align-items: center; }
+  .flow-modal .flow-foot { margin-top: 10px; padding: 8px 10px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .modal.flow-modal, .flow-opt, .flow-chip::after { animation: none; }
+  .flow-opt:hover, .flow-opt:focus-visible, .flow-opt:active { transform: none; }
+}
 
 /* mode toggle (pre-game: vs AI / 2 players) */
 .mode-toggle { display: flex; gap: 8px; margin-bottom: 4px; }

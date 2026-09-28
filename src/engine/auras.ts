@@ -571,12 +571,19 @@ export const DUSK_SHADE_PCT = 5;
 export const DUSK_SHADE_MAX_STACKS = 5;
 
 // AQUA Flow Change — the three-way summon choice. The summon pick is PERMANENT.
+//
+// `blurb` is the summon pick (applyFlow below) and `tide` its echo every
+// AQUA_TIDE_EVERY rounds (Cleanup's THE TIDE in phases.ts). The Flow Change
+// menu prints both, and flow-menu.test.ts holds each to the number the engine
+// actually applies — change a grant and its text together or the suite fails.
 export type FlowMode = "water" | "ice" | "steam";
-export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string }> = {
-  water: { label: "Liquid", blurb: "+2 DMG" },
-  ice: { label: "Frozen", blurb: "+3 shields" },
-  steam: { label: "Vapor", blurb: "+4 SP" },
+export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string; tide: string }> = {
+  water: { label: "Liquid", blurb: "+2 DMG", tide: "+1 DMG" },
+  ice: { label: "Frozen", blurb: "+3 shields", tide: "+1 shield" },
+  steam: { label: "Vapor", blurb: "+4 SP", tide: "+2 SP" },
 };
+/** Liquid's blurb on a card `liquidGivesHit` covers. */
+export const LIQUID_HIT_BLURB = "+1 hit";
 
 /** True when Liquid should grant an extra hit rather than +2 DMG — i.e. the
  *  card already strikes multiple times, so a flat per-hit bonus would balloon
