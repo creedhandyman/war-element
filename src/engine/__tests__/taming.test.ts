@@ -161,8 +161,12 @@ describe("Thunderfangs is tamed at full strength", () => {
 
   it("the board seats it through the same reader, and the copy says so", () => {
     const read = (f: string) => readFileSync(join(__dirname, "..", "..", "ui", f), "utf8");
-    expect(read("App.tsx")).toContain("scaleInstance(ally, tameScaleFor(bossFight.ally));");
-    expect(read("App.tsx")).not.toContain("scaleInstance(ally, TAME_SCALE)");
+    // Seated in `void-seat.ts` (shared with the story's Hard border bosses),
+    // with the ally App hands it.
+    expect(read("App.tsx")).toContain("ally: bossFight?.ally");
+    expect(read("void-seat.ts")).toContain("scaleInstance(ally, tameScaleFor(opts.ally));");
+    for (const f of ["App.tsx", "void-seat.ts"])
+      expect(read(f), f).not.toContain("scaleInstance(ally, TAME_SCALE)");
     expect(read("BossDetail.tsx")).toContain('k >= 1 ? "at full strength"');
     expect(read("VoidTower.tsx")).toContain("tameScaleFor(b.cardId) !== TAME_SCALE");
   });

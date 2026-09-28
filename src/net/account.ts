@@ -414,7 +414,14 @@ export function summarize(b: SaveBundle | null): SaveSummary {
       const s = story as Record<string, unknown>;
       if (Array.isArray(s.collection)) out.cards = s.collection.length;
       else if (Array.isArray(s.owned)) out.cards = s.owned.length;
-      if (Array.isArray(s.cleared)) out.cleared = s.cleared.length;
+      // Every node the save has EVER cleared. A Hard run starts `cleared` over
+      // and keeps the campaign before it in `firstRunCleared`; counting only
+      // the first would make a finished campaign read as a new one on the one
+      // screen that asks which of two saves to keep.
+      out.cleared = new Set([
+        ...(Array.isArray(s.cleared) ? s.cleared : []),
+        ...(Array.isArray(s.firstRunCleared) ? s.firstRunCleared : []),
+      ]).size;
       const hero = s.hero as { shards?: unknown } | undefined;
       if (hero && typeof hero.shards === "number") out.shards = hero.shards;
     }

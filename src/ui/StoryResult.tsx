@@ -34,9 +34,12 @@ export function StoryResult(props: {
    *  the same way a pack does — and this screen was the one place that could
    *  hand you your first foil without ever saying so. */
   foils?: ReadonlySet<string>;
+  /** HARD MODE: the Void Tower boss that held this border, when one did. */
+  boss?: string | null;
   onDone: () => void;
 }) {
   const { node, game, won, captured, firstClear, lost } = props;
+  const bossName = props.boss ? getDef(props.boss).name : null;
   const rolls = Math.max(1, captured);
   const [showReport, setShowReport] = useState(false);
   // A JSX element is always truthy, so ask the data — not the element — whether
@@ -47,7 +50,7 @@ export function StoryResult(props: {
     <div className="overlay on-top">
       <div className={`modal story-result ${showReport ? "wide" : ""}`}>
         <h1 className={lost ? "sr-lost" : undefined}>
-          {lost ? `${node.name} held` : isGate(node) ? "Border crossed" : `${node.name} cleared`}
+          {lost ? `${bossName ?? node.name} held` : isGate(node) ? "Border crossed" : `${node.name} cleared`}
         </h1>
 
         {lost ? (
@@ -57,7 +60,8 @@ export function StoryResult(props: {
           </p>
         ) : isGate(node) ? (
           <p>
-            The patrol is broken. <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b> is
+            {bossName ? <><b>{bossName}</b> is slain.</> : "The patrol is broken."}{" "}
+            <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b> is
             open, and this gate stays open behind you.
           </p>
         ) : (

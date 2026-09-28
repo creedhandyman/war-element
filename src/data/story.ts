@@ -1370,7 +1370,10 @@ export const ESSENCE_PER_CLEAR: Record<NodeKind, number> = {
  *  has more nodes than that, so finishing a region always finishes its spells.
  */
 export function spellsUnlockedIn(save: StorySave, region: StoryRegion): string[] {
-  const depth = region.nodes.filter((n) => save.cleared.includes(n.id)).length;
+  // EVER cleared: a spell once earned stays earned. Hard mode resets the map,
+  // not the hero's book.
+  const walked = everCleared(save);
+  const depth = region.nodes.filter((n) => walked.includes(n.id)).length;
   return SPELLS
     .filter((sp) => sp.element === region.element && sp.cost <= depth)
     .map((sp) => sp.id);
@@ -1738,7 +1741,7 @@ function foldIntoSquad(save: StorySave): StorySave {
   // imports this one, so reaching back would invert the layering and close a
   // cycle. Structurally it is the first node of the first region either way.
   const opener = REGIONS[0]?.nodes[0]?.id;
-  if (!opener || save.cleared.includes(opener)) return save;
+  if (!opener || everCleared(save).includes(opener)) return save;
   const owned = [...new Set(save.collection)];
   if (owned.length > deckCapFor(save.cleared)) return save;   // a real choice exists
   if (owned.every((id) => save.deck.includes(id))) return save;
@@ -2292,7 +2295,9 @@ export function gateCheck(save: StorySave, node: StoryNode): GateCheck {
         ? `Your deck is ${save.deck.length}/${cap}. A gate takes a full deck — add ${cap - save.deck.length} more.`
         : `Your deck is ${save.deck.length}/${cap}. Drop ${save.deck.length - cap}.`,
     );
-  if (node.demand) {
+  // A Hard border is held by a boss rather than a checkpoint: no composition
+  // demand, only the full deck and the boss to slay.
+  if (node.demand && !borderBossFor(save, node)) {
     const have = demandMet(save.deck, node.demand);
     if (have < node.demand.count)
       reasons.push(
@@ -2430,9 +2435,136 @@ export const isFirstBattle = (region: StoryRegion, node: StoryNode): boolean =>
 const tribesOf = (d: { tribe?: string | string[] }): string[] =>
   d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
 
+// ── Hard mode (owner, 2026-09-27) ───────────────────────────────────────────
+// Beat every region's required Throne and the campaign offers a second run. The
+// MAP starts over (node clears, and with them the deck-size ladder; Blight;
+// packed squads) while the collection, spells, shards, level and saved teams carry
+// over. Every fight fields a BIGGER squad (`HARD_FORMATION_SCALE`, and more of
+// it Legendary and Epic, `HARD_QUOTA_BONUS`), and every border is guarded by a
+// Void Tower boss instead of a patrol, fought under tower rules
+// (`HARD_BORDER_BOSS`). Owner's choices: bigger squads rather than scaled-up
+// stats, and a run started by a button rather than the map wiping itself the
+// moment the last Throne falls.
+
+export const isHard = (save: StorySave): boolean => (save.hardRun ?? 0) > 0;
+
+/** Every node this save has EVER cleared: this run and every run before it.
+ *
+ *  Two readers, two questions. The MAP reads `cleared`: what is open, the deck
+ *  cap, the squad limit, Blight, all of which a Hard run starts over. Everything
+ *  that is the player's HISTORY reads this: the spells the hero has earned, the
+ *  walkthrough (a veteran starting Hard must not be walked through their first
+ *  fight again), the AI's opening rung, the profile's node count. A function
+ *  declaration so it is hoisted for the readers above it. */
+export function everCleared(save: Pick<StorySave, "cleared" | "firstRunCleared">): string[] {
+  const before = save.firstRunCleared ?? [];
+  return before.length ? [...new Set([...before, ...(save.cleared ?? [])])] : save.cleared ?? [];
+}
+
+/** Every region's required Throne down (`REQUIRED_THRONES`): a finished
+ *  campaign, and what opens Hard mode. */
+export const campaignComplete = (save: StorySave): boolean =>
+  REQUIRED_THRONES.every((id) => save.cleared.includes(id));
+
+/** Offered once, on a finished FIRST campaign. */
+export const canStartHard = (save: StorySave): boolean => !isHard(save) && campaignComplete(save);
+
+/** Start the Hard run: the map resets, the cards stay.
+ *
+ *  `cleared` empties, which by itself resets everything that reads it: which
+ *  nodes and regions are open, the deck-size ladder (`deckCapFor`), the squad
+ *  limits and the region musters. Blight is world progress and resets with it.
+ *  Packed squads go too: `squadFor` does not clamp, so a squad packed at the old
+ *  limit would carry more foreign cards than a fresh run allows. What was
+ *  cleared is kept on the record in `firstRunCleared`. */
+export function startHardMode(save: StorySave): StorySave {
+  if (!canStartHard(save)) return save;
+  return {
+    ...save,
+    hardRun: 1,
+    firstRunCleared: [...new Set([...(save.firstRunCleared ?? []), ...save.cleared])],
+    cleared: [],
+    blight: {},
+    squads: undefined,
+  };
+}
+
+/** How much bigger a Hard squad is than the one the same node fields on the
+ *  first run. The first run's squad matches the player's own deck size
+ *  (`formationSize`); Hard brings half as many again.
+ *
+ *  Measured at 16 nodes across all eight regions (both sides AI, 40 fights a
+ *  cell), with a veteran's deck auto-built from the whole collection: it wins
+ *  73% on average against the first run's squads and 54% against Hard's. The
+ *  climbs are where it bites: LEAF's Throne 100% -> 28%, a LEAF Landmark
+ *  73% -> 5%, AQUA's Throne 63% -> 20%, a GALE Warden 95% -> 40%. Its first few
+ *  fights stay the gentlest part: a six-card cap is six cards however good
+ *  they are, but they can be Mythics. */
+export const HARD_FORMATION_SCALE = 1.5;
+export const hardFormationSize = (cap: number): number =>
+  Math.round(formationSize(cap) * HARD_FORMATION_SCALE);
+
+/** ...and more of it is heavy: added to every node kind's Legendary and Epic
+ *  share (`FILL_PROFILE`), so even a Skirmish fields some. */
+export const HARD_QUOTA_BONUS = { legendary: 0.10, epic: 0.15 } as const;
+export const hardFillProfile = (kind: NodeKind): { legendary: number; epic: number } => ({
+  legendary: FILL_PROFILE[kind].legendary + HARD_QUOTA_BONUS.legendary,
+  epic: FILL_PROFILE[kind].epic + HARD_QUOTA_BONUS.epic,
+});
+
+/** WHO GUARDS EACH BORDER in Hard mode: a Void Tower boss that fights for one
+ *  side of it, from the tower's FIRST TWO FLOORS.
+ *
+ *  Floors 3 and up are tuned around a tamed ally fighting beside the player,
+ *  and a campaign fight has none. Measured with the deck a Hard run carries to
+ *  each border (the whole collection, auto-built to the border's cap; both
+ *  sides AI), the first picks were walls: Hoarfell at the Arctic Gate won 2 of
+ *  40 and Spindle at the Shadow Border 0 of 40, and no DAWN boss cleared 8%
+ *  (Helion's fights all ran out the clock). What shipped, 60 fights a cell,
+ *  beside the first run's own gate fight at each border in the same harness:
+ *
+ *    border  boss        Hard   first run      border  boss        Hard   first run
+ *    GA      Smolder      52%     42%           GE      Overclock    27%     17%
+ *    GB      Basilisk     35%     40%           GF      Permafrost   40%     40%
+ *    GC      Overclock    43%     42%           GS      Skeleeze     27%      0%
+ *    GC2     Smolder      27%     77%
+ *
+ *  The same harbour takes a different guard from each side on purpose:
+ *  Overclock from the PYRO side, but from the AQUA side it won 0 of 60 (its
+ *  drones overran the home row every time), so the water road meets Smolder.
+ *  Ids, not imports: this file stays pure data, and a test pins every id to
+ *  VOID_BOSSES, to floors 1-2 and to a side of its border. */
+export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
+  GA: "boss_smolder",     // LEAF -> PYRO, the Southern Burn: LEAF/PYRO
+  GB: "boss_basilisk",    // LEAF -> AQUA, Eastleaf Port: LEAF/AQUA
+  GC: "boss_overclock",   // PYRO -> AQUA, Sunfall Harbor: PYRO's harbour guard
+  GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
+  GE: "boss_overclock",   // the airship lanes to the Gray Continent: BOLT's engines
+  GF: "boss_permafrost",  // the Arctic Gate: the ice wall itself, AQUA/BORE
+  GS: "boss_skeleeze",    // the Shadow Border: DUSK, with the Gray Continent's GALE
+};
+
+/** The boss standing on this border, in Hard mode. Null on the first run and
+ *  on every node that is not a gate. */
+export const borderBossFor = (save: StorySave, node: StoryNode): string | null =>
+  isHard(save) && node.kind === "gate" ? HARD_BORDER_BOSS[node.id] ?? null : null;
+
+/** A border boss is fought on the Void Tower's own board — the one its
+ *  encounter (`buildVoidEncounter`) is built for — not the gate's 7x7. A test
+ *  pins the two together. */
+export const BORDER_BOSS_BOARD = 5;
+
+/** The board THIS save fights `node` on: `boardForNode`, except where a Hard
+ *  border boss has taken the crossing. */
+export const fightBoardFor = (save: StorySave, region: StoryRegion, node: StoryNode): number =>
+  borderBossFor(save, node) ? BORDER_BOSS_BOARD : boardForNode(region, node);
+
 export function buildFormation(save: StorySave, region: StoryRegion, node: StoryNode): string[] {
   const uniques = recruitablePool(node);
-  const opening = isOpeningNode(region, node);
+  const hard = isHard(save);
+  // The opening battle's one-for-one welcome is the FIRST run's tutorial. A Hard
+  // run arrives with a whole collection and fights a full squad from node one.
+  const opening = !hard && isOpeningNode(region, node);
   // An opening battle is sized ONE-FOR-ONE against what the player can field,
   // and takes the CHEAPEST of its roster first.
   //
@@ -2472,11 +2604,15 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // with a packed squad of fourteen still gets fourteen, so the welcome mat does
   // not become a walkover later in the campaign — the fight simply tracks the
   // force you actually brought.
-  const target = opening ? Math.min(cap, openingTarget(save, region)) : formationSize(cap);
+  const target = opening ? Math.min(cap, openingTarget(save, region))
+    : hard ? hardFormationSize(cap)
+    : formationSize(cap);
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;
   const rarity = (id: string) => getDef(id).rarity ?? "";
   const countOf = (r: string) => out.filter((id) => rarity(id) === r).length;
-  const epicsMayDouble = doublesEpics(node);
+  // Hard doubles Epics everywhere: a bigger squad that could only grow by Rares
+  // would be more of the same bodies, not a harder fight.
+  const epicsMayDouble = hard || doublesEpics(node);
 
   // Everything already standing: the node's own pool plus its tokens, patrol and
   // escorts. A Throne's roster is a lone Mythic and a Gate has no roster at all,
@@ -2526,8 +2662,10 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
         .filter((id) => rarity(id) === r && !present.includes(id)
           && tribesOf(getDef(id)).includes(nodeTribe))
         .sort(byCost);
+  // Hard: EVERY region musters. The nodes you have beaten send their cards on
+  // ahead of you, heaviest first, which is the "stronger" half of a bigger squad.
   const musterPool = (r: string) =>
-    !region.musters ? [] :
+    !region.musters && !hard ? [] :
       [...new Set(
         region.nodes.filter((n) => save.cleared.includes(n.id)).flatMap((n) => n.roster),
       )]
@@ -2555,8 +2693,10 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // be worth it — the boss arrives with its region's Legendaries and Epics
   // behind it, not ten Rares. A Skirmish is all rank and file, which is what
   // makes a Throne read as different.
-  const p = FILL_PROFILE[node.kind];
-  const scale = quotaScale(cap);
+  const p = hard ? hardFillProfile(node.kind) : FILL_PROFILE[node.kind];
+  // Act I's three-quarter quotas eased a first campaign's starting deck. A Hard
+  // run has no starting deck.
+  const scale = hard ? 1 : quotaScale(cap);
   const maxLeg = Math.floor(target * p.legendary * scale);
   const maxEpic = Math.floor(target * p.epic * scale);
   // The muster goes in AHEAD of the ordinary pool at every rarity, so a late
@@ -2580,8 +2720,14 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
 // ── save state ──────────────────────────────────────────────────────────────
 
 export interface StorySave {
-  /** Node ids cleared at least once. */
+  /** Node ids cleared at least once — on THIS run. Hard mode starts it over. */
   cleared: string[];
+  /** HARD MODE: which Hard run this save is on (1 = the first). Absent on the
+   *  first campaign. Set by `startHardMode`, read through `isHard`. */
+  hardRun?: number;
+  /** Every node cleared on the runs BEFORE this one, kept when Hard mode starts
+   *  `cleared` over, so a finished campaign stays on the record. */
+  firstRunCleared?: string[];
   /** Card ids owned. Starts as the starter deck. */
   collection: string[];
   /** `${nodeId}:${defId}` -> dry clears since the last recruit of that card. */
@@ -2917,6 +3063,12 @@ export function loadStory(): StorySave {
     const collection = known(p.collection);
     const save: StorySave = {
       cleared: Array.isArray(p.cleared) ? p.cleared.filter((c) => typeof c === "string" && !!nodeById(c)) : [],
+      hardRun: typeof p.hardRun === "number" && Number.isFinite(p.hardRun) && p.hardRun > 0
+        ? Math.floor(p.hardRun)
+        : undefined,
+      firstRunCleared: Array.isArray(p.firstRunCleared)
+        ? p.firstRunCleared.filter((c) => typeof c === "string" && !!nodeById(c))
+        : undefined,
       collection: collection.length ? collection : [...STARTER_DECK],
       pity: p.pity && typeof p.pity === "object" ? (p.pity as Record<string, number>) : {},
       // Scoped to what is actually owned: a card refunded, or dropped by a

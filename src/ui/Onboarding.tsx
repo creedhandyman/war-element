@@ -51,7 +51,7 @@
  *  would be teaching a different game than the one being played.
  */
 import type { StorySave } from "../data/story";
-import { deckCapFor, freePacks } from "../data/story";
+import { deckCapFor, everCleared, freePacks } from "../data/story";
 import { TAME_USES } from "../data/void-tower";
 
 /** The sentinel written into `save.taught` when the player skips. Distinct
@@ -186,7 +186,9 @@ const step = (id: string) => ONBOARDING_STEPS.find((s) => s.id === id)!;
 export const packOpened = (save: StorySave): boolean => freePacks(save) <= 0;
 
 /** Has the teaching fight been won? */
-export const firstFightWon = (save: StorySave): boolean => save.cleared.includes(FIRST_NODE);
+/** EVER won: a veteran starting Hard mode has an empty map and a first fight
+ *  far behind them, and must not be walked through it again. */
+export const firstFightWon = (save: StorySave): boolean => everCleared(save).includes(FIRST_NODE);
 
 /** MAY the player dismiss the walkthrough yet?
  *
@@ -239,7 +241,7 @@ export function onboardingStep(save: StorySave): OnboardStep | null {
   // right rule for a new player: someone who has gone off and won a second node
   // has demonstrated they can find their way around, and finishing the tour at
   // them is answering a question they stopped asking.
-  if (save.cleared.some((id) => id !== FIRST_NODE)) return null;
+  if (everCleared(save).some((id) => id !== FIRST_NODE)) return null;
   return ONBOARDING_STEPS.find((s) => !s.core && !taught.includes(s.id)) ?? null;
 }
 

@@ -4704,6 +4704,26 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .story-node.blight .sn-blight { bottom: auto; top: -9px; left: -5px; font-size: 14px; }
 .story-blight { color: #b47dff; }
 .story-blight b { color: #b47dff; letter-spacing: .12em; }
+/* HARD MODE, said on every map: the same nodes, a different run. */
+.story-hard-tag {
+  display: inline-block; margin-left: 8px; padding: 1px 7px; border-radius: 4px;
+  font-size: 9.5px; letter-spacing: .12em; vertical-align: 1px;
+  color: #ffd9d4; background: rgba(200, 50, 40, .28); border: 1px solid rgba(235, 90, 70, .7);
+}
+/* The offer on a finished campaign. Above the map, full width of its column,
+   and quiet enough to live there until the player takes it. */
+.hard-offer {
+  display: flex; align-items: center; gap: 12px 16px; flex-wrap: wrap;
+  margin: 16px 24px 0; padding: 12px 16px; border-radius: 10px;
+  border: 1px solid rgba(235, 90, 70, .55);
+  background: linear-gradient(180deg, rgba(200, 50, 40, .16), rgba(200, 50, 40, .05));
+}
+.hard-offer p { flex: 1 1 260px; margin: 0; font-size: 12.5px; line-height: 1.5; color: var(--ink-dim); }
+.hard-offer p b { color: var(--ink); }
+.hard-offer-row { display: flex; gap: 8px; flex-wrap: wrap; }
+@media (max-width: 760px) {
+  .hard-offer { margin: 10px 12px 0; padding: 10px 12px; }
+}
 /* The way to the map picker. Reads as a destination rather than another ghost
    button, because it is the one control on this header that changes WHERE you
    are — Collection only changes what you are looking at. */

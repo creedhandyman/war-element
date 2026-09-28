@@ -15,7 +15,7 @@ import { getDef } from "../data/cards";
 import { getSpell, spellCapForBoard } from "../engine/spells";
 import {
   autoDeck,
-  boardForNode, deckCapFor, deckForRegion, fieldedBy, fightCap, isGate, loadoutLegal, localCards,
+  borderBossFor, deckCapFor, deckForRegion, fieldedBy, fightBoardFor, fightCap, isGate, loadoutLegal, localCards,
   packSquad, packableFor, poolForRegion, rememberDeck,
   squadCapInRegion, squadFor, squadIsExplicit, squadIsOfferable,
   type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
@@ -25,6 +25,7 @@ import {
 } from "../data/squads";
 import { CardView } from "./CardView";
 import { cardThumbSrc } from "./shared";
+import { broodOf } from "./void-seat";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -50,7 +51,9 @@ export function StoryPrep(props: {
   // ladder allows it, an ordinary node stays at STANDARD_CAP however far along
   // you are.
   const cap = fightCap(save, region, node);
-  const board = boardForNode(region, node);
+  // The board THIS fight is on: a Hard border boss takes the tower's 5x5.
+  const board = fightBoardFor(save, region, node);
+  const boss = borderBossFor(save, node);
   const ladder = deckCapFor(save.cleared);
   // The squad: away from home you field what you packed and nothing else, so
   // every "which cards do I have" question below reads the POOL, not the whole
@@ -176,7 +179,7 @@ export function StoryPrep(props: {
   /** What this fight will actually cast — the team's book or the shelf, trimmed
    *  to the board. The same call the fight makes, so the readout cannot drift
    *  from the thing it describes. */
-  const fightBook = bookForLoadout(save, { id: "", name: "", cards: deck, spells: book }, boardForNode(region, node));
+  const fightBook = bookForLoadout(save, { id: "", name: "", cards: deck, spells: book }, board);
   /** The shelf, as this fight sees it.
    *
    *  One library now, so squads built in the Arena show up here too — and away
@@ -210,7 +213,8 @@ export function StoryPrep(props: {
     // step with the first.
     .sort((a, b) => Number(b.usable) - Number(a.usable));
 
-  const enemy = fieldedBy(node)
+  // A Hard border fields its boss and brood, boss first; a node its squad.
+  const enemy = boss ? broodOf(boss).map(getDef) : fieldedBy(node)
     .map(getDef)
     .sort((a, b) => (RARITY_ORDER[a.rarity ?? ""] ?? 9) - (RARITY_ORDER[b.rarity ?? ""] ?? 9));
 
@@ -389,17 +393,21 @@ export function StoryPrep(props: {
       <div className="modal story-prep">
         <div className="sp-head">
           <div>
-            <div className="sp-kind">{isGate(node) ? "Border gate" : node.kind}</div>
+            <div className="sp-kind">{boss ? "Border boss" : isGate(node) ? "Border gate" : node.kind}</div>
             <h1>{node.name}</h1>
           </div>
           <div className="sp-board">
             <b>{board}×{board}</b>
-            <span>{board === 5 ? "set piece" : "standard"}</span>
+            <span>{boss ? "Void Trial" : board === 5 ? "set piece" : "standard"}</span>
           </div>
         </div>
 
         <div className="sp-facts">
-          <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
+          {boss ? (
+            <span>Held by <b>{getDef(boss).name}</b> · slay it to cross, under the tower's rules</span>
+          ) : (
+            <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
+          )}
           <span>
             Squad cap <b>{cap}</b>
             {cap > STANDARD_CAP && " · the big board opens it up"}
@@ -550,7 +558,7 @@ export function StoryPrep(props: {
             vanishes between saving it and casting it — and "the shelf" and "a
             book I picked" look identical from here. */}
         <div className="sr-label">
-          Spellbook · {fightBook.length}/{spellCapForBoard(boardForNode(region, node))}
+          Spellbook · {fightBook.length}/{spellCapForBoard(board)}
           {book.length === 0 && <span className="sp-auto"> — auto, your cheapest unlocked</span>}
         </div>
         <div className="sp-deck">

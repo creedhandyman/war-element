@@ -16,7 +16,7 @@
  */
 import { useMemo } from "react";
 import {
-  BLIGHT_MAX, REGIONS, blightLevel, isCleared, isRegionCleared, isRegionOpen,
+  BLIGHT_MAX, REGIONS, blightLevel, isCleared, isHard, isRegionCleared, isRegionOpen,
   nodeById, type StoryRegion, type StorySave,
 } from "../data/story";
 import { EL_COLOR } from "./shared";
@@ -59,7 +59,9 @@ export function StoryRegions(props: {
     <div className="story-wrap regions-wrap">
       <header className="story-head">
         <div>
-          <div className="story-eyebrow">THE WAR</div>
+          <div className="story-eyebrow">
+            THE WAR{isHard(save) && <span className="story-hard-tag">Hard</span>}
+          </div>
           <h2>Choose a map</h2>
         </div>
         <div className="story-stats">

@@ -9,11 +9,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { getDef } from "../data/cards";
 import {
-  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, deckCapFor, fieldedBy,
-  fightCap, gateCheck, isBlightNode, isCleared, isGate, isOpen, isOverflow, isRegionCleared,
-  recruitChance, recruitablePool, regionOfNode, terrainContested,
+  BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, canStartHard,
+  deckCapFor, fieldedBy, fightCap, gateCheck, isBlightNode, isCleared, isGate, isHard, isOpen,
+  isOverflow, isRegionCleared, recruitChance, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
+import { broodOf } from "./void-seat";
 import { cardThumbSrc, EL_COLOR } from "./shared";
 import { finisherOf } from "./DeckPickerSheet";
 import { CardView } from "./CardView";
@@ -44,6 +45,8 @@ export function StoryMap(props: {
    *  could never click away from it. */
   focusNodeId?: string | null;
   onFocusHandled?: () => void;
+  /** Start HARD MODE: offered on a finished first campaign (`canStartHard`). */
+  onStartHard?: () => void;
 }) {
   const { region, save } = props;
   const [selId, setSelId] = useState<string | null>(null);
@@ -93,6 +96,7 @@ export function StoryMap(props: {
         <div>
           <div className="story-eyebrow" style={{ color: EL_COLOR[region.element as keyof typeof EL_COLOR] }}>
             {region.element} · {region.terrain} · {region.board}×{region.board} · 5×5 set pieces
+            {isHard(save) && <span className="story-hard-tag">Hard</span>}
           </div>
           <h2>{region.name}</h2>
         </div>
@@ -133,6 +137,7 @@ export function StoryMap(props: {
             becomes a THIRD column and shoves the node panel off the right edge
             of a 1440px screen. */}
         <div className="story-main">
+          {props.onStartHard && canStartHard(save) && <HardOffer onStart={props.onStartHard} />}
           <div
             className={`story-canvas ${region.art ? "arted" : ""}`}
             style={{
@@ -229,6 +234,8 @@ function NodePanel(props: {
   // A gate refuses on deck SHAPE, not on progress — so it needs its own reason
   // line, separate from the locked-by-prerequisites one.
   const gate = gateCheck(save, node);
+  // HARD MODE: a Void Tower boss holds this border instead of a patrol.
+  const boss = borderBossFor(save, node);
   /** The node's face: the toughest thing it fields.
    *
    *  Straight off the Arena's deck seats, which show a deck's finisher art for
@@ -240,7 +247,7 @@ function NodePanel(props: {
    *  Reads `fieldedBy`, so the filler a node spawns counts. Filler is cheap and
    *  loses this sort anyway; when it does win, it is genuinely the biggest thing
    *  on that board and has earned the frame. */
-  const faceId = finisherOf(fieldedBy(node));
+  const faceId = boss ?? finisherOf(fieldedBy(node));
   const face = faceId ? getDef(faceId) : null;
 
   return (
@@ -256,7 +263,7 @@ function NodePanel(props: {
           />
         )}
         <div className="np-head">
-          <span className={`np-kind ${node.kind}`}>{KIND_LABEL[node.kind]}</span>
+          <span className={`np-kind ${node.kind}`}>{boss ? "Border Boss" : KIND_LABEL[node.kind]}</span>
           {node.kind === "throne" && (
             <span className="np-flag">{node.required ? "Required" : "Optional"}</span>
           )}
@@ -265,7 +272,7 @@ function NodePanel(props: {
         <h3>{node.id} · {node.name}</h3>
         {face && (
           <p className="np-boss">
-            <span className="np-boss-lead">Toughest</span>
+            <span className="np-boss-lead">{boss ? "Boss" : "Toughest"}</span>
             <b>{face.name}</b>
             <span className={`npr-rar r-${face.rarity ?? "rare"}`}>{face.rarity ?? "rare"}</span>
             <span className="npr-cost">{face.cost}◆</span>
@@ -274,14 +281,22 @@ function NodePanel(props: {
       </div>
       {node.lore && <p className="np-lore">{node.lore}</p>}
       {node.note && <p className="np-note">{node.note}</p>}
-      {region && (
+      {/* A border boss is a Void Trial, and a tower fight runs no terrain. */}
+      {region && !boss && (
         <p className="np-terrain">
           Terrain: <b>{region.terrain}</b> — runs all battle, both sides.
           {contested && <> Contested by Nightfall — the Blight is fighting it.</>}
         </p>
       )}
 
-      {isGate(node) && node.demand && (
+      {boss && face && (
+        <p className={`np-demand ${gate.ok ? "met" : ""}`}>
+          Held by <b>{face.name}</b>, a Void Tower boss. Slay it to cross — it takes a full
+          {" "}<b>{fightCap(save, region, node)}</b>-card deck
+          {gate.ok && <span className="np-tick"> ✓ ready</span>}
+        </p>
+      )}
+      {!boss && isGate(node) && node.demand && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
           {/* The number `gateCheck` ENFORCES, not the ladder's. A gate is
               fought on 4x4, so it asks for a full 4x4 deck and not the 30 the
@@ -295,9 +310,9 @@ function NodePanel(props: {
         </p>
       )}
 
-      <div className="np-label">{isGate(node) ? "Border patrol" : "Enemy squad"}</div>
+      <div className="np-label">{boss ? "The boss and its brood" : isGate(node) ? "Border patrol" : "Enemy squad"}</div>
       <ul className="np-roster">
-        {(isGate(node) ? node.adds : pool).map((id) => {
+        {(boss ? broodOf(boss) : isGate(node) ? node.adds : pool).map((id) => {
           const d = getDef(id);
           const have = owned.has(id);
           const over = isOverflow(node, id);
@@ -377,10 +392,18 @@ function NodePanel(props: {
         </>
       )}
       {open && isGate(node) && (
-        <p className="np-drops">
-          A border patrol of both sides — nothing here joins you. Crossing opens{" "}
-          <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b>, and the gate stays open behind you.
-        </p>
+        boss ? (
+          <p className="np-drops">
+            Fought on the 5×5 under the Void Tower's rules: slay the boss and the border is
+            yours, whatever else is standing. Nothing here joins you. Crossing opens{" "}
+            <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b>, and the gate stays open behind you.
+          </p>
+        ) : (
+          <p className="np-drops">
+            A border patrol of both sides — nothing here joins you. Crossing opens{" "}
+            <b>{(node.opens ?? []).join(" and ").toUpperCase()}</b>, and the gate stays open behind you.
+          </p>
+        )
       )}
       {open && !isGate(node) && (
         exhausted ? (
@@ -398,6 +421,37 @@ function NodePanel(props: {
 
       {previewId && (
         <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
+      )}
+    </div>
+  );
+}
+
+/** The campaign's last word: every required Throne down, and a second run on
+ *  offer. Two taps, because the first one wipes the map — it says exactly what
+ *  goes and what stays before it does. */
+function HardOffer(props: { onStart: () => void }) {
+  const [asking, setAsking] = useState(false);
+  return (
+    <div className="hard-offer">
+      {!asking ? (
+        <>
+          <p>
+            <b>Every Throne has fallen.</b> Hard mode is open: walk the whole map again against
+            bigger, heavier squads, with a Void Tower boss holding every border.
+          </p>
+          <button className="lockin" onClick={() => setAsking(true)}>Hard mode</button>
+        </>
+      ) : (
+        <>
+          <p>
+            <b>The map starts over</b> — every node, the deck-size ladder and the Blight. Your
+            cards, spells, shards and saved teams all come with you.
+          </p>
+          <div className="hard-offer-row">
+            <button className="ghost" onClick={() => setAsking(false)}>Not yet</button>
+            <button className="lockin" onClick={props.onStart}>Start Hard mode</button>
+          </div>
+        </>
       )}
     </div>
   );

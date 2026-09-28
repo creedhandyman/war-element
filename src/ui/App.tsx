@@ -52,7 +52,7 @@ import {
   boardCards,
   isCaptured,
   SPELLS,
-  spellbookFor, summonCard, scaleInstance,
+  spellbookFor, summonCard,
   // The boss clock, made visible.
   bossTelegraphs, telegraphBlast,
   seatsOf, effectiveSummonCost,
@@ -229,10 +229,8 @@ import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
-import {
-  ENRAGE_SCALE, VOID_GATE, bossWallSeats, tameScaleFor, voidBossById, voidBossElements,
-  voidBossSeat, voidGateSeats,
-} from "../data/void-tower";
+import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
+import { seatVoidBoss } from "./void-seat";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import {
   FIRST_NODE, ONBOARDING_COUNT, ONBOARDING_SKIP,
@@ -283,6 +281,7 @@ import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
+  everCleared, isHard, borderBossFor, startHardMode, type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
   tameBoss, spendTame,
@@ -816,7 +815,7 @@ export function App() {
    *  change the fight under a player who had just picked. */
   const [skillAuto, setSkillAuto] = useState<boolean>(() => aiSkillIsAuto());
   const [aiSkill, setAiSkill] = useState<AiSkill>(
-    () => loadAiSkill((loadStory().cleared ?? []).length > 0),
+    () => loadAiSkill(everCleared(loadStory()).length > 0),
   );
   /** THE RUNG THE PLAYER HAS ACTUALLY EARNED, with any manual pin ignored.
    *
@@ -826,7 +825,7 @@ export function App() {
    *  fight reads this instead and a hand-picked `learning` cannot be carried
    *  into a Gauntlet run, a Streak ladder or the campaign. */
   const [autoRung, setAutoRung] = useState<AiSkill>(
-    () => loadAiTrack((loadStory().cleared ?? []).length > 0).skill,
+    () => loadAiTrack(everCleared(loadStory()).length > 0).skill,
   );
   /** Which of the four out-of-match destinations is showing. Story keeps its
    *  own `open` flag inside `nav` because the map owns the whole screen when it
@@ -1467,7 +1466,7 @@ export function App() {
    *  rather than because it does not matter. */
   const reportSkillMatch = useCallback((won: boolean) => {
     if (!skillAuto) return;
-    const next = recordAiMatch(won, (loadStory().cleared ?? []).length > 0);
+    const next = recordAiMatch(won, everCleared(loadStory()).length > 0);
     setAiSkill(next);
     setAutoRung(next);
   }, [skillAuto]);
@@ -2263,62 +2262,10 @@ export function App() {
     // about the match is built the ordinary way.
     if (boardSize === DOMINATION_7X7.boardSize) fresh.domination = newDomination(DOMINATION_7X7);
     // A Void Trial seats its BOSS directly on the board, outside the economy —
-    // the deck is only its summons. `summonCard` is the same door every card
-    // enters through, so auras and on-summon hooks all fire; clearing
-    // `summonedThisRound` lets it act from the first round, which is what
-    // "the boss is already standing when you arrive" means mechanically.
-    if (eventRun?.bossId) {
-      const seat = voidBossSeat(fresh.boardSize);
-      // Scores this match as a boss fight: no slot race, and killing the boss
-      // IS the win (see the `voidTower` branch in doCleanupPhase).
-      fresh.voidTower = true;
-      const inst = summonCard(fresh, "P2", eventRun.bossId, seat as never);
-      inst.summonedThisRound = false;
-      // ENRAGED: the taming trial. The same boss, angrier — scaled through the
-      // one multiplier the whole feature runs on, so its Special is stronger
-      // too and not just its body.
-      if (bossFight?.enraged) scaleInstance(inst, ENRAGE_SCALE);
-      // ...and SOME BOSSES HAVE A WALL OF THEIR OWN. Kheiringer opens behind
-      // three Lava Gates: placed here, at setup, because a summon lands on the
-      // summoner's home row and she would otherwise have played her gates
-      // beside herself instead of in front. Read off the boss entry rather than
-      // keyed to her id, so the next one that wants a wall declares it.
-      const wallBoss = voidBossById(eventRun.bossId);
-      if (wallBoss?.wall) {
-        for (const wseat of bossWallSeats(fresh.boardSize)) {
-          if (cardAt(fresh, wseat.row, wseat.col)) continue;
-          const brick = summonCard(fresh, "P2", wallBoss.wall, wseat as never);
-          brick.summonedThisRound = false;
-        }
-      }
-      // ...and the player gets a WALL. Fortress Gates fill the row directly in
-      // front of their home row, one per column, and cost them nothing — they
-      // are there so the opening rounds are not decided before the player has a
-      // board, and they feed the boss nothing when they fall (`noKillReward`).
-      for (const gseat of voidGateSeats(fresh.boardSize)) {
-        const gate = summonCard(fresh, "P1", VOID_GATE, gseat as never);
-        gate.summonedThisRound = false;
-      }
-      // ...and a TAMED boss fights alongside them, seated the same way the enemy
-      // boss is: on the board at round one, outside the economy. It has to be —
-      // a 12-cost mythic is not something a tower fight ever affords,
-      // so a tamed boss you had to buy would be a tamed boss you never fielded.
-      // A fraction of everything (`TAME_SCALE`, or the boss's own `tameScale`:
-      // Thunderfangs fights at full strength) and three battles is what pays
-      // for it.
-      //
-      // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
-      // The gates stand in the row IN FRONT of home, so this square is free.
-      if (bossFight?.ally) {
-        const mySeat = centreHomeSeat("P1", fresh.boardSize);
-        if (!cardAt(fresh, mySeat.row, mySeat.col)) {
-          const ally = summonCard(fresh, "P1", bossFight.ally, mySeat as never);
-          ally.summonedThisRound = false;
-          ally.tamed = true;
-          scaleInstance(ally, tameScaleFor(bossFight.ally));
-        }
-      }
-    }
+    // with its wall, the player's Fortress Gates and any tamed ally. One door,
+    // shared with the campaign's Hard-mode border bosses: see `seatVoidBoss`.
+    if (eventRun?.bossId)
+      seatVoidBoss(fresh, eventRun.bossId, { enraged: bossFight?.enraged, ally: bossFight?.ally });
     // A use is spent on ENTERING, win or lose. Done here rather than at settle
     // deliberately: settling only runs when a match reaches gameover, so paying
     // there would make backing out of a fight free and a taming farmable by
@@ -2347,6 +2294,25 @@ export function App() {
       ...(domSeats > 3 ? { P4: deckLabel(p4DeckId) } : {}),
     });
     setMatchIntro(true);
+    setViewSide("P1");
+    setSel(null);
+    setPending(null);
+    setPicks([]);
+    setMullToss([]);
+    setHint("Mulligan: click cards to send back, then confirm.");
+    setStarted(true);
+  }
+
+  /** Put a built story fight on the table: a node's battle, or a Hard border's
+   *  boss. The one tail both share, so the two cannot drift apart. */
+  function enterStoryFight(fresh: GameState, node: StoryNode, foeName: string) {
+    setGame(fresh);
+    // The campaign gets the tell too. Its foes are AI seats with a
+    // dealt suit exactly as the Arena's are, and a node you have never
+    // fought before is where knowing the playstyle is worth the most.
+    setIntroNames({ P2: foeName });
+    setMatchIntro(true);
+    navDo({ t: "fight", node });
     setViewSide("P1");
     setSel(null);
     setPending(null);
@@ -5402,6 +5368,7 @@ export function App() {
           shiny={storyResult.shiny}
           captured={storyResult.captured}
           firstClear={!story.cleared.includes(storyResult.node.id)}
+          boss={borderBossFor(story, storyResult.node)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           foils={foilIds}
           onDone={finishStoryResult}
@@ -5442,6 +5409,14 @@ export function App() {
           focusNodeId={nav.focusNodeId}
           onFocusHandled={() => navDo({ t: "focusHandled" })}
           onFight={(node) => navDo({ t: "prep", node })}
+          onStartHard={() => {
+            const next = startHardMode(story);
+            if (next === story) return;
+            setStory(next); saveStory(next);
+            // Back to where the campaign opens: the map just reset, and the only
+            // node open anywhere is the first region's first.
+            navDo({ t: "pickRegion", regionId: REGIONS[0].id });
+          }}
         />
       )}
 
@@ -5460,6 +5435,24 @@ export function App() {
             // The node's own region decides the board and the Blight, not
             // whichever map happens to be on screen.
             const home = regionOfNode(node.id) ?? region;
+            // HARD MODE: a Void Tower boss holds this border (`borderBossFor`),
+            // and the crossing is its Void Trial — the tower's encounter and
+            // board and rules, seated through the tower's own door — fought
+            // with the story deck. Slay it and the border is open.
+            const borderBoss = borderBossFor(story, node);
+            if (borderBoss) {
+              const enc = buildVoidEncounter(voidBossById(borderBoss)!);
+              const bossBook = book.length
+                ? book.slice(0, spellCapForBoard(enc.boardSize))
+                : heroBookFor(story, enc.boardSize);
+              const trial = createInitialState(newSeed(), deck, enc.deck, ["P1"], bossBook, enc.spells,
+                enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 },
+                undefined, { P1: [...foilIds] });
+              trial.aiSkill = autoRung;
+              seatVoidBoss(trial, borderBoss);
+              enterStoryFight(trial, node, getDef(borderBoss).name);
+              return;
+            }
             // A formation, not a deck: duplicates fill it out to the tier's
             // target so a 3-card roster still fields a full board (§10.7).
             const squad = buildFormation(story, home, node);
@@ -5484,7 +5477,8 @@ export function App() {
             // Sakuroot alone needing to choose her ground. Every later node,
             // and every other mode (skirmish, online, Void Tower), uses the
             // ordinary summon ramp.
-            const deploy = isFirstBattle(home, node)
+            // ...and the first run's only: a Hard run arrives with a collection.
+            const deploy = isFirstBattle(home, node) && !isHard(story)
               ? { P1: PLAYER_DEPLOY, P2: ENEMY_DEPLOY }
               : undefined;
             // Spells reach the campaign. Story matches passed EMPTY spellbooks
@@ -5547,20 +5541,7 @@ export function App() {
                 throned.heldHomeRounds = THRONE_HOLD_ROUNDS;
               }
             }
-            setGame(fresh);
-            // The campaign gets the tell too. Its foes are AI seats with a
-            // dealt suit exactly as the Arena's are, and a node you have never
-            // fought before is where knowing the playstyle is worth the most.
-            setIntroNames({ P2: node.name });
-            setMatchIntro(true);
-            navDo({ t: "fight", node });
-            setViewSide("P1");
-            setSel(null);
-            setPending(null);
-            setPicks([]);
-            setMullToss([]);
-            setHint("Mulligan: click cards to send back, then confirm.");
-            setStarted(true);
+            enterStoryFight(fresh, node, node.name);
           }}
         />
       )}
@@ -6194,7 +6175,7 @@ export function App() {
                       ),
                       onPick: (id) => {
                         if (id === "auto") {
-                          setSkillAuto(true); clearAiSkill(); setAiSkill(loadAiSkill((story.cleared ?? []).length > 0));
+                          setSkillAuto(true); clearAiSkill(); setAiSkill(loadAiSkill(everCleared(story).length > 0));
                         } else {
                           const k = id as AiSkill;
                           setSkillAuto(false); setAiSkill(k); saveAiSkill(k);

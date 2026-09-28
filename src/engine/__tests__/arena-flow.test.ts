@@ -232,6 +232,9 @@ describe("the wiring in App.tsx", () => {
   // function-end search that finds nothing slices to the end of the file, and
   // every toContain after it would pass against the whole of App.tsx.
   const APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
+  // The boss seating itself lives in `void-seat.ts`, shared with the story's
+  // Hard-mode border bosses; App hands it the boss, the rage and the ally.
+  const SEAT = readFileSync(join(__dirname, "..", "..", "ui", "void-seat.ts"), "utf8").replace(/\r\n/g, "\n");
   const fn = (name: string) => {
     const at = APP.indexOf(`function ${name}(`);
     expect(at, `${name} exists`).toBeGreaterThan(-1);
@@ -303,10 +306,13 @@ describe("the wiring in App.tsx", () => {
     expect(APP).toContain("const bossFight = bossRun && eventRun?.bossId === bossRun.cardId ? bossRun : null;");
     const start = fn("startArenaMatch");
     for (const read of [
-      "if (bossFight?.enraged) scaleInstance(inst, ENRAGE_SCALE)",
-      'summonCard(fresh, "P1", bossFight.ally,',
+      "seatVoidBoss(fresh, eventRun.bossId, { enraged: bossFight?.enraged, ally: bossFight?.ally });",
       "if (bossFight?.ally) {\n      const spendId = bossFight.ally;",
     ]) expect(start, read).toContain(read);
+    for (const read of [
+      "if (opts.enraged) scaleInstance(inst, ENRAGE_SCALE)",
+      'summonCard(fresh, "P1", opts.ally,',
+    ]) expect(SEAT, read).toContain(read);
     const at = APP.indexOf("const tamedSave = ");
     expect(at, "tamedSave exists").toBeGreaterThan(-1);
     const end = APP.indexOf("\n      };", at);
@@ -347,10 +353,12 @@ describe("the wiring in App.tsx", () => {
     // boss; a rematch re-deals the remembered decks and nothing else.
     const start = fn("startArenaMatch");
     expect(start).toContain("scriptedP2 ? { P2: scriptedP2 } : undefined,");
-    expect(start).toContain("fresh.voidTower = true;");
+    expect(start).toContain("seatVoidBoss(fresh, eventRun.bossId,");
+    expect(SEAT).toContain("fresh.voidTower = true;");
     const rematch = fn("dealRematch");
     expect(rematch).toContain("createInitialState(newSeed(), s.p1, s.p2, s.humans, s.p1s, s.p2s, s.board);");
     expect(rematch).not.toContain("summonCard");
+    expect(rematch).not.toContain("seatVoidBoss");
     // ...yet it settled as the event, which is read off the deck in the chair.
     expect(APP).toContain("const event = eventForDeck(p2DeckId);");
     expect(APP).toContain("const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;");

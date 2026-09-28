@@ -11,7 +11,7 @@
  */
 import { VOID_BOSSES, bossDefeated } from "./void-tower";
 import { getDef } from "./cards";
-import type { StorySave } from "./story";
+import { everCleared, type StorySave } from "./story";
 
 /** Bosses this save has put down, by card id, in floor order. */
 export function bossesBeaten(save: StorySave): string[] {
@@ -152,7 +152,8 @@ export function playerStats(save: StorySave, opts: {
       hint: "Unique cards in your collection" },
     { label: "Bosses", value: beaten, of: VOID_BOSSES.length,
       hint: "Void Tower bosses put down — each one is a head you may wear" },
-    { label: "Nodes", value: new Set(save.cleared ?? []).size, of: opts.totalNodes,
+    // EVER cleared, across a Hard run and the campaign before it.
+    { label: "Nodes", value: everCleared(save).length, of: opts.totalNodes,
       hint: "Campaign nodes cleared at least once" },
     { label: "Shinies", value: (hero?.shiny ?? []).length,
       hint: "Foil cards pulled" },

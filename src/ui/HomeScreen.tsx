@@ -27,7 +27,7 @@
 import { useMemo } from "react";
 import {
   BLIGHT_MAX, PACK_COST, PLACED_CARDS, REGIONS, blightLevel, canCraft, craftCostOf,
-  deckCapFor, freePacks, isCleared, isOpen, type StoryRegion, type StorySave,
+  deckCapFor, freePacks, isCleared, isHard, isOpen, type StoryRegion, type StorySave,
 } from "../data/story";
 import { loadSquads } from "../data/squads";
 import { activeAvatar, avatarStyle, earnedAvatars, playerLevel } from "../data/player";
@@ -247,7 +247,7 @@ export function HomeScreen(props: {
           <span className="home-cont-veil" aria-hidden="true" />
           <span className="home-cont-body">
             <span className="home-eyebrow">
-              {fresh ? "BEGIN" : "CONTINUE"} · {region.name.toUpperCase()}
+              {fresh ? "BEGIN" : "CONTINUE"}{isHard(save) ? " HARD" : ""} · {region.name.toUpperCase()}
             </span>
             <span className="home-cont-node">
               {here.next?.name ?? (here.done === here.total ? "Every node cleared" : "Locked — clear a road in")}
