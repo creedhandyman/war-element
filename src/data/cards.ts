@@ -11081,8 +11081,13 @@ export const CARDS: CardDef[] = [
     // Body only. Overclock was already one of the two that could hold a fight,
     // and it does that on its KIT — a capped Drone line and BURN — so the extra
     // budget goes into staying up rather than into hitting harder.
-    dmg: 10,
-    hits: 1,
+    // 10x1 -> 9x2 and HP 56 -> 72 (body 98 -> 122), the owner's call
+    // (2026-09-27). Two hits is also two chances for Sparks Catch to BURN.
+    // Bare, against the first eight 5x5 premades x 24 seeds (192 fights):
+    // boss win 72.9% -> 94.8%, and 97.4% with Production Run's three Drones a
+    // cast below. Floor 2's target is 60.
+    dmg: 9,
+    hits: 2,
     // 40 -> 50 -> 45 (body 76 -> 81), and HP IS NOT WHAT MOVES THIS FIGHT.
     // Overclock read 67.7% before OVERRUN shipped and 91.7% after, and the
     // first explanation given was the +25% HP it took in the same pass. Wrong,
@@ -11091,13 +11096,13 @@ export const CARDS: CardDef[] = [
     // the drones walk into the player's home row, and the fight ends there —
     // the boss barely participates. The 45 is kept because it was asked for and
     // costs nothing; the number to turn is the overrun rule, not this one.
-    hp: 56,
+    hp: 72,
     sp: 12,
     shields: 10,
     keywords: {},
     tribe: "ARC",
     boss: true,
-    // Floor 1 — THE SWARM. All 12 Gold in cost-1 and cost-2 machines, and the
+    // Floor 2 — THE SWARM. All 12 Gold in cost-1 and cost-2 machines, and the
     // factory keeps stamping Drones out behind them: AoE the tide or choke the
     // approach. Tribe from BOLT (ARC — the doc's Forged Tech is mono-PYRO and
     // could not span the pair), mechanic from PYRO: everything it touches
@@ -11125,10 +11130,12 @@ export const CARDS: CardDef[] = [
       // could not TARGET one, so the answer needed the answer. `antiAir` lifts
       // only the FLYING dodge — `ranged` would have worked too and would also
       // have thrown away this Special's printed radius.
+      // THREE a cast, not two — the owner's call (2026-09-27). The ceiling of
+      // four standing is unchanged, so a cast over a line of three adds one.
       params: {
-        antiAir: 1, token: "bolt_firebolt_tok", count: 2, maxAlive: 4 },
+        antiAir: 1, token: "bolt_firebolt_tok", count: 3, maxAlive: 4 },
       targetSide: "self",
-      text: "Stamp out 2 Firebolt Drones beside it, up to 4 at once — each one burns what it shoots and detonates when it falls.",
+      text: "Stamp out 3 Firebolt Drones beside it, up to 4 at once — each one burns what it shoots and detonates when it falls.",
     },
   },
   {

@@ -126,7 +126,8 @@ describe("the roster", () => {
       // bump measured 91.7%. Skeleeze and Helion excepted by instruction.
       boss_rotroot: 253, // 169 -> 133: trimmed when Glacial Creep gave it a gait and took it
       // to 89.6%, harder than any Floor-3 boss. 77.1% now.
-      boss_permafrost: 302, boss_overclock: 98,
+      // Overclock 98 -> 122: 9x2 and 72 HP, the owner's call (2026-09-27).
+      boss_permafrost: 302, boss_overclock: 122,
       // 84 -> 108: +12 shields, the lever that took the tower's easiest fight
       // from 45.5% to 65.2%. Still the smallest body on Floor 1.
       // 84 -> 108 -> 96. The 108 was for a 45.5% pushover; it read 77.1% once
