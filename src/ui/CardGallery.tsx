@@ -332,8 +332,6 @@ export function CardGallery(props: { onClose: () => void }) {
                     decoding="async"
                     onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
-                  {/* The artwork's mark, on the art itself (see `.gal-wm`). */}
-                  <span className="gal-wm" aria-hidden="true">™ © Creed Koncepts</span>
                   <div className="dt-top">
                     <span
                       className="dt-cost"
@@ -395,8 +393,9 @@ export function CardGallery(props: { onClose: () => void }) {
           aria-label={`${detail.name} — full size`}
         >
           {/* The frame is the painting's own box, so its mark sits on the
-              painting's corner however the plate is scaled, not on the
-              screen's. */}
+              painting's bottom edge however the plate is scaled, not on the
+              screen's. This is the only place the mark is drawn: the grid's
+              tiles carry none. */}
           <div className="gal-frame">
             <img
               className="gal-plate"
