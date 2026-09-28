@@ -1252,7 +1252,7 @@ engine runtime and no React, so it stays testable headlessly
   region map's width/height, not a grid unit — resolution-independent, and the
   art can be re-exported at any size without moving a node. Maps live at
   `public/maps/<region>.webp` and are referenced by `region.art`. The maps are
-  **3:2** (1536×1024) or **4:3** (1440×1080), carried per region as `region.artRatio`
+  **3:2** (1536×1024), carried per region as `region.artRatio`
   (`MAP_RATIO`, 3:2, is only the fallback) and the canvas holds it; the road
   and fog SVGs use `viewBox="0 0 100 100"` + `preserveAspectRatio="none"` so
   roads, fog and nodes share one coordinate space with no px maths.
@@ -1291,8 +1291,21 @@ engine runtime and no React, so it stays testable headlessly
   art with a soft hole per cleared or open node (`FOG_R`, a share of the map's
   WIDTH, `ry` scaled by the ratio so the hole is round on screen), drawn above
   the roads and below the nodes so a locked node is still findable. A region
-  with EVERY node cleared drops the fog altogether, so its corners (title
-  cartouche, tribe legend, exits) come back too.
+  with EVERY node cleared drops the fog altogether, so the whole painting
+  comes back.
+  **The art was repainted for that look** (2026-09-28): text-free (the first
+  maps had labels, cartouches, legends and compasses sitting under the
+  markers and the fog), one painted landmark per node, all 3:2. Each map was
+  painted in ChatGPT from a layout guide: the old art blurred, a ring per
+  `node.at`, the roads drawn with `roadPath`'s own curve. Models still drift,
+  so every node was then FITTED onto its painted landmark (overlay the art
+  with PIL) and the layout checked: no road within 62px of a node it does
+  not touch (about one marker, on 1536-wide art), markers at least 90px
+  apart, the Blight spot included. Seven roads ran straight through another
+  node's marker before that check existed. Refit rule: where a painting's
+  roads follow the guide's trails, keep the node where the guide put it,
+  because moving it pulls the trail off the road (BOLT); refit when a
+  landmark drifted along with its roads (GALE moved 12 of 14).
 - **Border gates (§7)**: a region is entered by CLEARING A GATE, not by clearing
   the previous Throne — the Throne only unlocks the gate. Gates are nodes of
   `kind: "gate"` on the SOURCE region's map, and `region.requires` lists the
@@ -1322,9 +1335,9 @@ engine runtime and no React, so it stays testable headlessly
   Only **DAWN** still has no theme; `REGION_TRACK` has no entry for it so it
   falls back to the menu/battle pair, which is exactly the designed behaviour.
 - **Regions**: LEAF (open), plus PYRO and AQUA (formerly `requires: ["L14"]` — the
-  doc's Act II branch, neither privileged). Each carries its own `artRatio`:
-  AQUA's painting is 4:3 where LEAF's and PYRO's are 3:2, and forcing one shape
-  would crop somebody's map. A region gate is
+  doc's Act II branch, neither privileged). Each carries its own `artRatio`
+  (the first paintings mixed 3:2 and 4:3; every current one is 3:2), and
+  forcing one shape would crop somebody's map. A region gate is
   separate from node gates, and `isOpen` checks BOTH — every region's entry node
   has no prerequisites of its own, so without the region check PYRO's P1 would
   read as open on turn one. Switching regions is `StoryRegions.tsx`, reached by
