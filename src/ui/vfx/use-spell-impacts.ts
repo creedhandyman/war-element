@@ -21,6 +21,8 @@ import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
 import type { ImpactLayer, Rect } from "./impact-layer";
 import { centre, platePoint } from "./looks/base";
+import { createWorkerLayer } from "./worker-layer";
+import { workerLayerSupported } from "./worker-protocol";
 import {
   boardSpell, cardAttack, cardAttackEffects, roundEndEffects, shotPower, spellEffects, trapsSprung, wallsCrossed,
   type At, type BoardFx, type SpellFx,
@@ -28,12 +30,25 @@ import {
 
 let layer: Promise<ImpactLayer> | null = null;
 /** The Pixi chunk, fetched once. Called at match start, so the first hit of
- *  the game is on time rather than a network round-trip late. */
+ *  the game is on time rather than a network round-trip late.
+ *
+ *  IN A WORKER FIRST (worker-layer.ts, vfx-worker.ts): the same layer, drawing
+ *  off the page's thread, so the board's own frames are not held up by it — and
+ *  the page stops making a frame on every vsync just because something is
+ *  flying. A browser that cannot, or a worker that fails to start, gets the
+ *  layer on the page's thread exactly as before. */
 function loadLayer(): Promise<ImpactLayer> {
   // A chunk gone after a deploy (see ui/stale-chunks.ts) — or any failure to
   // load — plays on without effects, rather than rejecting every hit from here
   // on. The game underneath is complete without them.
-  layer ??= import("./impact-layer").then((m) => m.createImpactLayer()).catch((err: unknown) => {
+  const onPage = () => import("./impact-layer").then((m) => m.createImpactLayer());
+  layer ??= (workerLayerSupported()
+    ? createWorkerLayer().catch((err: unknown) => {
+      console.warn("[vfx] effects worker unavailable, drawing on the page:", err);
+      return onPage();
+    })
+    : onPage()
+  ).catch((err: unknown) => {
     console.warn("[vfx] effects unavailable:", err);
     return NO_LAYER;
   });

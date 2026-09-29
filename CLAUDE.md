@@ -3230,14 +3230,52 @@ halved, long-task time per step on a full 5x5 ~30 -> ~17 ms. `board-memo.test.ts
 guards the wiring — an inline array or arrow function handed to `<Board>`
 silently switches the memo off.
 
-**What is left:** the browser's own per-frame work while effects play (~50 ms
-of style, ~30 of paint, ~30 of layerize per step at 4x). Chromium re-styles
-every running CSS animation on each main frame, and while the Pixi ticker runs
-there is a main frame every vsync — so each always-on pulse and foil sheen
-costs a little per frame even though the GPU animates it. Options (owner's
-call, all visible): pause the decorative loops while effects play, or run the
-effects at 30 fps on slow devices. The Pixi ticker itself is ~9% of the main
-thread at 4x, about a quarter of it re-tessellating Graphics every frame.
+**The effects draw from a worker (same day).** What was left after that was the
+effects layer's render loop running ON the page: while the Pixi ticker ran, its
+rAF made the page produce a main frame on every vsync, and each one re-styled
+every running CSS animation on the board (~50 ms of style, ~30 of paint, ~30 of
+layerize per step at 4x). Switching the layer off at 4x removed 40-50% of the
+main thread's work per step, and most of that was NOT Pixi. (Stopping its
+Graphics from re-tessellating every frame was tried first: ~7% of the layer's
+own time, and a few pixels changed. Reverted.) The layer now draws from a Web
+Worker:
+
+- `ui/vfx/worker-layer.ts`, the page's side, makes the same `.vfx-layer`
+  canvas, `transferControlToOffscreen()`s it, and stands in for the
+  `ImpactLayer`: every call is a `postMessage` and nothing waits for an answer.
+  The one synchronous question, a signature's shake and lunge, is a table the
+  worker sends with `ready`. `ui/vfx/vfx-worker.ts` runs the SAME
+  `createImpactLayer`, given a `LayerHost`: the OffscreenCanvas, the size, the
+  density, and `setVisible`, which messages the page (the element is the
+  page's). `worker-protocol.ts` holds the messages and the support check and
+  imports no Pixi, because the page loads it eagerly.
+- Whatever `impact()`/`play()` are handed crosses by structured clone: plain
+  rects and numbers, never a function or a DOM object.
+- **Fallback:** `workerLayerSupported()` needs a Worker, OffscreenCanvas and
+  `transferControlToOffscreen`. Any failure to START rejects, and `loadLayer`
+  (use-spell-impacts.ts) builds the layer on the page exactly as before: the
+  worker saying `fail` (an older Safari: no WebGL on an OffscreenCanvas, or no
+  rAF in a worker), a script error, no `ready` within 10 s, a canvas that
+  cannot be handed over. After a good start a crash only logs; the effects
+  stop and the game plays on. **Kill switch:** `?vfx=page`, or localStorage
+  `we_vfx_page` = "1".
+- `vite.config.ts` `worker: { format: "es" }`: Pixi loads its renderer as a
+  separate chunk, and only ES worker output can split.
+- **Pixel-identical, proven:** the deterministic effects lab (fake clock,
+  seeded random; every element look, ice, every signature; 3634 frames) hashed
+  straight off the framebuffer with `gl.readPixels` matches page vs worker
+  byte for byte. Read back through a 2D canvas (`drawImage` + `getImageData`)
+  the two differ by 1 on faint pixels: un-premultiply rounding, not rendering.
+- Measured on a 7x7 four-way battle: at 4x the main thread went 70-72% -> 56%
+  busy and its JS time fell by a third (long-task time per step only ~8%
+  less); at 1x the main thread is as idle while the worker draws as with the
+  effects switched off (15.0% busy vs 15.4%; 20.6% before).
+  `vfx-worker.test.ts` drives the page's side against a fake worker and pins
+  the wiring.
+
+What the worker does NOT change: every main frame the page still makes (a
+board step, a card sliding) re-styles each running CSS animation, so the rule
+above stands.
 
 ## The bundle — what is in it, and what is NOT in the first chunk
 

@@ -31,6 +31,7 @@ import { drawShieldHit } from "./shield-hit";
 import { SIGNATURES } from "./signatures";
 import type { SigMoment } from "./signatures/types";
 import type { Emit, FxTools, LookVariant, Pt, Shot, SparkStyle } from "./looks/types";
+import { layerResolution } from "./worker-protocol";
 
 /** A screen rectangle, CSS px — a square, a row, the board. */
 export interface Rect { x: number; y: number; w: number; h: number }
@@ -111,7 +112,26 @@ export interface ImpactLayer {
    *  hard its landing shakes the board, and whether a melee card still lunges
    *  in its delivery. Null plays the element's look. */
   signature(key: string): { shake: number; lunge: boolean } | null;
+  /** The viewport changed, CSS px. A layer on the page follows the window by
+   *  itself; one drawing from a worker is told (see vfx-worker.ts). */
+  resize?(width: number, height: number): void;
   destroy(): void;
+}
+
+/** Where the layer draws when it is NOT on the page's own thread.
+ *
+ *  A worker holds an OffscreenCanvas handed over by the page (worker-layer.ts)
+ *  and cannot see the window, so the page states the size and the pixel
+ *  density, and does the showing and hiding — the canvas element is the
+ *  page's. Absent, the layer makes its own canvas on the page, as it always
+ *  has. Nothing about WHAT is drawn differs between the two. */
+export interface LayerHost {
+  canvas: OffscreenCanvas;
+  width: number;
+  height: number;
+  resolution: number;
+  /** Show the canvas (it has drawn a frame) or hide it (it is idle). */
+  setVisible(visible: boolean): void;
 }
 
 /** Everything that differs between elements. One particle system; eight
@@ -190,15 +210,28 @@ interface Burst {
 }
 
 const TEX = 64; // the dot texture's side, px — every scale below is size / TEX
+
+/** A 2D canvas to paint a texture on: the page's own kind, or an
+ *  OffscreenCanvas inside a worker, which has no document. Same drawing, same
+ *  pixels. */
+function textureCanvas(w: number, h: number): HTMLCanvasElement | OffscreenCanvas {
+  if (typeof document !== "undefined") {
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    return c;
+  }
+  return new OffscreenCanvas(w, h);
+}
+
 /** The least detail adaptive quality will shed to (see `adapt`). */
 const QUALITY_FLOOR = 0.35;
 
 function dotTexture(): Texture {
   // White, soft-edged: tint does the colour and additive blending does the
   // glow, so one texture serves every element.
-  const c = document.createElement("canvas");
-  c.width = c.height = TEX;
-  const g = c.getContext("2d")!;
+  const c = textureCanvas(TEX, TEX);
+  const g = c.getContext("2d") as CanvasRenderingContext2D;
   const grad = g.createRadialGradient(TEX / 2, TEX / 2, 0, TEX / 2, TEX / 2, TEX / 2);
   grad.addColorStop(0, "rgba(255,255,255,1)");
   grad.addColorStop(0.35, "rgba(255,255,255,0.65)");
@@ -214,9 +247,8 @@ const rand = (a: number, b: number) => a + Math.random() * (b - a);
  *  NORMAL blending, because additive light can brighten the board but never
  *  darken it. */
 function vignetteTexture(): Texture {
-  const c = document.createElement("canvas");
-  c.width = c.height = 128;
-  const g = c.getContext("2d")!;
+  const c = textureCanvas(128, 128);
+  const g = c.getContext("2d") as CanvasRenderingContext2D;
   const grad = g.createRadialGradient(64, 64, 18, 64, 64, 64);
   grad.addColorStop(0, "rgba(6,0,16,0)");
   grad.addColorStop(0.55, "rgba(6,0,16,0.35)");
@@ -228,30 +260,41 @@ function vignetteTexture(): Texture {
 
 /** Resolves to a working layer, or to a no-op one when WebGL is unavailable
  *  (an old phone, a blocked context, a crashed GPU process). An effects layer
- *  that fails must fail SILENT: the game underneath is complete without it. */
-export async function createImpactLayer(): Promise<ImpactLayer> {
+ *  that fails must fail SILENT: the game underneath is complete without it.
+ *
+ *  With a `host`, it draws into the worker's canvas instead (see LayerHost) —
+ *  and a failure THROWS, because the page has a fallback to go to: the same
+ *  layer on its own thread. */
+export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> {
   const app = new Application();
   try {
     await app.init({
       backgroundAlpha: 0,
-      resizeTo: window,
       antialias: false,
-      autoDensity: true,
-      // 2x is the ceiling on purpose: a 3x phone would triple the pixels a
-      // full-screen canvas fills for sparks that are soft-edged anyway.
-      resolution: Math.min(window.devicePixelRatio || 1, 2),
       preference: "webgl",
       autoStart: false,
       sharedTicker: false,
+      ...(host
+        ? { canvas: host.canvas, width: host.width, height: host.height, resolution: host.resolution, autoDensity: false }
+        : { resizeTo: window, autoDensity: true, resolution: layerResolution(window.devicePixelRatio) }),
     });
-  } catch {
+  } catch (err) {
+    if (host) throw err;
     return noopLayer();
   }
-  const canvas = app.canvas;
-  canvas.className = "vfx-layer";
-  canvas.setAttribute("aria-hidden", "true");
-  canvas.style.visibility = "hidden"; // idle until the first effect wakes it
-  document.body.appendChild(canvas);
+  /** Shown only while it draws — see `wake`. The page's canvas is set here;
+   *  a worker's belongs to the page, which is told. */
+  let setVisible: (visible: boolean) => void;
+  if (host) {
+    setVisible = host.setVisible;
+  } else {
+    const canvas = app.canvas;
+    canvas.className = "vfx-layer";
+    canvas.setAttribute("aria-hidden", "true");
+    canvas.style.visibility = "hidden"; // idle until the first effect wakes it
+    document.body.appendChild(canvas);
+    setVisible = (visible) => { canvas.style.visibility = visible ? "visible" : "hidden"; };
+  }
 
   const tex = dotTexture();
   const vignette = vignetteTexture();
@@ -1310,7 +1353,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
       lastCount = live.length;
     }
     app.render();
-    canvas.style.visibility = "visible";
+    setVisible(true);
     app.ticker.start();
   }
 
@@ -1375,7 +1418,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     // the canvas is left empty, not frozen on the last sparks.
     if (live.length === 0 && effects.length === 0) {
       app.ticker.stop();
-      canvas.style.visibility = "hidden";
+      setVisible(false);
     }
   }
   app.ticker.add(update);
@@ -1424,6 +1467,7 @@ export async function createImpactLayer(): Promise<ImpactLayer> {
     get quality() { return quality; },
     fps: () => app.ticker.FPS,
     setCap(n) { cap = n; },
+    resize(width, height) { app.renderer.resize(width, height); },
     signature(key) {
       const s = SIGNATURES[key];
       return s ? { shake: s.shake ?? 1.2, lunge: s.lunge ?? true } : null;
