@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import { getDef } from "../../data/cards";
 import { SPECIAL_HANDLERS } from "../combat";
 import { applyIntent } from "../phases";
+import { canFireSpecial } from "../rules";
 import { boardCards, cardAt } from "../state";
 import { place, prepState, statusOf } from "./helpers";
 import type { GameState } from "../types";
@@ -94,5 +95,30 @@ describe("Twisted Rage, cast again while the storm stands", () => {
     expect(sp.params?.recastHeal).toBe(6);
     expect(sp.text).toContain("Cast again while it stands and it re-forms");
     expect(sp.text).toContain("heals 6");
+  });
+});
+
+// Three rounds between casts, up from the default two (owner's call, 2026-09-28).
+describe("Twisted Rage recharges for three rounds", () => {
+  it("is locked out for exactly three rounds after a cast", () => {
+    let s = prepState();
+    const kloud = place(s, "gale_kloud", "P1", 3, 1);
+    s = cast(s, kloud.instanceId);
+    const k = s.cards[kloud.instanceId];
+    expect(k.specialCooldown, "3, +1 for this round's own Cleanup").toBe(4);
+    s.players.P1.magicPool = 20;
+    s.battle = { queue: [k.instanceId], index: 0, awaitingInput: k.instanceId };
+    for (let tick = 1; tick <= 3; tick++) {
+      k.specialCooldown--; // one Cleanup
+      expect(canFireSpecial(s, k.instanceId).ok, `still recharging after ${tick} Cleanup(s)`).toBe(false);
+    }
+    k.specialCooldown--;
+    expect(canFireSpecial(s, k.instanceId).ok, "ready after the fourth").toBe(true);
+  });
+
+  it("the card says so", () => {
+    const sp = getDef("gale_kloud").special!;
+    expect(sp.cooldown).toBe(3);
+    expect(sp.text).toContain("3-round cooldown");
   });
 });

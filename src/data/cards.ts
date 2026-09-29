@@ -8593,6 +8593,11 @@ export const CARDS: CardDef[] = [
       // it more often does not put more storms on the board, it just gets the
       // one back sooner after it dies.
       cost: 3,
+      // 3 rounds between casts, up from the default 2 (owner's call,
+      // 2026-09-28). Since a recast re-forms a standing storm instead of
+      // fizzling, every cast is a full arrival burst, so this is how often
+      // that burst can land.
+      cooldown: 3,
       handler: "spawn",
       params: {
         token: "gale_thundering_hurricane_tok", count: 1,
@@ -8618,7 +8623,7 @@ export const CARDS: CardDef[] = [
       // enemy-targeted Special cannot be cast into an empty board — which would
       // have made the summons unavailable exactly when you most want a body.
       targetSide: "self",
-      text: "Raise a Thundering Hurricane at half strength (one at a time). It lands reeling every opponent within 2 spaces into contact for 8 DMG and PARALYZING them for 2 rounds. Cast again while it stands and it re-forms: the burst breaks again and the storm heals 6.",
+      text: "Raise a Thundering Hurricane at half strength (one at a time). It lands reeling every opponent within 2 spaces into contact for 8 DMG and PARALYZING them for 2 rounds. Cast again while it stands and it re-forms: the burst breaks again and the storm heals 6. 3-round cooldown.",
     },
   },
   {
