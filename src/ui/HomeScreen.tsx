@@ -37,6 +37,8 @@ import { runOver, runRewardOf } from "../data/gauntlet";
 import { decksForTier } from "../data/custom-decks";
 import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
+import { ACHIEVEMENTS, achievementState } from "../data/achievements";
+import { DailyReward } from "./DailyReward";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
  *  top — only one thing can be the most urgent. */
@@ -95,6 +97,10 @@ export function HomeScreen(props: {
   onFightFirst: () => void;
   /** Hide the first-run guide for good. */
   onSkipOnboarding: () => void;
+  /** Open the Achievements screen. */
+  onAchievements: () => void;
+  /** Take today's login reward. */
+  onClaimDaily: () => void;
   /** Signed-in address, or null. Only used to label the button, so the home
    *  screen never has to know how any of that works. */
   accountEmail: string | null;
@@ -167,6 +173,10 @@ export function HomeScreen(props: {
   const feature = live.find((l) => l.feature);
   const rows = live.filter((l) => !l.feature);
   const events = useMemo(() => homeEvents(save), [save]);
+  const ach = useMemo(() => {
+    const st = ACHIEVEMENTS.map((a) => achievementState(save, a));
+    return { earned: st.filter((x) => x.done).length, ready: st.filter((x) => x.done && !x.claimed).length };
+  }, [save]);
 
   return (
     <div className="overlay arena-wrap">
@@ -260,6 +270,8 @@ export function HomeScreen(props: {
             </span>
           </span>
         </button>
+
+        <DailyReward save={save} onClaim={props.onClaimDaily} />
 
         {live.length > 0 && (
           <>
@@ -371,6 +383,17 @@ export function HomeScreen(props: {
             <span className="home-tile-name">Gallery</span>
             <span className="home-tile-sub">Every card & token</span>
             <span className="home-tile-num">{GALLERY_COUNT} PLATES</span>
+          </button>
+          {/* The fourth tile, and the row became two by two: four across left
+              "Squad builder" 79px on a phone. Its number is the one to act on —
+              what is waiting to be claimed — and otherwise how far there is to
+              go. */}
+          <button className="home-tile ach" onClick={props.onAchievements}>
+            <span className="home-tile-name">Achievements</span>
+            <span className="home-tile-sub">{ach.earned} of {ACHIEVEMENTS.length} earned</span>
+            {ach.ready > 0
+              ? <span className="home-tile-num gold">{ach.ready} TO CLAIM</span>
+              : <span className="home-tile-num">{ach.earned === ACHIEVEMENTS.length ? "ALL EARNED" : `${ACHIEVEMENTS.length - ach.earned} TO GO`}</span>}
           </button>
         </div>
 

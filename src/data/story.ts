@@ -1540,6 +1540,7 @@ export function craftCard(save: StorySave, defId: string): StorySave {
   const el = getDef(defId).element;
   return markUnseen({
     ...save,
+    tally: { ...save.tally, crafted: (save.tally?.crafted ?? 0) + 1 },
     collection: [...save.collection, defId],
     hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - craftCostOf(defId) } },
   }, [defId]);
@@ -1826,6 +1827,7 @@ export function applyPack(save: StorySave, result: PackResult): StorySave {
   return foldIntoSquad(addShiny(
     markUnseen({
       ...save,
+      tally: { ...save.tally, packs: (save.tally?.packs ?? 0) + 1 },
       collection: [...save.collection, ...result.fresh],
       hero: {
         ...hero,
@@ -3007,8 +3009,17 @@ export interface StorySave {
    *  A ledger and not a flag per gift: the point is that a gift lands exactly
    *  once for a player who was already here, and never again however many times
    *  the app reloads. A NEW save starts with every past gift marked as given —
-   *  it is compensation for something that happened, not a starter bonus. */
+   *  it is compensation for something that happened, not a starter bonus.
+   *
+   *  ALSO the ledger for everything that must not be paid twice even if an
+   *  older build rewrites the save (older loaders keep every string here —
+   *  see `HARD_MARK`): claimed achievements (`ach:<id>`, achievements.ts) and
+   *  the daily login (`daily:<date>:<day>`, daily.ts). */
   gifts?: string[];
+  /** Counts the save cannot otherwise answer, for achievements: packs opened
+   *  and cards crafted. Counting starts when this shipped. Losing it to an
+   *  older build only delays an achievement — claims live in `gifts`. */
+  tally?: { packs?: number; crafted?: number };
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -3236,6 +3247,10 @@ export function applyGifts(save: StorySave): { save: StorySave; granted: string[
   return { save: { ...out, gifts: [...had] }, granted };
 }
 
+/** A non-negative whole count from a hand-editable save, else undefined. */
+const countOf = (n: unknown): number | undefined =>
+  typeof n === "number" && Number.isFinite(n) && n >= 0 ? Math.floor(n) : undefined;
+
 export function loadStory(): StorySave {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -3297,6 +3312,12 @@ export function loadStory(): StorySave {
       // running down. Caught by a test that spent one and reloaded.
       gifts: Array.isArray(p.gifts)
         ? [...new Set(p.gifts.filter((x): x is string => typeof x === "string"))]
+        : undefined,
+      tally: p.tally && typeof p.tally === "object"
+        ? {
+            packs: countOf((p.tally as { packs?: unknown }).packs),
+            crafted: countOf((p.tally as { crafted?: unknown }).crafted),
+          }
         : undefined,
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),

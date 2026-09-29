@@ -172,6 +172,7 @@ const StoryMap = deferred(async () => ({ default: (await import("./StoryMap")).S
 const VoidTower = deferred(async () => ({ default: (await import("./VoidTower")).VoidTower }));
 const Shop = deferred(async () => ({ default: (await import("./Shop")).Shop }));
 const StoryCollection = deferred(async () => ({ default: (await import("./StoryCollection")).StoryCollection }));
+const Achievements = deferred(async () => ({ default: (await import("./Achievements")).Achievements }));
 const DraftScreen = deferred(async () => ({ default: (await import("./DraftScreen")).DraftScreen }));
 const ProfilePanel = deferred(async () => ({ default: (await import("./ProfilePanel")).ProfilePanel }));
 const RulesBook = deferred(async () => ({ default: (await import("./RulesBook")).RulesBook }));
@@ -271,6 +272,9 @@ import { initialStoryNav, storyNav } from "./story-nav";
 import { StoryResult } from "./StoryResult";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
+import { AchievementToast } from "./AchievementToast";
+import { claimAchievement, claimAllAchievements, claimableAchievements } from "../data/achievements";
+import { claimDaily } from "../data/daily";
 import { VersusIntro } from "./VersusIntro";
 import { FlowChangeModal } from "./FlowChangeModal";
 import { ActionWheel, underWheel, wheelTap, type WheelVerb } from "./ActionWheel";
@@ -413,6 +417,7 @@ const sameCounts = (a: Record<string, number>, b: Record<string, number>) => {
 interface ResumePlace {
   tab: Tab;
   homeCollection: boolean;
+  homeAchievements: boolean;
   shopTab: "packs" | "crafter";
   profileOpen: boolean;
   rulesOpen: boolean;
@@ -855,6 +860,8 @@ export function App() {
    *  the Arena and coming back should land on Home, not on whatever was open
    *  over it, so the tab switch below clears it. */
   const [homeCollection, setHomeCollection] = useState(false);
+  /** Home's other sub-screen, Achievements — the same shape as the collection. */
+  const [homeAchievements, setHomeAchievements] = useState(false);
   /** Which Shop economy to open on, when Home sent you there for a reason. */
   const [shopTab, setShopTab] = useState<"packs" | "crafter">("packs");
   /** WHERE YOU ARE IN STORY MODE, as one value — see `story-nav.ts`. This was
@@ -1147,6 +1154,33 @@ export function App() {
    *  same question — you can stand in the shop for a minute after the cards are
    *  turned, and the level-up should not wait for you to leave. */
   const [packBusy, setPackBusy] = useState(false);
+
+  /** ACHIEVEMENTS EARNED WHILE PLAYING, queued for the toast.
+   *
+   *  Whatever is claimable at boot is taken as already known — a veteran
+   *  opening the build this shipped in has a dozen, and the Home tile's count
+   *  says so without a dozen toasts. After that, anything that newly becomes
+   *  claimable is queued, whatever moved it: a fight, a pack, a craft, a cloud
+   *  restore. The queue is shown as ONE toast (the first named, the rest
+   *  counted), so even a restore that unlocks twenty is a single line. */
+  const claimableKey = useMemo(() => claimableAchievements(story).map((a) => a.id).join(","), [story]);
+  const achAnnounced = useRef<Set<string> | null>(null);
+  const [achToast, setAchToast] = useState<string[]>([]);
+  useEffect(() => {
+    const ids = claimableKey ? claimableKey.split(",") : [];
+    const known = achAnnounced.current;
+    if (!known) { achAnnounced.current = new Set(ids); return; }
+    const fresh = ids.filter((id) => !known.has(id));
+    if (!fresh.length) return;
+    for (const id of fresh) known.add(id);
+    setAchToast((q) => [...q, ...fresh]);
+  }, [claimableKey]);
+  /** The queue less anything claimed since it was queued — a toast held
+   *  behind a screen must not come up for a reward already collected. */
+  const achToastIds = useMemo(() => {
+    const still = new Set(claimableKey.split(","));
+    return achToast.filter((id) => still.has(id));
+  }, [achToast, claimableKey]);
 
   /** The account panel (email sign-in + cloud save). */
   const [accountOpen, setAccountOpen] = useState(false);
@@ -4394,7 +4428,7 @@ export function App() {
    *  changes tabs — so until it is pressed the card shows centred with no ring
    *  rather than pointing confidently at nothing. */
   const guideOnTab = guideStep
-    ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection
+    ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection && !homeAchievements
     : false;
 
   /** Acknowledge a tour step, into the same `taught` list the coach uses. */
@@ -4411,7 +4445,7 @@ export function App() {
     if (!guideStep) return;
     switch (guideStep.id) {
       case "pack":
-        setShopTab("packs"); setHomeCollection(false); navDo({ t: "close" }); setTab("shop");
+        setShopTab("packs"); setHomeCollection(false); setHomeAchievements(false); navDo({ t: "close" }); setTab("shop");
         break;
       case "squad":
         // Straight into the builder. The anchor is the Home tile, but the tile
@@ -4434,6 +4468,7 @@ export function App() {
         if (press.teach) teach(press.teach);
         if (press.goTo) {
           setHomeCollection(false);
+          setHomeAchievements(false);
           navDo({ t: press.goTo === "story" ? "open" : "close" });
           setTab(press.goTo as Tab);
         }
@@ -4453,6 +4488,7 @@ export function App() {
     // Home's collection is a sub-screen of the tab, not a destination
     // of its own: tapping Home from anywhere has to land on Home.
     setHomeCollection(false);
+    setHomeAchievements(false);
     // Likewise the Shop opens on Packs unless Home had a reason to
     // send you to the Crafter. Reaching it from the nav is not one.
     setShopTab("packs");
@@ -4472,6 +4508,19 @@ export function App() {
       return next;
     });
   };
+  /** Achievement and daily-login claims. Through `prev`, like the level-up,
+   *  so a double tap reads the save the first tap wrote and pays once. */
+  const payOut = (claim: (s: StorySave) => StorySave) => {
+    setStory((prev) => {
+      const next = claim(prev);
+      if (next === prev) return prev;
+      saveStory(next);
+      return next;
+    });
+  };
+  const claimAch = (id: string) => payOut((s) => claimAchievement(s, id));
+  const claimAllAch = () => payOut(claimAllAchievements);
+  const claimToday = () => payOut((s) => claimDaily(s));
   const shownTab: Tab = storyOpen ? "story" : tab;
   const shownTabRef = useRef(shownTab);
   const goTabRef = useRef(goTab);
@@ -4502,7 +4551,7 @@ export function App() {
   const placeRef = useRef<ResumePlace | null>(null);
   useLayoutEffect(() => {
     placeRef.current = {
-      tab: shownTab, homeCollection, shopTab,
+      tab: shownTab, homeCollection, homeAchievements, shopTab,
       profileOpen, rulesOpen, galleryOpen, accountOpen, builderOpen,
     };
   });
@@ -4515,6 +4564,7 @@ export function App() {
     goTab(p.tab);
     // goTab lands on each tab's front door; put back what was open over it.
     if (p.tab === "home" && p.homeCollection) setHomeCollection(true);
+    if (p.tab === "home" && p.homeAchievements) setHomeAchievements(true);
     if (p.tab === "shop") setShopTab(p.shopTab);
     if (p.profileOpen) setProfileOpen(true);
     if (p.rulesOpen) setRulesOpen(true);
@@ -4551,6 +4601,7 @@ export function App() {
   // is over Home: back returns to the list instead of leaving the tab.
   useBackLayer(!started && !storyOpen && tab === "arena" && arenaView !== "hub", () => enterArenaView("hub"));
   useBackLayer(!started && !storyOpen && tab === "home" && homeCollection, () => setHomeCollection(false));
+  useBackLayer(!started && !storyOpen && tab === "home" && homeAchievements, () => setHomeAchievements(false));
   useBackLayer(builderOpen, () => { setBuilderOpen(false); setLinkedDeck(null); });
   useBackLayer(profileOpen, () => setProfileOpen(false));
   useBackLayer(accountOpen, () => setAccountOpen(false));
@@ -5296,6 +5347,26 @@ export function App() {
             <button className="ghost sm" onClick={dropSavedOnline}>Leave</button>
           </div>
         </div>
+      )}
+
+      {/* ACHIEVEMENT UNLOCKED. Held while anything owns the screen — a match
+          (and its result), the level-up card, a pack being opened, a builder, a
+          draft — and shown when that is done, so it never lands on top of the
+          moment that earned it. Tapping goes to the Achievements screen; it is
+          claimed there. */}
+      {achToastIds.length > 0 && !started && !levelUp && !packBusy && !builderOpen && !nav.builder
+        && !(draftRun && !draftComplete(draftRun)) && !(tab === "home" && homeAchievements) && (
+        <AchievementToast
+          ids={achToastIds}
+          onDone={() => setAchToast([])}
+          onOpen={() => {
+            setAchToast([]);
+            // The panels drawn over every tab would sit on top of the screen.
+            setProfileOpen(false); setRulesOpen(false); setGalleryOpen(false); setAccountOpen(false);
+            goTab("home");
+            setHomeAchievements(true);
+          }}
+        />
       )}
 
       {/* THE TABLE WENT QUIET — see the effect. Takes no input, so it never
@@ -6289,7 +6360,7 @@ export function App() {
           keeps its place, one tap down, which is where the redesign puts it:
           building and browsing are things you do BETWEEN fights and neither
           earns a permanent tab against four. */}
-      {!started && !storyOpen && tab === "home" && !homeCollection && (
+      {!started && !storyOpen && tab === "home" && !homeCollection && !homeAchievements && (
         <HomeScreen
           save={story}
           regionId={nav.regionId}
@@ -6330,7 +6401,18 @@ export function App() {
           }}
           onAccount={() => setAccountOpen(true)}
           onRules={() => setRulesOpen(true)}
+          onAchievements={() => setHomeAchievements(true)}
+          onClaimDaily={claimToday}
           accountEmail={accountEmail}
+        />
+      )}
+
+      {!started && !storyOpen && tab === "home" && homeAchievements && (
+        <Achievements
+          save={story}
+          onClaim={claimAch}
+          onClaimAll={claimAllAch}
+          onClose={() => setHomeAchievements(false)}
         />
       )}
 

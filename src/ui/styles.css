@@ -5935,7 +5935,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    nothing when the band is full enough to fill the screen. */
 .home-gap { flex: 1 1 auto; min-height: 0; }
 
-.home-prep { flex: none; display: flex; gap: 9px; padding: 0 16px 12px; }
+/* Two by two since Achievements made it four: four across left "Squad
+   builder" 79px wide on a phone. */
+.home-prep { flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 9px; padding: 0 16px 12px; }
 /* The mark. Quiet by design — it is a notice, not a feature — and `flex: none`
    so it never takes a share of the column the way `.home-gap` does.
    Clearing the nav is `.home-screen`'s own 74px bottom reserve, not this
@@ -5947,7 +5949,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: var(--ink-faint); padding: 0 16px 10px;
 }
 .home-tile {
-  flex: 1; min-width: 0; position: relative; height: 94px; padding: 9px 11px;
+  flex: 1; min-width: 0; position: relative; height: 82px; padding: 9px 11px;
   display: flex; flex-direction: column; overflow: hidden;
   border-radius: 12px; border: 1px solid rgba(233, 226, 210, 0.14);
   cursor: pointer; text-align: left; font: inherit; color: inherit;
@@ -5961,6 +5963,139 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .home-tile-num.ok { color: var(--legal); }
 .home-tile-num.warn { color: var(--threat); }
 .home-tile-num.gold { color: var(--gold-lit); }
+.home-tile.ach { background: linear-gradient(160deg, rgba(127, 227, 173, 0.12), rgba(10, 10, 17, 0.6)); }
+
+/* ── the daily reward (owner, 2026-09-28) ─────────────────────────────────
+   Under Continue: after where you left off, it is what decays first — a missed
+   day costs the week. Shard-blue, the currency it mostly pays in; quiet once
+   today is taken, because then it is only a streak to look at. */
+.home-daily {
+  flex: none; margin: 0 16px 14px; padding: 10px 12px 11px;
+  border-radius: 12px; border: 1px solid rgba(90, 180, 255, 0.32);
+  background: linear-gradient(160deg, rgba(74, 163, 232, 0.12), rgba(10, 10, 17, 0.6));
+}
+.home-daily.done { border-color: rgba(233, 226, 210, 0.1); background: rgba(233, 226, 210, 0.03); }
+.home-daily-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
+.home-daily-title { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.home-daily-title b { font-size: 10px; font-weight: 700; letter-spacing: 0.11em; color: #bfe6ff; }
+.home-daily.done .home-daily-title b { color: var(--ink-dim); }
+.home-daily-title em { font-style: normal; font-size: 11px; color: var(--ink-dim); }
+.home-daily-claim {
+  flex: none; display: inline-flex; align-items: center; gap: 5px;
+  padding: 6px 12px; border-radius: var(--r-chip, 8px); cursor: pointer;
+  border: 1px solid rgba(90, 180, 255, 0.6); background: rgba(74, 163, 232, 0.2);
+  font: inherit; font-size: 12px; font-weight: 700; color: #dff2ff;
+}
+.home-daily-got { flex: none; font-size: 11px; font-weight: 600; color: var(--legal); }
+.home-daily-week {
+  list-style: none; margin: 0; padding: 0;
+  display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;
+}
+.home-daily-day {
+  display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0;
+  padding: 5px 0 6px; border-radius: 8px;
+  border: 1px solid rgba(233, 226, 210, 0.1); background: rgba(6, 7, 12, 0.45);
+}
+.home-daily-day small { font-size: 9px; font-weight: 600; letter-spacing: 0.06em; color: var(--ink-faint); }
+.home-daily-day b { font-size: 12px; font-weight: 700; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+.home-daily-day.pack b { font-size: 9.5px; letter-spacing: 0.05em; color: var(--gold-lit); line-height: 16px; }
+.home-daily-day.got { opacity: 0.45; }
+.home-daily-day.got small::after { content: " \2713"; }
+.home-daily-day.now {
+  border-color: rgba(90, 180, 255, 0.75); background: rgba(74, 163, 232, 0.2);
+  box-shadow: 0 0 10px rgba(90, 180, 255, 0.35);
+}
+.home-daily-day.now b { color: #dff2ff; }
+
+/* ── achievements (owner, 2026-09-28) ─────────────────────────────────────
+   The screen off Home's tile. A `.story-wrap` like the collection, so it gets
+   the nav reserve and the mute-button inset that surface already pays for. */
+.ach-body {
+  flex: 1; min-height: 0; overflow-y: auto;
+  width: min(640px, 100%); margin: 0 auto; box-sizing: border-box;
+  padding: 12px 16px 24px;
+}
+.ach-sec + .ach-sec { margin-top: 18px; }
+.ach-sec-head { display: flex; align-items: baseline; justify-content: space-between; padding: 0 2px 8px; }
+.ach-sec-head span { font-size: 10px; font-weight: 700; letter-spacing: 0.11em; color: #8a8470; }
+.ach-sec-head em { font-style: normal; font-size: 11px; color: var(--ink-dim); }
+.ach-row {
+  display: flex; align-items: center; gap: 11px;
+  padding: 10px 12px; border-radius: 12px; margin-bottom: 7px;
+  border: 1px solid rgba(233, 226, 210, 0.1); background: rgba(233, 226, 210, 0.03);
+}
+.ach-row.ready {
+  border-color: var(--gold-line);
+  background: linear-gradient(160deg, rgba(201, 162, 75, 0.14), rgba(10, 10, 17, 0.5));
+}
+.ach-row.claimed { opacity: 0.6; }
+.ach-medal {
+  flex: 0 0 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  border: 1px solid var(--panel-line); background: rgba(6, 7, 12, 0.5);
+  font-size: 14px; font-weight: 700; color: var(--ink-faint);
+}
+.ach-row.ready .ach-medal, .ach-toast .ach-medal {
+  border-color: var(--gold-lit); color: #1a1408;
+  background: radial-gradient(circle at 35% 30%, var(--gold-hi), var(--gold) 70%);
+  box-shadow: 0 0 10px rgba(201, 162, 75, 0.45);
+}
+.ach-row.claimed .ach-medal { border-color: var(--gold-line); color: var(--gold-lit); }
+.ach-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.ach-meta b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.ach-meta em { font-style: normal; font-size: 11px; line-height: 1.35; color: var(--ink-dim); }
+.ach-prog { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.ach-bar { flex: 1; height: 4px; border-radius: 2px; background: rgba(255, 255, 255, 0.1); overflow: hidden; }
+.ach-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--gold), var(--gold-hi)); }
+.ach-prog small { flex: none; font-size: 10px; font-weight: 600; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.ach-side { flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 5px; }
+.ach-pay { display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 700; color: #bfe6ff; white-space: nowrap; }
+.ach-shards { display: inline-flex; align-items: center; gap: 3px; }
+.ach-packs { color: var(--gold-lit); }
+.ach-claim {
+  padding: 5px 13px; border-radius: var(--r-chip, 8px); cursor: pointer;
+  border: 1px solid var(--gold-lit); background: rgba(201, 162, 75, 0.2);
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--gold-lit);
+}
+.ach-got { font-size: 10px; font-weight: 600; letter-spacing: 0.05em; color: var(--ink-faint); }
+.ach-ready-n b { color: var(--gold-lit); }
+.ach-all { display: inline-flex; align-items: center; gap: 5px; }
+
+/* "Achievement unlocked". Docked at the top, clear of the rejoin prompt that
+   docks above the nav; on the toast rung, though unlike its neighbours it
+   takes a tap. */
+.ach-toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(10px + env(safe-area-inset-top, 0px));
+  z-index: var(--z-toast);
+  display: flex; align-items: center; gap: 11px;
+  width: max-content; max-width: calc(100vw - 24px); box-sizing: border-box;
+  padding: 9px 14px 9px 10px; border-radius: 14px; cursor: pointer;
+  border: 1px solid var(--gold-lit); background: rgba(14, 17, 26, 0.96);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(201, 162, 75, 0.25);
+  font: inherit; color: inherit; text-align: left;
+  animation: achIn 0.35s ease-out;
+}
+@keyframes achIn {
+  from { opacity: 0; transform: translate(-50%, -14px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+.ach-toast-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ach-toast-text small {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em; color: var(--gold);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ach-toast-text b {
+  font-family: var(--head); font-size: 15px; color: var(--ink);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ach-toast-cta {
+  flex: none; display: flex; flex-direction: column; align-items: flex-end; gap: 1px;
+  font-size: 12px; font-weight: 700; color: #bfe6ff;
+}
+.ach-toast-cta em { font-style: normal; font-size: 9.5px; font-weight: 500; color: var(--ink-dim); }
+@media (prefers-reduced-motion: reduce) {
+  .ach-toast { animation: none; }
+}
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
 .shop-modal { max-width: min(640px, 94vw); text-align: left; }

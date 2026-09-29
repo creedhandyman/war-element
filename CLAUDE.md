@@ -3644,6 +3644,58 @@ region.
   picker's row class — and the later rule had been overriding the picker's
   padding, radius and border.
 
+## Achievements and the daily login reward — `data/achievements.ts`, `data/daily.ts`
+
+Owner, 2026-09-28: "an achievement system, and daily login rewards". The
+owner's picks: a 7-day calendar that resets on a missed day; achievements paid
+in shards, more for harder ones, a free pack for the hardest; Story, Void Tower
+and Collection for the first batch (no Arena or online yet); a screen off a
+Home tile.
+
+- **Progress is DERIVED from the save, never stored.** Each achievement's
+  `measure(save)` reads what the save already knows (`everCleared`,
+  `bossesBeaten`, the collection, foils, `tamed`), so there is no second copy of
+  the truth to drift, and a veteran opens the screen to a column of Claim
+  buttons for things done before it shipped. Intended: it pays for the past
+  once. The two counts the save could not answer live in `save.tally`
+  (`{packs, crafted}`, bumped in `applyPack` / `craftCard`), so "open a pack" and
+  "craft a card" count from the day this shipped.
+- **Claims and the daily streak live in the `gifts` ledger** — `ach:<id>`, and
+  ONE `daily:<YYYY-MM-DD>:<day>` entry — not in fields of their own. Older
+  builds rebuild the save from the fields they know and drop a new one (how Hard
+  mode lost its flag), but keep every string in `gifts`, so a claim can never be
+  paid twice across builds. `tally` IS a new field, and an old build drops it:
+  that only delays two small achievements.
+- **Ids are forever.** A ledger mark names an id — never reuse or remove one;
+  retire an achievement by hiding it. A claimed achievement stays DONE when the
+  save moves on (a tamed boss spent, a Hard run reset).
+- **What it pays.** 30 achievements, ~1,500 shards and 4 packs in all (a pack is
+  50 shards); packs only for The War Is Won, No Mercy (the Hard campaign),
+  Master of the Tower and Complete Collection — a test pins that list. The week:
+  10 / 15 / 20 / 25 / 30 / 40 shards, then a free pack on day 7 — about 140
+  shards and a pack a week. Free packs open in the Shop like the level-up ones.
+- **A day is the device's LOCAL calendar date** (`localDay`); the day before
+  comes from the Date constructor, so month and year ends come out right. A
+  clock moved BACK after a claim cannot farm a day (`rec.date >= today` reads as
+  claimed); forward is possible — nothing client-only is anti-cheat.
+- **UI.** `DailyReward` is a card under Continue — it decays fastest — and
+  re-reads the date on `visibilitychange`/`focus`, so an installed app resumed
+  in the morning offers the claim. The Achievements tile opens
+  `Achievements.tsx` (a lazy chunk; `homeAchievements` mirrors `homeCollection`:
+  a back layer, cleared by `goTab`, in `ResumePlace`). `.home-prep` is two by two
+  now: four across left "Squad builder" 79px wide on a phone.
+- **The toast** (`AchievementToast.tsx`, main bundle, so it is ready when a
+  fight pays out). App diffs the claimable set. What is claimable at BOOT is
+  taken as known — a veteran gets the tile's count, not a dozen toasts — and
+  anything newly claimable after that is queued and shown as ONE toast (the
+  first named, the rest counted), so a cloud restore unlocking twenty is one
+  line. Held while a match or its result, the level-up card, a pack (`packBusy`
+  stays true through the "Pack opened" summary), a builder or a draft owns the
+  screen; filtered to still-claimable ids; 5 s; a tap goes to Home and the
+  screen, where it is claimed.
+- **Achievements vs Trophies.** The profile's TROPHIES are boss heads worn as
+  avatars (`earnedAvatars`) — a different thing, hence the name.
+
 ## Rejoining an online match — `net/resume.ts` + the `sync` handshake
 
 Online has no server copy of a match (Realtime broadcast, "no DB, no auth"), so a
