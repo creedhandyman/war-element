@@ -3016,10 +3016,10 @@ export interface StorySave {
    *  see `HARD_MARK`): claimed achievements (`ach:<id>`, achievements.ts) and
    *  the daily login (`daily:<date>:<day>`, daily.ts). */
   gifts?: string[];
-  /** Counts the save cannot otherwise answer, for achievements: packs opened
-   *  and cards crafted. Counting starts when this shipped. Losing it to an
-   *  older build only delays an achievement — claims live in `gifts`. */
-  tally?: { packs?: number; crafted?: number };
+  /** Counts the save cannot otherwise answer, for achievements — see `Tally`.
+   *  Losing it to an older build only delays an achievement: claims live in
+   *  `gifts`. */
+  tally?: Tally;
   /** Region id -> Blight earned from world progress. The region's own baseline
    *  is applied on read, so it can never be saved away. */
   blight: Record<string, number>;
@@ -3044,6 +3044,28 @@ export interface StorySave {
    *  folded into `squads`, never written again. */
   squad?: { region: string; cards: string[] };
 }
+
+/** Counts the save cannot otherwise answer, kept for achievements
+ *  (achievements.ts). Each counts from the day it shipped: packs and crafts on
+ *  2026-09-28 with the first batch, the Arena and online ones with theirs. */
+export interface Tally {
+  /** Packs opened. */
+  packs?: number;
+  /** Cards crafted. */
+  crafted?: number;
+  /** Arena wins against an AI deck — the matches the Arena pays for. Not
+   *  events (they count on their own), not hot-seat. */
+  arenaWins?: number;
+  /** ...of which at a Domination table: three or more sides. */
+  domWins?: number;
+  /** The most wins in a single draft run. */
+  draftBest?: number;
+  /** Online matches played to a finish — one you surrendered does not count,
+   *  the same rule that pays a surrenderer nothing. */
+  onlinePlayed?: number;
+  onlineWins?: number;
+}
+const TALLY_KEYS = ["packs", "crafted", "arenaWins", "domWins", "draftBest", "onlinePlayed", "onlineWins"] as const;
 
 /** Mirrors `TAME_USES` in data/void-tower.ts, which cannot be imported here:
  *  void-tower imports DUPLICATE_CAP from this file, so the dependency only
@@ -3314,10 +3336,7 @@ export function loadStory(): StorySave {
         ? [...new Set(p.gifts.filter((x): x is string => typeof x === "string"))]
         : undefined,
       tally: p.tally && typeof p.tally === "object"
-        ? {
-            packs: countOf((p.tally as { packs?: unknown }).packs),
-            crafted: countOf((p.tally as { crafted?: unknown }).crafted),
-          }
+        ? Object.fromEntries(TALLY_KEYS.map((k) => [k, countOf((p.tally as Record<string, unknown>)[k])])) as Tally
         : undefined,
       // A deck can only hold cards you own — a stale entry silently drops out.
       deck: known(p.deck).filter((id) => collection.includes(id)),

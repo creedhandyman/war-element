@@ -1,7 +1,8 @@
 /** ACHIEVEMENTS — owner, 2026-09-28: "Could we start adding an achievement
- *  system?" Story, Void Tower and Collection for the first batch; paid in
- *  shards, more for harder ones, and a free pack for the hardest; claimed on
- *  the Achievements screen off Home.
+ *  system?" Story, Void Tower and Collection for the first batch, then "add
+ *  achievements for the Arena and online matches too"; paid in shards, more for
+ *  harder ones, and a free pack for the hardest; claimed on the Achievements
+ *  screen off Home.
  *
  *  PROGRESS IS DERIVED, NEVER STORED. Every achievement reads the save as it
  *  stands — cleared nodes, beaten bosses, the collection — so a player who did
@@ -23,12 +24,18 @@ import {
   isGate, isHard, nodeById, type StorySave,
 } from "./story";
 import { VOID_BOSSES, bossDefeated, bossesOnFloor, voidFloors } from "./void-tower";
+import { DRAFT_MAX_WINS, draftWins } from "./draft";
+import { EVENTS } from "./events";
+import { RUN_LENGTH } from "./gauntlet";
+import type { DeckTier } from "./custom-decks";
 
-export type AchievementCategory = "story" | "tower" | "collection";
+export type AchievementCategory = "story" | "tower" | "arena" | "online" | "collection";
 
 export const ACHIEVEMENT_CATEGORIES: readonly { id: AchievementCategory; label: string }[] = [
   { id: "story", label: "Story" },
   { id: "tower", label: "Void Tower" },
+  { id: "arena", label: "Arena" },
+  { id: "online", label: "Online" },
   { id: "collection", label: "Collection" },
 ];
 
@@ -81,6 +88,31 @@ function bestElement(save: StorySave): { have: number; target: number } {
 
 const fixed = (target: number, have: (s: StorySave) => number) =>
   (save: StorySave) => ({ have: have(save), target });
+
+/** Arena wins: the count kept since the Arena batch shipped, or — for a save
+ *  that played before it — the least the save can PROVE: its best Streak, four
+ *  wins for every Gauntlet rung it has cleared, and the wins of the draft run
+ *  it holds. Three different modes, so no win is in two of them; and `max`
+ *  rather than a sum with the count, which would add a win twice once the
+ *  count had seen it too. */
+function arenaWins(save: StorySave): number {
+  const proven = (save.ladder?.best ?? 0)
+    + RUN_LENGTH * (save.gauntlet?.cleared ?? []).length
+    + draftWins(save.draft);
+  return Math.max(save.tally?.arenaWins ?? 0, proven);
+}
+const bestStreak = (save: StorySave): number => save.ladder?.best ?? 0;
+const gauntletRung = (rung: DeckTier) => (save: StorySave): number =>
+  (save.gauntlet?.cleared ?? []).includes(rung) ? 1 : 0;
+/** The most wins in one draft run — kept, or the run the save still holds. */
+const bestDraft = (save: StorySave): number => Math.max(save.tally?.draftBest ?? 0, draftWins(save.draft));
+/** The Arena's events — the one-time fights on Home. Void Trials are events
+ *  too, but they are the Tower's, and count there. */
+const ARENA_EVENTS = EVENTS.filter((e) => !e.bossId);
+const eventsBeaten = (save: StorySave): number =>
+  ARENA_EVENTS.filter((e) => (save.eventsDone ?? []).includes(e.id)).length;
+const onlinePlayed = (save: StorySave): number => save.tally?.onlinePlayed ?? 0;
+const onlineWins = (save: StorySave): number => save.tally?.onlineWins ?? 0;
 
 // ── the list ────────────────────────────────────────────────────────────────
 
@@ -144,6 +176,74 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     desc: "Beat every boss in the Void Tower.",
     measure: fixed(VOID_BOSSES.length, (s) => bossesBeaten(s).length),
     reward: { shards: 100, packs: 1 } },
+
+  // ── Arena ──────────────────────────────────────────────────────────────────
+  // Against the AI decks — the matches the Arena pays for. Not hot-seat: one
+  // player can win both sides of it.
+  { id: "arena-first", category: "arena", title: "First Blood",
+    desc: "Win an Arena match against an AI deck.",
+    measure: fixed(1, arenaWins), reward: { shards: 10 } },
+  { id: "arena-25", category: "arena", title: "Arena Regular",
+    desc: "Win 25 Arena matches.",
+    measure: fixed(25, arenaWins), reward: { shards: 30 } },
+  { id: "arena-100", category: "arena", title: "Gladiator",
+    desc: "Win 100 Arena matches.",
+    measure: fixed(100, arenaWins), reward: { shards: 80 } },
+  { id: "arena-streak-4", category: "arena", title: "Hot Streak",
+    desc: "Win 4 in a row in Streak.",
+    measure: fixed(4, bestStreak), reward: { shards: 20 } },
+  { id: "arena-streak-7", category: "arena", title: "Unstoppable",
+    desc: "Win 7 in a row in Streak.",
+    measure: fixed(7, bestStreak), reward: { shards: 60 } },
+  { id: "arena-gauntlet", category: "arena", title: "Run the Gauntlet",
+    desc: `Clear a Gauntlet run: ${RUN_LENGTH} wins without a loss.`,
+    measure: fixed(1, (s) => (s.gauntlet?.cleared ?? []).length), reward: { shards: 20 } },
+  { id: "arena-gauntlet-hard", category: "arena", title: "Iron Gauntlet",
+    desc: "Clear the Gauntlet on the Hard rung.",
+    measure: fixed(1, gauntletRung("hard")), reward: { shards: 40 } },
+  { id: "arena-gauntlet-elite", category: "arena", title: "Elite Gauntlet",
+    desc: "Clear the Gauntlet on the Elite rung.",
+    measure: fixed(1, gauntletRung("elite")), reward: { shards: 100, packs: 1 } },
+  { id: "arena-draft", category: "arena", title: "Drafted",
+    desc: "Win a match with a drafted deck.",
+    measure: fixed(1, bestDraft), reward: { shards: 15 } },
+  { id: "arena-draft-4", category: "arena", title: "Good Picks",
+    desc: "Win 4 matches in one draft run.",
+    measure: fixed(4, bestDraft), reward: { shards: 40 } },
+  { id: "arena-draft-7", category: "arena", title: "Perfect Draft",
+    desc: `Take a draft run all the way: ${DRAFT_MAX_WINS} wins.`,
+    measure: fixed(DRAFT_MAX_WINS, bestDraft), reward: { shards: 100, packs: 1 } },
+  { id: "arena-dom", category: "arena", title: "King of the Table",
+    desc: "Win a Domination match: three or more sides.",
+    measure: fixed(1, (s) => s.tally?.domWins ?? 0), reward: { shards: 25 } },
+  { id: "arena-event", category: "arena", title: "Main Event",
+    desc: `Beat an event: ${ARENA_EVENTS.map((e) => e.name).join(" or ")}.`,
+    measure: fixed(1, eventsBeaten), reward: { shards: 20 } },
+  { id: "arena-events-all", category: "arena", title: "Headliner",
+    desc: "Beat every event.",
+    measure: fixed(ARENA_EVENTS.length, eventsBeaten), reward: { shards: 40 } },
+
+  // ── Online ─────────────────────────────────────────────────────────────────
+  // A match you surrendered does not count, the same rule that pays a
+  // surrenderer nothing: two friends conceding to each other is not a game.
+  { id: "online-first", category: "online", title: "Hello, Stranger",
+    desc: "Play an online match to the finish.",
+    measure: fixed(1, onlinePlayed), reward: { shards: 10 } },
+  { id: "online-win", category: "online", title: "Worthy Opponent",
+    desc: "Win an online match.",
+    measure: fixed(1, onlineWins), reward: { shards: 20 } },
+  { id: "online-25", category: "online", title: "Familiar Face",
+    desc: "Play 25 online matches.",
+    measure: fixed(25, onlinePlayed), reward: { shards: 30 } },
+  { id: "online-10-wins", category: "online", title: "Contender",
+    desc: "Win 10 online matches.",
+    measure: fixed(10, onlineWins), reward: { shards: 50 } },
+  { id: "online-25-wins", category: "online", title: "Duelist",
+    desc: "Win 25 online matches.",
+    measure: fixed(25, onlineWins), reward: { shards: 80 } },
+  { id: "online-50-wins", category: "online", title: "Champion",
+    desc: "Win 50 online matches.",
+    measure: fixed(50, onlineWins), reward: { shards: 150, packs: 1 } },
 
   // ── Collection ─────────────────────────────────────────────────────────────
   { id: "col-50", category: "collection", title: "Collector",
@@ -231,6 +331,48 @@ export function claimAchievement(save: StorySave, id: string): StorySave {
 
 export function claimAllAchievements(save: StorySave): StorySave {
   return claimableAchievements(save).reduce((s, a) => claimAchievement(s, a.id), save);
+}
+
+/** One finished match, for `tallyMatch`. */
+export type MatchTally =
+  | {
+      kind: "arena";
+      won: boolean;
+      /** The opponent was an AI premade — the only Arena win that pays. */
+      againstPremade: boolean;
+      /** Opponents at the table; more than one is Domination. */
+      foes: number;
+      /** A draft seat: the run's wins after this match. */
+      draftWins?: number;
+    }
+  | {
+      kind: "online";
+      won: boolean;
+      /** This side conceded. */
+      surrendered: boolean;
+    };
+
+/** What a finished match adds to `save.tally`. App's settle path calls it once
+ *  per match, on the `settledMatch` guard that pays the match, and leaves out
+ *  what must not count at all: events (their own achievements) and hot-seat,
+ *  where one player can win both sides. Returns the same object when nothing
+ *  moved, so the caller can skip the write. */
+export function tallyMatch(save: StorySave, m: MatchTally): StorySave {
+  const t = save.tally ?? {};
+  if (m.kind === "online") {
+    if (m.surrendered) return save;
+    return {
+      ...save,
+      tally: { ...t, onlinePlayed: (t.onlinePlayed ?? 0) + 1, onlineWins: (t.onlineWins ?? 0) + (m.won ? 1 : 0) },
+    };
+  }
+  let next = t;
+  if (m.won && m.againstPremade) {
+    next = { ...next, arenaWins: (next.arenaWins ?? 0) + 1 };
+    if (m.foes > 1) next = { ...next, domWins: (next.domWins ?? 0) + 1 };
+  }
+  if (m.draftWins != null && m.draftWins > (next.draftBest ?? 0)) next = { ...next, draftBest: m.draftWins };
+  return next === t ? save : { ...save, tally: next };
 }
 
 /** What claiming everything claimable would pay, for the Claim all button. */

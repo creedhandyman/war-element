@@ -3649,29 +3649,46 @@ region.
 Owner, 2026-09-28: "an achievement system, and daily login rewards". The
 owner's picks: a 7-day calendar that resets on a missed day; achievements paid
 in shards, more for harder ones, a free pack for the hardest; Story, Void Tower
-and Collection for the first batch (no Arena or online yet); a screen off a
-Home tile.
+and Collection for the first batch, then "achievements for the Arena and online
+matches too"; a screen off a Home tile.
 
 - **Progress is DERIVED from the save, never stored.** Each achievement's
   `measure(save)` reads what the save already knows (`everCleared`,
   `bossesBeaten`, the collection, foils, `tamed`), so there is no second copy of
   the truth to drift, and a veteran opens the screen to a column of Claim
   buttons for things done before it shipped. Intended: it pays for the past
-  once. The two counts the save could not answer live in `save.tally`
-  (`{packs, crafted}`, bumped in `applyPack` / `craftCard`), so "open a pack" and
-  "craft a card" count from the day this shipped.
+  once. What the save could not answer lives in `save.tally` (the `Tally`
+  interface, story.ts) and counts from the day each shipped: packs opened and
+  cards crafted (bumped in `applyPack` / `craftCard`), and the Arena and online
+  results (`tallyMatch`, below).
+- **The Arena and online counts** come from ONE call, `tallyMatch`, in App's
+  match-settle effect — on the `settledMatch` guard that pays the match, in the
+  same write. Arena: a win against an AI premade (`againstPremade`, the only
+  Arena win that pays), a Domination win when `foes > 1`, and the best draft
+  run. Never an event (they count as events; Void Trials are the Tower's) and
+  never hot-seat, where one player can win both sides. Online: every finish
+  counts as played, a win as a win — except a match THIS side surrendered,
+  the rule that pays a surrenderer nothing (two friends conceding to each other
+  is not a game). Each client counts its own side: the effect runs on both.
+- **Arena wins read a proven floor** for a save that played before counting
+  began: best Streak + 4 per Gauntlet rung cleared + the held draft run's wins —
+  three different modes, so no win is in two. `max` with the count, never a
+  sum, which would add a win twice once the count had seen it. Streak, the
+  Gauntlet rungs, the draft and the two Home events are read straight off the
+  save (`ladder.best`, `gauntlet.cleared`, `draft`, `eventsDone`).
 - **Claims and the daily streak live in the `gifts` ledger** — `ach:<id>`, and
   ONE `daily:<YYYY-MM-DD>:<day>` entry — not in fields of their own. Older
   builds rebuild the save from the fields they know and drop a new one (how Hard
   mode lost its flag), but keep every string in `gifts`, so a claim can never be
   paid twice across builds. `tally` IS a new field, and an old build drops it:
-  that only delays two small achievements.
+  that only sets its counts back, never pays twice.
 - **Ids are forever.** A ledger mark names an id — never reuse or remove one;
   retire an achievement by hiding it. A claimed achievement stays DONE when the
   save moves on (a tamed boss spent, a Hard run reset).
-- **What it pays.** 30 achievements, ~1,500 shards and 4 packs in all (a pack is
+- **What it pays.** 50 achievements, ~2,450 shards and 7 packs in all (a pack is
   50 shards); packs only for The War Is Won, No Mercy (the Hard campaign),
-  Master of the Tower and Complete Collection — a test pins that list. The week:
+  Master of the Tower, Complete Collection, Elite Gauntlet, Perfect Draft (7
+  wins in one run) and Champion (50 online wins) — a test pins that list. The week:
   10 / 15 / 20 / 25 / 30 / 40 shards, then a free pack on day 7 — about 140
   shards and a pack a week. Free packs open in the Shop like the level-up ones.
 - **A day is the device's LOCAL calendar date** (`localDay`); the day before

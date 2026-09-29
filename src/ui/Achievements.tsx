@@ -32,7 +32,7 @@ export function Achievements(props: {
   const owed = useMemo(() => pendingRewards(save), [save]);
 
   return (
-    <div className="story-wrap ach-wrap">
+    <div className="story-wrap">
       <header className="story-head">
         <div>
           <div className="story-eyebrow">ACHIEVEMENTS{save.hero?.name ? ` · ${save.hero.name}` : ""}</div>

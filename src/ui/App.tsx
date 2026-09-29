@@ -273,7 +273,7 @@ import { StoryResult } from "./StoryResult";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
 import { AchievementToast } from "./AchievementToast";
-import { claimAchievement, claimAllAchievements, claimableAchievements } from "../data/achievements";
+import { claimAchievement, claimAllAchievements, claimableAchievements, tallyMatch } from "../data/achievements";
 import { claimDaily } from "../data/daily";
 import { VersusIntro } from "./VersusIntro";
 import { FlowChangeModal } from "./FlowChangeModal";
@@ -1592,17 +1592,15 @@ export function App() {
       // showing up and losing a real match, and without this line the fastest
       // way to earn in the game is two people conceding to each other on
       // repeat — 15 shards a round trip, for no game.
-      const paid = onlineMatchShards({
-        won: iWon,
-        surrendered: game.win?.by === "surrender" && !iWon,
+      const surrendered = game.win?.by === "surrender" && !iWon;
+      const paid = onlineMatchShards({ won: iWon, surrendered });
+      // Counted for the Online achievements in the same write that pays —
+      // except a match this side conceded, which pays nothing either.
+      setStory((prev) => {
+        const next = tallyMatch(paid ? addShards(prev, paid) : prev, { kind: "online", won: iWon, surrendered });
+        if (next !== prev) saveStory(next);
+        return next;
       });
-      if (paid) {
-        setStory((prev) => {
-          const next = addShards(prev, paid);
-          saveStory(next);
-          return next;
-        });
-      }
       return;
     }
     const won = game.win?.winner === "P1";
@@ -1687,7 +1685,7 @@ export function App() {
       const climb = event || arenaGame !== "streak"
         ? null
         : recordLadderMatch(drafted.ladder, { won, tier: tierOf(p2DeckId), boardSize });
-      const next = !climb || climb.ladder === drafted.ladder
+      const paidOut = !climb || climb.ladder === drafted.ladder
         ? drafted
         // ...and a counted WIN at a Domination table pays the whole duel price
         // (flat win + ladder bonus) scaled to the table: the number the
@@ -1696,6 +1694,15 @@ export function App() {
             { ...drafted, ladder: climb.ladder },
             climb.bonus + (won ? tableExtra(SHARDS_PER_WIN.arena + climb.bonus) : 0),
           );
+      // The Arena achievements' counts, on the same one-per-match guard. Not an
+      // event (those count as events) and not hot-seat, where one player can
+      // win both sides.
+      const next = event || twoPlayer
+        ? paidOut
+        : tallyMatch(paidOut, {
+            kind: "arena", won, againstPremade, foes,
+            draftWins: arenaGame === "draft" ? draftWins(drafted.draft) : undefined,
+          });
       if (next !== prev) saveStory(next);
       return next;
     });
