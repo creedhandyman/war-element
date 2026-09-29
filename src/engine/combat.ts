@@ -5109,11 +5109,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     arrows.push({ round: draft.round + 1, dmg: num(params, "dmg", 14), targetId: target.instanceId, source: attacker });
     draft.log.push(`${label(draft, attacker)} paints ${label(draft, target)} — an arrow falls next round.`);
   },
-  /** Lacing Knots (Tether): reap every opponent still bound by Magic Ropes (i.e. with
-   *  locked Specials). */
+  /** Lacing Knots (Tether): reap every MUTED opponent — the status Magic Ropes
+   *  applies, and any other source of it counts too. */
   lacingKnots(draft, attacker, _targets, params) {
     const dmg = num(params, "dmg", 8);
-    const roped = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && (e.specialLockedRounds ?? 0) > 0);
+    const roped = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && hasStatus(e, "MUTED"));
     // `pen` read from the card, the way `barrage` reads it (Tether's knots cut
     // straight through shields).
     const pen = num(params, "pen") > 0;

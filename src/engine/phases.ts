@@ -3327,12 +3327,20 @@ function doRoundTicks(draft: GameState): void {
       if (total > 0) draft.log.push(`${label(draft, card)}'s siphon drains ${total} max HP from ${near.length} foe(s).`);
     }
     if (rt.lockEnemySpecials) {
-      // Magic Ropes (Tether): wrap up N reachable opponents — their Specials are
-      // disabled for the coming round. (doRoundTicks runs after the lock tick-
-      // down, so a value of 1 survives to next round.)
-      const roped = enemies().filter((e) => e.curHp > 0 && canTarget(draft, card, e)).slice(0, rt.lockEnemySpecials);
-      for (const e of roped) e.specialLockedRounds = Math.max(e.specialLockedRounds ?? 0, 1);
-      if (roped.length) draft.log.push(`${label(draft, card)}'s Magic Ropes bind ${roped.length} opponent(s).`);
+      // Magic Ropes (Tether): MUTE N reachable opponents for the coming round.
+      // A real MUTED status now (owner's call, 2026-09-28), not the hidden
+      // `specialLockedRounds` counter: it shows on the token, a cleanse can
+      // lift it, and a status immunity shrugs it off. doRoundTicks runs after
+      // statuses tick down, so a duration of 1 holds through next round — the
+      // same window the counter gave. Opponents not already muted go first, so
+      // the ropes are not spent re-tying someone who cannot cast anyway.
+      const el = getDef(card.defId).element;
+      const roped = enemies()
+        .filter((e) => e.curHp > 0 && canTarget(draft, card, e))
+        .sort((a, b) => Number(hasStatus(a, "MUTED")) - Number(hasStatus(b, "MUTED")))
+        .slice(0, rt.lockEnemySpecials);
+      for (const e of roped) applyStatus(draft, e, "MUTED", 1, 0, el);
+      if (roped.length) draft.log.push(`${label(draft, card)}'s Magic Ropes MUTE ${roped.length} opponent(s).`);
     }
     if (rt.aoeParalyzedDmg) {
       // Complete Circuit: current flows through every PARALYZED enemy in range.
@@ -3689,7 +3697,7 @@ function doCleanupPhase(draft: GameState): void {
     if ((card.reflectRoundsLeft ?? 0) > 0) card.reflectRoundsLeft = (card.reflectRoundsLeft ?? 0) - 1;
     // Anglerfish's Lure fades.
     if ((card.incomingMissRounds ?? 0) > 0) card.incomingMissRounds = (card.incomingMissRounds ?? 0) - 1;
-    // A special-lockout (Diagnosis / Red Shift / Magic Ropes) wears off.
+    // A special-lockout (Diagnosis / Red Shift) wears off.
     if ((card.specialLockedRounds ?? 0) > 0) card.specialLockedRounds = (card.specialLockedRounds ?? 0) - 1;
     // BlastOff's temporary flight fades.
     if ((card.flyingRoundsLeft ?? 0) > 0) card.flyingRoundsLeft = (card.flyingRoundsLeft ?? 0) - 1;

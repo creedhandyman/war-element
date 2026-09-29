@@ -364,8 +364,8 @@ export interface RoundTickDef {
    *  FREEZE is a strictly heavier pin. Both hold SP at 0, so both stop a card
    *  moving; FREEZE also halves its damage. */
   freezeZeroSp?: number;
-  /** Magic Ropes (Tether): each round, lock this many in-range opponents out of
-   *  their Specials for the coming round. */
+  /** Magic Ropes (Tether): each round, MUTE this many in-range opponents for
+   *  the coming round. */
   lockEnemySpecials?: number;
   /** Draining Siphon (Violet): at end of round, DRAIN N max HP from every
    *  opponent within 1 space. */
@@ -2020,7 +2020,7 @@ export interface CardInstance {
   platesStolen?: number;
   /** HP lost this round (Bolder's Vengeance reflects it). Reset at Cleanup. */
   dmgTakenThisRound?: number;
-  /** Diagnosis / Red Shift / Magic Ropes: rounds this card cannot fire Specials.
+  /** Diagnosis / Red Shift: rounds this card cannot fire Specials.
    *  Ticked down at Cleanup. */
   specialLockedRounds?: number;
   /** A granted heal-over-time (Tail Drop's regrow): heals `regenPower` at each

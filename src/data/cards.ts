@@ -7305,11 +7305,11 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
-    // Magic Ropes (each round): bind 2 in-range opponents — their Specials are
-    // disabled for the coming round.
+    // Magic Ropes (each round): MUTE 2 in-range opponents for the coming round
+    // (a real MUTED status since 2026-09-28, owner's call).
     passiveNames: { roundTick: "Magic Ropes" },
     roundTick: { lockEnemySpecials: 2 },
-    // Lacing Knots: 9 DMG (PEN) to every opponent still bound by Magic Ropes.
+    // Lacing Knots: 9 DMG (PEN) to every MUTED opponent.
     // 8 -> 9 and PEN (owner's call): the ropes are already holding them.
     special: {
       name: "Lacing Knots",
@@ -7318,7 +7318,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 9, pen: 1 },
       targetSide: "enemy",
       ranged: true,
-      text: "Deal 9 DMG (PEN) to all opponents bound by Magic Ropes (locked Specials) this round.",
+      text: "Deal 9 DMG (PEN) to every MUTED opponent.",
     },
   },
   {
