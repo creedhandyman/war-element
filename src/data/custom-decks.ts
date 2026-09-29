@@ -938,6 +938,105 @@ const STANDARD_DECKS: PremadeDeck[] = [
     ],
     spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap"],
   },
+  // ── FIVE MORE ELITE DECKS (owner's call, 2026-09-28) ─────────────────────
+  // Wildfire, Dead Current and Undertow are two-element builds; Four Winds runs
+  // four elements and Prism all eight. The rung is ELEVEN decks now, which is
+  // why the elite element cap went from two decks to three (Prism, which adds
+  // one to every element, sits outside it).
+  //
+  // Measured the way the rung always has been — as the opponent seat, with the
+  // elite opening, against every shipped premade on its board (180 matches a
+  // deck). The existing six posted 45-78% on 4x4 and 48-92% on 5x5 in the same
+  // harness; the new five land 66-83% and 71-84%.
+  {
+    id: "pre_wildfire",
+    name: "Wildfire",
+    note: "LEAF + PYRO — the forest and the fire it feeds: bodies up front, heavy burn over the top.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // Three cheap cards a side and six from the top: the elite opening already
+    // hands it its cheapest, so an all-cheap cut measured 6% and this one 73%.
+    cards: [
+      "leaf_birch", "leaf_stickviper", "leaf_weeds", "leaf_alpha", "leaf_sumerose",
+      "leaf_citra", "leaf_splint", "leaf_elderroot", "leaf_oakgre", "pyro_ingit",
+      "pyro_sparky", "pyro_staph", "pyro_scorch", "pyro_scully", "pyro_sseerr",
+      "pyro_dynomight", "pyro_infernus_rex", "pyro_nitro",
+    ],
+    spells: ["pyro_spark", "leaf_sprout", "leaf_thorn_patch", "pyro_ember_trap", "leaf_snare"],
+  },
+  {
+    id: "pre_dead_current",
+    name: "Dead Current",
+    note: "BOLT + DUSK — the current never stops, and neither does what it kills.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // Five cheap a side and four from the top — the cut that measured best (72%).
+    cards: [
+      "bolt_rodd", "bolt_stingray", "bolt_twotales", "bolt_zap", "bolt_drshock",
+      "bolt_lytning", "bolt_keeper", "bolt_zoez", "bolt_elecdroid", "dusk_grafft",
+      "dusk_spider", "dusk_vamp", "dusk_harve", "dusk_jackl", "dusk_skrow",
+      "dusk_aranea", "dusk_nightfang", "dusk_shadowhorsemen",
+    ],
+    spells: ["bolt_zap", "dusk_chill_touch", "bolt_recon_ping", "dusk_bone_snare", "dusk_shadow_step"],
+  },
+  {
+    id: "pre_undertow",
+    name: "Undertow",
+    note: "BORE + AQUA — stone under the tide. It takes a square and drags you onto it.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "bore_hillbilly", "bore_kcor", "bore_old_timer", "bore_ankylosaur", "bore_dunebuggy",
+      "bore_rock", "bore_warthog", "bore_kobra", "bore_the_coreborer", "aqua_misty",
+      "aqua_subcool", "aqua_arctik", "aqua_icyninza", "aqua_sonarping", "aqua_bahari",
+      "aqua_divebill", "aqua_phrost", "aqua_kraken",
+    ],
+    spells: ["bore_pebble_toss", "aqua_chill", "bore_sand_trap", "aqua_frost_patch", "aqua_steam_vent"],
+  },
+  {
+    id: "pre_four_winds",
+    name: "Four Winds",
+    note: "LEAF + GALE + DAWN + BOLT — four elements on one board, and an answer for whatever you bring.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // FOUR ELEMENTS (owner's call): 5/5/4/4 here, 8/8/7/7 on the large board — as even
+    // as eighteen and thirty allow.
+    cards: [
+      "leaf_monkey", "leaf_stickers", "leaf_forestdeer", "leaf_fallona", "leaf_whintey",
+      "gale_gastly", "gale_skyforce", "gale_toxhawk", "gale_klipso", "gale_griffith",
+      "dawn_flash", "dawn_ballista", "dawn_riflemen", "dawn_supernova", "bolt_electricel",
+      "bolt_hacker", "bolt_thunder", "bolt_voltogon",
+    ],
+    spells: ["dawn_sunbeam", "gale_gust", "leaf_sprout", "bolt_zap", "leaf_thorn_patch"],
+  },
+  {
+    id: "pre_prism",
+    name: "Prism",
+    note: "Every element at once — one or two of each, and no weak side to aim at.",
+    premade: true,
+    boardSize: 4,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    // ALL EIGHT ELEMENTS (owner's call): 3/3/2/2/2/2/2/2 here, 4/4/4/4/4/4/3/3 on the
+    // large board. Divebill, Zap and Rodd are what made it an elite list —
+    // 44% without them, 78% with. Top end held to the squad check's
+    // four cards at cost 7+, the ceiling every other premade keeps.
+    cards: [
+      "pyro_canister", "pyro_burnout", "pyro_pyrodactyl", "gale_syt_bird", "gale_tempest",
+      "gale_wolfbane", "leaf_efy", "leaf_snapmaw", "aqua_glacius", "aqua_divebill",
+      "bore_rohojohn", "bore_steel", "dusk_destro", "dusk_prestige", "dawn_sparkle",
+      "dawn_meridian", "bolt_zap", "bolt_rodd",
+    ],
+    spells: ["leaf_sprout", "pyro_spark", "aqua_chill", "gale_gust", "bore_pebble_toss"],
+  },
 ];
 
 
@@ -1597,6 +1696,97 @@ const LARGE_DECKS: PremadeDeck[] = [
       "aqua_icewall", "aqua_octoirate", "aqua_piranha", "aqua_tide", "aqua_polarking",
     ],
     spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap", "aqua_frost_patch", "dusk_shadow_step", "bore_bulwark"],
+  },
+  // ── FIVE MORE ELITE DECKS (large board) — see the standard-board banner. ──
+  {
+    id: "pre_wildfire_5",
+    name: "Wildfire",
+    note: "LEAF + PYRO — the forest and the fire it feeds: bodies up front, heavy burn over the top.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "leaf_birch", "leaf_stickviper", "leaf_weeds", "leaf_cactus", "leaf_leaf",
+      "leaf_python", "leaf_greegon", "leaf_hunter", "leaf_gecko", "leaf_alpha",
+      "leaf_sumerose", "leaf_citra", "leaf_splint", "leaf_elderroot", "leaf_oakgre",
+      "pyro_ingit", "pyro_sparky", "pyro_staph", "pyro_firecrack", "pyro_taper",
+      "pyro_ash_boar", "pyro_komodo", "pyro_spitfire", "pyro_slag_tortoise", "pyro_scorch",
+      "pyro_scully", "pyro_sseerr", "pyro_dynomight", "pyro_infernus_rex", "pyro_nitro",
+    ],
+    spells: ["pyro_spark", "leaf_sprout", "leaf_thorn_patch", "pyro_ember_trap", "leaf_snare", "pyro_flare_push", "leaf_bramble_wall", "pyro_heatwave"],
+  },
+  {
+    id: "pre_dead_current_5",
+    name: "Dead Current",
+    note: "BOLT + DUSK — the current never stops, and neither does what it kills.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "bolt_zap", "bolt_stingray", "bolt_twotales", "bolt_rodd", "bolt_drshock",
+      "bolt_static", "bolt_storm", "bolt_webster", "bolt_thundercat", "bolt_zagphu",
+      "bolt_kore", "bolt_lytning", "bolt_zoez", "bolt_keeper", "bolt_elecdroid",
+      "dusk_grafft", "dusk_vamp", "dusk_spider", "dusk_harve", "dusk_widowbite",
+      "dusk_jackl", "dusk_duet", "dusk_soul_wisp", "dusk_ghastly", "dusk_silkstalker",
+      "dusk_ender", "dusk_skrow", "dusk_aranea", "dusk_nightfang", "dusk_shadowhorsemen",
+    ],
+    spells: ["bolt_zap", "dusk_chill_touch", "bolt_recon_ping", "dusk_bone_snare", "dusk_shadow_step", "bolt_rewire", "bolt_overload_field", "bolt_lightning_storm"],
+  },
+  {
+    id: "pre_undertow_5",
+    name: "Undertow",
+    note: "BORE + AQUA — stone under the tide. It takes a square and drags you onto it.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "bore_kcor", "bore_hillbilly", "bore_old_timer", "bore_ankylosaur", "bore_dunebuggy",
+      "bore_rock", "bore_warthog", "bore_monger", "bore_rhino", "bore_badlands_bandits",
+      "bore_shift", "bore_prism", "bore_spinosaur", "bore_kobra", "bore_the_coreborer",
+      "aqua_subcool", "aqua_misty", "aqua_arctik", "aqua_icyninza", "aqua_sonarping",
+      "aqua_divebill", "aqua_bahari", "aqua_icynin", "aqua_krakler", "aqua_cryo",
+      "aqua_anos", "aqua_owlette", "aqua_vaporem", "aqua_phrost", "aqua_kraken",
+    ],
+    spells: ["bore_pebble_toss", "aqua_chill", "bore_sand_trap", "aqua_frost_patch", "aqua_steam_vent", "bore_bulwark", "aqua_ice_wall", "bore_stone_wall"],
+  },
+  {
+    id: "pre_four_winds_5",
+    name: "Four Winds",
+    note: "LEAF + GALE + DAWN + BOLT — four elements on one board, and an answer for whatever you bring.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "leaf_monkey", "leaf_stickers", "leaf_forestdeer", "leaf_bark_bushmen", "leaf_dande",
+      "leaf_guardian", "leaf_fallona", "leaf_whintey", "gale_skyforce", "gale_gastly",
+      "gale_toxhawk", "gale_hawk", "gale_falcon", "gale_angale", "gale_klipso",
+      "gale_griffith", "dawn_flash", "dawn_ballista", "dawn_quasar", "dawn_lazor",
+      "dawn_clipsey", "dawn_riflemen", "dawn_supernova", "bolt_electricel", "bolt_hacker",
+      "bolt_jellyfish", "bolt_sentry", "bolt_shoksa", "bolt_thunder", "bolt_voltogon",
+    ],
+    spells: ["dawn_sunbeam", "gale_gust", "leaf_sprout", "bolt_zap", "leaf_thorn_patch", "bolt_recon_ping", "gale_tailwind", "dawn_cleansing_light"],
+  },
+  {
+    id: "pre_prism_5",
+    name: "Prism",
+    note: "Every element at once — one or two of each, and no weak side to aim at.",
+    premade: true,
+    boardSize: 5,
+    tier: "elite",
+    scriptedOpening: ELITE_OPENING_STACK,
+    cards: [
+      "leaf_lumberjack", "leaf_wintermoose", "leaf_efy", "leaf_grizzly", "pyro_canister",
+      "pyro_ember_scorpion", "pyro_pyrodactyl", "pyro_burnout", "aqua_siphon", "aqua_divebill",
+      "aqua_firefighter", "aqua_glacius", "gale_syt_bird", "gale_buf", "gale_tempest",
+      "gale_wolfbane", "bore_rohojohn", "bore_prism", "bore_bastion", "bore_steel",
+      "dusk_sarachnid", "dusk_prestige", "dusk_scar", "dusk_destro", "dawn_sparkle",
+      "dawn_sunspot", "dawn_meridian", "bolt_zap", "bolt_handyman", "bolt_rodd",
+    ],
+    spells: ["leaf_sprout", "pyro_spark", "aqua_chill", "gale_gust", "bore_pebble_toss", "dusk_chill_touch", "dawn_sunbeam", "bolt_zap"],
   },
 ];
 

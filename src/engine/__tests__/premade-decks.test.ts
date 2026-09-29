@@ -195,19 +195,28 @@ describe("the matchmaker ladder", () => {
       // number two, and Deep Shade is a three-element build at 10/10/10. The
       // coverage and per-element checks below are untouched and are what keep
       // the rung a tour; this only stops a lopsided list sneaking on.
-      expect([2, 3], `${d.name} element count`).toContain(els.length);
-      const even = d.cards.length / els.length;
-      for (const el of els) expect(counts[el], `${d.name} ${el} count`).toBe(even);
-      seen.push(...els);
+      //
+      // FOUR is allowed too, and ALL EIGHT (owner's calls, 2026-09-28: Four
+      // Winds and Prism). Thirty cards do not divide by four or eight, so "even"
+      // is as even as the count allows: no element more than one card ahead of
+      // another (8/8/7/7, and 4/4/4/4/4/4/3/3).
+      expect([2, 3, 4, 8], `${d.name} element count`).toContain(els.length);
+      const split = els.map((el) => counts[el]);
+      expect(Math.max(...split) - Math.min(...split), `${d.name} split ${JSON.stringify(counts)}`)
+        .toBeLessThanOrEqual(1);
+      // The rainbow deck sits outside the per-element cap below: it adds one to
+      // EVERY element, so it cannot tilt the rung toward any of them.
+      if (els.length < 8) seen.push(...els);
     }
-    // COVERAGE, not a partition. Five decks is ten element-slots for eight
-    // elements, so two elements appear twice — but all eight still appear, and
-    // none has quietly dropped off the rung, which is what the property was
-    // protecting. The cap keeps it a tour rather than letting a third deck of
-    // one element turn it into that element's rung.
+    // COVERAGE, not a partition. Ten decks is twenty-plus element-slots for
+    // eight elements, so most appear more than once — but all eight still
+    // appear, and none has quietly dropped off the rung, which is what the
+    // property was protecting. The cap keeps it a tour rather than letting one
+    // element own the rung: THREE, up from two when the rung grew from six
+    // decks to ten (owner's call, 2026-09-28) — at two, ten decks could not fit.
     expect([...new Set(seen)].sort()).toEqual(["AQUA", "BOLT", "BORE", "DAWN", "DUSK", "GALE", "LEAF", "PYRO"]);
     for (const el of new Set(seen))
-      expect(seen.filter((x) => x === el).length, `${el} elite decks`).toBeLessThanOrEqual(2);
+      expect(seen.filter((x) => x === el).length, `${el} elite decks`).toBeLessThanOrEqual(3);
   });
 
   it("holds at least a full run on every rung the board offers", () => {
