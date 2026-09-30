@@ -408,9 +408,11 @@ function BoardView(props: {
           <b>{oppName}</b> · {opp.hand.length} cards
           <span className="opp-hidden">{revealed ? "HAND EXPOSED" : "deck hidden"}</span>
         </div>
+        {/* Each pip says what it counts: a gold and a violet number beside the
+            hand read as two numbers, not as the other side's Gold and Magic. */}
         <div className="opp-res">
-          <span className="opp-pip gold" title="Gold">◆ {opp.gold}</span>
-          <span className="opp-pip magic" title="Magic">✦ {opp.magicPool}</span>
+          <span className="opp-pip gold" title={`${oppName}'s Gold`}><b>◆ {opp.gold}</b><small>Gold</small></span>
+          <span className="opp-pip magic" title={`${oppName}'s Magic`}><b>✦ {opp.magicPool}</b><small>Magic</small></span>
         </div>
       </div>
       {/* The red "Opponent Home" and blue "Your Home" crests are gone. They
