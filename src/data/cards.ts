@@ -10614,14 +10614,19 @@ export const CARDS: CardDef[] = [
     name: "Burnout",
     rarity: "legendary",
     element: "PYRO",
-    cardClass: "Tank",
+    // An Assassin, not a Tank (owner's call, 2026-09-29): -1 shield, +2 DMG.
+    // 8 + 24 + 3x2 + 8 = 46, one over the cost-7 budget, where the Tank line was
+    // 46 too — the points moved from armour to the hit. It keeps TRAMPLE and
+    // Burning Frame, so it still rams; it just no longer stands in as a wall
+    // (no Tank class aura, no Bulwark).
+    cardClass: "Assassin",
     attackType: "Melee",
     cost: 7,
-    dmg: 6,
+    dmg: 8,
     hits: 1,
     hp: 24,
     sp: 8,
-    shields: 4,
+    shields: 3,
     keywords: { TRAMPLE: true },
     trampleDmg: 2,
     tribe: "Forged Tech",
