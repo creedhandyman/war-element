@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, canTarget, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, areaBlastCells, areaBlastTieRow, canTarget, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -5432,23 +5432,27 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // WHICH WAY THE 2x2 FALLS.
     //
     // It was always down-and-right from the target, whoever threw it and
-    // whatever the board looked like. On a board you cross that is merely
-    // arbitrary; in Domination it is a real loss, because the enemy can be in
-    // any direction and a fixed quadrant spends half its area off the side of
-    // the fight — or off the board entirely, when the target is near the far
-    // edge, at which point a 2x2 hits one card.
+    // whatever the board looked like. On a board you cross that was not merely
+    // arbitrary, it was one-sided: down is away from the top seat and toward
+    // the bottom one, so the AI's icicle reached a row past its target while
+    // the player's fell back toward the player. In Domination it was a real
+    // loss too, because the enemy can be in any direction and a fixed quadrant
+    // spends half its area off the side of the fight — or off the board
+    // entirely, when the target is near the far edge, at which point a 2x2
+    // hits one card.
     //
-    // Aimed, it falls AWAY from the caster: the target is the near corner and
-    // the ice shatters onward through the squares behind it, which is both what
-    // the throw looks like and the half of the area a shooter can actually see.
-    // Predictable rather than clever — the player picks a victim and knows what
-    // else is going to be caught, which a hit-the-most rule would not give them.
+    // Aimed, it falls AWAY from the caster, on every board: the target is the
+    // near corner and the ice shatters onward through the squares behind it,
+    // which is both what the throw looks like and the half of the area a
+    // shooter can actually see. Predictable rather than clever — the player
+    // picks a victim and knows what else is going to be caught, which a
+    // hit-the-most rule would not give them.
     //
     // The shape itself lives in `areaBlastCells` (rules.ts), because the board
     // now draws it under the player's finger BEFORE they commit. A second copy
-    // of the quadrant rule here is a preview that lies the day either moves.
-    // Same cells, same order, same fixed-quadrant-off-Domination rule.
-    const cells = areaBlastCells(draft.boardSize, !!draft.domination, attacker.pos ?? null, { row, col } as Pos)
+    // of the rule here is a preview that lies the day either moves.
+    const cells = areaBlastCells(draft.boardSize, attacker.pos ?? null, { row, col } as Pos,
+      areaBlastTieRow(draft, attacker))
       .map((p) => [p.row, p.col] as const);
     const hit = new Set<string>();
     for (const [r, c] of cells) {

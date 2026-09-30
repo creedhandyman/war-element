@@ -14,7 +14,7 @@ import {
 import { advance, applyIntent, canMove, canSummon, createInitialState, legalMoves } from "../index";
 import { homeSlots, rangedCanSee, specialTargets, summonLandingRow, terrainBlocksPath } from "../rules";
 import { cardAt, moveReach, spawnTokens, summonCard } from "../state";
-import { pushBack } from "../combat";
+import { pushBack, SPECIAL_HANDLERS } from "../combat";
 import { pickBasicTarget } from "../phases";
 import { aiPrepIntent, pointGoals } from "../ai";
 import { atBattle } from "./helpers";
@@ -1188,24 +1188,30 @@ describe("Cryo's 2×2 falls the way it was thrown", () => {
     expect(beyond, "the block did not follow the throw").toBeGreaterThan(0);
   });
 
-  it("leaves a standard board's fixed quadrant alone", () => {
-    // Every other board keeps the down-and-right block it has always thrown;
-    // changing it there would be a balance edit nobody asked for.
-    let s: GameState = createInitialState(6, DECK, DECK, ["P1"], undefined, [], 5);
-    const c = summonCard(s, "P1", CRYO, { row: 4, col: 1 });
-    c.summonedThisRound = false;
-    s.players.P1.magicPool = 20;
-    const at = summonCard(s, "P2", "leaf_weeds", { row: 2, col: 1 });
-    const below = summonCard(s, "P2", "leaf_weeds", { row: 3, col: 1 }); // down-right of it
-    for (const v of [at, below]) { v.curHp = 40; v.maxHp = 40; v.curShields = 0; }
-    const b = atBattle(s);
-    b.battle = { queue: [c.instanceId], index: 0, awaitingInput: c.instanceId };
-    const out = applyIntent(b, {
-      type: "BATTLE_ACTION", player: "P1", action: "special",
-      targetIds: [at.instanceId],
-    } as never);
-    expect(40 - out.cards[at.instanceId].curHp).toBeGreaterThan(0);
-    expect(40 - out.cards[below.instanceId].curHp, "the fixed quadrant changed").toBeGreaterThan(0);
+  it("falls away on a standard board too, the same for either seat", () => {
+    // Owner report 2026-09-29: "the AI opponent can target farther than the
+    // player can". Off Domination this was a fixed down-and-right block, and
+    // down is away from the top seat (the AI) but toward the bottom one, so the
+    // AI's icicle reached a row past its target while the player's fell back.
+    function thrown(seat: PlayerId, from: Pos, target: Pos, beyond: Pos, between: Pos) {
+      const s: GameState = createInitialState(6, DECK, DECK, ["P1"], undefined, [], 5);
+      const foe: PlayerId = seat === "P1" ? "P2" : "P1";
+      const c = summonCard(s, seat, CRYO, from);
+      const victims = [target, beyond, between].map((p) => {
+        const v = summonCard(s, foe, "leaf_weeds", p);
+        v.curHp = 40; v.maxHp = 40; v.curShields = 0;
+        return v;
+      });
+      SPECIAL_HANDLERS.areaBlast(s, c, [victims[0]], getDef(CRYO).special!.params!);
+      return victims.map((v) => 40 - s.cards[v.instanceId].curHp > 0);
+    }
+    // The player, from its home row at the middle: the row beyond the target
+    // is caught, the row between is not.
+    expect(thrown("P1", { row: 4, col: 1 }, { row: 2, col: 1 }, { row: 1, col: 1 }, { row: 3, col: 1 }))
+      .toEqual([true, true, false]);
+    // The AI making the same throw, mirrored: exactly as far, and no further.
+    expect(thrown("P2", { row: 0, col: 3 }, { row: 2, col: 3 }, { row: 3, col: 3 }, { row: 1, col: 3 }))
+      .toEqual([true, true, false]);
   });
 });
 

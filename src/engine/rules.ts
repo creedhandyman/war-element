@@ -1243,23 +1243,30 @@ export function inBlast(
     .some((c) => c.row === p.row && c.col === p.col);
 }
 
-/** Cryo's Mega Icicle: a 2x2 anchored on the pick.
+/** Cryo's Mega Icicle: a 2x2 anchored on the pick, falling AWAY from the
+ *  thrower on every board, like Airburst's shell: the target is the near
+ *  corner and the ice shatters onward through the squares behind it.
  *
- *  NOT the same rule as `blastArea`, and the difference is test-pinned
- *  (domination.test "leaves a standard board's fixed quadrant alone"): on a
- *  Domination board the square grows AWAY from the caster like Airburst does,
- *  but on a standard board it is a fixed down-and-right quadrant whoever threw
- *  it. Changing that would be a balance edit nobody asked for, so the shape
- *  carries its own rule rather than borrowing the other one. */
+ *  It used to be a fixed down-and-right quadrant off Domination, whoever threw
+ *  it — and "down" is away from the top seat but TOWARD the bottom one. The AI
+ *  throws from the top, so its icicle reached a row deeper than anything it
+ *  could target (aimed at your second row, it spilled onto your home row),
+ *  while the player's always fell back toward the player and never reached past
+ *  the card they picked (owner report 2026-09-29: "the AI opponent can target
+ *  farther than the player can with Cryo's special").
+ *
+ *  `tieRow` settles the one throw "away" cannot: a target in the thrower's own
+ *  row. It is the thrower's forward (`areaBlastTieRow`), so the two seats stay
+ *  mirror images there too. A tied column falls right — that only decides
+ *  WHICH neighbour is caught, never how far the block reaches. */
 export function areaBlastCells(
   boardSize: number,
-  domination: boolean,
   casterPos: Pos | null,
   anchor: Pos,
+  tieRow = 1,
 ): Pos[] {
-  const away = domination && !!casterPos;
-  const rStep = away ? (Math.sign(anchor.row - casterPos!.row) || 1) : 1;
-  const cStep = away ? (Math.sign(anchor.col - casterPos!.col) || 1) : 1;
+  const rStep = casterPos ? (Math.sign(anchor.row - casterPos.row) || tieRow) : 1;
+  const cStep = casterPos ? (Math.sign(anchor.col - casterPos.col) || 1) : 1;
   const raw = [
     [anchor.row, anchor.col], [anchor.row, anchor.col + cStep],
     [anchor.row + rStep, anchor.col], [anchor.row + rStep, anchor.col + cStep],
@@ -1267,6 +1274,13 @@ export function areaBlastCells(
   return raw
     .filter(([r, c]) => r >= 0 && r < boardSize && c >= 0 && c < boardSize)
     .map(([row, col]) => ({ row, col } as Pos));
+}
+
+/** Which way a same-row icicle falls: toward the enemy home on a board you
+ *  cross; down on Domination's, which has no forward (its rule before this). */
+export function areaBlastTieRow(state: GameState, caster: CardInstance): number {
+  if (state.domination) return 1;
+  return caster.owner === "P1" ? -1 : 1;
 }
 
 /** A splash: the struck square and its chess-king ring. */
@@ -1371,7 +1385,7 @@ export function previewSpecialArea(
     case "blast":
       return blastArea(state.boardSize, casterPos, anchor, Number(def.special!.params!.blastSize));
     case "areaBlast":
-      return areaBlastCells(state.boardSize, !!state.domination, casterPos, anchor);
+      return areaBlastCells(state.boardSize, casterPos, anchor, areaBlastTieRow(state, caster));
     case "splash":
       return splashCells(state.boardSize, anchor);
   }

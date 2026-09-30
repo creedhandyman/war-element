@@ -1644,14 +1644,29 @@ describe("an area Special shows its footprint before it fires", () => {
     }
   });
 
-  it("areaBlastCells keeps Mega Icicle's fixed quadrant OFF Domination, and aims it ON", () => {
-    // Test-pinned elsewhere as a balance decision: on a standard board the 2x2
-    // is down-and-right from the pick whoever threw it.
-    expect(set(areaBlastCells(4, false, at(0, 3), at(1, 1))))
-      .toEqual(set([at(1, 1), at(1, 2), at(2, 1), at(2, 2)]));
-    // In Domination it falls away from the caster like Airburst does.
-    expect(set(areaBlastCells(7, true, at(6, 6), at(3, 3))))
+  it("Mega Icicle's 2x2 falls away from the thrower, on every board", () => {
+    // Owner report 2026-09-29: on a standard board it was a fixed down-and-right
+    // quadrant, so the top seat's icicle reached a row past its target and the
+    // bottom seat's fell back toward itself.
+    // The bottom seat throwing up the board: the block carries on up.
+    expect(set(areaBlastCells(4, at(3, 1), at(1, 1), -1)))
+      .toEqual(set([at(1, 1), at(1, 2), at(0, 1), at(0, 2)]));
+    // The top seat throwing down it: the mirror image.
+    expect(set(areaBlastCells(4, at(0, 1), at(2, 1), 1)))
+      .toEqual(set([at(2, 1), at(2, 2), at(3, 1), at(3, 2)]));
+    // Domination, as before: away from the caster on both axes.
+    expect(set(areaBlastCells(7, at(6, 6), at(3, 3))))
       .toEqual(set([at(3, 3), at(3, 2), at(2, 3), at(2, 2)]));
+  });
+
+  it("a same-row icicle falls toward the enemy home, for either seat", () => {
+    const s = prepState();
+    const mine = place(s, "aqua_cryo", "P1", 2, 0);
+    const theirs = place(s, "aqua_cryo", "P2", 1, 3);
+    expect(set(previewSpecialArea(s, mine.instanceId, at(2, 2))!))
+      .toEqual(set([at(2, 2), at(2, 3), at(1, 2), at(1, 3)]));
+    expect(set(previewSpecialArea(s, theirs.instanceId, at(1, 1))!))
+      .toEqual(set([at(1, 1), at(1, 0), at(2, 1), at(2, 0)]));
   });
 
   it("splashCells is the pick and its chess-king ring, clipped", () => {
