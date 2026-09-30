@@ -790,12 +790,19 @@ export function lineCrosses(from: Pos, to: Pos, k: Pos): boolean {
  * -3.1. The line rule alone reached only +3.9, a wider corridor +3.7; adding
  * ranged Specials to the guard overshot to -2.1, so Specials stay unscreened.
  */
+/** Who carries BULWARK: Tanks, and Warriors since 2026-09-30 (owner: "give
+ *  warriors the block too" — measured on the 8 element cores, no element moved
+ *  more than 1.6 points, all within noise). Never a boss or a gate. */
+export function holdsTheLine(def: { cardClass: string; boss?: boolean; guardsHomeRow?: boolean }): boolean {
+  return (def.cardClass === "Tank" || def.cardClass === "Warrior") && !def.boss && !def.guardsHomeRow;
+}
+
 export function tankScreens(state: GameState, from: Pos, to: Pos, shooter: PlayerId): boolean {
   for (const c of Object.values(state.cards)) {
     const k = c.pos;
     if (!k || c.owner === shooter) continue;
     const def = getDef(c.defId);
-    if (def.cardClass !== "Tank" || def.boss || def.guardsHomeRow) continue;
+    if (!holdsTheLine(def)) continue;
     if ((k.row === to.row && k.col === to.col) || (k.row === from.row && k.col === from.col)) continue;
     // IN FRONT only: the Tank must stand nearer the shooter than its neighbour
     // does. A Tank beside or behind the target covering it read as random.

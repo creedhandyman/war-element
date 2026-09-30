@@ -713,7 +713,7 @@ describe("a Special is gated on who actually reaches — the swarm does the reac
 // BULWARK — the Tank class rule (owner, 2026-09-29): nothing shoots over a Tank.
 describe("Tanks hold the line", () => {
   const TANK = "aqua_polarking"; // Tank, not a boss
-  const BODY = "leaf_alpha";     // Warrior — an ordinary body
+  const BODY = "dusk_gool";      // Support — an ordinary body
 
   it("covers the ally right behind it — and only when it stands in front", () => {
     // Owner, 2026-09-30: a Tank BESIDE or BEHIND the target covering it made
@@ -748,6 +748,15 @@ describe("Tanks hold the line", () => {
     s.cards[body.instanceId].pos = null;
     place(s, TANK, "P1", 1, 0);                  // not beside the target — the line rule alone
     expect(rangedCanSee(s, me.pos!, to, "P2", 3)).toBe(false);
+  });
+
+  it("a Warrior holds the line too", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 0, 1);
+    place(s, "dusk_gool", "P1", 2, 1);
+    place(s, "leaf_alpha", "P1", 1, 2);          // Warrior, in front of the target
+    expect(getDef("leaf_alpha").cardClass).toBe("Warrior");
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(false);
   });
 
   it("the shooter's own Tanks, bosses and gates do not screen", () => {

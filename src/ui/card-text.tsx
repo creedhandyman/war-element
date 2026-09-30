@@ -15,7 +15,7 @@ import type { ReactNode } from "react";
 import type { CardDef, CardInstance, StatusKind } from "../engine";
 import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, SP_SLOW_MAX, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
 import { DUSK_DEATH_HIT_TEXT } from "../engine/auras";
-import { RANGED_REACH } from "../engine/rules";
+import { RANGED_REACH, holdsTheLine } from "../engine/rules";
 import { KEYWORD_STYLE, STATUS_STYLE } from "./shared";
 
 // Colour lookup for keyword/status terms so they render as chips in card text.
@@ -254,8 +254,8 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
   }
   // The Tank's class rule (rules.ts `tankScreens`). Bosses are giants with their
   // own rules and do not carry it.
-  if (def.cardClass === "Tank" && !def.boss && !def.guardsHomeRow)
-    shared.push({ kind: "aura", label: "TANK — Bulwark", desc: TANK_BULWARK_TEXT });
+  if (holdsTheLine(def))
+    shared.push({ kind: "aura", label: `${def.cardClass.toUpperCase()} — Bulwark`, desc: TANK_BULWARK_TEXT });
   if (hasArcDischarge(def))
     shared.push({
       kind: "aura",

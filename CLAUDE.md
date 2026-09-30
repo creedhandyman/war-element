@@ -199,7 +199,11 @@ field and that test will tell you it's undescribed. It also guards against
 empty passive labels (`"On a kill: ."`), which is how several describer gaps
 were originally found.
 
-## Tanks — BULWARK, the class rule (`rules.ts` `tankScreens`)
+## Tanks (and Warriors) — BULWARK, the class rule (`rules.ts` `tankScreens`)
+
+**Warriors carry it too since 2026-09-30** (owner: "give warriors the block
+too"; who carries it = `holdsTheLine`). Measured on the 8 element cores,
+no element moved more than 1.6 points (spread 38.1 -> 36.4).
 
 Owner, 2026-09-29: "buff the tanks" / "Tanks should be better at blocking and
 preventing people from shooting over them". Before this the Tank class had NO
