@@ -163,7 +163,7 @@ function useStealthReveal(instanceId: string, stealthed: boolean) {
   }, [instanceId, stealthed]);
   useEffect(() => {
     if (!reveal) return;
-    const t = setTimeout(() => setReveal(0), 750);
+    const t = setTimeout(() => setReveal(0), 1200);
     return () => clearTimeout(t);
   }, [reveal]);
   return reveal;
@@ -468,7 +468,22 @@ export function Token(props: {
       {/* The cloak: shadow over the art while STEALTHED, thrown off once when
           it breaks. Over the picture, under the name and stat strips. */}
       {stealthed && <span className="tk-veil" aria-hidden="true" />}
-      {revealFx > 0 && !stealthed && <span key={`rev${revealFx}`} className="tk-veil lifting" aria-hidden="true" />}
+      {/* THE UNCOVERING: the shadow tears in two and is flung off both sides,
+          wisps of it scatter, a shockwave rings out past the card, the art
+          flashes and shudders back to colour, and it says so. One-shot. */}
+      {revealFx > 0 && !stealthed && (
+        <span key={`rev${revealFx}`} className="tk-reveal" aria-hidden="true">
+          <span className="rv-half rv-l" />
+          <span className="rv-half rv-r" />
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+            <span key={i} className="rv-wisp" style={{ ["--a" as string]: `${i * 45 + 22}deg` }} />
+          ))}
+          <span className="rv-flash" />
+          <span className="rv-ring" />
+          <span className="rv-ring rv-ring2" />
+          <span className="rv-word">REVEALED</span>
+        </span>
+      )}
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}
