@@ -13747,7 +13747,9 @@ export const CARDS: CardDef[] = [
     element: "LEAF",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 7,
+    // 7 -> 8 with +4 HP (owner's call, 2026-09-29): 12 + 29 + 1*2 + 6 = 49,
+    // one under the cost-8 budget of 50. The note below is from its cost-7 days.
+    cost: 8,
     // 12 + 25 + 1*2 + 6 = 45 = 5*7+10. Three points of speed traded straight
     // across for three of HP, so the budget does not move.
     //
@@ -13759,7 +13761,7 @@ export const CARDS: CardDef[] = [
     // pays on the opening wound) is closer to what the card is doing anyway.
     dmg: 12,
     hits: 1,
-    hp: 25,
+    hp: 29,
     sp: 6,
     shields: 1,
     keywords: {},
