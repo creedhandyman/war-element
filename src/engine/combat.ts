@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, areaBlastCells, areaBlastTieRow, canTarget, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -2964,16 +2964,19 @@ export function applyShove(
 }
 
 export function chargeForward(draft: GameState, card: CardInstance, steps: number): void {
-  const dir = card.owner === "P1" ? -1 : 1;
+  // Forward — or, while an aimed Domination Special resolves, the way it was
+  // pointed (`aimOf`), so a charge that opens a Special runs where it aims.
+  const d = aimOf(draft, card);
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;
     if (!pos) break;
-    const row: number = pos.row + dir;
-    if (row < 0 || row >= draft.boardSize) break;
-    if (draft.slots[row][pos.col].capturedBy) break;
-    const blocker = cardAt(draft, row, pos.col);
+    const row: number = pos.row + d.dr;
+    const col: number = pos.col + d.dc;
+    if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) break;
+    if (draft.slots[row][col].capturedBy) break;
+    const blocker = cardAt(draft, row, col);
     if (blocker) {
       // A JUGGERNAUT SHOVES. A TRAMPLE card walking into a lighter body drives
       // it back and takes the square, exactly as `shoveTarget` does in Prep —
@@ -2982,14 +2985,14 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
       // a wall in front of a boss whose entire threat is an uninterrupted run
       // and the threat is not slowed, it is deleted: 12.5% against the Fortress
       // Gates, with the ramp never building once in a whole fight.
-      const shove = shoveTarget(draft, card, { row, col: pos.col } as Pos);
+      const shove = shoveTarget(draft, card, { row, col } as Pos);
       if (!shove) break;
       draft.log.push(`${label(draft, card)} bulls through ${getDef(shove.victim.defId).name}.`);
       applyShove(draft, card, shove);
     }
-    card.pos = { row: row as Pos["row"], col: pos.col };
+    card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
     moved++;
-    if (row === enemyHome) break; // stop on the enemy home row
+    if (d.dr !== 0 && row === enemyHome) break; // stop on the enemy home row
   }
   if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
 }
@@ -4401,34 +4404,39 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
    *  shunting a stack, so it travels only as far as bodies are actually
    *  touching, not down the whole column. */
   battleCharge(draft, attacker, _targets, params) {
-    const startRow = attacker.pos?.row ?? null;
+    const start = attacker.pos ? { ...attacker.pos } : null;
     if (num(params, "charge") > 0) chargeForward(draft, attacker, num(params, "charge"));
     const pos = attacker.pos;
     if (!pos) return;
-    const dir = attacker.owner === "P1" ? -1 : 1; // toward the enemy home row
-    // `flankDmg` (Equestrian's Solar Horse Power): every opponent in a column
-    // BESIDE the charge that it actually rode past takes this. Only the rows it
-    // moved through: what stood beside its starting square was not passed, and
-    // nothing beyond where the charge stopped was reached.
+    // Up its own column toward the enemy home row — or, aimed on Domination's
+    // board, down whichever lane the pick pointed it (`aimOf`).
+    const d = aimOf(draft, attacker);
+    // `flankDmg` (Equestrian's Solar Horse Power): every opponent in a lane
+    // BESIDE the charge that it actually rode past takes this. Only the ranks
+    // it moved through: what stood beside its starting square was not passed,
+    // and nothing beyond where the charge stopped was reached.
     const flank = num(params, "flankDmg");
-    if (flank > 0 && startRow !== null) {
-      for (let r = startRow + dir; (r - pos.row) * dir <= 0; r += dir)
-        for (const c of [pos.col - 1, pos.col + 1]) {
-          if (c < 0 || c >= draft.boardSize) continue;
+    if (flank > 0 && start !== null) {
+      const rode = alongOf(start, pos, d);
+      for (let k = 1; k <= rode; k++)
+        for (const side of [-1, 1]) {
+          const r = start.row + d.dr * k + (d.dr !== 0 ? 0 : side);
+          const c = start.col + d.dc * k + (d.dr !== 0 ? side : 0);
+          if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
           const e = cardAt(draft, r, c);
           if (e && e.owner !== attacker.owner && e.curHp > 0)
             directDamage(draft, attacker, e, flank, num(params, "pen") > 0);
         }
     }
-    // Everything ahead in this column, nearest first.
+    // Everything ahead in this lane, nearest first.
     const lane = enemyCards(draft, attacker.owner)
-      .filter((e) => e.pos && e.pos.col === pos.col && (e.pos.row - pos.row) * dir > 0)
-      .sort((a, b) => (a.pos!.row - pos.row) * dir - (b.pos!.row - pos.row) * dir);
+      .filter((e) => e.pos && acrossOf(pos, e.pos, d) === 0 && alongOf(pos, e.pos, d) > 0)
+      .sort((a, b) => alongOf(pos, a.pos!, d) - alongOf(pos, b.pos!, d));
     if (lane.length === 0) return;
     // Contiguous run: each next body must sit directly against the previous one.
     const run = [lane[0]];
     for (let i = 1; i < lane.length; i++) {
-      if (Math.abs(lane[i].pos!.row - run[run.length - 1].pos!.row) !== 1) break;
+      if (Math.abs(alongOf(pos, lane[i].pos!, d) - alongOf(pos, run[run.length - 1].pos!, d)) !== 1) break;
       run.push(lane[i]);
     }
     const chain = num(params, "chainDmg");
@@ -4470,19 +4478,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Timberer (Lumberjack): scope the volley to the row directly ahead — the
     // tree falls forward, it doesn't scatter across the board.
     // Wildfire (Scorch): scope the volley to the enemy's own home row.
-    if (num(params, "enemyHomeRow") > 0) {
-      const row = homeRow(enemyOf(attacker.owner), draft.boardSize);
-      targets = targets.filter((t) => t.pos?.row === row);
-    }
+    // All three read the AIM (`aimOf`): forward, unless a Domination cast
+    // pointed the Special another way — then "the far row" is the board edge
+    // it points at, the lane runs that way, and "ahead" is that rank.
+    const aim = aimOf(draft, attacker);
+    if (num(params, "enemyHomeRow") > 0)
+      targets = targets.filter((t) => !!t.pos && onEdge(draft.boardSize, t.pos, aim));
     // Battle Charge (WarPhant): "straight ahead" is the card's own column.
-    if (num(params, "sameColumn") > 0 && attacker.pos) {
-      const col = attacker.pos.col;
-      targets = targets.filter((t) => t.pos?.col === col);
-    }
-    if (num(params, "rowAhead") > 0 && attacker.pos) {
-      const row = rowAhead(attacker.owner, attacker.pos.row);
-      targets = targets.filter((t) => t.pos?.row === row);
-    }
+    if (num(params, "sameColumn") > 0 && attacker.pos)
+      targets = targets.filter((t) => !!t.pos && acrossOf(attacker.pos!, t.pos, aim) === 0);
+    if (num(params, "rowAhead") > 0 && attacker.pos)
+      targets = targets.filter((t) => !!t.pos && alongOf(attacker.pos!, t.pos, aim) === 1);
     // blastSize (Airburst Shell): the volley covers an N x N SQUARE anchored on
     // the first target rather than a hand-picked list. Everything the caster
     // owns downstream of here — vsFlyingDmg, the status riders, PEN, the
@@ -4635,9 +4641,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const farRowStatus = num(params, "farRowStatus"); // reuse the volley's statusKind on the far row (Evera)
     const farStatusKind = typeof params.statusKind === "string" ? (params.statusKind as StatusKind) : null;
     if ((farRowDmg > 0 || (farRowStatus > 0 && farStatusKind)) && attacker.pos) {
-      const far = rowAhead(attacker.owner, rowAhead(attacker.owner, attacker.pos.row));
       for (const e of enemyCards(draft, attacker.owner)) {
-        if (e.curHp <= 0 || e.pos?.row !== far) continue;
+        if (e.curHp <= 0 || !e.pos || alongOf(attacker.pos, e.pos, aim) !== 2) continue;
         if (farRowDmg > 0) directDamage(draft, attacker, e, farRowDmg, false);
         if (farRowStatus > 0 && farStatusKind && draft.cards[e.instanceId] && e.curHp > 0)
           applyStatus(draft, e, farStatusKind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
@@ -4651,6 +4656,8 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         source: attacker,
         count: num(params, "farRowRootCount", 4),
         duration: num(params, "farRowRootDuration", 1),
+        // An aimed cast's far row is the one it was pointed at, next round too.
+        ...(draft.specialAim?.id === attacker.instanceId ? { dir: aim } : {}),
       });
     }
     // stealShields (Ironclad's Magnetic Steel): pull up to N shields off each
@@ -4663,10 +4670,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const stealSh = num(params, "stealShields");
     if (stealSh > 0) {
       const aheadOnly = num(params, "stealRowAheadOnly") > 0 && attacker.pos != null;
-      const reach = aheadOnly ? rowAhead(attacker.owner, attacker.pos!.row) : null;
+      const outOfReach = (t: CardInstance) =>
+        aheadOnly && (!t.pos || alongOf(attacker.pos!, t.pos, aim) !== 1);
       let stolen = 0;
       for (const t of pool.slice(0, n)) {
-        if (reach !== null && t.pos?.row !== reach) continue;
+        if (outOfReach(t)) continue;
         if (draft.cards[t.instanceId] && t.curShields > 0) {
           const got = Math.min(stealSh, t.curShields);
           t.curShields -= got; attacker.curShields += got; stolen += got;
@@ -4680,7 +4688,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       // body, so the magnet cannot hand the opponent a capture.
       if (num(params, "magnetPull") > 0 && attacker.curHp > 0)
         for (const t of pool.slice(0, n)) {
-          if (reach !== null && t.pos?.row !== reach) continue;
+          if (outOfReach(t)) continue;
           if (draft.cards[t.instanceId] && t.curHp > 0) reelToCaster(draft, t, draft.boardSize, attacker);
         }
     }
@@ -4972,9 +4980,9 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // a corpse. `pushBack` honours `pushImmune` for us.
     const push = num(params, "push");
     if (attacker.pos) {
-      const row = rowAhead(attacker.owner, attacker.pos.row);
+      const aim = aimOf(draft, attacker); // forward, or where a Domination cast pointed it
       for (const e of enemyCards(draft, attacker.owner))
-        if (e.curHp > 0 && e.pos?.row === row) {
+        if (e.curHp > 0 && e.pos && alongOf(attacker.pos, e.pos, aim) === 1) {
           resolveHit(draft, attacker, e, { kind: "special", dmg, hits: 1, pen: false, crit: false });
           if (push > 0 && draft.cards[e.instanceId] && e.curHp > 0) pushBack(draft, e, push, attacker);
         }

@@ -31,10 +31,12 @@ import {
   openHomeSlots,
   summonLandingRow,
   summonSquare,
+  previewSpecialAim,
   previewSpecialArea,
   previewSpecialFarRow,
   previewSpecialWaveRow,
   specialIsZone,
+  specialAimable,
   specialAreaShape,
   specialIsPicked,
   specialShotsStack,
@@ -3537,8 +3539,7 @@ export function App() {
     if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId]);
     // An aimed corridor takes exactly ONE pick, because the pick is a DIRECTION
     // rather than a victim — the engine fills the rest of the lane in itself.
-    if (pending === "special" && game.domination &&
-        Number(def.special?.params?.forwardDepth ?? 0) > 0) return 1;
+    if (pending === "special" && game.domination && specialAimable(def.special)) return 1;
     // An anchored AREA takes exactly one pick too: the pick is the near corner
     // of the footprint, and the engine fills the square in behind it. Without
     // this Airburst's `targets: 99` became a one-click-per-body volley.
@@ -3660,7 +3661,7 @@ export function App() {
       // first, stale pick in charge of where the shell goes.
       if (pending === "special" && aimedArea && clicked && legalTargetIds.includes(clicked.instanceId)) {
         setPicks([clicked.instanceId]);
-        setHint(`Aimed — the lit squares are the burst. Press <b>Fire</b>, or tap another target to re-aim.`);
+        setHint(`Aimed — the lit squares are what it covers. Press <b>Fire</b>, or tap another target to re-aim.`);
         return;
       }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
@@ -4001,21 +4002,23 @@ export function App() {
         ? validAllyTargets(game, awaitingId)
         : specialTargets(game, awaitingId)
       : [];
-  // An AIMED CORRIDOR is not an area Special, however much `targets: 99` makes
+  // An AIMED SPECIAL is not an area Special, however much `targets: 99` makes
   // it look like one. On a Domination board `specialTargets` deliberately offers
-  // every victim in all FOUR corridors so the caster can point the blast; if the
-  // board then treats that list as a fixed zone and fires the lot, the aiming is
-  // not merely unreachable — the Special quadruples in size. One pick names the
-  // direction; the engine fills the lane in behind it.
-  const aimedCorridor =
-    !!game.domination &&
-    !!activeDef?.special &&
-    Number(activeDef.special.params?.forwardDepth ?? 0) > 0;
-  // An ANCHORED AREA is not an area Special either, for the same reason as the
-  // corridor: `targets: 99` on Airburst Shell made the board treat it as a
-  // fixed zone with only a Confirm, and the engine then anchored the 4x4 on
-  // whatever happened to be first in the list. One pick names the corner.
-  const aimedArea = !!activeDef?.special && specialAreaShape(activeDef.special) !== null;
+  // every victim in all FOUR directions for anything laid out ahead of its
+  // caster (`specialAimable`: a corridor, the row ahead, a lane, the far row,
+  // the wave, a column charge) so the caster can point it; if the board then
+  // treated that list as a fixed zone and fired the lot, the aiming would not
+  // merely be unreachable — the Special would quadruple in size. One pick names
+  // the direction; the engine fills the shape in behind it.
+  const aimedDir = !!game.domination && specialAimable(activeDef?.special);
+  // An ANCHORED AREA is not an area Special either, for the same reason:
+  // `targets: 99` on Airburst Shell made the board treat it as a fixed zone
+  // with only a Confirm, and the engine then anchored the 4x4 on whatever
+  // happened to be first in the list. One pick names the corner.
+  //
+  // Both are AIMED, and aimed the same way on the board: a tap aims, what it
+  // will cover lights up, and FIRE is a separate press.
+  const aimedArea = aimedDir || (!!activeDef?.special && specialAreaShape(activeDef.special) !== null);
   // A SMITE HAS NOTHING TO AIM. `smite` reads neither the pick nor the range:
   // it takes every living opponent carrying the required status and hits them,
   // wherever they stand. `specialTargets` now says so (rules.ts), and the whole
@@ -4034,7 +4037,7 @@ export function App() {
   // be made. Now only a Special with nothing to place is a Confirm
   // (`specialIsPicked`); everything else is picked, shot by shot.
   const specialAoE =
-    !aimedCorridor && !aimedArea &&
+    !aimedArea &&
     !!activeDef?.special &&
     (zoneSpecial || !specialIsPicked(activeDef.special) || specialValid.length === 0);
   /** THE FOOTPRINT UNDER THE ARMED SPECIAL — every square it covers, drawn
@@ -4060,8 +4063,10 @@ export function App() {
     if (!aimedArea || picks.length === 0) return far;
     const anchor = game.cards[picks[0]];
     if (!anchor?.pos) return far;
+    // Pointed by the pick: the row, lane, edge or corridor it will sweep.
+    if (aimedDir) return previewSpecialAim(game, awaitingId, anchor) ?? far;
     return [...(previewSpecialArea(game, awaitingId, anchor.pos) ?? []), ...far];
-  }, [pending, awaitingId, aimedArea, picks, game]);
+  }, [pending, awaitingId, aimedArea, aimedDir, picks, game]);
   /** The two rows an aimed sweep will land on — the spill row included, which
    *  is the entire point of the aim step. */
   const aimSpellRows: number[] = useMemo(() => {
@@ -4137,11 +4142,11 @@ export function App() {
       } else if (picks.length > 0) {
         firePicks(withUnplacedShots(picks));
       } else if (aimedArea) {
-        setHint("⚠ Aim it first — tap a glowing target to place the burst.");
+        setHint(aimedDir
+          ? "⚠ Aim it first — tap a glowing target to point it."
+          : "⚠ Aim it first — tap a glowing target to place the burst.");
       } else {
-        setHint(aimedCorridor
-          ? "Pick a glowing target first: it points the blast."
-          : "Tap a glowing target first: each tap places one shot.");
+        setHint("Tap a glowing target first: each tap places one shot.");
       }
       return;
     }
@@ -4162,8 +4167,6 @@ export function App() {
           : `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
         : aimedArea
           ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
-        : aimedCorridor
-          ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — pick a glowing target to <b>aim</b> it; the blast fires down that lane.`
           : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — ${cap > 1
             ? `up to ${cap} shots: tap a glowing target for each${specialShotsStack(spec) ? " (tap one again to stack)" : ""}, or press <b>Fire</b> after the first to send the rest to the nearest others.`
             : "tap a glowing target."}`,

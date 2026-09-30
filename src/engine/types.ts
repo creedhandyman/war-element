@@ -2700,7 +2700,12 @@ export interface PlayerState {
   /** Spiraling Root Coil (Evera): a next-round ROOT scheduled on the far row.
    *  `roundsLeft` counts down each Cleanup; at 0 it roots up to `count` opponents
    *  in the source's far row for `duration`. */
-  pendingFarRoots?: { roundsLeft: number; source: CardInstance; count: number; duration: number }[];
+  pendingFarRoots?: {
+    roundsLeft: number; source: CardInstance; count: number; duration: number;
+    /** Which way the far row lies from the caster: the aim of the cast that
+     *  scheduled it (Domination), absent = forward. */
+    dir?: { dr: number; dc: number };
+  }[];
   /** Volcanic Eruption: permanent +DMG for this player's cards of that element. */
   elementDmgBuff?: { element: Element; amount: number };
   /** The Cost-10 ultimates' lasting engines, keyed by element. Read at Cleanup
@@ -2889,6 +2894,12 @@ export interface GameState {
    *  of it on every relayed online message would be 49 slots of the same
    *  answer. What DOES change round to round is who holds each Point and how
    *  long they have held a majority, and that is all this carries. */
+  /** WHICH WAY A SPECIAL IS POINTED while it resolves — set around the
+   *  handler call for one caster and removed straight after (phases.ts), never
+   *  saved. Only Domination sets it: every Special laid out "ahead" of its
+   *  caster (a row, a lane, the far row, a charge) reads it through `aimOf`
+   *  (rules.ts) and falls back to forward without it. */
+  specialAim?: { id: string; dir: { dr: number; dc: number } };
   domination?: {
     mapId: string;
     /** Who holds each Point. Sticky — a tie leaves the previous holder. */

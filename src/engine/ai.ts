@@ -35,7 +35,7 @@ import {
   specialTargets,
   validTargets,
   homeSlots,
-
+  bestAimPick,
   domMap,
 } from "./rules";
 import type {
@@ -1499,6 +1499,17 @@ function strikeRiderValue(
  * Capture awareness: kill invaders standing on our own Home row first.
  */
 export function chooseBattleAction(state: GameState, instanceId: string): BattleChoice {
+  const choice = chooseBattleActionUnaimed(state, instanceId);
+  // AIMING, on Domination's board: a Special laid out in one direction from
+  // its caster (`specialAimable`) goes the way that catches the most — the
+  // policy above picked a victim for its damage, not a direction for its
+  // sweep. A tie keeps the victim it picked. Nothing to aim anywhere else.
+  if (choice.action !== "special") return choice;
+  const pick = bestAimPick(state, instanceId, choice.targetId);
+  return pick ? { ...choice, targetId: pick } : choice;
+}
+
+function chooseBattleActionUnaimed(state: GameState, instanceId: string): BattleChoice {
   const card = state.cards[instanceId]!;
   const def = getDef(card.defId);
   const targets = validTargets(state, instanceId);

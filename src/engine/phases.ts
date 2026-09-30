@@ -6,7 +6,7 @@ import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
-  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, rowAhead, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -46,7 +46,6 @@ import {
   canSummon,
   canTarget,
   defaultCommandPicks,
-  forwardAreaTargets,
   isActionBlocked,
   openHomeSlots,
   RANGED_REACH,
@@ -58,7 +57,10 @@ import {
   summonLandingRow,
   validTargets,
   domMap,
-  corridorDir,
+  aimFor,
+  alongOf,
+  forwardDir,
+  specialAimable,
   onSummonTargets,
   effectiveSummonCost,
   specialIsZone,
@@ -1901,15 +1903,20 @@ function performBattleAction(
     // triggered on a single target. A rule the engine enforces only when it is
     // handed the shape it likes is not a rule, it is a convention — and the AI
     // was the only caller keeping it.
-    const fdp = Number(special.params?.forwardDepth ?? 0);
+    //
+    // Every Special laid out in ONE direction from its caster works the same
+    // way on that board (`specialAimable`: the row ahead, the lane, the far
+    // row, the wave, the column charge, as well as the corridors): the pick
+    // names the direction (`aimFor`), the Special resolves pointed that way
+    // (`specialAim`, read through `aimOf`), and what it hits is rebuilt under
+    // that aim. Off Domination nothing is aimed and nothing here runs.
     const aim =
-      picks && picks.length > 0 && fdp > 0 && domMap(draft) && card.pos
+      picks && picks.length > 0 && domMap(draft) && card.pos && specialAimable(special)
         ? valid.find((t) => t.instanceId === picks[0])
         : undefined;
     if (aim?.pos && card.pos) {
-      const lane = forwardAreaTargets(
-        draft, card, Number(special.params?.spread ?? 0), fdp,
-        corridorDir(card.pos, aim.pos));
+      draft.specialAim = { id: card.instanceId, dir: aimFor(draft, card, aim) };
+      const lane = specialTargets(draft, instanceId);
       targets = lane.some((t) => t.instanceId === aim.instanceId)
         ? [aim, ...lane.filter((t) => t.instanceId !== aim.instanceId)]
         : [aim];
@@ -1987,7 +1994,12 @@ function performBattleAction(
       draft.log.push(`${label(draft, card)}'s Volcanic Fury vents (ramp reset).`);
       card.rampDmg = 0;
     }
-    handler(draft, card, targets, special.params ?? {});
+    try {
+      handler(draft, card, targets, special.params ?? {});
+    } finally {
+      // The aim belongs to this one cast: nothing after it may read it.
+      delete draft.specialAim;
+    }
     // Bounty (Scallywag): an enemy card that reacts to the caster's Special answers
     // with a status on the caster (reactive burn).
     if (draft.cards[card.instanceId] && card.curHp > 0) {
@@ -3655,8 +3667,10 @@ function doCleanupPhase(draft: GameState): void {
     draft.players[pl].pendingFarRoots = roots.filter((r) => r.roundsLeft > 0);
     for (const r of dueRoots) {
       if (!r.source.pos || r.source.curHp <= 0) continue;
-      const far = rowAhead(pl, rowAhead(pl, r.source.pos.row));
-      const targets = enemyCards(draft, pl).filter((e) => e.curHp > 0 && e.pos?.row === far).slice(0, r.count);
+      const d = r.dir ?? forwardDir(pl);
+      const from = r.source.pos;
+      const targets = enemyCards(draft, pl)
+        .filter((e) => e.curHp > 0 && !!e.pos && alongOf(from, e.pos, d) === 2).slice(0, r.count);
       for (const e of targets) applyStatus(draft, e, "ROOT", r.duration, 0, getDef(r.source.defId).element);
       if (targets.length) draft.log.push(`The creeping roots snare ${targets.length} in the far row.`);
     }

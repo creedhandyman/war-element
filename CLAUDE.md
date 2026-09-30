@@ -257,6 +257,25 @@ the remaining DRAW PILE — the opening hand is already dealt off it — so a
 seating check has to compare `deck + hand` or it finds 26 of 30 and looks like
 the wrong deck.
 
+**Specials that point "ahead" are AIMED here** (owner's call, 2026-09-29). On a
+board you cross ahead is the only direction that matters; on this one the
+Points sit in four corners and enemies come from every side, so a Special
+locked to one direction could only threaten a quarter of the board. Every
+shape laid out from its caster (`specialAimable`, rules.ts) is pointed by the
+first pick: a corridor (`forwardDepth`, aimed before this), the row ahead
+(`rowAhead`: Black Ice, Sakuroot, Killer Whale, Skull King, Season), the wave
+(`surfsUp`), the lane (`sameColumn`: Coreborer), the far edge (`enemyHomeRow`:
+Eagon, Masala), the far-row riders, and the column charge (`battleCharge`:
+WarPhant, Equestrian, Rhino, Warkiln). How: `specialTargets` offers all four
+directions (`specialAims`); `aimFor` turns the pick into the direction that
+actually reaches it; phases.ts resolves the handler under `state.specialAim`
+(removed straight after), which every "ahead" reads through `aimOf`, forward
+without it — so off Domination nothing changed. The board aims them like an
+anchored area (tap = aim, `previewSpecialAim` lights what it covers, Fire
+commits); the AI points them where they catch the most (`bestAimPick`).
+Left forward-only on purpose: Grand Finally (hits everyone anyway) and the
+row of traps. `dom-aim.test.ts` pins one card per shape.
+
 ## Arena ladder — four three-element decks, one per rung
 
 `custom-decks.ts` gained Verdant Tide (LEAF/AQUA/DAWN), Stormfront

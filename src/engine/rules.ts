@@ -1124,6 +1124,109 @@ export function corridorDir(from: Pos, to: Pos): { dr: number; dc: number } {
     : { dr: 0, dc: Math.sign(dCol) };
 }
 
+/** One of the four ways a Special can be pointed (see CORRIDOR_DIRS). */
+export type Dir = { dr: number; dc: number };
+
+/** FORWARD for `owner`: toward the enemy home row on a board you cross. */
+export function forwardDir(owner: PlayerId): Dir {
+  return { dr: owner === "P1" ? -1 : 1, dc: 0 };
+}
+
+/** Which way `card`'s Special points right now: the aim it is being resolved
+ *  under (a Domination cast, see `specialAims`), otherwise forward. Every
+ *  "ahead" a Special reads — the row, the lane, the far row, the charge —
+ *  reads it through here, so off Domination nothing about them changes. */
+export function aimOf(state: GameState, card: CardInstance): Dir {
+  const a = state.specialAim;
+  return a && a.id === card.instanceId ? a.dir : forwardDir(card.owner);
+}
+
+/** Steps from `from` to `p` in direction `d` (1 = the rank directly ahead)... */
+export function alongOf(from: Pos, p: Pos, d: Dir): number {
+  return (p.row - from.row) * d.dr + (p.col - from.col) * d.dc;
+}
+/** ...and how far off that line it stands (0 = in the caster's own lane). */
+export function acrossOf(from: Pos, p: Pos, d: Dir): number {
+  return d.dr !== 0 ? p.col - from.col : p.row - from.row;
+}
+/** Is `p` on the board edge `d` points at? Pointed forward on a board you
+ *  cross, that edge IS the enemy home row. */
+export function onEdge(boardSize: number, p: Pos, d: Dir): boolean {
+  return d.dr !== 0
+    ? p.row === (d.dr < 0 ? 0 : boardSize - 1)
+    : p.col === (d.dc < 0 ? 0 : boardSize - 1);
+}
+
+/** SPECIALS LAID OUT IN ONE DIRECTION FROM THEIR CASTER: a corridor
+ *  (`forwardDepth`), the row directly ahead (`rowAhead`, the wave), the lane
+ *  (`sameColumn`), the far row (`enemyHomeRow`, the far-row riders) and the
+ *  column charge (`battleCharge`).
+ *
+ *  On a board you cross "ahead" is the only direction that means anything. On
+ *  Domination's it is one quarter of the board — the objectives are in four
+ *  corners and the enemy comes from all of them — so a Special locked to it can
+ *  only ever threaten whoever happens to stand on one side of it (owner's call,
+ *  2026-09-29: "severely limited by not being able to angle their special
+ *  attack"). There, every one of these is AIMED: the first pick names the
+ *  direction, exactly as the corridors already were. */
+export function specialAimable(special: CardDef["special"] | undefined): boolean {
+  if (!special || special.targetSide === "self" || special.targetSide === "ally") return false;
+  const p = special.params ?? {};
+  return Number(p.forwardDepth ?? 0) > 0 || Number(p.rowAhead ?? 0) > 0
+    || Number(p.sameColumn ?? 0) > 0 || Number(p.enemyHomeRow ?? 0) > 0 || hasFarRow(p)
+    || special.handler === "surfsUp" || special.handler === "battleCharge";
+}
+
+/** The directions `card`'s Special may point right now: the one it is being
+ *  resolved under; all four on Domination's board when it is aimable; else
+ *  forward, which is every board you cross. */
+export function specialAims(state: GameState, card: CardInstance): Dir[] {
+  if (state.specialAim?.id === card.instanceId) return [state.specialAim.dir];
+  if (domMap(state) && specialAimable(getDef(card.defId).special))
+    return CORRIDOR_DIRS.map((d) => ({ dr: d.dr, dc: d.dc }));
+  return [forwardDir(card.owner)];
+}
+
+/** What `card`'s Special reaches pointed `dir`. */
+export function specialTargetsAimed(state: GameState, casterId: string, dir: Dir): CardInstance[] {
+  return specialTargets({ ...state, specialAim: { id: casterId, dir } }, casterId);
+}
+
+/** WHICH WAY A PICK POINTS the Special: the pick's dominant axis
+ *  (`corridorDir`) when that direction reaches it — and otherwise the first
+ *  direction that does. A target one rank ahead but three files over is
+ *  mostly SIDEWAYS, and pointing sideways would sweep a line it is not on. */
+export function aimFor(state: GameState, card: CardInstance, pick: CardInstance): Dir {
+  const main = card.pos && pick.pos ? corridorDir(card.pos, pick.pos) : forwardDir(card.owner);
+  for (const d of [main, ...CORRIDOR_DIRS.filter((c) => c.dr !== main.dr || c.dc !== main.dc)])
+    if (specialTargetsAimed(state, card.instanceId, d).some((t) => t.instanceId === pick.instanceId))
+      return { dr: d.dr, dc: d.dc };
+  return main;
+}
+
+/** The pick the AI should aim a Domination Special with: the direction that
+ *  reaches the most opponents, a tie going to the one holding `preferred`
+ *  (the victim its own policy chose). Undefined when there is nothing to aim. */
+export function bestAimPick(state: GameState, casterId: string, preferred?: string): string | undefined {
+  const card = state.cards[casterId];
+  if (!card?.pos || !domMap(state) || !specialAimable(getDef(card.defId).special)) return undefined;
+  let best: string | undefined;
+  let bestN = -1;
+  let bestHasPreferred = false;
+  const offered = specialTargets(state, casterId);
+  const legalPreferred = !!preferred && offered.some((o) => o.instanceId === preferred);
+  for (const t of offered) {
+    const hit = specialTargetsAimed(state, casterId, aimFor(state, card, t));
+    const hasPreferred = legalPreferred && hit.some((h) => h.instanceId === preferred);
+    if (hit.length > bestN || (hit.length === bestN && hasPreferred && !bestHasPreferred)) {
+      best = hasPreferred ? preferred : t.instanceId;
+      bestN = hit.length;
+      bestHasPreferred = hasPreferred;
+    }
+  }
+  return best;
+}
+
 export function forwardAreaTargets(
   state: GameState,
   card: CardInstance,
@@ -1422,16 +1525,20 @@ export function volleyFilters(
   card: CardInstance,
   p: Record<string, number | string>,
   list: CardInstance[],
+  /** Which ways the Special may point (`specialAims`): a target is kept when
+   *  ONE direction satisfies every directional rule at once. Forward alone —
+   *  the default, and every board you cross — is the old single test. */
+  aims: Dir[] = [forwardDir(card.owner)],
 ): CardInstance[] {
   let out = list;
-  if (Number(p.enemyHomeRow ?? 0) > 0)
-    out = out.filter((t) => t.pos?.row === homeRow(enemyOf(card.owner), state.boardSize));
-  if (Number(p.sameColumn ?? 0) > 0 && card.pos)
-    out = out.filter((t) => t.pos?.col === card.pos!.col);
-  if (Number(p.rowAhead ?? 0) > 0 && card.pos) {
-    const ahead = card.pos.row + (card.owner === "P1" ? -1 : 1);
-    out = out.filter((t) => t.pos?.row === ahead);
-  }
+  const edge = Number(p.enemyHomeRow ?? 0) > 0;
+  const lane = Number(p.sameColumn ?? 0) > 0 && !!card.pos;
+  const ahead = Number(p.rowAhead ?? 0) > 0 && !!card.pos;
+  if (edge || lane || ahead)
+    out = out.filter((t) => !!t.pos && aims.some((d) =>
+      (!edge || onEdge(state.boardSize, t.pos!, d))
+      && (!lane || acrossOf(card.pos!, t.pos!, d) === 0)
+      && (!ahead || alongOf(card.pos!, t.pos!, d) === 1)));
   if (typeof p.requireStatus === "string" && p.requireStatus)
     out = out.filter((t) => hasStatus(t, p.requireStatus as StatusKind));
   const belowHp = Number(p.requireBelowHp ?? 0);
@@ -1506,15 +1613,6 @@ export function onSummonTargets(
  *  `rowAhead` is not a sourcing rule at all, so Aftermath and Infernus Rex
  *  reached the handler holding every enemy on the board, and the preview
  *  faithfully drew all of them. */
-/** The row directly ahead of `owner` — a step toward the enemy home.
- *
- *  The same arithmetic `rowAhead` in combat.ts does, spelled out here because
- *  rules.ts sits upstream of the resolver and must not import it. Two lines,
- *  and the direction is the game's oldest convention. */
-function rowAheadOf(owner: PlayerId, row: number): number {
-  return owner === "P1" ? row - 1 : row + 1;
-}
-
 /** Does this params blob carry a FAR-ROW rider?
  *
  *  Three of them exist, and they are the reason this function does: `barrage`
@@ -1547,12 +1645,27 @@ export function farRowCells(
   owner: PlayerId,
   pos: Pos,
   params: Record<string, unknown> | undefined,
+  /** Which way it lies: forward unless a Domination cast aimed it. */
+  dir: Dir = forwardDir(owner),
 ): Pos[] {
   if (!hasFarRow(params)) return [];
-  const row = rowAheadOf(owner, rowAheadOf(owner, pos.row));
-  if (row < 0 || row >= boardSize) return [];
+  return rankCells(boardSize, pos, dir, 2);
+}
+
+/** Every square `steps` ranks ahead of `pos` pointed `dir`, the whole width of
+ *  the board — the row two ahead, turned whichever way the Special points.
+ *  Empty when that rank is off the board. */
+export function rankCells(boardSize: number, pos: Pos, dir: Dir, steps: number): Pos[] {
   const out: Pos[] = [];
-  for (let col = 0; col < boardSize; col++) out.push({ row, col } as Pos);
+  if (dir.dr !== 0) {
+    const row = pos.row + dir.dr * steps;
+    if (row < 0 || row >= boardSize) return [];
+    for (let col = 0; col < boardSize; col++) out.push({ row, col } as Pos);
+  } else {
+    const col = pos.col + dir.dc * steps;
+    if (col < 0 || col >= boardSize) return [];
+    for (let row = 0; row < boardSize; row++) out.push({ row, col } as Pos);
+  }
   return out;
 }
 
@@ -1568,7 +1681,10 @@ export function previewSpecialFarRow(state: GameState, casterId: string): Pos[] 
   if (!caster?.pos) return [];
   const sp = getDef(caster.defId).special;
   if (!sp) return [];
-  return farRowCells(state.boardSize, caster.owner, caster.pos, sp.params);
+  // Aimed on Domination's board: which row is "far" is not known until the
+  // pick names a direction — `previewSpecialAim` draws it then.
+  if (specialAims(state, caster).length > 1) return [];
+  return farRowCells(state.boardSize, caster.owner, caster.pos, sp.params, aimOf(state, caster));
 }
 
 /** The row a WAVE breaks on — the whole footprint of `surfsUp`: every cell of
@@ -1579,11 +1695,49 @@ export function previewSpecialFarRow(state: GameState, casterId: string): Pos[] 
 export function previewSpecialWaveRow(state: GameState, casterId: string): Pos[] {
   const caster = state.cards[casterId];
   if (!caster?.pos || getDef(caster.defId).special?.handler !== "surfsUp") return [];
-  const row = rowAheadOf(caster.owner, caster.pos.row);
-  if (row < 0 || row >= state.boardSize) return [];
-  const out: Pos[] = [];
-  for (let col = 0; col < state.boardSize; col++) out.push({ row, col } as Pos);
-  return out;
+  if (specialAims(state, caster).length > 1) return []; // aimed: drawn once pointed
+  return rankCells(state.boardSize, caster.pos, aimOf(state, caster), 1);
+}
+
+/** THE FOOTPRINT OF AN AIMED SPECIAL, pointed at `pick` — drawn under the
+ *  player's finger on Domination's board before they commit, the way an
+ *  anchored area already is. Every square the aimed shape covers: the rank
+ *  ahead (a sweep, the wave), the rank beyond (a far-row rider), the lane (a
+ *  column line, the charge), the board edge (a far-row strike), or the
+ *  corridor. Null when this is not an aimed Special on this board. */
+export function previewSpecialAim(state: GameState, casterId: string, pick: CardInstance): Pos[] | null {
+  const caster = state.cards[casterId];
+  if (!caster?.pos || !domMap(state)) return null;
+  const sp = getDef(caster.defId).special;
+  if (!sp || !specialAimable(sp)) return null;
+  const d = aimFor(state, caster, pick);
+  const p = sp.params ?? {};
+  const n = state.boardSize;
+  const at = caster.pos;
+  // A MELEE caster's row, lane or edge is only what it can REACH of it — the
+  // same king-step square `validSpecialTargets` allows (widened by `reach`),
+  // so a lit square is one a body standing there is actually hit on. The
+  // corridor, the charge and the far-row burst read the board, not the reach.
+  const melee = getDef(caster.defId).attackType === "Melee" && !sp.ranged;
+  const reach = melee ? Math.max(1, Number(p.reach ?? 1)) : n;
+  const cells: Pos[] = [];
+  for (let row = 0; row < n; row++)
+    for (let col = 0; col < n; col++) {
+      const c = { row, col } as Pos;
+      const along = alongOf(at, c, d), across = acrossOf(at, c, d);
+      let lit: boolean;
+      if (Number(p.forwardDepth ?? 0) > 0)
+        lit = along >= 1 && along <= Number(p.forwardDepth) && Math.abs(across) <= Number(p.spread ?? 0);
+      else if (sp.handler === "battleCharge") lit = across === 0 && along > 0;
+      else {
+        const inReach = Math.max(Math.abs(row - at.row), Math.abs(col - at.col)) <= reach;
+        if (Number(p.enemyHomeRow ?? 0) > 0) lit = inReach && onEdge(n, c, d);
+        else if (Number(p.sameColumn ?? 0) > 0) lit = inReach && across === 0 && along !== 0;
+        else lit = inReach && (Number(p.rowAhead ?? 0) > 0 || sp.handler === "surfsUp") && along === 1;
+      }
+      if (lit) cells.push(c);
+    }
+  return [...cells, ...farRowCells(n, caster.owner, at, p, d)];
 }
 
 export function previewOnSummonArea(
@@ -1728,8 +1882,19 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // empty row is no target at all.
   if (special.handler === "surfsUp") {
     if (!card.pos) return [];
-    const row = rowAheadOf(card.owner, card.pos.row);
-    return enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos?.row === row);
+    const aims = specialAims(state, card);
+    return enemyCards(state, card.owner).filter((e) => e.curHp > 0 && !!e.pos
+      && aims.some((d) => alongOf(card.pos!, e.pos!, d) === 1));
+  }
+  // THE COLUMN CHARGE, aimed (Domination only): whoever stands in a lane
+  // ahead of it, any of the four ways — the first of them is what it hits.
+  // Nobody lined up means no aim to take, and it falls through to the reach it
+  // has always had (it charges forward, into whatever that finds).
+  if (special.handler === "battleCharge" && domMap(state) && card.pos) {
+    const aims = specialAims(state, card);
+    const lanes = enemyCards(state, card.owner).filter((e) => e.curHp > 0 && !!e.pos
+      && aims.some((d) => acrossOf(card.pos!, e.pos!, d) === 0 && alongOf(card.pos!, e.pos!, d) > 0));
+    if (lanes.length > 0) return lanes;
   }
   /** A Special whose work is done by OTHER cards is not bound by the caster's
    *  reach — the SWARM does the reaching.
@@ -1769,7 +1934,7 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
         // threaten a quarter of the board. Every legal victim in any of the four
         // corridors is offered, and the one the caster PICKS decides which way
         // the blast actually goes (see performBattleAction).
-        ? dedupeCards(CORRIDOR_DIRS.flatMap(
+        ? dedupeCards(specialAims(state, card).flatMap(
           (d) => forwardAreaTargets(state, card, Number(p.spread ?? 0), fd, d)))
         : forwardAreaTargets(state, card, Number(p.spread ?? 0), fd))
       : validSpecialTargets(state, instanceId);
@@ -1778,7 +1943,7 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // damage-area highlight over-reports (a row-ahead sweep lit up the whole board).
   // The rule itself lives in `volleyFilters`, because the on-summon preview needs
   // the identical narrowing and two copies is how the two drift apart.
-  return volleyFilters(state, card, p, list);
+  return volleyFilters(state, card, p, list, specialAims(state, card));
 }
 
 /** Would this card's basic attack accomplish literally nothing? True only for a
