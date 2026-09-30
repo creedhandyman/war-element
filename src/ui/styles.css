@@ -1211,6 +1211,39 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   object-fit: cover; object-position: 50% 16%; border-radius: 7px;
   pointer-events: none; filter: saturate(1.08);
 }
+/* STEALTH (Token.tsx useStealthReveal): the art drains to a dim near-grey and
+   a shadow drifts over it while the card is cloaked; when the cloak breaks the
+   shadow is thrown off in one burst and the art flashes back to full colour.
+   The drift is opacity + transform only — no repaint while it loops. */
+.token.stealthed .card-art { filter: grayscale(0.55) brightness(0.78) contrast(1.05); transition: filter 0.4s ease; }
+.token.stealthed { border-style: dashed; }
+.tk-veil {
+  position: absolute; inset: 0; z-index: 0; border-radius: 7px; overflow: hidden; pointer-events: none;
+  background:
+    radial-gradient(55% 40% at 28% 38%, rgba(60, 30, 100, 0.5), transparent 70%),
+    radial-gradient(50% 45% at 74% 60%, rgba(14, 8, 30, 0.55), transparent 72%),
+    linear-gradient(180deg, rgba(24, 14, 44, 0.12), rgba(8, 5, 16, 0.3));
+  animation: veilDrift 3.2s ease-in-out infinite alternate;
+}
+@keyframes veilDrift {
+  from { opacity: 0.8; transform: translate(-3%, 1%) scale(1.04); }
+  to { opacity: 1; transform: translate(3%, -2%) scale(1.08); }
+}
+.tk-veil.lifting { animation: veilLift 0.7s ease-out forwards; }
+@keyframes veilLift {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(1.35); }
+}
+.token.revealing .card-art { animation: artReveal 0.7s ease-out; }
+@keyframes artReveal {
+  0% { filter: grayscale(0.55) brightness(1.9) contrast(1.05); }
+  100% { filter: saturate(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tk-veil { animation: none; }
+  .tk-veil.lifting { animation: veilLift 0.2s linear forwards; }
+  .token.revealing .card-art { animation: none; }
+}
 /* Scrim: two plates, not one wash — a dark band behind the TOP name banner and
    a stronger one behind the BOTTOM stat strip, with the art left clear in the
    middle. Stats used to sit straight on busy art and were unreadable; these
@@ -4310,7 +4343,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      was being clipped away — so flattening it shows exactly what was on screen
      before, and is what makes turning the clip off safe: without this, that
      hidden 14px would newly spill over the action bar. */
-  .hand-float .hcard { width: 74px; height: 82px; margin: 0 -14px; transform-origin: 50% 96%; --ty: 0px; }
+  .hand-float .hcard { width: 74px; height: 82px; margin: 0 var(--fan-m, -14px); transform-origin: 50% 96%; --ty: 0px; }
   .hand-float .hcard:hover { transform: translateY(-26px) scale(1.14); z-index: 50 !important; }
   .hand-float .hc-plate { padding: 9px 5px 0; }
   .hand-float .hc-name { font-size: 11.5px; }

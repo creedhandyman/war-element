@@ -167,6 +167,28 @@ export function Hand(props: {
     return () => window.removeEventListener("resize", fit);
   }, [lookId]);
 
+  // THE FAN FITS ITS WIDTH. Cards overlap by a fixed margin, so a hand of six
+  // or more ran past a 320px screen's edge — the last card half off it. The
+  // fan measures the room it has and deepens the overlap just enough; the
+  // portrait rule reads it as --fan-m (never shallower than its own -14px).
+  const fanRef = useRef<HTMLDivElement>(null);
+  const [fanM, setFanM] = useState<number | null>(null);
+  useLayoutEffect(() => {
+    const fan = fanRef.current;
+    if (!fan) return;
+    const fit = () => {
+      const first = fan.querySelector<HTMLElement>(".hcard");
+      if (!first || n < 2) { setFanM(null); return; }
+      const w = first.offsetWidth;
+      const room = fan.clientWidth - 10; // slack for the outer cards' tilt
+      setFanM(Math.min(-14, Math.floor((room - n * w) / (2 * (n - 1)))));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(fan);
+    return () => ro.disconnect();
+  }, [n]);
+
   return (
     <div className={`hand${myPrep ? "" : " collapsed"}`} ref={handRef}>
       {/* Deck as a stacked pile with its count. */}
@@ -179,7 +201,7 @@ export function Hand(props: {
         </span>
       </div>
 
-      <div className="hand-fan">
+      <div className="hand-fan" ref={fanRef} style={fanM === null ? undefined : { ["--fan-m" as string]: `${fanM}px` }}>
         {me.hand.map((h, i) => {
           const def = getDef(h.defId);
           const summonable = props.summonableHandIds.has(h.handId);

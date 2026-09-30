@@ -147,6 +147,28 @@ function useShieldLoss(instanceId: string, defId: string, knocked: number) {
  *
  *  Keyed on a counter rather than on position so it cannot re-fire on an
  *  unrelated re-render, and reset when a different card occupies the slot. */
+/** STEALTH, seen: the card sits under a drifting shadow while it is cloaked,
+ *  and the moment the cloak breaks — it attacked, or it simply ran out — the
+ *  shadow is thrown off once (`revealing`, ~0.7s). Keyed on the instance, so
+ *  a different card taking the square never plays a reveal it did not earn. */
+function useStealthReveal(instanceId: string, stealthed: boolean) {
+  const prev = useRef({ id: instanceId, stealthed });
+  const keyRef = useRef(0);
+  const [reveal, setReveal] = useState(0);
+  useEffect(() => {
+    const was = prev.current;
+    prev.current = { id: instanceId, stealthed };
+    if (was.id !== instanceId) { setReveal(0); return; }
+    if (was.stealthed && !stealthed) setReveal(++keyRef.current);
+  }, [instanceId, stealthed]);
+  useEffect(() => {
+    if (!reveal) return;
+    const t = setTimeout(() => setReveal(0), 750);
+    return () => clearTimeout(t);
+  }, [reveal]);
+  return reveal;
+}
+
 function useCoinFloat(instanceId: string, coin: number) {
   const prev = useRef({ coin, id: instanceId });
   const keyRef = useRef(0);
@@ -297,6 +319,8 @@ export function Token(props: {
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
   const shieldFx = useShieldLoss(card.instanceId, card.defId, card.fxShieldsKnocked ?? 0);
   const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
+  const stealthed = card.statuses.some((st) => st.kind === "STEALTH");
+  const revealFx = useStealthReveal(card.instanceId, stealthed);
   // Same bump-a-counter shape as the coin float — a PARALYZE that actually cost
   // the card its turn floats the word, so a turn that produced nothing reads as
   // the coin it was rather than as the game skipping a beat.
@@ -414,6 +438,8 @@ export function Token(props: {
     // bottom, so the direction has to follow `mine`, not the owner id.
     motionFx ? `${motionFx.cls} ${mine ? "fx-up" : "fx-down"}` : "",
     props.foil ? "foil-tok" : "",
+    stealthed ? "stealthed" : "",
+    revealFx ? "revealing" : "",
   ]
     .filter(Boolean)
     .join(" ");
@@ -439,6 +465,10 @@ export function Token(props: {
       {/* A real element rather than ::after — the token already spends its
           ::after on the bottom scrim that keeps the stat row readable. */}
       {props.foil && <span className="tk-foil foil-sheen" aria-hidden="true" />}
+      {/* The cloak: shadow over the art while STEALTHED, thrown off once when
+          it breaks. Over the picture, under the name and stat strips. */}
+      {stealthed && <span className="tk-veil" aria-hidden="true" />}
+      {revealFx > 0 && !stealthed && <span key={`rev${revealFx}`} className="tk-veil lifting" aria-hidden="true" />}
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}
