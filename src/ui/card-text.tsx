@@ -236,7 +236,7 @@ export interface SharedPassive {
 /** The Tank class rule, as the card panel and the rules book both say it. */
 export const TANK_BULWARK_TEXT =
   "enemy ranged attacks can't shoot over it: a shot whose line passes over it is stopped at any angle, "
-  + "and so is a shot at any ally standing next to it — unless the shooter is right beside that ally too.";
+  + "and so is a shot at an ally right behind it — one it stands in front of, between that ally and the shooter.";
 
 export function describeSharedPassives(def: CardDef): SharedPassive[] {
   const shared: SharedPassive[] = [];

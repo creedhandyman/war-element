@@ -773,8 +773,11 @@ export function lineCrosses(from: Pos, to: Pos, k: Pos): boolean {
  *  - the line of fire passes OVER its square, at any angle — an ordinary body
  *    only stops a straight-line shot, so knight-shaped shots used to arc past
  *    everything; or
- *  - the target stands NEXT TO the Tank. It covers its neighbours: they can
- *    only be shot from right beside them (a distance-1 shot never gets here).
+ *  - the target stands NEXT TO the Tank and the Tank is IN FRONT of it —
+ *    nearer the shooter (owner, 2026-09-30: a Tank beside or behind the
+ *    target covering it made targeting look random). Re-measured at 761298df:
+ *    Tanks-out delta +3.5 with no Bulwark, +2.8 with this — most of the
+ *    buff was the cover from beside and behind.
  *
  * The Tank itself stays a legal target, like any blocker. Bosses are giants
  * with their own rules and do not carry it, so the Tower's tuning is untouched;
@@ -794,7 +797,11 @@ export function tankScreens(state: GameState, from: Pos, to: Pos, shooter: Playe
     const def = getDef(c.defId);
     if (def.cardClass !== "Tank" || def.boss || def.guardsHomeRow) continue;
     if ((k.row === to.row && k.col === to.col) || (k.row === from.row && k.col === from.col)) continue;
-    if (Math.max(Math.abs(k.row - to.row), Math.abs(k.col - to.col)) === 1) return true;
+    // IN FRONT only: the Tank must stand nearer the shooter than its neighbour
+    // does. A Tank beside or behind the target covering it read as random.
+    const near = Math.max(Math.abs(k.row - from.row), Math.abs(k.col - from.col));
+    const far = Math.max(Math.abs(to.row - from.row), Math.abs(to.col - from.col));
+    if (near < far && Math.max(Math.abs(k.row - to.row), Math.abs(k.col - to.col)) === 1) return true;
     if (lineCrosses(from, to, k)) return true;
   }
   return false;

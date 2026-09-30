@@ -715,15 +715,20 @@ describe("Tanks hold the line", () => {
   const TANK = "aqua_polarking"; // Tank, not a boss
   const BODY = "leaf_alpha";     // Warrior — an ordinary body
 
-  it("covers the allies beside it from a shot two or more steps away", () => {
+  it("covers the ally right behind it — and only when it stands in front", () => {
+    // Owner, 2026-09-30: a Tank BESIDE or BEHIND the target covering it made
+    // the glowing targets look random. It has to be between.
     const s = prepState();
     const me = place(s, "dusk_ghastly", "P2", 0, 1);
     place(s, "dusk_gool", "P1", 2, 1);           // the target, two straight down
     expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
-    place(s, TANK, "P1", 2, 2);                  // a Tank beside it
+    const beside = place(s, TANK, "P1", 2, 2);   // beside it: no cover
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
+    s.cards[beside.instanceId].pos = { row: 3, col: 1 }; // behind it: no cover
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
+    s.cards[beside.instanceId].pos = { row: 1, col: 2 }; // in front, off the line
     expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(false);
-    place(s, BODY, "P1", 3, 3);                  // an ordinary body does no such thing
-    expect(rangedCanSee(s, me.pos!, { row: 2, col: 2 }, "P2"), "the Tank itself stays a target").toBe(true);
+    expect(rangedCanSee(s, me.pos!, { row: 1, col: 2 }, "P2"), "the Tank itself stays a target").toBe(true);
   });
 
   it("a shooter right beside the covered card still hits it", () => {

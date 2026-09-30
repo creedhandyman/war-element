@@ -212,8 +212,11 @@ basics, Long Reach lances, giants' swings beyond a step, The Deepest): an
 enemy Tank stops a shot two or more steps long when the line of fire crosses
 its square at ANY angle (`lineCrosses`, centre to centre, corners excluded —
 an ordinary body still only screens straight lines), or when the target stands
-NEXT TO the Tank (it covers its neighbours; a shooter right beside them still
-hits). The Tank itself stays targetable. Ranged SPECIALS stay unscreened.
+NEXT TO the Tank AND the Tank stands in front of it (nearer the shooter —
+owner, 2026-09-30: cover from beside/behind made targeting read as random).
+That restriction cost most of the buff: re-measured at 761298df the
+Tanks-out delta is +3.5 with no Bulwark and +2.8 with the front-only rule
+(the numbers below are the original any-neighbour version). The Tank itself stays targetable. Ranged SPECIALS stay unscreened.
 Not carried by bosses (Tower tuning untouched) nor by `guardsHomeRow` gates,
 whose one-column screen is the point of breaking a gate.
 
