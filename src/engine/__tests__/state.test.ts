@@ -61,6 +61,13 @@ describe("setup", () => {
       // ahead and wears them. Total immunity is the expensive part — the missing
       // 5 body points are what it costs.
       "bore_steel",
+      // Ability-carried, downward: 45 vs a Cost-8 budget of 50. Kloud's Twisted
+      // Rage raises a half-strength Thundering Hurricane (a real body with its
+      // own arrival burst) on a recast, it carries two class auras and Storm
+      // Surge, and it read too strong at 7 (owner's call, 2026-09-29). Like
+      // Sandman's recost, the 7 -> 8 move is the nerf: raising the stats to the
+      // new ceiling would hand it straight back.
+      "gale_kloud",
       // Ability-carried, downward: 40 vs a Cost-7 budget of 45. Dunewraith was
       // nerfed (HP 19→14) to rein in Frostkeep; its Nightmare Special (5×2 +
       // SLEEP nova) carries the missing points. Deliberately under-statted.

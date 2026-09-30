@@ -8551,7 +8551,15 @@ export const CARDS: CardDef[] = [
     element: "GALE",
     cardClass: "Mage",
     attackType: "Ranged",
-    cost: 7,
+    // 7 -> 8, stats unchanged (owner's call, 2026-09-29: "Kloud is OP"). The
+    // eighth gold is the price of the kit — a storm on a recast, two class
+    // auras, Storm Surge — not of a bigger body, so it now sits 5 under the
+    // cost-8 budget (state.test.ts says why). Measured before the change with
+    // it forced into the GALE core's opening hand: 65% won in the games it was
+    // played vs 56-61% for the rest of the GALE cost 7-8 band, and the most
+    // kills of the band before counting its storm's. The price is the one
+    // lever that moved it: fewer games where it comes down in time to matter.
+    cost: 8,
     dmg: 6,
     hits: 2,
     hp: 23,

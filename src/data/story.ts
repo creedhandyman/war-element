@@ -623,7 +623,7 @@ const GALE: StoryRegion = {
     { id: "G12", name: "The Eye of the Storm", kind: "landmark", tribe: "Avian", at: { x: 47, y: 82.5 },
       requires: ["G5", "G9"],
       roster: ["gale_falcon", "gale_leeward", "gale_goldspur", "gale_aerostat", "gale_gyre", "gale_bluejay", "gale_galeon", "gale_klipso", "gale_kloud"], adds: [],
-      note: "The whole Cost-7 Legendary band on one node — the richest recruit in Act IV.",
+      note: "Five GALE Legendaries on one node — the richest recruit in Act IV.",
       lore: "The only still air in GALE and the least trusted: a people who read wind for warning have never settled what to make of a place with nothing to read. Galeon keeps the eye regardless."
      },
     { id: "G13", name: "Wolfrun Hollow", kind: "throne", at: { x: 62, y: 10 },
