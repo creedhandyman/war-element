@@ -18,7 +18,7 @@ import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
-import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
+import { PYRO_BURN_ADD, BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
@@ -2377,7 +2377,7 @@ export function basicAttack(
       if (hasElementAura(aDef, "PYRO") && t.curHp > 0) {
         // Hot Hot (Ingit, `burnBoost`): this card's own burn lands stronger
         // and lasts longer. Everyone else's is BURN +1 for PYRO_BURN_DURATION.
-        const add = 1 + (aDef.burnBoost?.power ?? 0);
+        const add = PYRO_BURN_ADD + (aDef.burnBoost?.power ?? 0);
         const rounds = PYRO_BURN_DURATION + (aDef.burnBoost?.rounds ?? 0);
         const burning = t.statuses.find((x) => x.kind === "BURN");
         if (!burning) applyStatus(draft, t, "BURN", rounds, add, "PYRO");

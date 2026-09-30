@@ -87,10 +87,14 @@ describe("the Flow Change menu's words", () => {
 });
 
 describe("the next tide the menu names", () => {
-  it("is this round's Cleanup in an even round, else the next even round's", () => {
+  it("is this round's Cleanup on a tide round, else the next tide round's", () => {
+    // AQUA_TIDE_EVERY went 2 -> 1 in the 2026-09-30 balance pass (every round
+    // is a tide round now), so the expected rounds are derived from it.
+    const E = AQUA_TIDE_EVERY;
+    const tideAtOrAfter = (r: number) => Math.ceil(Math.max(1, r) / E) * E;
     const at = (round: number) => { const s = prepState(); s.round = round; return nextTideRound(s); };
-    expect([1, 2, 3, 4, 5].map(at)).toEqual([2, 2, 4, 4, 6]);
-    expect(at(0), "deployment has no Cleanup of its own").toBe(2);
+    expect([1, 2, 3, 4, 5].map(at)).toEqual([1, 2, 3, 4, 5].map(tideAtOrAfter));
+    expect(at(0), "deployment has no Cleanup of its own").toBe(E);
   });
 
   it("is the Cleanup where a fresh form really takes its first tide", () => {

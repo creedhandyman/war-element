@@ -17,6 +17,7 @@ import {
   ELEMENT_MATCHUP,
 } from "../matchups";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
+import { LEAF_HEAL } from "../auras";
 
 describe("element matchups — the damage swing", () => {
   it("DAWN and DUSK each hit the other 25% harder", () => {
@@ -212,7 +213,7 @@ describe("Exostone (BORE): the stone takes what it breaks", () => {
 });
 
 describe("Photosynthesis feeds on the roots", () => {
-  it("heals +1 per ROOTed opponent on top of its base +2", () => {
+  it("heals +1 per ROOTed opponent on top of its base LEAF_HEAL", () => {
     const s = prepState();
     const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 40, curShields: 0 });
     const a = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
@@ -221,7 +222,7 @@ describe("Photosynthesis feeds on the roots", () => {
     applyStatus(s, a, "ROOT", 3, 0, "LEAF");
     applyStatus(s, b, "ROOT", 3, 0, "LEAF");
     const n = advance(atCleanup(s));
-    expect(n.cards[leaf.instanceId].curHp).toBe(5 + 2 + 2); // base 2, +1 per rooted foe
+    expect(n.cards[leaf.instanceId].curHp).toBe(5 + LEAF_HEAL + 2); // base (3 since 2026-09-30), +1 per rooted foe
   });
 
   it("...and only counts OPPONENTS, not rooted allies", () => {
@@ -231,7 +232,7 @@ describe("Photosynthesis feeds on the roots", () => {
     place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30 });
     applyStatus(s, ally, "ROOT", 3, 0, "DUSK");
     const n = advance(atCleanup(s));
-    expect(n.cards[leaf.instanceId].curHp).toBe(5 + 2); // base only
+    expect(n.cards[leaf.instanceId].curHp).toBe(5 + LEAF_HEAL); // base only
   });
 });
 

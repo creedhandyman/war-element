@@ -11,6 +11,7 @@ import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, legalMoves } from "../rules";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
+import { EXOSTONE_DEFAULT, EXOSTONE_SHIELDS } from "../auras";
 import type { GameState } from "../types";
 
 /** Park the battle so `active` is the card awaiting P1's input. */
@@ -162,7 +163,10 @@ describe("wave 1: Crystal Sabor, Dynamo, Lumberjack, Bootlegger", () => {
     const handId = giveHand(s, "P1", "bore_rohojohn");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const roho = boardCards(next, "P1").find((c) => c.defId === "bore_rohojohn")!;
-    expect(roho.curShields).toBe(6); // War Mount +3, plus BORE's Exostone aura +3
+    // War Mount +3, plus BORE's Exostone arrival plate for its rarity (epic:
+    // 3 -> 4 in the 2026-09-30 balance pass).
+    const rDef = getDef("bore_rohojohn");
+    expect(roho.curShields).toBe(rDef.shields + 3 + (EXOSTONE_SHIELDS[rDef.rarity ?? ""] ?? EXOSTONE_DEFAULT));
     basicAttack(next, roho.instanceId, near.instanceId);
     // 7 printed + 4 War Mount, because the target is adjacent.
     expect(60 - next.cards[near.instanceId].curHp).toBe(11);

@@ -4,7 +4,7 @@
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
-import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { LEAF_HEAL, applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
@@ -3802,7 +3802,7 @@ function doCleanupPhase(draft: GameState): void {
       // so no cap is needed beyond that.
       const rooted = enemyCards(draft, card.owner)
         .filter((e) => e.curHp > 0 && hasStatus(e, "ROOT")).length;
-      healCard(draft, card, 2 + rooted, card);
+      healCard(draft, card, LEAF_HEAL + rooted, card);
       if (rooted > 0)
         draft.log.push(`${label(draft, card)} drinks deep — ${rooted} rooted (+${rooted} HP).`);
       // The bark thickens where it was struck: a LEAF card that TOOK a hit this
