@@ -11,9 +11,8 @@ import { CARDS, getDef } from "../../data/cards";
 import { describeSharedPassives } from "../../ui/card-text";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
-  EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_HEAL, LEAF_SHIELD_CAP, PYRO_BURN_ADD, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
-  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, GALE_SLIPSTREAM_CAP, applyFlow, DUSK_DRAIN,
-  BOLT_VS_STATUS_DMG } from "../auras";
+  EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
+  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow, DUSK_DRAIN } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, shadeStacksLive, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
@@ -52,18 +51,17 @@ describe("every element has an aura and a card to carry it", () => {
 });
 
 describe("LEAF — Photosynthesis", () => {
-  it("heals LEAF_HEAL at end of round, +1 per ROOTed opponent", () => {
-    // Base heal 2 -> 3 in the 2026-09-30 balance pass; read from the constant.
+  it("heals +2 at end of round, +1 per ROOTed opponent", () => {
     const s = prepState();
     const leaf = place(s, cheapest("LEAF").id, "P1", 3, 0, { curHp: 3, maxHp: 30 });
     place(s, cheapest("DUSK").id, "P2", 0, 0);
-    expect(advance(atCleanup(s)).cards[leaf.instanceId].curHp).toBe(3 + LEAF_HEAL);
+    expect(advance(atCleanup(s)).cards[leaf.instanceId].curHp).toBe(5);
 
     const s2 = prepState();
     const leaf2 = place(s2, cheapest("LEAF").id, "P1", 3, 0, { curHp: 3, maxHp: 30 });
     const foe = place(s2, cheapest("DUSK").id, "P2", 0, 0);
     applyStatus(s2, s2.cards[foe.instanceId], "ROOT", 3, 1, "LEAF");
-    expect(advance(atCleanup(s2)).cards[leaf2.instanceId].curHp, "base, +1 per root").toBe(3 + LEAF_HEAL + 1);
+    expect(advance(atCleanup(s2)).cards[leaf2.instanceId].curHp, "+2 base, +1 per root").toBe(6);
   });
 
   it("banks +1 shield PER HIT taken, capped above PRINTED shields", () => {
@@ -282,9 +280,7 @@ describe("PYRO — Scorch", () => {
     s.cards[pyro.instanceId].attackedThisRound = false;
     basicAttack(s, pyro.instanceId, foe.instanceId);
     const burn = statusOf(s.cards[foe.instanceId], "BURN")!;
-    // PYRO_BURN_ADD went 1 -> 3 in the 2026-09-30 balance pass, so two hits
-    // reach the stack cap.
-    expect(burn.power, "stacked").toBe(Math.min(PYRO_BURN_STACK_CAP, 2 * PYRO_BURN_ADD));
+    expect(burn.power, "stacked").toBe(2);
     expect(burn.duration, "and topped back up").toBe(PYRO_BURN_DURATION);
   });
 });
@@ -339,16 +335,13 @@ describe("DUSK — Midnight Shade", () => {
     expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
-  it("caps at DUSK_SHADE_MAX_STACKS deaths' worth of dodge", () => {
-    // DUSK_SHADE_MAX_STACKS went 5 -> 1 in the 2026-09-30 balance pass: the
-    // shade no longer stacks past one death's +5%. Derived from the constant so
-    // the ceiling is what is pinned, not a particular number of stacks.
+  it("stacks +5% per death, to a ceiling", () => {
     const s = prepState();
     const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
     s.round = 1;
     const seen: number[] = [];
     for (let i = 1; i <= 7; i++) { kill(s, i); seen.push(shadeDodgePct(s, s.cards[survivor.instanceId])); }
-    expect(seen).toEqual([1, 2, 3, 4, 5, 6, 7].map((n) => Math.min(n, DUSK_SHADE_MAX_STACKS) * DUSK_SHADE_PCT));
+    expect(seen).toEqual([5, 10, 15, 20, 25, 25, 25].map((n) => (n / 5) * DUSK_SHADE_PCT));
     expect(shadeStacksLive(s, "P1")).toBe(DUSK_SHADE_MAX_STACKS);
     expect(s.players.P1.shadeUntil, "nothing past the ceiling is kept").toHaveLength(DUSK_SHADE_MAX_STACKS);
   });
@@ -376,19 +369,17 @@ describe("DUSK — Midnight Shade", () => {
     expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(DUSK_SHADE_PCT);
   });
 
-  it("two live shadows overlap only up to the ceiling", () => {
+  it("two shadows overlap while both are still up", () => {
     // A death in round 1 covers rounds 1–2 and one in round 2 covers 2–3, so
-    // round 2 has both — but since the 2026-09-30 balance pass the ceiling is
-    // one stack (DUSK_SHADE_MAX_STACKS), so the second adds nothing.
+    // round 2 has both.
     const s = prepState();
     const survivor = place(s, DUSK_POOL[0], "P1", 3, 0);
     s.round = 1;
     kill(s, 1);
     s.round = 2; // the first shadow's last round
     kill(s, 2);
-    const both = Math.min(2, DUSK_SHADE_MAX_STACKS);
-    expect(shadeStacksLive(s, "P1")).toBe(both);
-    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(both * DUSK_SHADE_PCT);
+    expect(shadeStacksLive(s, "P1")).toBe(2);
+    expect(shadeDodgePct(s, s.cards[survivor.instanceId])).toBe(2 * DUSK_SHADE_PCT);
   });
 
   it("each shadow lifts on its own — a new death never keeps an old one up", () => {
@@ -405,8 +396,7 @@ describe("DUSK — Midnight Shade", () => {
       kill(s, r);
       seen.push(shadeDodgePct(s, s.cards[survivor.instanceId]));
     }
-    // Capped by DUSK_SHADE_MAX_STACKS (1 since the 2026-09-30 balance pass).
-    expect(seen).toEqual([1, 2, 2, 2, 2, 2, 2, 2].map((n) => Math.min(n, DUSK_SHADE_MAX_STACKS) * DUSK_SHADE_PCT));
+    expect(seen).toEqual([1, 2, 2, 2, 2, 2, 2, 2].map((n) => n * DUSK_SHADE_PCT));
   });
 });
 
@@ -587,9 +577,7 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
   });
 
   it("converts SP into dodge, on a curve with a ceiling", () => {
-    // Ceiling went 20 -> 10 in the 2026-09-30 balance pass (GALE_SLIPSTREAM_CAP).
-    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct))
-      .toEqual([0, 0, 0, 5, 10, 15, 20, 20].map((n) => Math.min(n, GALE_SLIPSTREAM_CAP)));
+    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct)).toEqual([0, 0, 0, 5, 10, 15, 20, 20]);
   });
 
   it("a GALE card's printed damage is raised by its own speed", () => {
@@ -663,10 +651,7 @@ describe("BOLT — Electrify", () => {
     expect(s.cards[foe.instanceId].statuses.length).toBeGreaterThan(0);
   });
 
-  it("no longer hits harder into a target that already carries one", () => {
-    // BOLT_VS_STATUS_DMG went 1 -> 0 in the 2026-09-30 balance pass: the
-    // Electrify rider is gone (a field's electrify bonus still applies, but
-    // there is no field here), so a statused target takes the same hit.
+  it("hits harder into a target that already carries one", () => {
     const def = cheapest("BOLT");
     const plain = prepState();
     const b1 = place(plain, def.id, "P1", 3, 0);
@@ -679,7 +664,7 @@ describe("BOLT — Electrify", () => {
     const f2 = place(s, cheapest("DUSK").id, "P2", 2, 0, { curHp: 500, maxHp: 500, curShields: 0 });
     applyStatus(s, s.cards[f2.instanceId], "ROOT", 3, 1, "LEAF");
     basicAttack(s, b2.instanceId, f2.instanceId);
-    expect(500 - s.cards[f2.instanceId].curHp, "no rider into a statused target").toBe(clean + BOLT_VS_STATUS_DMG);
+    expect(500 - s.cards[f2.instanceId].curHp, "+2 into a statused target").toBeGreaterThan(clean);
   });
 });
 

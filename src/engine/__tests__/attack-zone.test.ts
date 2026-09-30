@@ -183,12 +183,10 @@ describe("the end of the round, death blasts and row spells", () => {
     s = atBattle(s);
     s.battle!.index = s.battle!.queue.length; // every card has acted
     const after = advance(s);
-    // Greegon REGENERATES: it takes 2 BURN and heals it straight back in this
-    // same step (REGEN + Photosynthesis), ending on no less HP than it started
-    // with — one MORE since LEAF_HEAL went 2 -> 3 in the 2026-09-30 balance
-    // pass. It was still burned — the damage number was recorded — and that is
-    // the case an HP-only diff would miss.
-    expect(after.cards[mine.instanceId].curHp).toBeGreaterThanOrEqual(9);
+    // Greegon REGENERATES: it takes 2 BURN and heals 2 in this same step, ending
+    // on the HP it started with. It was still burned — the damage number was
+    // recorded — and that is the case an HP-only diff would miss.
+    expect(after.cards[mine.instanceId].curHp).toBe(9);
     expect(after.cards[mine.instanceId].fxDmgSeq ?? 0).toBeGreaterThan(s.cards[mine.instanceId].fxDmgSeq ?? 0);
     const z = strikeZone(s, after)!;
     expect(z.kind).toBe("round");

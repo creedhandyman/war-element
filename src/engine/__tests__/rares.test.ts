@@ -8,7 +8,6 @@ import { canMove, canTarget } from "../rules";
 import { getDef } from "../../data/cards";
 import { boardCards } from "../state";
 import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
-import { PYRO_BURN_ADD, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP } from "../auras";
 
 describe("rare passives", () => {
   it("BORE UFO — Radiation deals 1 PEN each Cleanup, straight through shields", () => {
@@ -89,20 +88,16 @@ describe("rare passives", () => {
   });
 
   it("PYRO Ingit — Hot Hot makes its own hits burn hotter and longer", () => {
-    // Scorch alone is BURN PYRO_BURN_ADD for PYRO_BURN_DURATION rounds (3 for 3
-    // since the 2026-09-30 balance pass); Ingit's burnBoost rides on top.
-    const boost = getDef("pyro_ingit").burnBoost!;
-    const add = PYRO_BURN_ADD + boost.power;
+    // Scorch alone is BURN 1 for 2 rounds; Ingit's is BURN 2 for 3.
     const s = prepState();
     const ingit = place(s, "pyro_ingit", "P1", 2, 0);
     const fresh = place(s, "dusk_gool", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
     basicAttack(s, ingit.instanceId, fresh.instanceId);
-    expect(statusOf(s.cards[fresh.instanceId], "BURN"))
-      .toMatchObject({ power: add, duration: PYRO_BURN_DURATION + boost.rounds });
-    // A burning target stacks the boosted amount a hit, clamped at the Scorch cap.
-    s.cards[fresh.instanceId].statuses.find((x) => x.kind === "BURN")!.power = 1;
+    expect(statusOf(s.cards[fresh.instanceId], "BURN")).toMatchObject({ power: 2, duration: 3 });
+    // A burning target stacks +2 a hit, still under the Scorch cap of 5.
+    s.cards[fresh.instanceId].statuses.find((x) => x.kind === "BURN")!.power = 4;
     basicAttack(s, ingit.instanceId, fresh.instanceId);
-    expect(statusOf(s.cards[fresh.instanceId], "BURN")?.power).toBe(Math.min(PYRO_BURN_STACK_CAP, 1 + add));
+    expect(statusOf(s.cards[fresh.instanceId], "BURN")?.power).toBe(5);
   });
 
   it("DAWN Glimmer — +2 barrier that surges (+1 DMG/+1 SP) when it breaks", () => {

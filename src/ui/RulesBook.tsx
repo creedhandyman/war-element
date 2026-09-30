@@ -348,8 +348,8 @@ export function RulesBook(props: { onClose: () => void }) {
               ))}
             </ul>
             <p>
-              <i>Bolt</i> has no matchup bonus — its Electrify marks are what several Bolt cards cash in, on anything
-              carrying the mark, whoever put it there.
+              <i>Bolt</i> has no matchup bonus — Electrify already answers anything
+              carrying a status, whoever put it there.
             </p>
           </section>
 

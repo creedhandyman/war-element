@@ -4,8 +4,7 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, shadeStacksLive, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { weakenStacks, BOLT_VS_STATUS_DMG, LEAF_HEAL, PYRO_BURN_ADD, PYRO_BURN_DURATION, tailwindDmg } from "../auras";
-import { hillGivesHit, isMidRow } from "../types";
+import { weakenStacks } from "../auras";
 import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -834,9 +833,8 @@ describe("medium-tier passives (audit batch)", () => {
     const homeLeaf = place(s, "leaf_alpha", "P1", 3, 1, { curHp: 5, maxHp: 30 });
     const offLeaf = place(s, "leaf_alpha", "P1", 2, 1, { curHp: 5, maxHp: 30 });
     const next = advance(atCleanup(s));
-    // Photosynthesis is LEAF_HEAL (3 since the 2026-09-30 balance pass).
-    expect(next.cards[homeLeaf.instanceId].curHp).toBe(5 + LEAF_HEAL + 2); // Photosynthesis +2 Petalfall
-    expect(next.cards[offLeaf.instanceId].curHp).toBe(5 + LEAF_HEAL); // Photosynthesis only (not home row)
+    expect(next.cards[homeLeaf.instanceId].curHp).toBe(9); // +2 Photosynthesis +2 Petalfall
+    expect(next.cards[offLeaf.instanceId].curHp).toBe(7); // +2 Photosynthesis only (not home row)
   });
 
   it("Halo's Purelight: DAWN allies shrug BLIND and pierce enemy EVASION", () => {
@@ -1748,10 +1746,9 @@ describe("medium-tier passives (audit batch)", () => {
     const other = place(s, "bore_armadillo", "P1", 2, 0, { curHp: 5, maxHp: 20 });
     place(s, "dusk_gool", "P2", 0, 0);
     const next = advance(atCleanup(s));
-    // 5 + 2 (greegon's own REGEN) + 1 (Morning Dew) + LEAF_HEAL (Photosynthesis,
-    // 3 since the 2026-09-30 balance pass). Drop the dew and this reads one
-    // less, so the number does pin the passive.
-    expect(next.cards[leafy.instanceId].curHp).toBe(5 + 2 + 1 + LEAF_HEAL);
+    // 5 + 2 (greegon's own REGEN) + 1 (Morning Dew) + 2 (LEAF Photosynthesis).
+    // Drop the dew and this reads 9, so the number does pin the passive.
+    expect(next.cards[leafy.instanceId].curHp).toBe(10);
     expect(next.cards[other.instanceId].curHp).toBe(5); // BORE gets neither dew nor Photosynthesis
   });
 
@@ -1904,10 +1901,7 @@ describe("medium-tier passives (audit batch)", () => {
     expect(statusOf(next.cards[sniper.instanceId], "ELECTRIFIED")?.duration).toBe(2);
   });
 
-  it("the Electrified mark still lands, and cashes in for BOLT_VS_STATUS_DMG", () => {
-    // The vs-status rider went 1 -> 0 in the 2026-09-30 balance pass, so the
-    // mark (still applied) no longer adds damage on its own — only a field's
-    // electrify bonus would, and there is no field here.
+  it("the Electrified mark is what BOLT allies actually cash in", () => {
     const s = prepState();
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 30, maxHp: 30, curShields: 0 });
     const buzz = place(s, "bolt_buzz", "P1", 2, 1);
@@ -1917,9 +1911,9 @@ describe("medium-tier passives (audit batch)", () => {
     basicAttack(s, buzz.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(26);
     expect(statusOf(s.cards[foe.instanceId], "ELECTRIFIED")).toBeTruthy();
-    // Marked: Electrify adds BOLT_VS_STATUS_DMG (now 0) vs a statused target.
+    // Marked: Electrify adds +1 vs a statused target = 5.
     basicAttack(s, buzz.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(26 - (4 + BOLT_VS_STATUS_DMG));
+    expect(s.cards[foe.instanceId].curHp).toBe(21);
   });
 
   it("Shimmering Featherrows volleys three targets, then cloaks the eagle", () => {
@@ -2668,17 +2662,15 @@ describe("Autumnal's Fall's Emergence scales Leaf Storm", () => {
 describe("Klipso's Harsh Winds", () => {
   it("adds bonus DMG on the first strike vs an opponent, once", () => {
     const s = prepState();
-    // Printed + Tailwind (GALE aura; capped at +1 since the 2026-09-30 balance
-    // pass, so derived rather than written out), plus the 4 first-strike bonus
-    // on the opener.
+    // 8 printed + 2 Tailwind (GALE aura, +1 DMG per 6 SP — Klipso is SP 13, so
+    // floor(13/6) = 2) = 10, plus the 4 first-strike bonus on the opener.
     const klipso = place(s, "gale_klipso", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
-    const base = getDef("gale_klipso").dmg + tailwindDmg(getDef("gale_klipso").sp);
-    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(base);
+    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(10);
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(60 - (base + 4));
+    expect(s.cards[foe.instanceId].curHp).toBe(46); // 60 − (10 + 4)
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(60 - (base + 4) - base); // no bonus the 2nd time
+    expect(s.cards[foe.instanceId].curHp).toBe(36); // 46 − 10 (no bonus the 2nd time)
   });
 });
 
@@ -2820,17 +2812,9 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     // difference left is the scaling.
     const twinCol = [0, 1, 2, 3].find((c) => c !== st.pos!.col && !cardAt(s, st.pos!.row, c))!;
     const twin = place(s, STORM, "P1", st.pos!.row as never, twinCol as never);
-    //
-    // EXCEPT King of the Hill: its mid-row +1 is added AFTER `statScale`
-    // (state.ts), so it is not halved. `floor(full * 0.5)` only matched here by
-    // coincidence while Tailwind handed the full-SP twin +2 and the half-SP
-    // storm +1; with Tailwind capped at +1 (2026-09-30 balance pass) both get
-    // the same +1 and the unscaled hill bonus shows. Take it out, halve, put
-    // it back.
     const full = effectiveDmg(s, s.cards[twin.instanceId]);
-    const hill = isMidRow(st.pos!.row) && !hillGivesHit(printed.dmg, printed.hits) ? 1 : 0;
     expect(effectiveDmg(s, st), "half power means half the punch")
-      .toBe(Math.floor((full - hill) * 0.5) + hill);
+      .toBe(Math.floor(full * 0.5));
   });
 
   it("and only one at a time, however often the Special fires", () => {
@@ -3402,8 +3386,7 @@ describe("element auras", () => {
     expect(golem.tempShields).toBe(0); // KEPT — tempShields is the refund marker
   });
 
-  it("Electrify (BOLT): no bonus DMG vs a statused opponent any more", () => {
-    // BOLT_VS_STATUS_DMG went 1 -> 0 in the 2026-09-30 balance pass.
+  it("Electrify (BOLT): +1 DMG vs a statused opponent", () => {
     const withStatus = prepState();
     const zap = place(withStatus, "bolt_zap", "P1", 3, 0); // DMG 5, home row (no KotH)
     const t = place(withStatus, "dusk_gool", "P2", 3, 1, {
@@ -3411,7 +3394,7 @@ describe("element auras", () => {
       status: { kind: "ROOT", duration: 2, power: 0, source: "LEAF" },
     });
     basicAttack(withStatus, zap.instanceId, t.instanceId);
-    expect(withStatus.cards[t.instanceId].curHp).toBe(20 - (5 + BOLT_VS_STATUS_DMG)); // same as unstatused
+    expect(withStatus.cards[t.instanceId].curHp).toBe(14); // 20 − 6 (5 + Electrify 1)
 
     const noStatus = prepState();
     const z2 = place(noStatus, "bolt_zap", "P1", 3, 0);
@@ -3684,11 +3667,10 @@ describe("the reworked PYRO and AQUA auras", () => {
     const s = prepState();
     const pyro = place(s, "pyro_firebird", "P1", 3, 0, { autoMode: "manual" });
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 99, maxHp: 99, curShields: 0 });
-    // Each basic adds PYRO_BURN_ADD (3 since the 2026-09-30 balance pass).
     basicAttack(s, pyro.instanceId, foe.instanceId);
-    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(PYRO_BURN_ADD);
+    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(1);
     basicAttack(s, pyro.instanceId, foe.instanceId);
-    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(Math.min(PYRO_BURN_STACK_CAP, 2 * PYRO_BURN_ADD));
+    expect(statusOf(s.cards[foe.instanceId], "BURN")?.power).toBe(2);
   });
 
   it("...and stops at the cap", () => {
@@ -3706,9 +3688,8 @@ describe("the reworked PYRO and AQUA auras", () => {
     applyStatus(s, s.cards[foe.instanceId], "BURN", 3, 3, "PYRO"); // a real rider
     basicAttack(s, pyro.instanceId, foe.instanceId);
     const b = statusOf(s.cards[foe.instanceId], "BURN")!;
-    // Added to (by PYRO_BURN_ADD, up to the cap), never overwritten down.
-    expect(b.power).toBe(Math.min(PYRO_BURN_STACK_CAP, 3 + PYRO_BURN_ADD));
-    expect(b.duration).toBe(Math.max(3, PYRO_BURN_DURATION)); // and its duration survives
+    expect(b.power).toBe(4); // added to, never overwritten down to 1
+    expect(b.duration).toBe(3); // and its duration survives
   });
 
   it("an AQUA summon pick survives Cleanup; a Downpour re-pick does not", () => {

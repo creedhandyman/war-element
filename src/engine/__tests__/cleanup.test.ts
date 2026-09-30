@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, def, place, prepState } from "./helpers";
-import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_HEAL, LEAF_SHIELD_CAP } from "../auras";
+import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
 import { effectiveSp } from "../state";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
@@ -63,9 +63,8 @@ describe("cleanup phase", () => {
     });
     const next = advance(atCleanup(s));
     // 2 + 3 = 5 BLEED dealt to P2 → Thorn drains 5 (10 → 15), then LEAF
-    // Photosynthesis adds LEAF_HEAL (3 since the 2026-09-30 balance pass), up
-    // to Thorn's max of 18.
-    expect(next.cards[thorn.instanceId].curHp).toBe(Math.min(18, 15 + LEAF_HEAL));
+    // Photosynthesis adds its +2 (→ 17).
+    expect(next.cards[thorn.instanceId].curHp).toBe(17);
   });
 
   it("Thorn's Transfusion heal is capped at maxHp", () => {
@@ -117,21 +116,20 @@ describe("cleanup phase", () => {
     });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    // 2 -1 (BURN) +1 (REGEN 2, taxed to 1) +floor(LEAF_HEAL×0.75) (LEAF aura,
-    // 3 since the 2026-09-30 balance pass, taxed to 2) = 4.
+    // 2 -1 (BURN) +1 (REGEN 2, taxed to 1) +1 (LEAF aura 2, taxed to 1) = 3.
     // Searing (PYRO matchup): a BURNing card heals at 75%, and both heals here
     // land while the burn is still on it — the tank still survives, but the
     // burn now genuinely outpaces part of its regen.
-    expect(next.cards[t.instanceId].curHp).toBe(2 - 1 + 1 + Math.max(1, Math.floor(LEAF_HEAL * 0.75)));
+    expect(next.cards[t.instanceId].curHp).toBe(3);
   });
 
-  it("the LEAF alpha aura gives +LEAF_HEAL HP at end of round (LEAF cards only)", () => {
+  it("the LEAF alpha aura gives +2 HP at end of round (LEAF cards only)", () => {
     const s = prepState();
     const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curHp: 5, maxHp: 14 });
     const pyro = place(s, "pyro_firebird", "P1", 3, 1, { curHp: 5, maxHp: 11 });
     place(s, "dusk_gool", "P2", 0, 1);
     const next = advance(atCleanup(s));
-    expect(next.cards[leaf.instanceId].curHp).toBe(5 + LEAF_HEAL); // 2 -> 3 in the 2026-09-30 balance pass
+    expect(next.cards[leaf.instanceId].curHp).toBe(7); // +2, raised from +1
     expect(next.cards[pyro.instanceId].curHp).toBe(5); // non-LEAF untouched
   });
 
@@ -489,7 +487,7 @@ describe("Photosynthesis: heal 2, and bark up where it was struck", () => {
     const leaf = place(s, "leaf_alpha", "P1", 3, 0, { curShields: 0, curHp: 5, maxHp: 14 });
     place(s, "dusk_gool", "P2", 0, 1);
     const n = advance(atCleanup(s));
-    expect(n.cards[leaf.instanceId].curHp).toBe(5 + LEAF_HEAL);
+    expect(n.cards[leaf.instanceId].curHp).toBe(7); // +2
     expect(n.cards[leaf.instanceId].curShields).toBe(0); // never struck
   });
 

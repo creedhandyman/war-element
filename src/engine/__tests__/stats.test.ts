@@ -5,7 +5,6 @@ import { applyStatus, resolveHit } from "../combat";
 import { healCard } from "../state";
 import { advance } from "../phases";
 import { atCleanup, place, prepState } from "./helpers";
-import { LEAF_HEAL } from "../auras";
 
 describe("match stats", () => {
   it("credits HP damage + a kill to the attacker (card + side total)", () => {
@@ -64,13 +63,11 @@ describe("match stats", () => {
     const n = advance(atCleanup(s));
     const sprinu = n.stats.byCard[dew.instanceId];
     const nettle = n.stats.byCard[ally.instanceId];
-    // Nettle is restored 1 from the dew + LEAF_HEAL from its own LEAF
-    // Photosynthesis (3 since the 2026-09-30 balance pass).
-    expect(nettle.healRecv).toBe(1 + LEAF_HEAL);
-    // Of that, exactly LEAF_HEAL is Nettle's OWN work (Photosynthesis). Before
-    // the fix it read one more, because the dew was filed under whoever it
-    // landed on.
-    expect(nettle.heal).toBe(LEAF_HEAL);
+    // Nettle is restored 3: 1 from the dew, 2 from its own LEAF Photosynthesis.
+    expect(nettle.healRecv).toBe(3);
+    // Of that, exactly 2 is Nettle's OWN work (Photosynthesis). Before the fix
+    // it read 3, because the dew was filed under whoever it landed on.
+    expect(nettle.heal).toBe(2);
     // ...and the dew is credited to Vernal, which used to show 0 healing done
     // despite being the only dedicated healer on the board.
     expect(sprinu.heal).toBe(1);

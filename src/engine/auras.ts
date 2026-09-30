@@ -48,7 +48,7 @@ export interface AuraDef {
  *  ladder arrives while the game is still being decided. And max 5 measures
  *  identically to max 4, so the fourth helping is the last one that does any
  *  work — anything past it is a number on a card that never gets read. */
-export const AQUA_TIDE_EVERY = 1;
+export const AQUA_TIDE_EVERY = 2;
 export const AQUA_TIDE_MAX = 4;
 
 /** VOID'S STEAL — the −1/+1 on hit, and where it stops.
@@ -113,7 +113,7 @@ export const DUSK_DRAIN = 1;
  *
  *  Per ROUND rather than per attack, so a Special that also breaks armour cannot
  *  quietly double it. */
-export const EXOSTONE_STEAL_PER_ROUND = 3;
+export const EXOSTONE_STEAL_PER_ROUND = 2;
 
 /** ...and how far above its PRINTED armour a BORE card may stack what it takes.
  *
@@ -143,10 +143,10 @@ export const EXOSTONE_STEAL_CAP = 10;
  *  other seven, 1,400 matches: +0 32.9%, +1 42.6%, +2 49.4%. With DAWN's cut in
  *  the same commit the full 8-core run reads BORE 42.9, spread 38.1 -> ~35. */
 export const EXOSTONE_SHIELDS: Record<string, number> = {
-  rare: 4, epic: 4, legendary: 4, mythic: 5,
+  rare: 3, epic: 3, legendary: 4, mythic: 5,
 };
 /** Fallback for any rarity outside the table above. */
-export const EXOSTONE_DEFAULT = 4;
+export const EXOSTONE_DEFAULT = 3;
 
 export const GALE_SP_CAP = 21;
 
@@ -193,7 +193,7 @@ export const GALE_SP_CAP = 21;
  *  a lever whose price has already been measured once. */
 export const GALE_TAILWIND_PER = 6;
 /** ...to here, so a multi-hit body cannot turn it into a blowout. */
-export const GALE_TAILWIND_CAP = 1;
+export const GALE_TAILWIND_CAP = 3;
 
 /** SLIPSTREAM: dodge starts once a card is faster than this. */
 export const GALE_SLIPSTREAM_BASE = 6;
@@ -202,7 +202,7 @@ export const GALE_SLIPSTREAM_PER = 3;
 export const GALE_SLIPSTREAM_PCT = 5;
 /** And no further — a card that dodges most of what is thrown at it stops
  *  being fragile-and-fast and starts being unkillable. */
-export const GALE_SLIPSTREAM_CAP = 10;
+export const GALE_SLIPSTREAM_CAP = 20;
 
 /** Tailwind's bonus damage, per hit, for a card at `sp`. */
 export const tailwindDmg = (sp: number): number =>
@@ -293,7 +293,7 @@ export const slipstreamPct = (sp: number): number =>
  *  (same commit) DAWN core vs the other seven, both seats, both boards, 1,400
  *  matches: 30 -> 58.5%, 35 -> 58.9%, 40 -> 60.0%. Sweep before the BORE
  *  change: 65 -> 68.9, 45 -> 63.6, 25 -> 58.4, 0 -> 53.4. */
-export const DAWN_STRIKE_PCT = 30;
+export const DAWN_STRIKE_PCT = 40;
 
 /** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
@@ -345,31 +345,15 @@ function ordinal(n: number): string {
  *  read before its own line throws when the module loads — so the table moved
  *  down here the day the DAWN and BORE lines started quoting DAWN_STRIKE_PCT and
  *  the Exostone caps instead of typing them. */
-/* Element balance pass, 2026-09-30 (owner: "get them all as close to 50 as
- * possible, 60 for dusk and dawn"). Eight win rates must average 50, so with
- * DUSK/DAWN at 60 the other six can only average ~46.7. Canonical 8-core run
- * (humans [], spells undefined, both boards, 50 seeds, k*31+7), then confirmed
- * on fresh seeds (k*37+1011):
- *   before  DUSK 65.0 GALE 62.6 DAWN 59.9 BOLT 53.1 LEAF 44.8 BORE 42.9 AQUA 37.8 PYRO 33.9
- *   after   DUSK 58.7 DAWN 57.9 BORE 50.9 LEAF 48.7 PYRO 47.0 BOLT 46.4 AQUA 45.4 GALE 44.9
- * Knobs: PYRO burn +3 a hit for 3 rounds; AQUA tide every round; LEAF heals 3;
- * BORE plates 4/4/4/5 and loots up to 3 a round; BOLT's +1 vs status gone;
- * GALE Tailwind max +1 and Slipstream max 10%; DUSK Shade no longer stacks;
- * DAWN Awakening 30%. Four rounds; the full run lives in the session log. */
-/** Photosynthesis base heal per round (was 2). */
-export const LEAF_HEAL = 3;
-/** BURN a Scorch hit adds (was 1). */
-export const PYRO_BURN_ADD = 3;
-
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
-  LEAF: { name: "Photosynthesis", desc: `End of round, LEAF cards heal +${LEAF_HEAL} HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to ${LEAF_SHIELD_CAP} shields total.` },
-  PYRO: { name: "Scorch", get desc() { return `Basic attacks apply BURN ${PYRO_BURN_ADD} for ${PYRO_BURN_DURATION} rounds, stacking up to BURN ${PYRO_BURN_STACK_CAP} on the same target.`; } },
+  LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
+  PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare ${EXOSTONE_SHIELDS.rare}, Epic ${EXOSTONE_SHIELDS.epic}, Legendary ${EXOSTONE_SHIELDS.legendary}, Mythic ${EXOSTONE_SHIELDS.mythic}. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
-  DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round${DUSK_SHADE_MAX_STACKS > 1 ? `, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%)` : ""}.` ; } },
+  DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (caps at SP ${DAWN_SP_CAP}).` },
-  GALE: { name: "Zephyr", desc: `Its speed is a weapon: +1 DMG per ${GALE_TAILWIND_PER} SP (max +${GALE_TAILWIND_CAP}), and a dodge chance of ${GALE_SLIPSTREAM_PCT}% per ${GALE_SLIPSTREAM_PER} SP above ${GALE_SLIPSTREAM_BASE} (max ${GALE_SLIPSTREAM_CAP}%). End of round, +2 SP (caps at SP ${GALE_SP_CAP}).` },
-  BOLT: { name: "Electrify", get desc() { return `Basic attacks leave the target ELECTRIFIED${BOLT_VS_STATUS_DMG > 0 ? `, and BOLT cards deal +${BOLT_VS_STATUS_DMG} DMG to any opponent carrying a status` : ""}.`; } },
+  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
+  BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
   VOID: { name: "One Eyes", desc: `Takes what it hits: each basic attack that lands steals ${VOID_STEAL_PER_ATTACK} DMG from its target and keeps it — once per attack, however many hits land (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — the first hit it takes is deflected, then every ${ordinal(VOID_DEFLECT_EVERY)} after that (${[0, 1, 2].map((k) => ordinal(1 + k * VOID_DEFLECT_EVERY)).join(", ")}…), taking half and returning half to the attacker.` },
 };
 
@@ -438,7 +422,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
  *  together to lift BOLT off 38%, and together they overshot; halving the rider
  *  keeps the setup — which is what made the aura legible — and takes back the
  *  part that was double-counting. */
-export const BOLT_VS_STATUS_DMG = 0;
+export const BOLT_VS_STATUS_DMG = 1;
 
 /** Blinding Star (Supernova): the flat miss chance its glare imposes on every
  *  enemy basic attack, board-wide, while it lives.
@@ -559,7 +543,7 @@ export const PYRO_BURN_STACK_CAP = 5;
  *  built on chip damage and pressure is the one that suffers most when the
  *  other side is content to sit. Its own aura not persisting is the part of
  *  that worth fixing rather than compensating for elsewhere. */
-export const PYRO_BURN_DURATION = 3;
+export const PYRO_BURN_DURATION = 2;
 
 /** Midnight Shade's first half: what fraction of its own DMG a dying DUSK card
  *  deals back to whoever killed it — its DMG divided by this. ONE, so all of it.
@@ -597,7 +581,7 @@ export const DUSK_SHADE_PCT = 5;
  *  that scales with how badly the round went, so it stays capped even now that
  *  the death recoil has gone back to a half (DUSK_SHADE_DEATH_DIVISOR). Five
  *  stacks — a quarter of all incoming hits — is the ceiling. */
-export const DUSK_SHADE_MAX_STACKS = 1;
+export const DUSK_SHADE_MAX_STACKS = 5;
 
 // AQUA Flow Change — the three-way summon choice. The summon pick is PERMANENT.
 //
