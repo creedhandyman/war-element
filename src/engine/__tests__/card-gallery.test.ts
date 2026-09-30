@@ -139,3 +139,23 @@ describe("the builder offers no chip it cannot fill", () => {
     expect(ELEMENTS).toContain("VOID");
   });
 });
+
+describe("the world maps are in the gallery", () => {
+  it("every Story region's painting, each with its small copy for the tile", async () => {
+    const { readdirSync } = await import("node:fs");
+    const { join } = await import("node:path");
+    const { GALLERY_MAPS } = await import("../../ui/CardGallery");
+    const { REGIONS } = await import("../../data/story");
+    const pub = join(__dirname, "..", "..", "..", "public");
+    const on = (p: string) => {
+      const parts = p.replace(/^\//, "").split("/");
+      return readdirSync(join(pub, ...parts.slice(0, -1))).includes(parts[parts.length - 1]);
+    };
+    expect(GALLERY_MAPS.map((m) => m.id)).toEqual(REGIONS.filter((r) => r.art).map((r) => r.id));
+    expect(GALLERY_MAPS.length).toBe(8);
+    for (const m of GALLERY_MAPS) {
+      expect(on(m.art), m.art).toBe(true);
+      expect(on(m.thumb), `${m.thumb} — run tools/make-thumbs.py`).toBe(true);
+    }
+  });
+});

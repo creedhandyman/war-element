@@ -38,6 +38,7 @@ import {
 } from "./filters";
 import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
+import { REGIONS } from "../data/story";
 import { describeOwnPassives } from "./card-text";
 
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -58,6 +59,21 @@ const TOKEN_IDS: Record<string, true> = Object.fromEntries(TOKENS.map((t) => [t.
 /** EVERY def in the game, bosses and tokens included — the whole point. */
 export const GALLERY_DEFS: CardDef[] = [...CARDS, ...TOKENS];
 const ALL = GALLERY_DEFS;
+
+/** THE WORLD MAPS — the eight region paintings the Story map is drawn on
+ *  (owner's call, 2026-09-29: "add the world maps to the gallery"). Not cards,
+ *  so they are their own view rather than tiles mixed into the card grid: a
+ *  1536x1024 landscape has nothing to say to a cost, a class or a keyword
+ *  filter. Taken from `REGIONS`, so a ninth region is in the gallery the day
+ *  it is on the Story map. Tiles use the 360px copy (`tools/make-thumbs.py`),
+ *  the lightbox the painting itself. */
+export const GALLERY_MAPS = REGIONS.flatMap((r) => (r.art ? [{
+  id: r.id,
+  name: r.name,
+  element: r.element as Element,
+  art: r.art,
+  thumb: r.art.replace("/maps/", "/maps/thumb/"),
+}] : []));
 
 /** Who puts this token on the board.
  *
@@ -116,7 +132,7 @@ const HAY: Record<string, string> = Object.fromEntries(ALL.map((d) => [d.id, hay
 
 export function CardGallery(props: { onClose: () => void }) {
   const [q, setQ] = useState("");
-  const [kind, setKind] = useState<KindFilter>("ALL");
+  const [kind, setKind] = useState<KindFilter | "map">("ALL");
   const [el, setEl] = useState<Element | "ALL">("ALL");
   const [cls, setCls] = useState<CardClass | "ALL">("ALL");
   const [kw, setKw] = useState<Keyword | "ALL">("ALL");
@@ -177,6 +193,25 @@ export function CardGallery(props: { onClose: () => void }) {
     return list.sort(by[sort]);
   }, [q, kind, el, cls, kw, tribe, rar, cost, sort]);
 
+  // THE MAPS VIEW: the search box narrows it by name; the card filters do not
+  // apply to a painting of a region and are hidden while it is up.
+  const maps = kind === "map";
+  const shownMaps = useMemo(() => {
+    const needle = q.trim().toLowerCase();
+    return GALLERY_MAPS.filter((m) => !needle || `${m.name} ${m.element}`.toLowerCase().includes(needle));
+  }, [q]);
+  const [mapId, setMapId] = useState<string | null>(null);
+  const map = mapId ? GALLERY_MAPS.find((m) => m.id === mapId) ?? null : null;
+  const mapAt = map ? shownMaps.findIndex((m) => m.id === map.id) : -1;
+  const openMap = (id: string) => { setMapId(id); setZoom(false); };
+  const closeMap = () => { setMapId(null); setZoom(false); };
+  useBackLayer(mapId !== null, closeMap);
+  const stepMap = (dir: 1 | -1) => {
+    if (mapAt < 0 || shownMaps.length === 0) return;
+    setMapId(shownMaps[(mapAt + dir + shownMaps.length) % shownMaps.length].id);
+    setZoom(false);
+  };
+
   const detail = detailId ? ALL.find((d) => d.id === detailId) ?? null : null;
   const at = detail ? shown.findIndex((d) => d.id === detail.id) : -1;
   /** Open a card at the painting. `zoom` resets per card: a fill crop is a
@@ -203,6 +238,15 @@ export function CardGallery(props: { onClose: () => void }) {
   // Escape closing the panel (not the whole screen) matches every other
   // overlay-inside-an-overlay in the app.
   useEffect(() => {
+    if (map) {
+      const onMapKey = (e: KeyboardEvent) => {
+        if (e.key === "ArrowRight") { e.preventDefault(); stepMap(1); }
+        else if (e.key === "ArrowLeft") { e.preventDefault(); stepMap(-1); }
+        else if (e.key === "Escape") { e.preventDefault(); closeMap(); }
+      };
+      window.addEventListener("keydown", onMapKey);
+      return () => window.removeEventListener("keydown", onMapKey);
+    }
     if (!detail) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "ArrowRight") { e.preventDefault(); step(1); }
@@ -229,7 +273,9 @@ export function CardGallery(props: { onClose: () => void }) {
   const onTouchEnd = (e: React.TouchEvent) => {
     const dx = e.changedTouches[0].clientX - swipe.x;
     const dy = e.changedTouches[0].clientY - swipe.y;
-    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) step(dx < 0 ? 1 : -1);
+    if (Math.abs(dx) > 56 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      if (map) stepMap(dx < 0 ? 1 : -1); else step(dx < 0 ? 1 : -1);
+    }
   };
 
   return (
@@ -240,7 +286,7 @@ export function CardGallery(props: { onClose: () => void }) {
             <h2>Card Gallery</h2>
             <span className="gal-sub">
               {ALL.length} cards · {CARDS.filter((c) => !c.boss).length} playable ·{" "}
-              {CARDS.filter((c) => c.boss).length} bosses · {TOKENS.length} tokens
+              {CARDS.filter((c) => c.boss).length} bosses · {TOKENS.length} tokens · {GALLERY_MAPS.length} maps
             </span>
           </div>
           <button className="ghost sm gal-close" onClick={props.onClose}>Close</button>
@@ -258,7 +304,7 @@ export function CardGallery(props: { onClose: () => void }) {
             placeholder="Search name, tribe, ability, lore…"
             onChange={(e) => setQ(e.target.value)}
           />
-          <div className="gal-sorts">
+          {!maps && <div className="gal-sorts">
             {([["element", "Element"], ["name", "A–Z"], ["cost", "Cost"], ["rarity", "Rarity"]] as const).map(
               ([k, label]) => (
                 <button key={k} className={`db-fl ${sort === k ? "on" : ""}`} onClick={() => setSort(k)}>
@@ -266,13 +312,13 @@ export function CardGallery(props: { onClose: () => void }) {
                 </button>
               ),
             )}
-          </div>
+          </div>}
         </div>
 
         {/* The filter this screen adds and no other has: the two categories the
             rest of the app deliberately hides. */}
         <div className="db-filters gal-kinds">
-          {([["ALL", "Everything"], ["card", "Cards"], ["boss", "Bosses"], ["token", "Tokens"]] as const).map(
+          {([["ALL", "Everything"], ["card", "Cards"], ["boss", "Bosses"], ["token", "Tokens"], ["map", "Maps"]] as const).map(
             ([k, label]) => (
               <button key={k} className={`db-fl ${kind === k ? "on" : ""}`} onClick={() => setKind(k)}>
                 {label}
@@ -281,8 +327,8 @@ export function CardGallery(props: { onClose: () => void }) {
           )}
         </div>
 
-        <FilterToggle open={filtersOpen} onToggle={toggleFilters} summary={filterSummary} count={shown.length} />
-        {filtersOpen && (
+        {!maps && <FilterToggle open={filtersOpen} onToggle={toggleFilters} summary={filterSummary} count={shown.length} />}
+        {!maps && filtersOpen && (
           <>
             <ElementRow value={el} onChange={setEl} />
             <ClassRow all={CLASSES} value={cls} onChange={setCls} />
@@ -301,7 +347,29 @@ export function CardGallery(props: { onClose: () => void }) {
           </div>
         )}
 
-        {shown.length === 0 ? (
+        {maps ? (
+          shownMaps.length === 0 ? (
+            <p className="story-hint gal-empty">No map matches that.</p>
+          ) : (
+            <div className="gal-maps">
+              {shownMaps.map((m) => (
+                <button
+                  key={m.id}
+                  className="gal-map"
+                  style={{ borderColor: EL_COLOR[m.element] }}
+                  onClick={() => openMap(m.id)}
+                  title={m.name}
+                >
+                  <img src={m.thumb} alt="" loading="lazy" decoding="async" />
+                  <span className="gal-map-name">
+                    <i style={{ backgroundImage: `url(${EL_ICON[m.element]})` }} aria-hidden="true" />
+                    {m.name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )
+        ) : shown.length === 0 ? (
           <p className="story-hint gal-empty">Nothing matches that.</p>
         ) : (
           <div className="db-grid gal-grid">
@@ -452,6 +520,53 @@ export function CardGallery(props: { onClose: () => void }) {
             <button className="lockin sm gal-lb-info" onClick={() => setShowInfo(true)}>
               Abilities
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* A MAP, FULL SCREEN — the same lightbox as a card's painting, without
+          the Abilities button: a region has no rules to read. */}
+      {map && (
+        <div
+          className={`gal-lightbox ${zoom ? "zoomed" : ""}`}
+          onClick={closeMap}
+          onTouchStart={onTouchStart}
+          onTouchEnd={onTouchEnd}
+          role="dialog"
+          aria-label={`${map.name} — full size`}
+        >
+          <div className="gal-frame">
+            <img
+              className="gal-plate"
+              src={map.art}
+              alt={map.name}
+              onClick={(e) => { e.stopPropagation(); setZoom((z) => !z); }}
+            />
+            <span className="gal-wm" aria-hidden="true">™ © Creed Koncepts</span>
+          </div>
+          <div className="gal-lb-top" onClick={(e) => e.stopPropagation()}>
+            <span className="gal-lb-count">{mapAt >= 0 ? `${mapAt + 1} / ${shownMaps.length}` : ""}</span>
+            <button className="gal-lb-btn" onClick={closeMap} aria-label="Back to the maps">✕</button>
+          </div>
+          {shownMaps.length > 1 && (
+            <>
+              <button
+                className="gal-lb-nav prev"
+                onClick={(e) => { e.stopPropagation(); stepMap(-1); }}
+                aria-label="Previous map"
+              ><span>‹</span></button>
+              <button
+                className="gal-lb-nav next"
+                onClick={(e) => { e.stopPropagation(); stepMap(1); }}
+                aria-label="Next map"
+              ><span>›</span></button>
+            </>
+          )}
+          <div className="gal-lb-foot" onClick={(e) => e.stopPropagation()}>
+            <div className="gal-lb-id">
+              <b style={{ color: EL_COLOR[map.element] }}>{map.name}</b>
+              <span>{map.element} · Story map</span>
+            </div>
           </div>
         </div>
       )}

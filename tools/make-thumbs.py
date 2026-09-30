@@ -29,7 +29,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 # up to ~96px wide; spell art is square and drawn as a 20-26px chip in the tray,
 # so it can go much smaller. The one place each full size is still used (card
 # detail / gallery lightbox, and the cast flash) loads the original.
-SIZES = {"cards": 500, "spells": 240}
+# The region maps are 1536x1024 landscapes shown as gallery tiles (~220px
+# wide) and, full size, only in the story map and the gallery lightbox.
+SIZES = {"cards": 500, "spells": 240, "maps": 360}
 
 
 def build(folder: str, height: int, force: bool) -> tuple[int, int, int, int, int]:
