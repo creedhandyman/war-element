@@ -280,7 +280,13 @@ export const slipstreamPct = (sp: number): number =>
  *  shift an element however broken it is on its own terms. This file has said
  *  for a long time that auras and element-wide rules are the only levers that
  *  have ever moved a number here; that is now measured twice more. */
-export const DAWN_STRIKE_PCT = 75;
+/** SIXTY-FIVE since 2026-09-29 (owner: "nerf dawn a little"), after Tank
+ *  Bulwark lifted DAWN to 74.9%. DAWN core vs the other seven, both seats, both
+ *  boards, 1,400 matches a setting: 75 -> 74.6%, 70 -> 73.4% (noise), 65 ->
+ *  71.3%, 60 -> 70.8%. 65 was rejected above for tying BOLT; BOLT now reads
+ *  ~52, so DAWN still leads by a wide margin. The cut lands mostly on GALE
+ *  (64 -> 52) and DUSK (65 -> 57). */
+export const DAWN_STRIKE_PCT = 65;
 
 /** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
