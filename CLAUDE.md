@@ -199,6 +199,30 @@ field and that test will tell you it's undescribed. It also guards against
 empty passive labels (`"On a kill: ."`), which is how several describer gaps
 were originally found.
 
+## Tanks — BULWARK, the class rule (`rules.ts` `tankScreens`)
+
+Owner, 2026-09-29: "buff the tanks" / "Tanks should be better at blocking and
+preventing people from shooting over them". Before this the Tank class had NO
+rule at all — only its HP-heavy stat split — and swapping every Tank out of the
+builder's pair squads for the best same-cost card of another class WON +5.8
+points on 4x4 (19/26 better), +3.5 on 5x5.
+
+The rule, inside `rangedCanSee` so every sight check inherits it (ranged
+basics, Long Reach lances, giants' swings beyond a step, The Deepest): an
+enemy Tank stops a shot two or more steps long when the line of fire crosses
+its square at ANY angle (`lineCrosses`, centre to centre, corners excluded —
+an ordinary body still only screens straight lines), or when the target stands
+NEXT TO the Tank (it covers its neighbours; a shooter right beside them still
+hits). The Tank itself stays targetable. Ranged SPECIALS stay unscreened.
+Not carried by bosses (Tower tuning untouched) nor by `guardsHomeRow` gates,
+whose one-column screen is the point of breaking a gate.
+
+Measured (28 pair squads vs the 35 premades, both seats, seeds k*53+1009):
+Tanks-out delta 4x4 +5.8 → -0.9 (11/26), 5x5 +3.5 → -3.1 (10/28). Variants
+tried: line-only +3.9, wider king-path corridor +3.7, guard + Specials -2.1
+(overshoots). Canonical 8-core run, off → on: LEAF +5.7, DAWN +2.3, the rest
+within noise (±2.6). Text: `TANK_BULWARK_TEXT` (card-text) + the rules book.
+
 ## Element systems
 
 Two separate layers, don't confuse them:

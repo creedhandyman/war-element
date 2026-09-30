@@ -172,6 +172,13 @@ export function RulesBook(props: { onClose: () => void }) {
                 block. Allies never get in the way.
               </li>
               <li>
+                {/* rules.ts `tankScreens` — the Tank class rule, basics only. */}
+                <b>Tanks hold the line.</b> Nothing shoots over a Tank: a ranged basic
+                whose line passes over one is stopped from <i>any</i> angle, and a Tank
+                covers every ally standing next to it — those can only be shot by a card
+                that is right beside them too. The Tank itself can always be hit.
+              </li>
+              <li>
                 {/* A ranged card's Special skips every reach branch in canTarget
                     (those are basic-only), so it has no range cap and no body can
                     screen it; the Home rule and STEALTH still run for it. */}

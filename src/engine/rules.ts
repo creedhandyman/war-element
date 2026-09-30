@@ -696,7 +696,9 @@ export const RANGED_REACH = 2;
  * same column, or a true diagonal). On those the single intervening square
  * stops the shot; the blocker itself stays a legal target, since you can always
  * shoot the thing in your face. Knight-shaped shots have no single line to
- * interrupt, so they arc over the gap and cannot be screened.
+ * interrupt, so they arc over the gap and cannot be screened by an ordinary body.
+ * A TANK screens far more — any line of fire over it, and its neighbours —
+ * see `tankScreens` (BULWARK).
  *
  * Only ENEMY bodies block. Chess would have your own pieces screen too, but a
  * formation that silently disarms your own archer reads as a broken UI rather
@@ -737,7 +739,65 @@ export function rangedCanSee(
       if (between && between.owner !== shooter) return false;
     }
   }
+  // BULWARK — a Tank screens far more than a body does. See `tankScreens`.
+  if (dist >= 2 && tankScreens(state, from, to, shooter)) return false;
   return true;
+}
+
+/** Does the line of fire from `from` to `to` pass through the INTERIOR of the
+ *  square `k`? Centre to centre; a corner touch does not count, so a true
+ *  diagonal crosses exactly the squares on its diagonal. */
+export function lineCrosses(from: Pos, to: Pos, k: Pos): boolean {
+  if ((k.row === from.row && k.col === from.col) || (k.row === to.row && k.col === to.col)) return false;
+  let lo = 0;
+  let hi = 1;
+  const slab = (s: number, d: number, kk: number): boolean => {
+    if (d === 0) return s === kk;
+    let a = (kk - 0.5 - s) / d;
+    let b = (kk + 0.5 - s) / d;
+    if (a > b) [a, b] = [b, a];
+    if (a > lo) lo = a;
+    if (b < hi) hi = b;
+    return true;
+  };
+  if (!slab(from.row, to.row - from.row, k.row)) return false;
+  if (!slab(from.col, to.col - from.col, k.col)) return false;
+  return lo < hi;
+}
+
+/**
+ * BULWARK — the Tank class rule (owner, 2026-09-29: "Tanks should be better at
+ * blocking and preventing people from shooting over them"). Any enemy (to
+ * `shooter`) Tank on the board stops a shot two or more steps long when:
+ *
+ *  - the line of fire passes OVER its square, at any angle — an ordinary body
+ *    only stops a straight-line shot, so knight-shaped shots used to arc past
+ *    everything; or
+ *  - the target stands NEXT TO the Tank. It covers its neighbours: they can
+ *    only be shot from right beside them (a distance-1 shot never gets here).
+ *
+ * The Tank itself stays a legal target, like any blocker. Bosses are giants
+ * with their own rules and do not carry it, so the Tower's tuning is untouched;
+ * nor do the gates (`guardsHomeRow`), whose screen is deliberately one column
+ * each — breaking one gate must open that lane, not stay covered by the next.
+ *
+ * MEASURED (4x4, the 28 builder pair squads vs the 35 premades, both seats):
+ * swapping every Tank for the best same-cost card of another class went from
+ * +5.8 points (19/26 squads better without Tanks) to -0.9 (11/26); 5x5 +3.5 ->
+ * -3.1. The line rule alone reached only +3.9, a wider corridor +3.7; adding
+ * ranged Specials to the guard overshot to -2.1, so Specials stay unscreened.
+ */
+export function tankScreens(state: GameState, from: Pos, to: Pos, shooter: PlayerId): boolean {
+  for (const c of Object.values(state.cards)) {
+    const k = c.pos;
+    if (!k || c.owner === shooter) continue;
+    const def = getDef(c.defId);
+    if (def.cardClass !== "Tank" || def.boss || def.guardsHomeRow) continue;
+    if ((k.row === to.row && k.col === to.col) || (k.row === from.row && k.col === from.col)) continue;
+    if (Math.max(Math.abs(k.row - to.row), Math.abs(k.col - to.col)) === 1) return true;
+    if (lineCrosses(from, to, k)) return true;
+  }
+  return false;
 }
 
 /**

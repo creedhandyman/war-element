@@ -233,6 +233,11 @@ export interface SharedPassive {
  *  THIS card does. The shared text is worth having and worth reading once; it
  *  is not worth re-reading every time you inspect a card, and it was crowding
  *  out the part that differs. */
+/** The Tank class rule, as the card panel and the rules book both say it. */
+export const TANK_BULWARK_TEXT =
+  "enemy ranged attacks can't shoot over it: a shot whose line passes over it is stopped at any angle, "
+  + "and so is a shot at any ally standing next to it — unless the shooter is right beside that ally too.";
+
 export function describeSharedPassives(def: CardDef): SharedPassive[] {
   const shared: SharedPassive[] = [];
   // The card's own element aura, plus any it borrows (SirCrest's PYRO + AQUA).
@@ -247,6 +252,10 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
       : a.desc;
     shared.push({ kind: "aura", label: `${el} aura — ${a.name}`, desc });
   }
+  // The Tank's class rule (rules.ts `tankScreens`). Bosses are giants with their
+  // own rules and do not carry it.
+  if (def.cardClass === "Tank" && !def.boss && !def.guardsHomeRow)
+    shared.push({ kind: "aura", label: "TANK — Bulwark", desc: TANK_BULWARK_TEXT });
   if (hasArcDischarge(def))
     shared.push({
       kind: "aura",

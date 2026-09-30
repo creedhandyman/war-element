@@ -1,7 +1,7 @@
 // Milestone 3: targeting — melee rows, ranged, Home Slot Rule, FLYING, STEALTH.
 
 import { describe, expect, it } from "vitest";
-import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
+import { canFireSpecial, canMove, canSpellHitEnemy, canTarget, lineCrosses, previewOnSummonArea, rangedCanSee, rangedReachFor, specialTargets, validSpecialTargets, validTargets } from "../rules";
 import { applyStatus, SPECIAL_HANDLERS } from "../combat";
 import { applyIntent } from "../phases";
 import { CARDS, getDef } from "../../data/cards";
@@ -707,5 +707,66 @@ describe("a Special is gated on who actually reaches — the swarm does the reac
     const d = getDef("bore_bolder");
     expect(d.keywords.TRAMPLE).toBe(true);
     expect(d.trampleDmg, "a third of its 6 DMG, the ratio the others took").toBe(2);
+  });
+});
+
+// BULWARK — the Tank class rule (owner, 2026-09-29): nothing shoots over a Tank.
+describe("Tanks hold the line", () => {
+  const TANK = "aqua_polarking"; // Tank, not a boss
+  const BODY = "leaf_alpha";     // Warrior — an ordinary body
+
+  it("covers the allies beside it from a shot two or more steps away", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 0, 1);
+    place(s, "dusk_gool", "P1", 2, 1);           // the target, two straight down
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
+    place(s, TANK, "P1", 2, 2);                  // a Tank beside it
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(false);
+    place(s, BODY, "P1", 3, 3);                  // an ordinary body does no such thing
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 2 }, "P2"), "the Tank itself stays a target").toBe(true);
+  });
+
+  it("a shooter right beside the covered card still hits it", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 1, 1);
+    place(s, TANK, "P1", 2, 2);
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
+  });
+
+  it("stops a shot that passes over it at an angle — a body only stops straight ones", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 0, 0);
+    const to = { row: 3, col: 1 };               // 3 down, 1 across: crosses r1c0 and r2c1
+    expect(rangedCanSee(s, me.pos!, to, "P2", 3)).toBe(true);
+    const body = place(s, BODY, "P1", 1, 0);
+    expect(rangedCanSee(s, me.pos!, to, "P2", 3), "a body off the straight line").toBe(true);
+    s.cards[body.instanceId].pos = null;
+    place(s, TANK, "P1", 1, 0);                  // not beside the target — the line rule alone
+    expect(rangedCanSee(s, me.pos!, to, "P2", 3)).toBe(false);
+  });
+
+  it("the shooter's own Tanks, bosses and gates do not screen", () => {
+    const s = prepState();
+    const me = place(s, "dusk_ghastly", "P2", 0, 1);
+    place(s, TANK, "P2", 1, 1);                  // an ALLY of the shooter
+    expect(rangedCanSee(s, me.pos!, { row: 2, col: 1 }, "P2")).toBe(true);
+    const t = prepState();
+    const shooter = place(t, "dusk_ghastly", "P2", 0, 1);
+    place(t, "boss_permafrost", "P1", 2, 2);
+    expect(rangedCanSee(t, shooter.pos!, { row: 2, col: 1 }, "P2"), "a boss Tank").toBe(true);
+    expect(getDef("void_fortress_gate_tok").cardClass).toBe("Tank");
+  });
+
+  it("line of fire: centre to centre, corners do not count", () => {
+    const o = { row: 0, col: 0 };
+    expect(lineCrosses(o, { row: 2, col: 2 }, { row: 1, col: 1 })).toBe(true);
+    expect(lineCrosses(o, { row: 2, col: 2 }, { row: 0, col: 1 })).toBe(false);
+    expect(lineCrosses(o, { row: 2, col: 2 }, { row: 1, col: 0 })).toBe(false);
+    // a knight's shot straddles both squares between
+    expect(lineCrosses(o, { row: 2, col: 1 }, { row: 1, col: 0 })).toBe(true);
+    expect(lineCrosses(o, { row: 2, col: 1 }, { row: 1, col: 1 })).toBe(true);
+    expect(lineCrosses(o, { row: 3, col: 1 }, { row: 1, col: 1 })).toBe(false);
+    expect(lineCrosses(o, { row: 3, col: 1 }, { row: 2, col: 1 })).toBe(true);
+    expect(lineCrosses(o, { row: 2, col: 0 }, { row: 0, col: 0 }), "not the shooter's own square").toBe(false);
   });
 });
