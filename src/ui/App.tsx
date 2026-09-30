@@ -282,6 +282,7 @@ import { FlowChangeModal } from "./FlowChangeModal";
 import { ActionWheel, underWheel, wheelTap, type WheelVerb } from "./ActionWheel";
 import { browserBackStack } from "./back-stack";
 import { useBackLayer } from "./use-back-layer";
+import { RotateGate, usePortraitGate } from "./PortraitLock";
 import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
@@ -1750,12 +1751,20 @@ export function App() {
     setMatchLive(started && game.phase !== "gameover");
   }, [started, game.phase]);
 
+  // Battles on a phone are portrait (PortraitLock.tsx): locked where the
+  // platform allows it, and behind a turn-it-upright cover where it does not.
+  const rotateGated = usePortraitGate(started && game.phase !== "gameover");
+
   // Auto-advance the non-interactive steps. Local: whoever's driving advances
   // whenever no human is needed. Online: ONLY the host advances the shared
   // no-input steps (and broadcasts) so the two clients never double-apply.
   useEffect(() => {
     if (!started || game.phase === "gameover") return;
     if (stagedCast) return; // an AI spell is being shown before it lands
+    // A phone held sideways sits behind the rotate cover: hold a LOCAL match
+    // there, so the AI does not play out turns nobody can see. Not online —
+    // holding the host would stall the other player's game too.
+    if (rotateGated && !online) return;
     if (online) {
       if (online.role !== "host" || needsInput(game) !== null) return;
     } else if (needsP1Input(game)) {
@@ -1824,7 +1833,7 @@ export function App() {
       // re-run computes the same step and lights it again.
       setStrike(null);
     };
-  }, [game, started, online, announce, castFlash, stagedCast, paceTick]);
+  }, [game, started, online, announce, castFlash, stagedCast, paceTick, rotateGated]);
 
   // THE AI'S SPELL, SHOWN BEFORE IT LANDS: its art flashes (the board is under
   // a near-opaque scrim while it does), then the flash clears onto its targets
@@ -6662,6 +6671,7 @@ export function App() {
           stepCount={ONBOARDING_COUNT}
         />
       )}
+      {rotateGated && <RotateGate />}
     </MatchLayout>
   );
 }

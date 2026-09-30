@@ -178,12 +178,41 @@
                        one full-screen layer that deliberately does NOT trap
                        input — every dim panel is pointer-events:none.        */
   --z-modal: 500;   /* traps input: card view, win screen, spell choice        */
+  --z-rotate: 700;  /* the phone's turn-it-upright cover in a battle: over
+                       EVERYTHING, modals too — nothing under it is usable
+                       sideways, and a tap must not reach through it.        */
 
   /* ── element identity ─── declared here so anything carrying an element can
      consume it, not only .token. Gold is the fallback for anything that has no
      element at all; the [data-el] block below is what gives it a real one. */
   --el-rim: var(--gold);
   --el: var(--el-rim);
+}
+
+/* ── Battles are portrait on a phone (PortraitLock.tsx) ──────────────────────
+   Where the platform cannot lock the screen (iOS, a browser tab), a phone held
+   sideways in a battle gets this cover until it is turned back. */
+.rotate-gate {
+  position: fixed; inset: 0; z-index: var(--z-rotate);
+  display: grid; place-items: center; padding: 24px;
+  background: var(--void); color: var(--ink); text-align: center;
+}
+.rotate-gate-card { max-width: 320px; }
+.rotate-gate h2 { margin: 18px 0 6px; font-size: 20px; color: var(--gold-lit); }
+.rotate-gate p { margin: 0; font-size: 14px; line-height: 1.45; color: var(--ink-dim); }
+/* A phone outline that turns from sideways to upright. Transform only, so it
+   passes the infinite-animation ratchet in styles.test. */
+.rotate-gate-phone {
+  width: 38px; height: 64px; margin: 0 auto; border-radius: 8px;
+  border: 3px solid var(--gold-lit); box-shadow: 0 0 18px rgba(232, 200, 119, .35);
+  animation: rotate-gate-turn 2.2s ease-in-out infinite;
+}
+@keyframes rotate-gate-turn {
+  0%, 20% { transform: rotate(-90deg); }
+  55%, 100% { transform: rotate(0deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rotate-gate-phone { animation: none; }
 }
 
 /* ── element identity, one attribute ──────────────────────────────────────

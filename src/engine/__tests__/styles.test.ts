@@ -132,7 +132,7 @@ describe("styles.css structure", () => {
   it("declares the z-layer ladder in strictly increasing order", () => {
     const LADDER = ["--z-queue", "--z-hand", "--z-frame", "--z-drawer", "--z-sheet",
                     "--z-vfx", "--z-hud", "--z-overlay", "--z-nav", "--z-toast", "--z-guide",
-                    "--z-modal"];
+                    "--z-modal", "--z-rotate"];
     const values = LADDER.map((name) => {
       const m = new RegExp(`${name}:\\s*(\\d+)`).exec(CSS);
       return { name, value: m ? Number(m[1]) : NaN };
