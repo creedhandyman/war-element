@@ -139,11 +139,14 @@ export const EXOSTONE_STEAL_CAP = 10;
  *  give to 9, and measured as a small net loss for the element. Holding the
  *  bottom two flat means no card is worse off than before and the 9 rarest get
  *  the scaling. */
+/** +1 at every tier since 2026-09-30 (owner: "buff bore"). BORE core vs the
+ *  other seven, 1,400 matches: +0 32.9%, +1 42.6%, +2 49.4%. With DAWN's cut in
+ *  the same commit the full 8-core run reads BORE 42.9, spread 38.1 -> ~35. */
 export const EXOSTONE_SHIELDS: Record<string, number> = {
-  rare: 2, epic: 2, legendary: 3, mythic: 4,
+  rare: 3, epic: 3, legendary: 4, mythic: 5,
 };
 /** Fallback for any rarity outside the table above. */
-export const EXOSTONE_DEFAULT = 2;
+export const EXOSTONE_DEFAULT = 3;
 
 export const GALE_SP_CAP = 21;
 
@@ -286,7 +289,11 @@ export const slipstreamPct = (sp: number): number =>
  *  71.3%, 60 -> 70.8%. 65 was rejected above for tying BOLT; BOLT now reads
  *  ~52, so DAWN still leads by a wide margin. The cut lands mostly on GALE
  *  (64 -> 52) and DUSK (65 -> 57). */
-export const DAWN_STRIKE_PCT = 65;
+/** FORTY since 2026-09-30 (owner: "move dawn to 60"). With BORE's +1 plating
+ *  (same commit) DAWN core vs the other seven, both seats, both boards, 1,400
+ *  matches: 30 -> 58.5%, 35 -> 58.9%, 40 -> 60.0%. Sweep before the BORE
+ *  change: 65 -> 68.9, 45 -> 63.6, 25 -> 58.4, 0 -> 53.4. */
+export const DAWN_STRIKE_PCT = 40;
 
 /** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
@@ -341,7 +348,7 @@ function ordinal(n: number): string {
 export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
-  BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare 2, Epic 2, Legendary 3, Mythic 4. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
+  BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare ${EXOSTONE_SHIELDS.rare}, Epic ${EXOSTONE_SHIELDS.epic}, Legendary ${EXOSTONE_SHIELDS.legendary}, Mythic ${EXOSTONE_SHIELDS.mythic}. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
   DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (caps at SP ${DAWN_SP_CAP}).` },
