@@ -603,11 +603,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    tinted base underneath, unchanged. */
 .slot {
   background:
-    linear-gradient(135deg, rgba(255, 244, 222, 0.11) 0%, transparent 28%, transparent 64%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(135deg, rgba(255, 244, 222, 0.07) 0%, transparent 26%, transparent 66%, rgba(0, 0, 0, 0.3) 100%),
     linear-gradient(rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4)), rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4))),
     linear-gradient(rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08))),
     url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
     radial-gradient(95% 95% at 50% 42%, rgba(70, 74, 92, 0.32), rgba(14, 16, 24, 0.6));
+  /* CRISP EDGES: a one-pixel lit lip top-left and a dark one bottom-right —
+     the hard edge of a cut block, which a blurred rim alone never reads as. */
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--tile) 26%, transparent),
+    inset 1px 1px 0 rgba(255, 246, 228, 0.14), inset -1px -1px 0 rgba(0, 0, 0, 0.6),
+    inset 0 0 18px rgba(0, 0, 0, 0.45),
+    inset 0 0 10px color-mix(in srgb, var(--tile) 10%, transparent);
 }
 /* THE HOME ROWS sit LOW: a shadow falling in from the top edge, and the row's
    own colour (red theirs, blue yours) washed through the stone so the tint the
@@ -615,12 +622,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.row-your, .slot.row-opp {
   box-shadow:
     0 0 12px color-mix(in srgb, var(--tile) 30%, transparent),
+    inset 1px 1px 0 rgba(255, 246, 228, 0.14), inset -1px -1px 0 rgba(0, 0, 0, 0.6),
     inset 0 7px 10px -3px rgba(0, 0, 0, 0.6),
     inset 0 0 22px color-mix(in srgb, var(--tile) 16%, transparent);
 }
-/* The seam between tiles: dark worn mortar, not a glowing line. */
+/* The seam between tiles: dark worn MORTAR — the same stone, deep in shadow,
+   so the gaps have grit rather than reading as flat black. */
 .board { background:
-    radial-gradient(120% 90% at 30% 20%, rgba(46, 52, 74, 0.35), rgba(8, 9, 15, 0.95)),
+    radial-gradient(120% 90% at 30% 20%, rgba(46, 52, 74, 0.3), rgba(6, 7, 11, 0.9)),
+    linear-gradient(rgba(4, 5, 9, 0.62), rgba(4, 5, 9, 0.62)),
+    url("/tile-stone.webp") 0 0 / 300px auto repeat,
     linear-gradient(180deg, #0d0e14, #07080c); }
 /* THE HILL — the rows King of the Hill counts, drawn as a raised platform: a
    lighter stone, a bright lip along the top edge and a ledge shadow cast below,
@@ -628,7 +639,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.hill {
   background:
     linear-gradient(180deg, rgba(255, 246, 228, 0.22) 0, rgba(255, 246, 228, 0.07) 6%, transparent 18%),
-    linear-gradient(135deg, rgba(255, 244, 222, 0.11) 0%, transparent 28%, transparent 64%, rgba(0, 0, 0, 0.32) 100%),
+    linear-gradient(135deg, rgba(255, 244, 222, 0.07) 0%, transparent 26%, transparent 66%, rgba(0, 0, 0, 0.26) 100%),
     linear-gradient(rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34)), rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34))),
     linear-gradient(rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08))),
     url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
@@ -636,7 +647,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow:
     0 7px 8px -2px rgba(0, 0, 0, 0.85),
     0 0 12px color-mix(in srgb, var(--tile) 22%, transparent),
-    inset 0 1px 0 rgba(255, 246, 228, 0.24),
+    inset 0 1px 0 rgba(255, 246, 228, 0.26),
+    inset 1px 0 0 rgba(255, 246, 228, 0.12),
+    inset -1px -1px 0 rgba(0, 0, 0, 0.6),
     inset 0 -3px 4px rgba(0, 0, 0, 0.35);
 }
 /* ONE GLOW LAYER PER TILE, AND THE REASON IS BATTERY.
