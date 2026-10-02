@@ -25,7 +25,7 @@ function seeded(seed: number): () => number {
 }
 
 describe("choosing the lean", () => {
-  it("the first pick is free; a change costs shards; the same pick costs nothing", () => {
+  it("the first pick is free; a new element costs shards; the same pick and stopping cost nothing", () => {
     const start = withShards(30);
     expect(packLeanOf(start)).toBeNull();
     expect(packLeanCost(start, "PYRO")).toBe(0);
@@ -34,7 +34,7 @@ describe("choosing the lean", () => {
     expect(first.hero!.shards).toBe(30);
     expect(packLeanCost(first, "PYRO")).toBe(0);
     expect(packLeanCost(first, "AQUA")).toBe(PACK_LEAN_CHANGE_COST);
-    expect(packLeanCost(first, null)).toBe(PACK_LEAN_CHANGE_COST);
+    expect(packLeanCost(first, null), "stopping is free").toBe(0);
     // 30 shards cannot pay for a change.
     expect(setPackLean(first, "AQUA")).toBeNull();
     const rich = { ...first, hero: { ...first.hero!, shards: 120 } };
@@ -44,7 +44,9 @@ describe("choosing the lean", () => {
     expect(changed.gifts!.filter((g) => g.startsWith("packlean:"))).toEqual(["packlean:AQUA"]);
     const cleared = setPackLean(changed, null)!;
     expect(packLeanOf(cleared)).toBeNull();
-    expect(cleared.hero!.shards).toBe(120 - 2 * PACK_LEAN_CHANGE_COST);
+    expect(cleared.hero!.shards, "stopping is free").toBe(120 - PACK_LEAN_CHANGE_COST);
+    // ...but leaning again afterwards is a change, not a first pick.
+    expect(packLeanCost(cleared, "LEAF")).toBe(PACK_LEAN_CHANGE_COST);
     expect(setPackLean(withShards(99), "NOT_AN_ELEMENT")).toBeNull();
   });
 

@@ -3407,8 +3407,8 @@ With an element set, each card slot of `openPack` has `PACK_LEAN` (0.5) chance
 to draw from that element alone (the guarantee slot too), else from the whole
 set — about 56% of a pack, every card still possible. The coin is only tossed
 when a lean is set, so unleaned packs roll exactly as before. First pick free,
-any later change (including back to Any) costs `PACK_LEAN_CHANGE_COST` (50
-shards) and asks to confirm. Stored in `gifts` as `packlean:<EL|none>` (same
+stopping (back to Any) always free; leaning toward a NEW element after the free
+pick costs `PACK_LEAN_CHANGE_COST` (50 shards) and asks to confirm. Stored in `gifts` as `packlean:<EL|none>` (same
 old-build reasoning as the foil rerolls); `packLeanOf` / `packLeanCost` /
 `setPackLean` in story.ts, and `packOdds(guaranteed, lean)` quotes the leaned
 mix. `pack-lean.test.ts` pins the cost rules and the ~56% share.

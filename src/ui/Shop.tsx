@@ -422,7 +422,7 @@ export function Shop(props: {
             ) : (
               <div className="lean-note">
                 {save.gifts?.some((g) => g.startsWith("packlean:"))
-                  ? <>Changing it costs {PACK_LEAN_CHANGE_COST}<i className="shard" /></>
+                  ? <>A new element costs {PACK_LEAN_CHANGE_COST}<i className="shard" /> · Any is free</>
                   : "Your first pick is free."}
               </div>
             )}

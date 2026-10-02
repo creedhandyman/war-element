@@ -1739,8 +1739,8 @@ function pullOne(pool: readonly string[], rand: () => number, weights: Record<st
  *  has a `PACK_LEAN` chance to be drawn from that element alone, and otherwise
  *  draws from the whole set as before — so about 56% of a leaned pack is that
  *  element (the even split is 12.5%), and every card in the game can still turn
- *  up. The first choice is free; changing it after costs `PACK_LEAN_CHANGE_COST`
- *  shards, a pack's price.
+ *  up. The first choice is free, and so is stopping; leaning toward a new
+ *  element after that costs `PACK_LEAN_CHANGE_COST` shards, a pack's price.
  *
  *  Stored in the save's gifts ledger as `packlean:<ELEMENT>` (or `packlean:none`
  *  once cleared), not a new save field: `loadStory` is a whitelist, and an older
@@ -1759,10 +1759,12 @@ export function packLeanOf(save: StorySave): string | null {
 }
 
 /** Shards it costs to set the lean to `next` (null = no lean): nothing for the
- *  first choice ever made, nothing for picking what is already set. */
+ *  first choice ever made, nothing for picking what is already set, and
+ *  nothing to STOP leaning (owner's call) — only leaning toward a new element
+ *  costs, once the free pick is used. */
 export function packLeanCost(save: StorySave, next: string | null): number {
   const everSet = (save.gifts ?? []).some((g) => g.startsWith(LEAN_MARK));
-  if (!everSet) return 0;
+  if (!everSet || next === null) return 0;
   return packLeanOf(save) === next ? 0 : PACK_LEAN_CHANGE_COST;
 }
 
