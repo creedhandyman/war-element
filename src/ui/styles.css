@@ -753,6 +753,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 0 26px rgba(229, 83, 61, 0.5), inset 0 0 22px var(--threat-soft);
   animation: glowpulse 1.2s ease-in-out infinite;
 }
+/* ...and the CARD it will strike wears the ring itself. The token covers the
+   whole square, so on an occupied square the glow above was all but hidden —
+   and the board greys the other side while you hold a card, which made the
+   one enemy the preview was about the hardest thing on it to see. */
+.slot.preview > .token {
+  opacity: 1;
+  box-shadow: 0 0 0 2px var(--threat), 0 0 16px rgba(229, 83, 61, 0.65);
+}
 /* The REACH of a staged summon's arrival strike: every square it could hit
    from there, as a faint red tint. The cards it WILL hit are `.preview` above
    it — same hue, solid — so the picture reads "this far, and these ones". */
@@ -764,9 +772,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.reach { border-color: rgba(229, 83, 61, 0.45); }
 /* On-summon damage AREA preview — a red wash over every tile it will strike. */
 .slot.preview { border-color: var(--threat); z-index: 2; }
+/* As strong OUTSIDE as an attack target's: a struck square usually holds a
+   card, which covers the inset half entirely, and at 0.25 the outer half was
+   too faint to pick out from the reach tint around it. */
 .slot.preview > .slot-glow {
   --glow-min: 0.55;
-  box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 16px rgba(229, 83, 61, 0.25);
+  box-shadow: inset 0 0 24px rgba(229, 83, 61, 0.34), 0 0 26px rgba(229, 83, 61, 0.55);
   animation: glowpulse 1.5s ease-in-out infinite;
 }
 /* THE AIM — the footprint of an armed area Special (Airburst's 4x4, Mega
