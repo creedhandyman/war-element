@@ -29,8 +29,8 @@ import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
   applyPack, buyBox, canBuyBox, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
-  dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packOdds,
-  rerollFoil, type PackResult, type StorySave,
+  dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packLeanCost,
+  packLeanOf, packOdds, PACK_LEAN, PACK_LEAN_CHANGE_COST, rerollFoil, setPackLean, type PackResult, type StorySave,
 } from "../data/story";
 import { FOIL_BONUS, FOIL_REROLL_COST, FOIL_STAT_LABEL, foilStatOf, type FoilStat } from "../data/foils";
 import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
@@ -44,14 +44,15 @@ const fmtPct = (p: number): string =>
 /** Commonest first, which is the order the bar stacks them in. `pct` is the
  *  REAL chance a pulled card is that rarity — `packOdds`, not the raw weight
  *  (PACK_WEIGHT is per card; see the note on `packOdds`). */
-const ODDS_ROWS = (() => {
-  const odds = packOdds();
+const oddsRowsFor = (lean: string | null) => {
+  const odds = packOdds(false, lean);
   return (["rare", "epic", "legendary", "mythic"] as const).map((r) => ({
     rarity: r as string,
     pct: (odds[r] ?? 0) * 100,
     refund: Math.max(1, Math.floor((CRAFT_COST[r] ?? 4) / 2)),
   }));
-})();
+};
+const ODDS_ROWS = oddsRowsFor(null);
 /** ...and what the guaranteed last card rolls at, when the guarantee fires. */
 const GUARANTEE_LINE = (() => {
   const odds = packOdds(true);
@@ -191,6 +192,27 @@ export function Shop(props: {
     if (!foilPick) return;
     props.onSave(keepFoilStat(save, foilPick.id, stat));
     setFoilPick(null);
+  };
+
+  /** THE ELEMENT LEAN (owner's call): which element packs lean toward, what a
+   *  change costs, and a change waiting on its confirm. The first choice is
+   *  free and applies at once; after that a change costs shards, so it asks. */
+  const lean = packLeanOf(save);
+  const oddsRows = useMemo(() => oddsRowsFor(lean), [lean]);
+  const [leanAsk, setLeanAsk] = useState<{ to: string | null } | null>(null);
+  const pickLean = (to: string | null) => {
+    if (to === lean && save.gifts?.some((g) => g.startsWith("packlean:"))) { setLeanAsk(null); return; }
+    if (packLeanCost(save, to) === 0) {
+      const next = setPackLean(save, to);
+      if (next) props.onSave(next);
+      setLeanAsk(null);
+    } else setLeanAsk({ to });
+  };
+  const confirmLean = () => {
+    if (!leanAsk) return;
+    const next = setPackLean(save, leanAsk.to);
+    if (next) props.onSave(next);
+    setLeanAsk(null);
   };
 
   const missing = useMemo(
@@ -364,12 +386,54 @@ export function Shop(props: {
             {PACK_SIZE} cards · at least one Epic or better
           </div>
 
+          {/* ── THE ELEMENT LEAN ───────────────────────────────────────────
+              Each card has a coin-flip's chance to come from the chosen
+              element; the rest of the set can still turn up. First pick free,
+              a change after that costs a pack's worth of shards — and asks. */}
+          <div className="lean">
+            <div className="odds-head">
+              ELEMENT LEAN <em>{lean
+                ? `about ${Math.round((PACK_LEAN + (1 - PACK_LEAN) / REGIONS.length) * 100)}% of each pack is ${lean}`
+                : "packs draw evenly from every element"}</em>
+            </div>
+            <div className="lean-row">
+              <button className={`lean-chip ${lean === null ? "on" : ""}`} onClick={() => pickLean(null)}>Any</button>
+              {REGIONS.map((r) => (
+                <button key={r.element}
+                  className={`lean-chip ${lean === r.element ? "on" : ""}`}
+                  style={lean === r.element ? { borderColor: EL_COLOR[r.element as keyof typeof EL_COLOR] } : undefined}
+                  onClick={() => pickLean(r.element)}
+                  title={`Lean packs toward ${r.element}`}>
+                  <img src={EL_ICON[r.element as keyof typeof EL_ICON]} alt={r.element} draggable={false} />
+                </button>
+              ))}
+            </div>
+            {leanAsk ? (
+              <div className="lean-ask">
+                <span>
+                  {leanAsk.to ? <>Lean packs to <b>{leanAsk.to}</b></> : <>Stop leaning packs</>} for{" "}
+                  {packLeanCost(save, leanAsk.to)}<i className="shard" />?
+                </span>
+                <button className="lockin sm" disabled={shards < packLeanCost(save, leanAsk.to)} onClick={confirmLean}>
+                  Confirm
+                </button>
+                <button className="ghost sm" onClick={() => setLeanAsk(null)}>Cancel</button>
+              </div>
+            ) : (
+              <div className="lean-note">
+                {save.gifts?.some((g) => g.startsWith("packlean:"))
+                  ? <>Changing it costs {PACK_LEAN_CHANGE_COST}<i className="shard" /></>
+                  : "Your first pick is free."}
+              </div>
+            )}
+          </div>
+
           {/* Per CARD, and not "the story's table": the recruitment roll is a
               different table (DROP_RATE) with a different meaning, and these
               are the real chances off `packOdds` rather than the raw weights. */}
           <div className="odds-head">PULL ODDS <em>each card, before the Epic guarantee</em></div>
           <div className="odds-bar">
-            {ODDS_ROWS.map((o) => (
+            {oddsRows.map((o) => (
               <span
                 key={o.rarity}
                 className="odds-seg"
@@ -379,7 +443,7 @@ export function Shop(props: {
             ))}
           </div>
           <div className="odds-key">
-            {ODDS_ROWS.map((o) => (
+            {oddsRows.map((o) => (
               <span key={o.rarity} style={{ color: RARITY_STYLE[o.rarity]?.color }}>
                 <b>{fmtPct(o.pct)}%</b> {RARITY_STYLE[o.rarity]?.label}
               </span>

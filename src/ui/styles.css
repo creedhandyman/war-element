@@ -6417,6 +6417,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .craft-art img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 16%; display: block; }
 /* FOIL REROLLS in the Crafter: a gold edge on the art, the bonus it carries,
    and the pick after a roll — keep the new bonus or the old. */
+/* THE ELEMENT LEAN on the Packs tab: "Any" and the eight marks, the pick
+   lit in its element's colour, and the confirm a paid change asks for. */
+.lean { width: 100%; margin: 10px 0 4px; }
+.lean-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.lean-chip {
+  min-width: 36px; height: 36px; padding: 0 8px; display: grid; place-items: center;
+  border: 1.5px solid var(--panel-line); border-radius: 10px; background: rgba(6, 8, 14, 0.6);
+  color: var(--ink-dim); font-size: 11px; font-weight: 800; letter-spacing: 0.04em; cursor: pointer;
+}
+.lean-chip img { width: 22px; height: 22px; display: block; opacity: 0.7; }
+.lean-chip.on { border-color: var(--gold-line); color: var(--gold-hi); background: rgba(232, 200, 119, 0.12); }
+.lean-chip.on img { opacity: 1; }
+.lean-note { margin-top: 6px; font-size: 11px; color: var(--ink-dim); }
+.lean-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink); }
 .craft-art.foil { box-shadow: 0 0 0 1.5px var(--gold-line), 0 0 10px rgba(232, 200, 119, 0.25); }
 .foil-tag { margin-left: 6px; font-style: normal; font-size: 10px; font-weight: 800; color: var(--gold-hi); }
 .foil-bonus { color: var(--gold-hi); }

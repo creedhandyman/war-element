@@ -1733,6 +1733,54 @@ function pullOne(pool: readonly string[], rand: () => number, weights: Record<st
   return pool[pool.length - 1];
 }
 
+/** ── THE ELEMENT LEAN (owner's call, 2026-10-01) ─────────────────────────
+ *
+ *  The player may pick an element for packs to LEAN toward: each card slot then
+ *  has a `PACK_LEAN` chance to be drawn from that element alone, and otherwise
+ *  draws from the whole set as before — so about 56% of a leaned pack is that
+ *  element (the even split is 12.5%), and every card in the game can still turn
+ *  up. The first choice is free; changing it after costs `PACK_LEAN_CHANGE_COST`
+ *  shards, a pack's price.
+ *
+ *  Stored in the save's gifts ledger as `packlean:<ELEMENT>` (or `packlean:none`
+ *  once cleared), not a new save field: `loadStory` is a whitelist, and an older
+ *  build that loads the save keeps every gifts string but drops fields it does
+ *  not know. The presence of a mark at all is what says the free choice is used.
+ */
+export const PACK_LEAN = 0.5;
+export const PACK_LEAN_CHANGE_COST = 50;
+const LEAN_MARK = "packlean:";
+
+/** The element packs lean toward, or null for none. */
+export function packLeanOf(save: StorySave): string | null {
+  const mark = [...(save.gifts ?? [])].reverse().find((g) => g.startsWith(LEAN_MARK));
+  const el = mark?.slice(LEAN_MARK.length);
+  return el && el !== "none" && REGIONS.some((r) => r.element === el) ? el : null;
+}
+
+/** Shards it costs to set the lean to `next` (null = no lean): nothing for the
+ *  first choice ever made, nothing for picking what is already set. */
+export function packLeanCost(save: StorySave, next: string | null): number {
+  const everSet = (save.gifts ?? []).some((g) => g.startsWith(LEAN_MARK));
+  if (!everSet) return 0;
+  return packLeanOf(save) === next ? 0 : PACK_LEAN_CHANGE_COST;
+}
+
+/** Set the lean, paying for it. Null when it cannot be afforded. Choosing what
+ *  is already set changes nothing. */
+export function setPackLean(save: StorySave, next: string | null): StorySave | null {
+  if (packLeanOf(save) === next && (save.gifts ?? []).some((g) => g.startsWith(LEAN_MARK))) return save;
+  if (next !== null && !REGIONS.some((r) => r.element === next)) return null;
+  const cost = packLeanCost(save, next);
+  const hero = save.hero ?? newHero();
+  if (hero.shards < cost) return null;
+  return {
+    ...save,
+    hero: { ...hero, shards: hero.shards - cost },
+    gifts: [...(save.gifts ?? []).filter((g) => !g.startsWith(LEAN_MARK)), `${LEAN_MARK}${next ?? "none"}`],
+  };
+}
+
 /** What a pack pulls from: every card but the bosses. One definition, read by
  *  `openPack` and by `packOdds`, so the odds the Shop quotes are computed over
  *  exactly the pool the pack rolls. */
@@ -1756,15 +1804,26 @@ const inPackGuarantee = (id: string): boolean => PACK_GUARANTEE.includes(getDef(
  *  other pull rolls the plain odds. Mirrors `pullOne` exactly — its "rare"
  *  fallback for a card with no rarity, and its even split when every weight is
  *  zero — so the two cannot disagree about a pull. */
-export function packOdds(guaranteed = false): Record<string, number> {
-  const pool = guaranteed ? packPool().filter(inPackGuarantee) : packPool();
-  const weightOf = (id: string) => PACK_WEIGHT[getDef(id).rarity ?? "rare"] ?? 0;
-  const total = pool.reduce((n, id) => n + weightOf(id), 0);
+export function packOdds(guaranteed = false, lean: string | null = null): Record<string, number> {
+  const whole = guaranteed ? packPool().filter(inPackGuarantee) : packPool();
+  const over = (pool: readonly string[]) => {
+    const weightOf = (id: string) => PACK_WEIGHT[getDef(id).rarity ?? "rare"] ?? 0;
+    const total = pool.reduce((n, id) => n + weightOf(id), 0);
+    const odds: Record<string, number> = {};
+    for (const id of pool) {
+      const r = getDef(id).rarity ?? "rare";
+      odds[r] = (odds[r] ?? 0) + (total > 0 ? weightOf(id) / total : 1 / pool.length);
+    }
+    return odds;
+  };
+  // A LEANED pull is two draws mixed: `PACK_LEAN` of the time from the element
+  // alone, the rest from the whole set — exactly as `openPack` rolls it.
+  const only = lean ? whole.filter((id) => getDef(id).element === lean) : [];
+  if (!only.length) return over(whole);
+  const a = over(only), b = over(whole);
   const odds: Record<string, number> = {};
-  for (const id of pool) {
-    const r = getDef(id).rarity ?? "rare";
-    odds[r] = (odds[r] ?? 0) + (total > 0 ? weightOf(id) / total : 1 / pool.length);
-  }
+  for (const r of new Set([...Object.keys(a), ...Object.keys(b)]))
+    odds[r] = PACK_LEAN * (a[r] ?? 0) + (1 - PACK_LEAN) * (b[r] ?? 0);
   return odds;
 }
 
@@ -1788,6 +1847,7 @@ export interface PackResult {
  *  volume, and they come back as essence. */
 export function openPack(save: StorySave, rand: () => number = Math.random): PackResult {
   const pool = packPool(); // bosses are not pullable
+  const lean = packLeanOf(save);
   const owned = new Set(save.collection);
   const pulled: string[] = [];
   const fresh: string[] = [];
@@ -1798,7 +1858,14 @@ export function openPack(save: StorySave, rand: () => number = Math.random): Pac
     // The last slot is the guarantee: if nothing Epic-or-better has shown up
     // yet, pull from that tier instead of the whole set.
     const guarantee = i === PACK_SIZE - 1 && !pulled.some(inPackGuarantee);
-    const from = guarantee ? pool.filter(inPackGuarantee) : pool;
+    let from = guarantee ? pool.filter(inPackGuarantee) : pool;
+    // THE LEAN: this slot comes from the chosen element alone, PACK_LEAN of the
+    // time. The coin is only tossed when a lean is set, so a pack opened
+    // without one rolls exactly as it always has.
+    if (lean && rand() < PACK_LEAN) {
+      const only = from.filter((id) => getDef(id).element === lean);
+      if (only.length) from = only;
+    }
     const id = pullOne(from, rand, PACK_WEIGHT);
     if (!id) break;
     pulled.push(id);
