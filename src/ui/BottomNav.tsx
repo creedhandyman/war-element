@@ -13,14 +13,14 @@ import { Home, Swords, Map, Store, Landmark } from "lucide-react";
 
 export type Tab = "home" | "arena" | "story" | "tower" | "shop";
 
-/** Order is the order they sit in the bar. Home is not first: it is second-left,
- *  because the thumb rests near the middle on a phone and Home is the one you
- *  reach for by reflex. */
+/** Order is the order they sit in the bar. Home is in the MIDDLE (owner's
+ *  call, 2026-10-02): the thumb rests there on a phone and Home is the one you
+ *  reach for by reflex. Story sits beside Shop — what Story earns, Shop spends. */
 const TABS: { id: Tab; label: string; Icon: typeof Home }[] = [
   { id: "arena", label: "Arena", Icon: Swords },
+  { id: "tower", label: "Tower", Icon: Landmark },
   { id: "home", label: "Home", Icon: Home },
   { id: "story", label: "Story", Icon: Map },
-  { id: "tower", label: "Tower", Icon: Landmark },
   { id: "shop", label: "Shop", Icon: Store },
 ];
 
