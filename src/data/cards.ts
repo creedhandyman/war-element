@@ -14039,11 +14039,12 @@ export const CARDS: CardDef[] = [
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
     cost: 3,
-    // 7 + 10 + 1*2 + 6 = 25 = 5*3+10.
-    dmg: 7,
+    // 5 + 9 + 1*2 + 10 = 26, one over the 5*3+10 budget (owner's call,
+    // 2026-10-02: -2 DMG, -1 HP, +4 SP). Was 7 + 10 + 1*2 + 6 = 25.
+    dmg: 5,
     hits: 1,
-    hp: 10,
-    sp: 6,
+    hp: 9,
+    sp: 10,
     shields: 1,
     keywords: { FLYING: true },
     // Spearpoint: the dive lands hardest the first time it finds a given target,
