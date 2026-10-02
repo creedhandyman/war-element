@@ -1607,9 +1607,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* ===== right rail: speed queue ===== */
 .queue-scale { position: relative; flex: 1; overflow-y: auto; min-height: 0; }
 .qrow { display: flex; align-items: center; gap: 7px; padding: 4px 8px; border-radius: 7px; font-size: 11px; font-weight: 600; border: 1px solid transparent; margin-bottom: 4px; }
-.qrow.mine { background: rgba(232, 200, 119, 0.12); border-color: var(--gold-line); }
-.qrow.enemy { background: rgba(110, 140, 240, 0.12); border-color: rgba(140, 160, 220, 0.35); }
-.qrow.mine .qsp { color: var(--gold-lit); } .qrow.enemy .qsp { color: var(--steel-lit); }
+/* Whose card: BLUE is yours, RED is theirs (owner's call, 2026-10-02) — the
+   same two colours as the home rows on the board, read off the same tokens so
+   the queue and the board can never disagree. It was gold for you and blue for
+   the opponent, which put "blue" on the wrong side next to a blue home row. */
+.qrow.mine { background: color-mix(in srgb, var(--your-home) 16%, transparent); border-color: color-mix(in srgb, var(--your-home) 55%, transparent); }
+.qrow.enemy { background: color-mix(in srgb, var(--opp-home) 16%, transparent); border-color: color-mix(in srgb, var(--opp-home) 55%, transparent); }
+.qrow.mine .qsp { color: var(--your-home-glow); } .qrow.enemy .qsp { color: var(--opp-home-glow); }
 /* The row up next. Same split as .token.acting: the row holds the dim ring and
    its ::after — the row's border box — draws the bright one on opacity. It
    pulses through every step of every battle, and animating `outline-color`
