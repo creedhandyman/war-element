@@ -92,6 +92,7 @@ export function BossDetail(props: {
             page rather than ending on a line, so the text below reads as the
             same object rather than a caption under a picture. */}
         <div className="bd-hero">
+          <img src={cardArtSrc(def)} alt="" aria-hidden="true" className="bd-art-backdrop" />
           <img src={cardArtSrc(def)} alt="" className="bd-art" />
           <div className="bd-hero-fade" />
           <div className="bd-hero-text">

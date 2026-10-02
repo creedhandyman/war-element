@@ -168,6 +168,15 @@ export function VoidTower(props: {
                           : `${def.name}, locked — read about it`
                       }
                     >
+                      {/* The same art twice: blurred behind to fill the frame, and
+                          whole in front — see `.vt-boss-backdrop`. */}
+                      <img
+                        className="vt-boss-backdrop"
+                        src={cardThumbSrc(def)}
+                        alt=""
+                        aria-hidden="true"
+                        loading="lazy"
+                      />
                       <img
                         className="vt-boss-art"
                         src={cardThumbSrc(def)}
