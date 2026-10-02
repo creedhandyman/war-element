@@ -401,7 +401,7 @@ export function HomeScreen(props: {
           </button>
           {/* The fifth tile spans the row on a phone (styles.css) rather than
               leaving a hole beside it. */}
-          <button className="home-tile trn" onClick={props.onTraining}>
+          <button className="home-tile trn" data-guide="home-training" onClick={props.onTraining}>
             <span className="home-tile-name">Training Ground</span>
             <span className="home-tile-sub">Learn the mechanics, one fight each</span>
             {lessonsWon < LESSONS.length

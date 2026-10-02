@@ -172,7 +172,22 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     body: "Fight, earn, open, rebuild, fight something harder. The Shop is where the first "
       + "and last of those meet. How to play is in the menu whenever you want the rules "
       + "again.",
-    cta: "Done",
+    cta: "Next",
+    core: false,
+  },
+  {
+    // THE LAST WORD IS WHERE TO GO NEXT (owner's call, 2026-10-02). The first
+    // battle teaches the basics; the Training Ground is where every other
+    // mechanic gets a fight of its own, and a player who has just finished the
+    // tour is exactly the one who has not found it yet. Its button opens it.
+    id: "training",
+    anchor: "home-training",
+    tab: "home",
+    title: "Now train",
+    body: "The Training Ground has a short practice fight for each mechanic: melee and "
+      + "ranged reach, statuses, element auras, crits, trample and more. A few wins "
+      + "there and nothing in the campaign will surprise you.",
+    cta: "Start training",
     core: false,
   },
 ];

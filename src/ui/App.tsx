@@ -4646,6 +4646,9 @@ export function App() {
         // next tip up just as the player arrived — every tip a page early.
         const press = tourPress(story, guideStep, guideOnTab);
         if (press.teach) teach(press.teach);
+        // The tour's last tip sends the player on: its button opens the
+        // Training Ground it is pointing at.
+        if (press.teach === "training") setHomeTraining(true);
         if (press.goTo) {
           setHomeCollection(false);
           setHomeAchievements(false);
