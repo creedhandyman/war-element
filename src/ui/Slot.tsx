@@ -40,6 +40,8 @@ function SlotView(props: {
   legal: boolean;
   isTarget: boolean; // enemy attack/special target → red
   preview: boolean; // on-summon damage-area preview → red
+  /** Within reach of a staged summon's arrival strike, but nobody is hit here. */
+  reach?: boolean;
   aim: boolean; // inside the footprint of an armed area Special → gold wash
   /** This square is inside a boss Special that lands at the end of this round. */
   blast: boolean;
@@ -86,6 +88,7 @@ function SlotView(props: {
     props.legal ? "legal" : "",
     props.isTarget ? "target" : "",
     props.preview ? "preview" : "",
+    props.reach ? "reach" : "",
     props.aim ? "aim" : "",
     props.blast ? "blast" : "",
     props.strike ? `strike ${props.strike.mine ? "strike-mine" : "strike-foe"}` : "",

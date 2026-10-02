@@ -63,6 +63,7 @@ export {
   validSpecialTargets,
   specialTargets,
   previewOnSummonArea,
+  arrivalStrike,
   canCastSpell,
   canSpellHitEnemy,
   spellEnemyTargets,

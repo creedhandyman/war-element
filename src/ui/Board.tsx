@@ -189,6 +189,9 @@ function BoardView(props: {
   legalTargetIds: string[]; // battle-phase / spell target picks
   targetsAreEnemies: boolean; // true → target cards glow red (attack), false → green (ally)
   previewArea: Pos[]; // red on-summon damage-area preview for a staged summon
+  /** The GROUND a staged summon's arrival strike can reach (`arrivalStrike`):
+   *  a faint red tint under the solid red of the cards it will actually hit. */
+  previewReach?: Pos[];
   /** THE AIM. Every cell an armed area Special would cover, anchored on the
    *  player's current pick — drawn BEFORE they fire, which is the whole point.
    *  Gold, not the target red: an enemy inside the footprint keeps its red rim
@@ -495,6 +498,7 @@ function BoardView(props: {
               const redTarget = isTargetCard && props.targetsAreEnemies;
               const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
               const preview = props.previewArea.some((p) => p.row === row && p.col === col);
+              const reach = !preview && (props.previewReach ?? []).some((p) => p.row === row && p.col === col);
               const aim = props.aimArea.some((p) => p.row === row && p.col === col);
               // THE BLAST ZONE STANDS DOWN WHILE YOU ARE AIMING. It is a
               // warning about the boss's turn, and the moment the player is
@@ -523,7 +527,7 @@ function BoardView(props: {
                 // `blast` is already false and this term does nothing.)
                 // ...and the aimed footprint stays lit too, empty squares
                 // included: a dimmed cell inside the burst reads as "not hit".
-                !greenLegal && !redTarget && !preview && !staged && !blast && !aim;
+                !greenLegal && !redTarget && !preview && !reach && !staged && !blast && !aim;
               const contested =
                 (row === homeRow("P2", game.boardSize) && isContested(game, "P2", col)) ||
                 (row === homeRow("P1", game.boardSize) && isContested(game, "P1", col));
@@ -539,6 +543,7 @@ function BoardView(props: {
                   legal={greenLegal}
                   isTarget={redTarget}
                   preview={preview}
+                  reach={reach}
                   aim={aim}
                   blast={blast}
                   strike={strike}

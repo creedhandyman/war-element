@@ -42,6 +42,7 @@ import {
   specialShotsStack,
   aoeRowsHit,
   previewOnSummonArea,
+  arrivalStrike,
   spellEnemyTargets,
   spellAllyTargets,
   spellCommandTargets,
@@ -3084,7 +3085,13 @@ export function App() {
     const h = game.players[me].hand.find((c) => c.handId === handId);
     const slot = landingSlotFor(col, row);
     if (!h || !slot) return true; // unknown = ask; never commit on a guess
-    return previewOnSummonArea(game, getDef(h.defId), me, slot).length > 0;
+    // ...and a card with an ARRIVAL STRIKE asks too, whenever there is an enemy
+    // on the board for it to be about: the shaded reach is the fact the player
+    // needs, even when nobody is standing in it yet.
+    const a = arrivalStrike(game, getDef(h.defId), me, slot);
+    if (!a) return false;
+    return a.victims.length > 0
+      || (a.reach.length > 0 && Object.values(game.cards).some((c) => c.pos && c.owner !== me && c.curHp > 0));
   }
 
   /** WHAT TO SAY AFTER A SUMMON LANDS.
@@ -3118,7 +3125,12 @@ export function App() {
   function stageOrPlace(handId: string, col: number, row?: number) {
     if (needsConfirm(handId, col, row)) {
       setStaged({ handId, col, row });
-      setHint("Confirm placement — <b>red</b> marks where its on-summon effect lands.");
+      const h = me !== null ? game.players[me].hand.find((c) => c.handId === handId) : undefined;
+      const slot = landingSlotFor(col, row);
+      const a = h && slot && me !== null ? arrivalStrike(game, getDef(h.defId), me, slot) : null;
+      setHint(a
+        ? `Confirm placement — ${a.says}. <b>Red</b> marks what it hits; the faint red is everything it can reach from there.`
+        : "Confirm placement — <b>red</b> marks where its on-summon effect lands.");
       return;
     }
     placeSummon(handId, col, row);
@@ -3428,12 +3440,23 @@ export function App() {
     const row = summonLandingRow(game, me, activeCol) ?? homeRow(me, game.boardSize);
     return { row, col: activeCol } as Pos;
   }, [activeHandId, activeCol, activeRow, me, game]);
+  /** The staged summon's arrival strike: who it hits (`previewArea`, solid
+   *  red) and how far it reaches (`previewReach`, faint) — see `arrivalStrike`. */
+  const arrival = useMemo(() => {
+    if (activeHandId === null || stagedSlot === null || me === null) return null;
+    const h = game.players[me].hand.find((c) => c.handId === activeHandId);
+    if (!h) return null;
+    return arrivalStrike(game, getDef(h.defId), me, stagedSlot);
+  }, [activeHandId, stagedSlot, me, game]);
   const previewArea: Pos[] = useMemo(() => {
     if (activeHandId === null || stagedSlot === null || me === null) return [];
     const h = game.players[me].hand.find((c) => c.handId === activeHandId);
     if (!h) return [];
-    return previewOnSummonArea(game, getDef(h.defId), me, stagedSlot);
-  }, [activeHandId, stagedSlot, me, game]);
+    const own = previewOnSummonArea(game, getDef(h.defId), me, stagedSlot);
+    const extra = (arrival?.victims ?? []).filter((v) => !own.some((p) => p.row === v.row && p.col === v.col));
+    return [...own, ...extra];
+  }, [activeHandId, stagedSlot, me, game, arrival]);
+  const previewReach: Pos[] = useMemo(() => arrival?.reach ?? [], [arrival]);
   // THE BOSS TELEGRAPH — the countdown badges, and the red zone under the
   // Special that lands at the end of this round. Both come back empty for any
   // fight without a boss clock in it, so every other mode is untouched.
@@ -4794,6 +4817,7 @@ export function App() {
             legalTargetIds={legalTargetIds}
             targetsAreEnemies={targetsAreEnemies}
             previewArea={previewArea}
+            previewReach={previewReach}
             aimArea={boardAim}
             blast={blast}
             strike={remoteStrike ?? strike}
@@ -4860,7 +4884,9 @@ export function App() {
               <div className="summon-confirm">
                 <span className="sc-text">
                   Place <b>{name}</b> at column {staged.col + 1}
-                  {previewArea.length > 0 && <> · <span className="sc-red">red = on-summon strike area</span></>}?
+                  {arrival
+                    ? <> · <span className="sc-red">{arrival.says}</span></>
+                    : previewArea.length > 0 && <> · <span className="sc-red">red = on-summon strike area</span></>}?
                 </span>
                 <button className="lockin sc-yes" onClick={confirmSummon}>Confirm</button>
                 <button className="ghost sc-no" onClick={cancelSummon}>Cancel</button>

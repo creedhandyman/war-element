@@ -753,6 +753,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   box-shadow: 0 0 26px rgba(229, 83, 61, 0.5), inset 0 0 22px var(--threat-soft);
   animation: glowpulse 1.2s ease-in-out infinite;
 }
+/* The REACH of a staged summon's arrival strike: every square it could hit
+   from there, as a faint red tint. The cards it WILL hit are `.preview` above
+   it — same hue, solid — so the picture reads "this far, and these ones". */
+.slot.reach > .slot-glow {
+  --glow-min: 0.45;
+  box-shadow: inset 0 0 18px rgba(229, 83, 61, 0.2);
+  animation: glowpulse 2.4s ease-in-out infinite;
+}
+.slot.reach { border-color: rgba(229, 83, 61, 0.45); }
 /* On-summon damage AREA preview — a red wash over every tile it will strike. */
 .slot.preview { border-color: var(--threat); z-index: 2; }
 .slot.preview > .slot-glow {

@@ -30,7 +30,7 @@ import type {
 } from "./types";
 import { OPENING_COST_CAP, TARGETLESS_HANDLERS, bossHeldHome, enemyOf, homeRow } from "./types";
 import { getSpell, spellPickKind } from "./spells";
-import { hasElementAura } from "./auras";
+import { DAWN_STRIKE_PCT, hasElementAura } from "./auras";
 import { dominationMap, isImpassable, isRoad, isShrine, runsAlongRoad, poiRing} from "../data/domination";
 
 /** The map this match is played on, or undefined in every ordinary match.
@@ -1895,6 +1895,95 @@ export function previewOnSummonArea(
   // Absent `targets` means one, which is what a `strike` does.
   const cap = Math.max(1, Number(p.targets ?? 1));
   return [...list.slice(0, cap).filter((t) => t.pos).map((t) => ({ ...t.pos! })), ...far];
+}
+
+/** A summon's ARRIVAL STRIKE, drawn for the placement it is about to make
+ *  (owner, 2026-10-02: "do a better job of telling the player the range of the
+ *  attack when summoned").
+ *
+ *  `previewOnSummonArea` names only the VICTIMS: with nobody in reach it drew
+ *  nothing at all, so the player learned the range only by watching a strike
+ *  land, or not. `reach` is the GROUND — every square, empty ones included, an
+ *  enemy standing on would be struck from `pos` — tested with `canTarget` on a
+ *  ghost enemy, the same check `onSummonTargets` runs, so it cannot disagree
+ *  with the engine. Squares holding the summoner's own cards are left out.
+ *
+ *  Also covers DAWN's Awakening, which strikes the nearest enemy wherever it
+ *  stands and had no preview of any kind. `says` is the sentence for the hint.
+ *  Null when the card has no hostile arrival strike. */
+export interface ArrivalStrike { reach: Pos[]; victims: Pos[]; says: string }
+
+export function arrivalStrike(state: GameState, def: CardDef, owner: PlayerId, pos: Pos): ArrivalStrike | null {
+  const n = state.boardSize;
+  const reach: Pos[] = [];
+  const victims: Pos[] = [];
+  const says: string[] = [];
+  const mine = (r: number, c: number) => cardAt(state, r, c)?.owner === owner;
+  const add = (list: Pos[], p: Pos) => {
+    if (!list.some((q) => q.row === p.row && q.col === p.col)) list.push({ ...p });
+  };
+  const everywhere = () => {
+    for (let r = 0; r < n; r++) for (let c = 0; c < n; c++)
+      if (!mine(r, c) && !(r === pos.row && c === pos.col)) add(reach, { row: r, col: c } as Pos);
+  };
+  const foes = enemyCards(state, owner).filter((e) => e.curHp > 0 && e.pos);
+
+  const os = def.onSummon;
+  if (os && os.targetSide !== "ally" && !(os.handler && TARGETLESS_HANDLERS.has(os.handler))) {
+    const p = os.params ?? {};
+    for (const v of previewOnSummonArea(state, def, owner, pos)) add(victims, v);
+    const name = def.passiveNames?.onSummon ?? "Its arrival strike";
+    if (Number(p.onlyVsTarget ?? 0) > 0 || Number(p.reachNearest ?? 0) > 0) {
+      everywhere();
+      says.push(`${name} hits the nearest enemy anywhere on the board`);
+    } else if (Number(p.spread ?? -1) >= 0) {
+      // The corridor IS its ground already (previewOnSummonArea draws it so).
+      for (const v of previewOnSummonArea(state, def, owner, pos)) add(reach, v);
+      says.push(`${name} hits the squares ahead of it`);
+    } else {
+      const ghost = {
+        defId: def.id, owner, pos, attackedThisRound: false, curHp: 1, maxHp: 1,
+        statuses: [], instanceId: "__arrival__",
+      } as unknown as CardInstance;
+      const charge = Number(p.chargeFirst ?? 0) > 0 ? Number(p.charge ?? 0) : 0;
+      for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) {
+        if (mine(r, c) || (r === pos.row && c === pos.col)) continue;
+        const sq = { row: r, col: c } as Pos;
+        const enemyHere = cardAt(state, r, c);
+        if (Number(p.enemyHomeRow ?? 0) > 0) {
+          if (r === homeRow(enemyOf(owner), n)) add(reach, sq);
+          continue;
+        }
+        if (Number(p.sameColumn ?? 0) > 0) {
+          if (c === pos.col) add(reach, sq);
+          continue;
+        }
+        // A plain ghost enemy on the square; a real one is tested as itself,
+        // so a flier out of a melee card's reach is shown as out of it.
+        const target = enemyHere ?? ({
+          defId: "bore_crock", owner: enemyOf(owner), pos: sq, curHp: 1, maxHp: 1, statuses: [],
+          instanceId: "__ghost__",
+        } as unknown as CardInstance);
+        if (canTarget(state, ghost, target, false, false, charge)) add(reach, sq);
+      }
+      says.push(Number(p.enemyHomeRow ?? 0) > 0 ? `${name} hits the enemy's Home row`
+        : Number(p.sameColumn ?? 0) > 0 ? `${name} hits down its whole column`
+        : `${name} reaches the shaded squares`);
+    }
+  }
+
+  // DAWN — Awakening: the nearest enemy, wherever it stands (phases.ts).
+  const dawn = def.element === "DAWN" || (def.elementAuras ?? []).includes("DAWN");
+  if (dawn && Math.floor((def.dmg * DAWN_STRIKE_PCT) / 100) > 0) {
+    everywhere();
+    const near = foes.reduce<CardInstance | null>(
+      (best, c) => (!best || manhattan(pos, c.pos!) < manhattan(pos, best.pos!) ? c : best), null);
+    if (near) add(victims, near.pos!);
+    says.push("Awakening strikes the nearest enemy, anywhere on the board");
+  }
+
+  if (!says.length) return null;
+  return { reach, victims, says: says.join("; ") };
 }
 
 /** Unique by instanceId, keeping first-seen order. */

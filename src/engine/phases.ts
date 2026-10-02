@@ -336,13 +336,18 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         if (!gd.onOppSummon || guard.curHp <= 0 || !draft.cards[inst.instanceId]) continue;
         // Drone Sweep (Buzzard): one answer per round, not one per body.
         if (gd.onOppSummon.oncePerRound && guard.oppSummonFiredRound) continue;
-        notePassive(draft, guard, "onOppSummon");
         // The flag is spent where the reaction RESOLVES, not here. Set up front,
         // Drone Sweep burned its one answer per round on a summon it could not
         // answer at all — every slot beside the newcomer occupied, so the drone
         // had nowhere to land and the branch fell straight through. The next
         // summon that round, with room beside it, met a Buzzard already spent.
+        //
+        // ...and so is the passive's floating name. It was posted up front too,
+        // so Hawko flashed "Aerial Dominance" at EVERY enemy summon — including
+        // the ones out of its reach, where nothing then happened. A passive that
+        // announces itself and does nothing reads as a broken one.
         const spend = () => {
+          notePassive(draft, guard, "onOppSummon");
           if (gd.onOppSummon?.oncePerRound) guard.oppSummonFiredRound = true;
         };
         // Burning Bark (Sparky): hop to the closest empty slot adjacent to the
