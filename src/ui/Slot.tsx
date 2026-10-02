@@ -1,6 +1,6 @@
 import { memo } from "react";
 import type { BossTelegraph, CardInstance, GameState, PlayerId, TrapState } from "../engine";
-import { enemyOf, getSpell, homeRow } from "../engine";
+import { enemyOf, getSpell, homeRow, isMidRow } from "../engine";
 import type { AuraGlow } from "./aura-glow";
 import { EL_COLOR } from "./shared";
 import { Token } from "./Token";
@@ -84,9 +84,26 @@ function SlotView(props: {
         ? "row-opp"
         : "row-mid";
   const acting = props.card != null && props.actingId === props.card.instanceId;
+  // THE GROUND (owner, 2026-10-02). Where this tile sits ON SCREEN — the board
+  // flips its rows for a P2 viewer — so the light falls from the top-left of
+  // the screen whichever seat is looking. `lit` is 1 in that corner and 0 in
+  // the far one; `sx`/`sy` slide the stone texture so no two tiles match.
+  const n = boardSize;
+  const screenRow = props.viewer === "P2" ? n - 1 - props.row : props.row;
+  const lit = n > 1 ? 1 - (screenRow + props.col) / (2 * (n - 1)) : 1;
+  const ground = {
+    ["--lit" as string]: lit.toFixed(3),
+    ["--sx" as string]: `${(props.row * 37 + props.col * 59) % 100}%`,
+    ["--sy" as string]: `${(props.row * 71 + props.col * 23) % 100}%`,
+  };
+  // The HILL is drawn raised, so King of the Hill shows on the board itself.
+  // Duel boards only: Domination's hill is a filled Point, and its Points
+  // already wear their own terrain.
+  const hill = !props.game.domination && isMidRow(props.row, boardSize);
   const cls = [
     "slot",
     rowClass,
+    hill ? "hill" : "",
     acting ? "acting" : "",
     props.legal ? "legal" : "",
     props.isTarget ? "target" : "",
@@ -123,7 +140,7 @@ function SlotView(props: {
       // screen — the effects layer aims spell impacts by it. Logical, so it
       // stays right on a P2 viewer's flipped board.
       data-pos={`${props.row},${props.col}`}
-      style={props.strike ? ({ ["--strike-i" as string]: props.strike.order } as React.CSSProperties) : undefined}
+      style={(props.strike ? { ...ground, ["--strike-i" as string]: props.strike.order } : ground) as React.CSSProperties}
       onClick={() => props.onClick(props.row, props.col)}
       onDragOver={(e) => {
         if (!props.canDrop) return;

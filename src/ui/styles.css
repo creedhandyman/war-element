@@ -590,6 +590,55 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .slot.row-opp { --tile: var(--tile-opp); }
 .slot.row-mid { --tile: var(--tile-mid); }
 .slot.row-your { --tile: var(--tile-your); }
+
+/* ── THE GROUND (owner, 2026-10-02): stone, light, and a raised hill ───────
+   Every layer here is STATIC — nothing on `.slot` animates (see the glow-layer
+   note below), so this costs one raster per tile and nothing per frame.
+
+   Top to bottom: the BEVEL (a lit top-left edge, a shadowed bottom-right, so a
+   tile reads as a block of stone rather than a flat panel); the LIGHT, one key
+   light from the screen's top-left (`--lit`, set per tile in Slot.tsx: 1 in
+   that corner, 0 in the far one); the STONE (`tile-stone.webp`, a seamless
+   texture slid by `--sx`/`--sy` so no two tiles match); then the tile's own
+   tinted base underneath, unchanged. */
+.slot {
+  background:
+    linear-gradient(135deg, rgba(255, 244, 222, 0.11) 0%, transparent 28%, transparent 64%, rgba(0, 0, 0, 0.4) 100%),
+    linear-gradient(rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4)), rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4))),
+    linear-gradient(rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08))),
+    url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
+    radial-gradient(95% 95% at 50% 42%, rgba(70, 74, 92, 0.32), rgba(14, 16, 24, 0.6));
+}
+/* THE HOME ROWS sit LOW: a shadow falling in from the top edge, and the row's
+   own colour (red theirs, blue yours) washed through the stone so the tint the
+   texture had buried reads again. */
+.slot.row-your, .slot.row-opp {
+  box-shadow:
+    0 0 12px color-mix(in srgb, var(--tile) 30%, transparent),
+    inset 0 7px 10px -3px rgba(0, 0, 0, 0.6),
+    inset 0 0 22px color-mix(in srgb, var(--tile) 16%, transparent);
+}
+/* The seam between tiles: dark worn mortar, not a glowing line. */
+.board { background:
+    radial-gradient(120% 90% at 30% 20%, rgba(46, 52, 74, 0.35), rgba(8, 9, 15, 0.95)),
+    linear-gradient(180deg, #0d0e14, #07080c); }
+/* THE HILL — the rows King of the Hill counts, drawn as a raised platform: a
+   lighter stone, a bright lip along the top edge and a ledge shadow cast below,
+   so "stand here for +1 DMG" is something the board shows, not only the rules. */
+.slot.hill {
+  background:
+    linear-gradient(180deg, rgba(255, 246, 228, 0.22) 0, rgba(255, 246, 228, 0.07) 6%, transparent 18%),
+    linear-gradient(135deg, rgba(255, 244, 222, 0.11) 0%, transparent 28%, transparent 64%, rgba(0, 0, 0, 0.32) 100%),
+    linear-gradient(rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34)), rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34))),
+    linear-gradient(rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08))),
+    url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
+    radial-gradient(95% 95% at 50% 42%, rgba(96, 100, 122, 0.4), rgba(24, 26, 36, 0.6));
+  box-shadow:
+    0 7px 8px -2px rgba(0, 0, 0, 0.85),
+    0 0 12px color-mix(in srgb, var(--tile) 22%, transparent),
+    inset 0 1px 0 rgba(255, 246, 228, 0.24),
+    inset 0 -3px 4px rgba(0, 0, 0, 0.35);
+}
 /* ONE GLOW LAYER PER TILE, AND THE REASON IS BATTERY.
  *
  * Every board-state cue below used to animate `box-shadow` on `.slot` itself.
@@ -1103,7 +1152,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   position: absolute; inset: 3%; border-radius: 9px; overflow: visible;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
   border: 1.5px solid var(--el-rim, var(--panel-line));
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.65), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent);
+  /* A CONTACT shadow (tight, dark, cast down-right — away from the board's
+     top-left light) under the soft one, so the card sits ON the stone. */
+  box-shadow: 3px 5px 4px rgba(0, 0, 0, 0.55), 4px 10px 18px rgba(0, 0, 0, 0.6), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent);
 }
 .token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
 .token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
