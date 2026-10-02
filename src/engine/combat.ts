@@ -3292,11 +3292,15 @@ export function tickDamage(
   dmg: number,
   pen: boolean,
 ): boolean {
+  // Where the victim stood, read BEFORE the hit removes it — an on-kill that
+  // works around the dead card (Star Blaster) needs it, as the main death path
+  // already provides.
+  const deathPos = target.pos ? { ...target.pos } : null;
   const died = directDamage(draft, source, target, dmg, pen);
   if (died && source.curHp > 0) {
     const def = getDef(source.defId);
     if (!getDef(target.defId).noKillReward) {
-      if (def.onKill) applyOnKill(draft, source, def.onKill);
+      if (def.onKill) applyOnKill(draft, source, def.onKill, deathPos);
       registerKill(draft, source);
     }
   }
@@ -3470,6 +3474,16 @@ function registerKill(draft: GameState, killer: CardInstance): void {
   // reads it. Left alone in the handler, so a Special that transforms by cast
   // keeps the revert it was written for.
   killer.transformedFrom = undefined;
+}
+
+/** Star Blaster's burst: BLIND every opponent of `owner` touching `at`. Shared
+ *  by the on-kill and by an orbital arrow whose Zenith has already fallen. */
+export function starBlast(
+  draft: GameState, owner: PlayerId, name: string, element: Element, at: Pos, rounds: number,
+): void {
+  const near = enemyCards(draft, owner).filter((e) => e.curHp > 0 && e.pos && chebyshev(e.pos, at) <= 1);
+  for (const e of near) applyStatus(draft, e, "BLIND", rounds, 0, element);
+  if (near.length) draft.log.push(`${name}'s Star Blaster BLINDs ${near.length} foe(s) around the fallen card.`);
 }
 
 function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, deathPos?: Pos | null): void {
@@ -3665,14 +3679,11 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     applyStatus(draft, killer, "EVASION", def.grantEvasion, 0, getDef(killer.defId).element);
     draft.log.push(`${name} slips into the fog — EVASION for ${def.grantEvasion} round(s).`);
   }
-  // Star Blaster (Zenith): a kill BLINDs nearby opponents for the round.
-  if (def.blindInRange && killer.pos) {
-    const near = enemyCards(draft, killer.owner).filter(
-      (e) => e.curHp > 0 && e.pos && chebyshev(e.pos, killer.pos!) <= 1,
-    );
-    for (const e of near) applyStatus(draft, e, "BLIND", def.blindInRange, 0, getDef(killer.defId).element);
-    if (near.length) draft.log.push(`${name}'s Star Blaster BLINDs ${near.length} nearby foe(s).`);
-  }
+  // Star Blaster (Zenith): the kill bursts — every opponent TOUCHING THE CARD
+  // THAT DIED is BLINDed for the round (owner, 2026-10-02). It used to centre on
+  // Zenith herself, a Ranger who kills from two squares away, so the burst
+  // almost always landed on nobody.
+  if (def.blindInRange && deathPos) starBlast(draft, killer.owner, name, getDef(killer.defId).element, deathPos, def.blindInRange);
   if (def.extendStatus) {
     const { kind, rounds } = def.extendStatus;
     let n = 0;
@@ -5122,12 +5133,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)}'s Bloody Exchange drains ${total} HP to itself.`);
     }
   },
-  /** Orbital Shot (Zenith): mark a target; a 14-DMG arrow falls on it next round. */
+  /** Orbital Shot (Zenith): mark a target; a 14-DMG arrow falls on it at the
+   *  start of next round (`landOrbitalArrows` in phases.ts). */
   orbitalShot(draft, attacker, targets, params) {
     const target = targets[0];
     if (!target) return;
     const arrows = (draft.players[attacker.owner].pendingArrows ??= []);
-    arrows.push({ round: draft.round + 1, dmg: num(params, "dmg", 14), targetId: target.instanceId, source: attacker });
+    arrows.push({
+      round: draft.round + 1, dmg: num(params, "dmg", 14), targetId: target.instanceId,
+      sourceId: attacker.instanceId, source: attacker,
+    });
     draft.log.push(`${label(draft, attacker)} paints ${label(draft, target)} — an arrow falls next round.`);
   },
   /** Lacing Knots (Tether): reap every MUTED opponent — the status Magic Ropes

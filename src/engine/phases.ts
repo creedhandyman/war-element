@@ -6,7 +6,7 @@ import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_GROWTH, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
-  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, starBlast, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { coin, randInt } from "./rng";
@@ -1555,7 +1555,42 @@ function startRound(draft: GameState): void {
     if (risen.length)
       draft.log.push(`${risen.length} of the fallen rise for ${player}.`);
   }
+  landOrbitalArrows(draft);
   draft.phase = "draw";
+}
+
+/** Orbital Shot (Zenith): the arrows painted last round fall NOW, at the top of
+ *  the round, before anyone draws or moves.
+ *
+ *  They used to be resolved inside Cleanup's meteor loop, AFTER that loop's
+ *  `continue` for a side with no meteors pending — so an arrow only ever fell
+ *  for a player who also had a Cosmic meteor in the air, which is to say never.
+ *  The Special read as doing nothing at all.
+ *
+ *  The hit is credited to the LIVE Zenith (found by id), so a kill fires her
+ *  Star Blaster from where she stands now. If she has fallen since, the arrow
+ *  still lands — it is already in the air — and still bursts. */
+function landOrbitalArrows(draft: GameState): void {
+  for (const pl of seatsOf(draft)) {
+    const arrows = draft.players[pl].pendingArrows;
+    if (!arrows?.length) continue;
+    draft.players[pl].pendingArrows = arrows.filter((a) => a.round > draft.round);
+    for (const a of arrows.filter((x) => x.round <= draft.round)) {
+      const t = draft.cards[a.targetId];
+      if (!t || t.curHp <= 0 || !t.pos) continue;
+      draft.log.push(`An orbital arrow falls — ${a.dmg} DMG to ${label(draft, t)}.`);
+      const live = draft.cards[a.sourceId ?? a.source.instanceId];
+      if (live && live.curHp > 0 && live.pos) {
+        tickDamage(draft, live, t, a.dmg, false);
+        continue;
+      }
+      const at = { ...t.pos };
+      const died = directDamage(draft, a.source, t, a.dmg, false);
+      const blast = getDef(a.source.defId).onKill?.blindInRange;
+      if (died && blast && !getDef(t.defId).noKillReward)
+        starBlast(draft, pl, getDef(a.source.defId).name, getDef(a.source.defId).element, at, blast);
+    }
+  }
 }
 
 function doDrawPhase(draft: GameState): void {
@@ -3640,19 +3675,6 @@ function doCleanupPhase(draft: GameState): void {
       const foes = enemyCards(draft, pl).filter((c) => c.curHp > 0);
       for (const e of foes) tickDamage(draft, m.source, e, m.dmg, false);
       if (foes.length) draft.log.push(`A meteor crashes down — ${m.dmg} DMG to ${foes.length} opponent(s).`);
-    }
-    // Orbital Shot (Zenith): delayed single-target arrows land on their due round.
-    const arrows = draft.players[pl].pendingArrows;
-    if (arrows?.length) {
-      const dueArrows = arrows.filter((a) => a.round <= draft.round);
-      draft.players[pl].pendingArrows = arrows.filter((a) => a.round > draft.round);
-      for (const a of dueArrows) {
-        const t = draft.cards[a.targetId];
-        if (t && t.curHp > 0) {
-          tickDamage(draft, a.source, t, a.dmg, false);
-          draft.log.push(`An orbital arrow falls — ${a.dmg} DMG to ${label(draft, t)}.`);
-        }
-      }
     }
   }
 

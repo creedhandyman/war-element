@@ -175,7 +175,7 @@ export interface OnKillDef {
    *  Badlands Bandits measured a peak of 38. Absent = uncapped. */
   gainShieldsMax?: number;
   aoeDmg?: number; // deal N to every reachable enemy
-  blindInRange?: number; // Star Blaster (Zenith): BLIND nearby enemies N rounds
+  blindInRange?: number; // Star Blaster (Zenith): BLIND every opponent touching the card it killed, N rounds
   /** Perpetual Fog (Driftwraith): a kill cloaks it (and same-row same-element
    *  allies) in STEALTH for N rounds. */
   grantStealth?: number;
@@ -2674,7 +2674,10 @@ export interface PlayerState {
   shadeUntil?: number[];
   /** Orbital Shot (Zenith): delayed single-target strikes that land on a later
    *  round's Cleanup. */
-  pendingArrows?: { round: number; dmg: number; targetId: string; source: CardInstance }[];
+  /** Orbital Shot (Zenith): arrows in the air, landing at the START of `round`.
+   *  `sourceId` finds the live Zenith when it lands — `source` is the card as it
+   *  was when it fired, kept only to credit the hit if she has since fallen. */
+  pendingArrows?: { round: number; dmg: number; targetId: string; sourceId?: string; source: CardInstance }[];
   /** Radiant Ward (Solstice): a single team-wide barrier that absorbs the first
    *  negative status to hit any ally this round. Refreshed each round it's up. */
   statusWard?: boolean;

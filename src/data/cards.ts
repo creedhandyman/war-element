@@ -7336,7 +7336,8 @@ export const CARDS: CardDef[] = [
     sp: 7,
     shields: 2,
     keywords: {},
-    // Star Blaster (On Kill): BLIND nearby opponents for the round.
+    // Star Blaster (On Kill): BLIND every opponent touching the card it killed,
+    // for the round — basics, the Special and the orbital arrow alike.
     passiveNames: { onKill: "Star Blaster" },
     onKill: { blindInRange: 1 },
     // Orbital Shot: mark a target; a 14-DMG arrow falls on it next round.
@@ -7347,7 +7348,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 14 },
       targetSide: "enemy",
       ranged: true,
-      text: "Choose a target; an arrow falls at the start of next round dealing 14 DMG to it.",
+      text: "Choose a target; at the start of next round an arrow falls on it for 14 DMG.",
     },
   },
 
