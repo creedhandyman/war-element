@@ -6431,6 +6431,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .lean-chip.on img { opacity: 1; }
 .lean-note { margin-top: 6px; font-size: 11px; color: var(--ink-dim); }
 .lean-ask { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; font-size: 12px; color: var(--ink); }
+/* PHONES: nine chips in a flex row broke 6 + 3. Here they sit as one even
+   block instead — "Any" a tall tile on the left, the eight elements in two
+   rows of four beside it — and the header's aside drops to its own line. */
+@media (max-width: 560px) {
+  .lean .odds-head em { display: block; margin-top: 2px; }
+  .lean-row { display: grid; grid-template-columns: repeat(5, 1fr); grid-auto-rows: 40px; gap: 6px; }
+  .lean-row .lean-chip { width: 100%; height: 100%; min-width: 0; padding: 0; }
+  .lean-row .lean-chip:first-child { grid-row: span 2; }
+  .lean-chip img { width: 24px; height: 24px; }
+  .lean-ask { justify-content: center; }
+  .lean-ask > span { flex-basis: 100%; text-align: center; }
+}
 .craft-art.foil { box-shadow: 0 0 0 1.5px var(--gold-line), 0 0 10px rgba(232, 200, 119, 0.25); }
 .foil-tag { margin-left: 6px; font-style: normal; font-size: 10px; font-weight: 800; color: var(--gold-hi); }
 .foil-bonus { color: var(--gold-hi); }
