@@ -208,7 +208,9 @@ describe("Search and Rescue trades places with the ally you pick", () => {
     const act = fn("actTalent");
     // Confirm with no ally picked waits instead of firing at the first one...
     expect(act).toContain("if (picksAlly && picks.length === 0) {");
-    // ...and with one, sends it.
-    expect(act).toContain("...(picksAlly ? { targetIds: picks.slice(0, 1) } : {}),");
+    // ...and with one, sends it. (Widened 2026-10-02 to send a RANGED Talent's
+    // picked opponent the same way — Starfall reaches the whole board.)
+    expect(act).toContain("...(picksAlly || picksFoe ? { targetIds: picks.slice(0, 1) } : {}),");
+    expect(act).toContain("if (picksFoe && picks.length === 0) {");
   });
 });

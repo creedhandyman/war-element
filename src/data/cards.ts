@@ -12921,9 +12921,13 @@ export const CARDS: CardDef[] = [
     onHitStatus: { kind: "BLIND", duration: 2, power: 0 },
     talent: {
       name: "Starfall",
-      text: "Once per game, free: 7 DMG (PEN) to an adjacent opponent and BLIND it for 2 rounds.",
+      text: "Once per game, free: 7 DMG (PEN) to any opponent on the board and BLIND it for 2 rounds.",
       // BLINDs, like its basic now does -- Starfall is the same job done at
       // PEN and at range, for the turn you need the mark to land through armour.
+      // RANGED (owner's call, 2026-10-02): the comment above always said "at
+      // range", and the text said "adjacent" because a Talent could not reach
+      // any further until it could declare `ranged` itself.
+      ranged: true,
       handler: "strike",
       params: { dmg: 7, pen: 1, statusKind: "BLIND", statusDuration: 2 },
     },

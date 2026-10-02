@@ -1141,10 +1141,16 @@ export function validAllyTargets(state: GameState, attackerId: string): CardInst
 
 /** Enemy targets for this card's Special — like validTargets, but a special
  *  flagged `ranged` reaches any slot even on a Melee card. */
-export function validSpecialTargets(state: GameState, attackerId: string): CardInstance[] {
+export function validSpecialTargets(
+  state: GameState,
+  attackerId: string,
+  /** The ability being aimed. Defaults to the card's Special; a Talent passes
+   *  itself, so its own `ranged` / `reach` / charge params decide its reach. */
+  ability?: { ranged?: boolean; params?: Record<string, number | string> },
+): CardInstance[] {
   const attacker = state.cards[attackerId];
   if (!attacker || !attacker.pos) return [];
-  const special = getDef(attacker.defId).special;
+  const special = ability ?? getDef(attacker.defId).special;
   const asRanged = Boolean(special?.ranged);
   // A Special that charges BEFORE it strikes may aim as far as it can travel.
   // Without this, a Melee charger could only ever pick a target already standing
@@ -2157,7 +2163,7 @@ export function talentTargets(state: GameState, instanceId: string): CardInstanc
   const fd = Number(talent.params?.forwardDepth ?? 0);
   return fd > 0
     ? forwardAreaTargets(state, card, Number(talent.params?.spread ?? 0), fd)
-    : validSpecialTargets(state, instanceId);
+    : validSpecialTargets(state, instanceId, talent);
 }
 
 // ── battle actions ──────────────────────────────────────────────────────────

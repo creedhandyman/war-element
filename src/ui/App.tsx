@@ -8,6 +8,7 @@ import {
   canFireSpecial,
   canFireTalent,
   talentAllyChoices,
+  talentTargets,
   canPlummet,
   plummetTargets,
   canMove,
@@ -3394,6 +3395,10 @@ export function App() {
     if (pending === "talent") {
       const allies = talentAllyChoices(game, awaitingId);
       if (allies.length > 0) return allies.map((t) => t.instanceId);
+      // A RANGED Talent (Starfall) names its opponent anywhere on the board, so
+      // what glows is what IT can reach, not what a basic could.
+      if (game.cards[awaitingId] && getDef(game.cards[awaitingId].defId).talent?.ranged)
+        return talentTargets(game, awaitingId).map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
   }, [game, awaitingId, pending, sel, view, armedPickSide, spellPicks]);
@@ -3773,7 +3778,15 @@ export function App() {
           setHint(`Trade places with <b>${getDef(clicked.defId).name}</b>? Press <b>Confirm</b>, or tap another ally.`);
           return;
         }
+        const tal = getDef(game.cards[awaitingId].defId).talent;
+        if (clicked && tal?.ranged && talentTargets(game, awaitingId).some((t) => t.instanceId === clicked.instanceId)) {
+          setPicks([clicked.instanceId]);
+          setHint(`${tal.name} on <b>${getDef(clicked.defId).name}</b>? Press <b>Confirm</b>, or tap another opponent.`);
+          return;
+        }
         if (clicked) inspectTapped(clicked);
+        else if (tal?.ranged)
+          setHint(`Tap a <b>glowing opponent</b> for ${tal.name}, then press <b>Confirm</b>.`);
         else if (talentAllyChoices(game, awaitingId).length > 0)
           setHint("Tap a <b>glowing ally</b>: the one to trade places with.");
         else setHint("This Talent takes no target — press <b>CONFIRM</b> to use it, or <b>CANCEL</b> to back out.");
@@ -4356,14 +4369,21 @@ export function App() {
     // TAPPED. Without a pick it waits rather than firing: the engine would
     // otherwise hand the swap to whichever ally it lists first.
     const picksAlly = talentAllyChoices(game, activeCard.instanceId).length > 0;
+    // A ranged Talent reaches the whole board, so WHICH opponent is the
+    // player's call — without a pick the engine would take the first it lists.
+    const picksFoe = !picksAlly && !!activeDef.talent.ranged;
     if (pending === "talent") {
       if (picksAlly && picks.length === 0) {
         setHint("Tap a <b>glowing ally</b> first: the one to trade places with. Then press <b>Confirm</b>.");
         return;
       }
+      if (picksFoe && picks.length === 0) {
+        setHint(`Tap a <b>glowing opponent</b> first: the one ${activeDef.talent.name} lands on. Then press <b>Confirm</b>.`);
+        return;
+      }
       dispatch({
         type: "BATTLE_ACTION", player: activeCard.owner, action: "talent",
-        ...(picksAlly ? { targetIds: picks.slice(0, 1) } : {}),
+        ...(picksAlly || picksFoe ? { targetIds: picks.slice(0, 1) } : {}),
       });
       setPending(null);
       return;
@@ -4384,7 +4404,9 @@ export function App() {
       `${talentEffect(activeDef.talent.text)} ` +
       (picksAlly
         ? `Tap the <b>glowing ally</b> to trade places with, then press <b>Confirm</b>. Free, but there is no second one.`
-        : `Free, but press <b>Confirm</b> to spend it: there is no second one.`),
+        : picksFoe
+          ? `Tap the <b>glowing opponent</b> it lands on, then press <b>Confirm</b>. Free, but there is no second one.`
+          : `Free, but press <b>Confirm</b> to spend it: there is no second one.`),
     );
   }
 

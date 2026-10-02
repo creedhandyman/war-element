@@ -1666,6 +1666,11 @@ export interface CardDef {
      *  ally-targeting Talent silently did nothing (Stone's Search and Rescue).
      *  Omitted = enemies, which is what every existing Talent wants. */
     targetSide?: "enemy" | "ally" | "self";
+    /** Reaches like a Ranged attack (any slot) even on a Melee card — the same
+     *  flag a Special carries. `talentTargets` used to measure every Talent by
+     *  the card's SPECIAL, so a Talent on a card with no Special was always
+     *  melee whatever it declared (Quasar's Starfall). */
+    ranged?: boolean;
   };
   /** Wind Warp (Rayfen): distance is no object when it MOVES — it may step out
    *  of the wind onto any open slot on the board, however far.
