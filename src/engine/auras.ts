@@ -49,7 +49,8 @@ export interface AuraDef {
  *  identically to max 4, so the fourth helping is the last one that does any
  *  work — anything past it is a number on a card that never gets read. */
 export const AQUA_TIDE_EVERY = 2;
-export const AQUA_TIDE_MAX = 4;
+/** 5 since 2026-10-02 (owner: "cap at +5"), measured above as the same as 4. */
+export const AQUA_TIDE_MAX = 5;
 
 /** VOID'S STEAL — the −1/+1 on hit, and where it stops.
  *
