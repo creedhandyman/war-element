@@ -303,7 +303,20 @@ export function applyStatus(
   // the default, and the default should be that hitting something twice does
   // not make its burn worse than either hit promised.
   let note = "";
-  if (existing >= 0) {
+  // BURN STACKS (owner, 2026-10-01: "stacking the dot damage on top of one
+  // another, increasing the overall burn per turn"). Every BURN that lands on a
+  // burning card ADDS its power to the fire — a card's own BURN rider, a Special,
+  // a spell, Scorch — up to the cap; duration keeps the longer. Before, the
+  // stronger of the two simply replaced the weaker, so a second burn did nothing.
+  if (kind === "BURN" && existing >= 0) {
+    const st = target.statuses[existing];
+    const cap = PYRO_BURN_STACK_CAP;
+    const before = st.power;
+    st.power = Math.min(cap, st.power + power);
+    st.duration = Math.max(st.duration, dur);
+    if (power >= before) st.source = source;
+    note = st.power > before ? ` (stacks to BURN ${st.power})` : " (already at the cap)";
+  } else if (existing >= 0) {
     const st = target.statuses[existing];
     const grew = power > st.power || dur > st.duration;
     // Attribution follows the application that is actually doing the work, so

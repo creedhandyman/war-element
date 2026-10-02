@@ -24,7 +24,7 @@ export interface MatchupDef {
  *  push the element the measurements put at the TOP of the ladder. */
 export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = {
   LEAF: { name: "Well Watered", desc: "Heals +1 HP whenever an AQUA attack lands on it." },
-  PYRO: { name: "Searing", desc: "A BURNing card heals at 75% — wounds don't close while they cook." },
+  PYRO: { name: "Searing", get desc() { return `A BURNing card heals at ${BURN_HEAL_MULT * 100}% — wounds don't close while they cook.`; } },
   AQUA: { name: "Quenching", desc: "BURN on an AQUA card lasts half as long (rounded up)." },
   DAWN: { name: "Daybreak", desc: "Deals +25% DMG to DUSK." },
   DUSK: { name: "Nightfall", desc: "Deals +25% DMG to DAWN." },
@@ -35,11 +35,11 @@ export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = {
 /** HP a LEAF card drinks back from each landed AQUA hit. */
 export const LEAF_WATER_HEAL = 1;
 
-/** How much a BURNing card heals. Deliberately 0.75 rather than the 0.5 this
- *  started as: LEAF is the game's healing element and measured LAST by a wide
- *  margin, so a half-strength anti-heal was a hard counter aimed squarely at
- *  the element that could least afford one. */
-export const BURN_HEAL_MULT = 0.75;
+/** How much a BURNing card heals: HALF since 2026-10-01 (owner: "make the burn
+ *  more effective against healing targets"). It was 0.75 to spare LEAF, the
+ *  healing element; measured with additive BURN stacking, LEAF moved 41.3 ->
+ *  39.6 (about noise) while PYRO went 32.4 -> 38.8. */
+export const BURN_HEAL_MULT = 0.5;
 
 /** The DAWN/DUSK swing. Mutual, so it nets out on the ladder — it's here for
  *  the flavour and to make that matchup decisive, not to move balance. */

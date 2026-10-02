@@ -9,6 +9,7 @@ import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import {
+  BURN_HEAL_MULT,
   LEAF_WATER_HEAL,
   applyMatchupDamage,
   dodgesByMatchup,
@@ -113,12 +114,12 @@ describe("element matchups — GALE's dodge vs BORE", () => {
 });
 
 describe("element matchups — healing", () => {
-  it("a BURNing card heals at 75%", () => {
+  it("a BURNing card heals at half (2026-10-01; was 75%)", () => {
     const s = prepState();
     const c = place(s, "leaf_hunter", "P1", 2, 0, { curHp: 5, maxHp: 40 });
     expect(healCard(s, c, 8)).toBe(8); // clean
     applyStatus(s, c, "BURN", 3, 2, "PYRO");
-    expect(healCard(s, c, 8)).toBe(6); // floor(8 * 0.75)
+    expect(healCard(s, c, 8)).toBe(Math.floor(8 * BURN_HEAL_MULT)); // 4
   });
 
   it("never taxes a heal down to nothing", () => {

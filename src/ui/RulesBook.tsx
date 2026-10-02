@@ -363,7 +363,7 @@ export function RulesBook(props: { onClose: () => void }) {
               what is already running.
             </p>
             <ul className="rules-defs">
-              <li><b>BURN</b> — burns HP each round, and melts <b>2</b> shields every tick. Stacks up to 5 (Pyro's Scorch).</li>
+              <li><b>BURN</b> — burns HP each round, and melts <b>2</b> shields every tick. Every BURN that lands on a burning card <b>adds</b> to it, up to 5, and a burning card heals at half.</li>
               <li><b>BLEED</b> — loses HP each round. Re-applying keeps the stronger, like every DOT here; it stacks only where a card says it does (Leaf).</li>
               <li><b>SCALD</b> — scalding damage each round.</li>
               <li><b>DOT / Poison</b> — generic damage each round.</li>

@@ -1,6 +1,7 @@
 // Reworked status semantics (updated rules doc) + King of the Hill.
 
 import { describe, expect, it } from "vitest";
+import { PYRO_BURN_STACK_CAP } from "../auras";
 import { applyStatus } from "../combat";
 import { AQUA_TIDE_EVERY, AQUA_TIDE_MAX, WEAKEN_MAX_STACKS, weakenMult, weakenStacks } from "../auras";
 import { advance } from "../phases";
@@ -206,11 +207,13 @@ describe("re-applying a status keeps the STRONGER one", () => {
   // attack downgraded a BURN 5 already ticking, and a 1-round application cut
   // a 3-round one short. That made a heavy DOT worth LESS the more attacks
   // followed it, which is backwards.
+  // BLEED, not BURN: since 2026-10-01 BURN ADDS on re-application (see "BURN
+  // stacks" below). Every other status still keeps the stronger of the two.
   const burn = (s: ReturnType<typeof prepState>, c: ReturnType<typeof place>, dur: number, pow: number) =>
-    applyStatus(s, c, "BURN", dur, pow, "PYRO");
-  const got = (c: ReturnType<typeof place>) => c.statuses.find((x) => x.kind === "BURN")!;
+    applyStatus(s, c, "BLEED", dur, pow, "DUSK");
+  const got = (c: ReturnType<typeof place>) => c.statuses.find((x) => x.kind === "BLEED")!;
 
-  it("a weaker BURN cannot downgrade a fiercer one", () => {
+  it("a weaker BLEED cannot downgrade a fiercer one", () => {
     const s = prepState();
     const c = place(s, "leaf_alpha", "P1", 3, 0);
     burn(s, c, 3, 5);
@@ -218,7 +221,7 @@ describe("re-applying a status keeps the STRONGER one", () => {
     expect(got(c).power, "the 5 holds").toBe(5);
   });
 
-  it("a fiercer BURN does upgrade a weaker one", () => {
+  it("a fiercer BLEED does upgrade a weaker one", () => {
     const s = prepState();
     const c = place(s, "leaf_alpha", "P1", 3, 0);
     burn(s, c, 3, 2);
@@ -246,13 +249,13 @@ describe("re-applying a status keeps the STRONGER one", () => {
     expect(got(c).duration).toBe(5);
   });
 
-  it("it REPLACES nothing — there is still only one BURN", () => {
+  it("it REPLACES nothing — there is still only one BLEED", () => {
     const s = prepState();
     const c = place(s, "leaf_alpha", "P1", 3, 0);
     burn(s, c, 3, 2);
     burn(s, c, 3, 5);
     burn(s, c, 3, 4);
-    expect(c.statuses.filter((x) => x.kind === "BURN")).toHaveLength(1);
+    expect(c.statuses.filter((x) => x.kind === "BLEED")).toHaveLength(1);
   });
 
   it("and it does NOT stack — two 3s do not make a 6", () => {
@@ -283,6 +286,36 @@ describe("re-applying a status keeps the STRONGER one", () => {
     const before = s.log.length;
     burn(s, c, 1, 1);
     expect(s.log.slice(before).join(" ")).toContain("held");
+  });
+});
+
+describe("BURN stacks", () => {
+  // Owner, 2026-10-01: a second BURN must ADD to the fire, not be dropped for
+  // the stronger one. Every source funnels through applyStatus, so this covers
+  // card riders, Specials, spells and Scorch alike.
+  const burn = (s: ReturnType<typeof prepState>, c: ReturnType<typeof place>, dur: number, pow: number) =>
+    applyStatus(s, c, "BURN", dur, pow, "PYRO");
+  const got = (c: ReturnType<typeof place>) => c.statuses.find((x) => x.kind === "BURN")!;
+
+  it("two burns add: a 2 on a 2 burns for 4", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 3, 2);
+    burn(s, c, 3, 2);
+    expect(got(c).power).toBe(4);
+    expect(c.statuses.filter((x) => x.kind === "BURN")).toHaveLength(1);
+  });
+
+  it("stops at the cap, and keeps the longer duration", () => {
+    const s = prepState();
+    const c = place(s, "leaf_alpha", "P1", 3, 0);
+    burn(s, c, 4, 3);
+    burn(s, c, 1, 4);
+    expect(got(c).power).toBe(PYRO_BURN_STACK_CAP);
+    expect(got(c).duration).toBe(4);
+    const before = s.log.length;
+    burn(s, c, 1, 1);
+    expect(s.log.slice(before).join(" ")).toContain("cap");
   });
 });
 
