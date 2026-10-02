@@ -296,7 +296,11 @@ export const slipstreamPct = (sp: number): number =>
 /** FIFTY since 2026-10-01 (owner: "Dawn's summon dmg to 50%"), was 40. */
 export const DAWN_STRIKE_PCT = 50;
 
-/** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
+/** How much First Light (DAWN) can ADD: +5 SP over the printed speed, since
+ *  2026-10-01 (owner: "dawn speed growth capped at +5"). That replaced the
+ *  absolute ceiling below — the owner's call, now reversed:
+ *
+ *  (was) Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
  *  when DAWN took the top of the table at 58.6%, and it was rejected before it
  *  ever measured: the statue that spends ten rounds climbing into the king-move
@@ -307,7 +311,7 @@ export const DAWN_STRIKE_PCT = 50;
  *  in the turn order than they used to.
  *
  *  Well under GALE's 21 either way: speed stays GALE's identity. */
-export const DAWN_SP_CAP = 12;
+export const DAWN_SP_GROWTH = 5;
 
 /** The most armour Photosynthesis will regrow a LEAF card to — a FLAT TOTAL,
  *  not a bonus on top of its printed shields.
@@ -352,7 +356,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare ${EXOSTONE_SHIELDS.rare}, Epic ${EXOSTONE_SHIELDS.epic}, Legendary ${EXOSTONE_SHIELDS.legendary}, Mythic ${EXOSTONE_SHIELDS.mythic}. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
   DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%).`; } },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
-  DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (caps at SP ${DAWN_SP_CAP}).` },
+  DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (up to +${DAWN_SP_GROWTH} over its printed speed).` },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
   VOID: { name: "One Eyes", desc: `Takes what it hits: each basic attack that lands steals ${VOID_STEAL_PER_ATTACK} DMG from its target and keeps it — once per attack, however many hits land (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — the first hit it takes is deflected, then every ${ordinal(VOID_DEFLECT_EVERY)} after that (${[0, 1, 2].map((k) => ordinal(1 + k * VOID_DEFLECT_EVERY)).join(", ")}…), taking half and returning half to the attacker.` },

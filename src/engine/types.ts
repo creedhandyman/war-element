@@ -1816,6 +1816,8 @@ export interface CardInstance {
   killShields?: number;
   dmgBonusRound: number; // DMG buff that resets each Cleanup (on-kill "for the round")
   spBonus: number; // permanent SP modifiers (on-kill buffs, GALE Zephyr)
+  /** SP First Light (DAWN) has added so far — capped at DAWN_SP_GROWTH. */
+  dawnSpGrown?: number;
   /** Level Up grants taken, for `randomStatMax`. Its own counter rather than
    *  reading the three stats back: `dmgBonus` and `spBonus` are shared with
    *  every other permanent-stack source, so a member with a second one would

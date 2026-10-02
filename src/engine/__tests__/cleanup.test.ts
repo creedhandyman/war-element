@@ -3,7 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { advance } from "../phases";
 import { atCleanup, def, place, prepState } from "./helpers";
-import { DAWN_SP_CAP, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
+import { DAWN_SP_GROWTH, GALE_SP_CAP, LEAF_SHIELD_CAP } from "../auras";
 import { effectiveSp } from "../state";
 import { basicAttack } from "../combat";
 import { getDef } from "../../data/cards";
@@ -337,7 +337,7 @@ describe("Sticky (Stickers): four jabs build one wound", () => {
   });
 });
 
-describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
+describe("First Light (DAWN): +1 SP a round, up to +5", () => {
   it("quickens a DAWN card each round", () => {
     const s = prepState();
     const dawn = place(s, "dawn_beam", "P1", 3, 0);
@@ -347,17 +347,16 @@ describe("First Light (DAWN): +1 SP a round, to a low cap", () => {
     expect(effectiveSp(n, n.cards[dawn.instanceId])).toBe(before + 1);
   });
 
-  it("stops at the cap, which every DAWN card converges on", () => {
-    expect(DAWN_SP_CAP).toBeLessThan(GALE_SP_CAP); // speed stays GALE's identity
+  it("stops after +DAWN_SP_GROWTH over its own printed speed", () => {
+    // Owner, 2026-10-01: a relative cap replaced the absolute SP 12 ceiling.
+    expect(DAWN_SP_GROWTH).toBeLessThan(GALE_SP_CAP);
     const s = prepState();
     const dawn = place(s, "dawn_beam", "P1", 3, 0);
     place(s, "dusk_gool", "P2", 0, 3);
     let n = s;
     for (let i = 0; i < 20; i++) n = advance(atCleanup(n));
     const def = getDef("dawn_beam");
-    // EXACTLY the ceiling after twenty rounds — an absolute cap means every
-    // quickened card lands on the same number, however slow its printing.
-    expect(def.sp + n.cards[dawn.instanceId].spBonus).toBe(DAWN_SP_CAP);
+    expect(def.sp + n.cards[dawn.instanceId].spBonus).toBe(def.sp + DAWN_SP_GROWTH);
   });
 
   it("non-DAWN cards are not quickened", () => {

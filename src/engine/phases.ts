@@ -4,7 +4,7 @@
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
-import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_CAP, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
+import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_GROWTH, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
@@ -3760,8 +3760,13 @@ function doCleanupPhase(draft: GameState): void {
       // Deliberately weaker than GALE's Zephyr (+2 a round to SP 21, plus a
       // one-time +1 DMG at 15): speed is GALE's identity, and this is a nudge
       // off the floor rather than a second speed element.
-      const curSp = def.sp + card.spBonus;
-      if (curSp < DAWN_SP_CAP) card.spBonus += Math.min(1, DAWN_SP_CAP - curSp);
+      // Capped on its OWN growth (+DAWN_SP_GROWTH), counted separately so other
+      // SP sources (Vapor, on-kill buffs) neither use up nor extend it.
+      const grown = card.dawnSpGrown ?? 0;
+      if (grown < DAWN_SP_GROWTH) {
+        card.spBonus += 1;
+        card.dawnSpGrown = grown + 1;
+      }
     }
     // Discharge (ARC): at the end of every round, an ARC card sheds a quarter
     // of its CURRENT basic-attack damage (bonuses included, floored) to every

@@ -10,7 +10,7 @@ import { auraDrainBonus, auraMaxHpBonus } from "../state";
 import { CARDS, getDef } from "../../data/cards";
 import { describeSharedPassives } from "../../ui/card-text";
 import {
-  ARC_DISCHARGE_DIVISOR, DAWN_SP_CAP, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
+  ARC_DISCHARGE_DIVISOR, DAWN_SP_GROWTH, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
   slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow, DUSK_DRAIN } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, shadeStacksLive, slipstreamDodgePct } from "../combat";
@@ -556,7 +556,7 @@ describe("DAWN — Awakening", () => {
     const after = advance(atCleanup(s));
     expect(after.cards[dawn.instanceId].statuses.length, "peeled, not wiped").toBe(before - 1);
     expect(after.cards[dawn.instanceId].spBonus).toBeGreaterThan(0);
-    expect(def.sp + after.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_CAP);
+    expect(after.cards[dawn.instanceId].spBonus).toBeLessThanOrEqual(DAWN_SP_GROWTH);
   });
 });
 
