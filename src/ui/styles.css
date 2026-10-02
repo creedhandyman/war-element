@@ -9178,3 +9178,88 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .recover-card code { font-size: 11px; color: var(--ink-faint); word-break: break-word; }
 .recover-row { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
 .bbtn.gold { border-color: var(--gold-line); color: var(--gold-lit); background: rgba(201, 162, 75, .12); }
+
+/* ===== PC hand band (owner's call, 2026-10-02) =====
+   On a PC the match used to move all the time. The action bar shrank from 131px
+   to 84px off your turn, which RESIZED the board (636 <-> 683px tall) every
+   prep; the hand jumped ~120px between "raised over the Home row" and a 44px
+   peek strip; and it vanished outright while a card was acting.
+
+   Now nothing moves. The bar is ONE height in every state, so the board's row
+   never changes size, and the hand lives in that bar, below the board, as a
+   full row of cards for the whole match (Hand.tsx stops collapsing it on this
+   tier). Mid-battle it is out of the way already: a card's verbs are on the
+   action wheel over the board, which hides the bar's button row. */
+@media (min-width: 1180px) and (min-height: 541px) {
+  .bottom, .bottom.compact, .bottom.acting {
+    height: 150px; min-height: 150px; max-height: 150px; transition: none;
+    align-items: center;
+  }
+  .hand-float, .hand-float.up {
+    bottom: 8px;
+    /* The gap between the gems (to x=311) and the controls (238px + gutter on
+       the right), centred: as wide as it gets without running into either. */
+    width: min(820px, calc(100% - 640px));
+    transform: translateX(-50%);
+  }
+  .bottom.acting ~ .hand-float { display: flex; }
+  /* The flat row shrinks its cards to fit and scrolls past a floor (86px).
+     In this slot a seven-card hand needs a little under that at 1280 wide, and
+     a row that scrolls with no scrollbar reads as cards cut off — so the floor
+     drops here. Names ellipsize; cost and the three numbers stay whole. */
+  .hand-float .hand:not(.collapsed) .hand-fan .hcard { min-width: 68px; }
+  /* The row scrolls (overflow-x: auto), and a scroller clips on every side: the
+     first card's cost badge, which sits 6px out past its corner, lost its left
+     edge. Room on both ends for the badge to stick out into. */
+  .hand-float .hand:not(.collapsed) .hand-fan { padding-left: 10px; padding-right: 10px; }
+  /* What used to sit where the hand now is. With the wheel up the prompt line
+     only repeats the wheel and the Speed Queue, and "waiting for your opponent"
+     repeats the ribbon's own waiting chip, so both stand down. If the wheel is
+     NOT up, the verbs are the only way through the turn: they draw OVER the
+     hand rather than under it (untidy, never stuck). */
+  .wrap.wheel-up .bottom.acting .bprompt, .bottom.acting .bprompt.oppwait { visibility: hidden; }
+  .bottom.acting .bprompt { position: relative; z-index: calc(var(--z-hand) + 1); }
+  /* The secondary row (Move · Auto · Clear · Surrender · How to play) is ~380px
+     of buttons in a 238px column; it used to spill LEFT into the empty middle
+     of the bar, which is where the hand lives now. It goes behind a ⋯ beside
+     Pass Priority and opens upward, exactly as the compact tier does it. */
+  .controls {
+    display: grid; grid-template-columns: 1fr auto auto; align-content: center;
+    column-gap: 6px; row-gap: 6px; position: relative;
+  }
+  .controls .hint { grid-column: 1 / -1; }
+  .controls .hint:empty { display: none; }
+  .pass-btn { grid-row: 2; grid-column: 1; }
+  .ctl-cancel { grid-row: 2; grid-column: 2; width: 40px; height: 40px; }
+  .ctl-more {
+    grid-row: 2; grid-column: 3; display: grid; place-items: center;
+    width: 40px; height: 40px; padding: 0; cursor: pointer; font-size: 15px; line-height: 1;
+    border-radius: 10px; border: 1px solid rgba(233, 226, 210, .2);
+    background: rgba(6, 7, 12, .6); color: var(--ink-dim);
+  }
+  .ctl-more.on { border-color: var(--gold-line); color: var(--gold-lit); background: rgba(201, 162, 75, .12); }
+  .ctl-scrim {
+    display: block; position: fixed; inset: 0; z-index: var(--z-sheet);
+    background: transparent; border: 0; padding: 0; cursor: default;
+  }
+  .ctl-sub, .bottom.compact .ctl-sub {
+    position: absolute; bottom: calc(100% + 8px); left: 0; right: 0;
+    z-index: calc(var(--z-sheet) + 1);
+    display: none; flex-direction: column; align-items: stretch; gap: 6px;
+    padding: 9px; border-radius: 12px;
+    background: var(--panel); border: 1px solid var(--gold-line);
+    box-shadow: 0 12px 30px rgba(0, 0, 0, .7);
+  }
+  .ctl-sub.open, .bottom.compact .ctl-sub.open { display: flex; }
+  .ctl-sub .mv { display: block; text-align: center; }
+  .ctl-sub > .ghost.sm, .ctl-sub > select.ghost.sm {
+    width: 100%; max-width: none; height: 34px; font-size: 12px; text-align: center; text-align-last: center;
+  }
+}
+/* ...and where that slot squeezes the cards under ~100px (up to ~1500px wide),
+   the stat line is the thing that gives: "4x2 11 11" is 77px at its 14px size
+   in a 58px plate. Smaller numerals, tighter gaps — whole numbers rather than
+   clipped ones. */
+@media (min-width: 1180px) and (min-height: 541px) and (max-width: 1499px) {
+  .hand-float .hcard .hc-stats { font-size: 11.5px; gap: 2px; }
+}

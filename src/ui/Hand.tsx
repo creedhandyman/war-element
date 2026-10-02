@@ -9,18 +9,23 @@ import { SpIcon } from "./icons";
  *  width/height only, no `orientation` (flaky on real devices) — so the fan
  *  tightens the same way. Re-renders on resize/orientation change. */
 const NARROW_QUERY = "(max-width: 760px), (max-height: 540px)";
-function useNarrow(): boolean {
-  const [narrow, setNarrow] = useState(
-    () => typeof window !== "undefined" && window.matchMedia(NARROW_QUERY).matches,
+/** The PC layout: the tier styles.css calls the desktop hand band. There the
+ *  hand never collapses to its peek strip — it stays a full row of cards and
+ *  only SCALES down out of prep (see the "PC hand band" block in styles.css). */
+const DESK_QUERY = "(min-width: 1180px) and (min-height: 541px)";
+function useMedia(query: string): boolean {
+  const [on, setOn] = useState(
+    () => typeof window !== "undefined" && window.matchMedia(query).matches,
   );
   useEffect(() => {
-    const mq = window.matchMedia(NARROW_QUERY);
-    const on = () => setNarrow(mq.matches);
-    mq.addEventListener?.("change", on);
-    return () => mq.removeEventListener?.("change", on);
-  }, []);
-  return narrow;
+    const mq = window.matchMedia(query);
+    const sync = () => setOn(mq.matches);
+    mq.addEventListener?.("change", sync);
+    return () => mq.removeEventListener?.("change", sync);
+  }, [query]);
+  return on;
 }
+const useNarrow = (): boolean => useMedia(NARROW_QUERY);
 
 /** What the highlighted card's readout says about playing it right now. On a
  *  desktop the hint line beside the Pass button says this; the phone layouts
@@ -123,6 +128,7 @@ export function Hand(props: {
   // Phones get a tighter fan + shallower dip so even a hoarded 9-card hand stays
   // within the viewport and clears the bottom control bar.
   const narrow = useNarrow();
+  const desk = useMedia(DESK_QUERY);
   // The fan has to stay inside the viewport as the hand GROWS. Both the spread
   // and the dip used to scale with the card's distance from centre, unbounded —
   // a 5-card hand dipped ~18px but a 9-card hand dipped ~49px and the outer
@@ -190,7 +196,7 @@ export function Hand(props: {
   }, [n]);
 
   return (
-    <div className={`hand${myPrep ? "" : " collapsed"}`} ref={handRef}>
+    <div className={`hand${myPrep || desk ? "" : " collapsed"}`} ref={handRef}>
       {/* Deck as a stacked pile with its count. */}
       <div className="deck-stack" title={`Your deck — ${me.deck.length} cards`}>
         <span className="ds-plate" />
