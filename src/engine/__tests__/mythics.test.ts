@@ -318,7 +318,7 @@ describe("Talents — Dart Frog's Bleed Out", () => {
     });
     const f = t1.cards[frog.instanceId];
     expect(f.talentUsed).toBe(true);
-    expect(effectiveBasicHits(f)).toBe(3); // 1 base + 2 loaded
+    expect(effectiveBasicHits(f, t1)).toBe(3); // 1 base + 2 loaded
     expect(canFireTalent(t1, frog.instanceId).ok).toBe(false); // once per game
 
     // Next basic fires as 3 darts (5 DMG each) and clears the load.

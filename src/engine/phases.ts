@@ -553,13 +553,13 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
       // middle. Crossing-gated like Stomp — shuffling between two mid rows is
       // not a shield farm.
       const ready = getDef(card.defId).onEnterMidRow;
-      if (ready && card.curHp > 0 && !isMidRow(fromRow) && isMidRow(card.pos!.row)) {
+      if (ready && card.curHp > 0 && !isMidRow(fromRow, draft.boardSize) && isMidRow(card.pos!.row, draft.boardSize)) {
         card.curShields += ready.shields;
         draft.log.push(`${getDef(card.defId).name} braces for the middle (+${ready.shields} shield).`);
       }
       // Sky Scout (Sightwing): reaching the middle lets the team's basics clip an
       // extra adjacent target for the round.
-      if (getDef(card.defId).skyScout && card.curHp > 0 && !isMidRow(fromRow) && isMidRow(card.pos!.row)) {
+      if (getDef(card.defId).skyScout && card.curHp > 0 && !isMidRow(fromRow, draft.boardSize) && isMidRow(card.pos!.row, draft.boardSize)) {
         draft.players[card.owner].basicSplashRounds = 1;
         draft.log.push(`${getDef(card.defId).name} scouts the field — allies' shots spread this round.`);
       }
@@ -2137,7 +2137,7 @@ function performBattleAction(
   }
   // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row
   // hit bonuses, not just the printed count.
-  const maxHits = effectiveBasicHits(card);
+  const maxHits = effectiveBasicHits(card, draft);
   const valid = validTargets(draft, instanceId);
   const chosen =
     picks && picks.length > 0 ? picks : valid[0] ? [valid[0].instanceId] : [];
@@ -2220,7 +2220,7 @@ function stepBattle(draft: GameState): boolean {
     // A multi-hit basic spreads instead of overkilling one target (see
     // distributeBasicHits); every other action keeps its single chosen target.
     const picks =
-      choice.action === "basic" && effectiveBasicHits(card) > 1
+      choice.action === "basic" && effectiveBasicHits(card, draft) > 1
         ? distributeBasicHits(draft, card, validTargets(draft, id))
         : choice.targetId
           ? [choice.targetId]
@@ -2240,7 +2240,7 @@ function stepBattle(draft: GameState): boolean {
     // otherwise basic attack (mirrors the AI's restraint).
     const choice = chooseBattleAction(draft, id);
     const picks =
-      choice.action === "basic" && effectiveBasicHits(card) > 1
+      choice.action === "basic" && effectiveBasicHits(card, draft) > 1
         ? distributeBasicHits(draft, card, validTargets(draft, id))
         : choice.targetId
           ? [choice.targetId]
@@ -2294,7 +2294,7 @@ export function pickBasicTarget(
   attacker: CardInstance,
   targets: CardInstance[],
 ): CardInstance {
-  const volley = effectiveDmg(draft, attacker) * effectiveBasicHits(attacker);
+  const volley = effectiveDmg(draft, attacker) * effectiveBasicHits(attacker, draft);
   const killable = targets.filter((t) => {
     const tDef = getDef(t.defId);
     const shieldSoak = tDef.keywords.PEN ? 0 : t.curShields; // rough estimate
@@ -2349,7 +2349,7 @@ export function distributeBasicHits(
   attacker: CardInstance,
   targets: CardInstance[],
 ): string[] {
-  const hits = effectiveBasicHits(attacker);
+  const hits = effectiveBasicHits(attacker, draft);
   if (hits <= 1 || targets.length <= 1)
     return [pickBasicTarget(draft, attacker, targets).instanceId];
   const d = effectiveDmg(draft, attacker);
@@ -3813,7 +3813,7 @@ function doCleanupPhase(draft: GameState): void {
       // needs the same answer, and when this rule lived in two places the two
       // disagreed for four commits.
       if (hasArcDischarge(def) && card.curHp > 0 && card.pos) {
-        const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card)) / ARC_DISCHARGE_DIVISOR);
+        const zap = Math.floor((effectiveDmg(draft, card) * effectiveBasicHits(card, draft)) / ARC_DISCHARGE_DIVISOR);
         if (zap > 0) {
           const reach = def.attackType === "Melee" ? 1 : RANGED_REACH;
           const caught = enemyCards(draft, card.owner).filter(

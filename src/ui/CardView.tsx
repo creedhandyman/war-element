@@ -98,7 +98,7 @@ function inspectModel(game: GameState, card: CardInstance, viewer: PlayerId): Vi
     def,
     stats: {
       dmg: effectiveDmg(game, card),
-      hits: effectiveBasicHits(card),
+      hits: effectiveBasicHits(card, game),
       hp: card.curHp,
       hpMax,
       shields: card.curShields,

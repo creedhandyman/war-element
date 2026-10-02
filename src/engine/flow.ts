@@ -22,7 +22,7 @@ export interface FlowPreview { before: FlowStats; after: FlowStats }
 function statsOf(state: GameState, card: CardInstance): FlowStats {
   return {
     dmg: effectiveDmg(state, card),
-    hits: effectiveBasicHits(card),
+    hits: effectiveBasicHits(card, state),
     shields: card.curShields,
     sp: effectiveSp(state, card),
   };

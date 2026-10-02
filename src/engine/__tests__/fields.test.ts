@@ -443,7 +443,7 @@ describe("Nightfall — EVASION covers the FIRST hit each round only", () => {
     // a mid row grants +1 DMG or +1 HIT depending on the card's shape, and
     // raising a 1-DMG multi-hit card to 2 flips which branch it takes.
     const perHit = effectiveDmg(s, s.cards[foe.instanceId]);
-    const hits = effectiveBasicHits(s.cards[foe.instanceId]);
+    const hits = effectiveBasicHits(s.cards[foe.instanceId], s);
     basicAttack(s, foe.instanceId, me.instanceId);
     expect(s.cards[me.instanceId].curHp).toBe(400 - perHit * (hits - 1));
     expect(s.cards[me.instanceId].fieldEvasionUsed).toBe(true);

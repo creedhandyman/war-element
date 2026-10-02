@@ -483,21 +483,19 @@ export function RulesBook(props: { onClose: () => void }) {
                 and it can never be won back. Take all of an opponent's Home slots and you
                 win outright.
               </li>
-              {/* The hill is `isMidRow` — rows 1 and 2, counted from P2's Home row
-                  as row 0, at BOTH board sizes. On the 4x4 that is both middle rows;
-                  on the 5x5 it leaves out row 3, the one in front of P1's Home, so it
-                  is named by number here rather than as "a middle row". */}
-              <li><b>King of the Hill</b>: a card standing on a hill row deals +1 DMG —
+              {/* The hill is `onHill` (state.ts): every row between the two Home
+                  rows on the duel boards, a FILLED Point in Domination. */}
+              <li><b>King of the Hill</b>: a card standing on the hill deals +1 DMG —
                 or lands one <i>extra hit</i> instead, if it is a heavy multi-hit card.
-                The hill is <b>rows 1 and 2</b>, counted from P2's Home row as row 0 (the
-                top row when you play the AI): both middle rows on the 4×4, but on the
-                5×5 the middle row and the one on P2's side of it — the row in front of
-                P1's Home is not part of it.</li>
+                The hill is <b>every row between the two Home rows</b>: the two middle
+                rows on the 4×4, the three on the 5×5. In <b>Domination</b> there are no
+                hill rows — the hill is a <b>Point whose whole ring you have filled</b>,
+                all eight squares your own cards.</li>
               <li>
-                <b>Full-lane bonus</b>: hold <i>every slot</i> of a hill row — four on
-                the standard board, five on the large one — and
-                your <b>entire board</b> gains +1 DMG — and there are two hill rows
-                to seize, so a locked-down centre can stack +2 across your army.
+                <b>Full-lane bonus</b>: hold <i>every square</i> of a hill row — four on
+                the standard board, five on the large one — or, in Domination, fill a
+                Point's whole ring, and your <b>entire board</b> gains +1 DMG. Each one
+                held counts, so a locked-down centre stacks across your army.
               </li>
               <li>Spells are one-shot effects from your spellbook — cast in Prep.</li>
               <li>Tap any card to inspect its full stats, Special, and passives.</li>

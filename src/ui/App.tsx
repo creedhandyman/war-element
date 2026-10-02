@@ -3664,7 +3664,7 @@ export function App() {
   const maxPicks = (() => {
     if (!awaitingId || !pending) return 1;
     const def = getDef(game.cards[awaitingId].defId);
-    if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId]);
+    if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId], game);
     // An aimed corridor takes exactly ONE pick, because the pick is a DIRECTION
     // rather than a victim — the engine fills the rest of the lane in itself.
     if (pending === "special" && game.domination && specialAimable(def.special)) return 1;
@@ -4238,11 +4238,11 @@ export function App() {
     setPending("basic");
     setPicks([]);
     setHint(
-      effectiveBasicHits(activeCard) > 1
+      effectiveBasicHits(activeCard, game) > 1
         // "Auto" because that is what the armed button SAYS — AUTO on the ring,
         // "Auto-fire" on the bar. This named "Basic Attack", a label neither
         // shows once armed, and "the nearest", which is not how it picks.
-        ? `Basic attack: <b>${effectiveBasicHits(activeCard)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard)} glowing targets (repeat to stack), or tap <b>Auto</b> to spread them for you.`
+        ? `Basic attack: <b>${effectiveBasicHits(activeCard, game)} hits × ${effectiveDmg(game, activeCard)} DMG</b> — tap up to ${effectiveBasicHits(activeCard, game)} glowing targets (repeat to stack), or tap <b>Auto</b> to spread them for you.`
         : "Tap a glowing target, or tap <b>Auto</b> and it picks one for you.",
     );
   }
@@ -4943,7 +4943,7 @@ export function App() {
               <div className="bp-title">
                 {activeDef.name} is up{" "}
                 <small>
-                  ⚔{effectiveBasicHits(activeCard) > 1 ? `${effectiveBasicHits(activeCard)}×` : ""}
+                  ⚔{effectiveBasicHits(activeCard, game) > 1 ? `${effectiveBasicHits(activeCard, game)}×` : ""}
                   {effectiveDmg(game, activeCard) + (activeCard.enchant === "sharpen" ? 5 : 0)} · {activeDef.attackType}
                 </small>
                 {activeCard.enchant && (

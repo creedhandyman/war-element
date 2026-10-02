@@ -27,7 +27,7 @@ function summoned(defId: string): { s: GameState; id: string } {
 }
 
 const read = (s: GameState, c: CardInstance) =>
-  ({ dmg: effectiveDmg(s, c), hits: effectiveBasicHits(c), shields: c.curShields, sp: effectiveSp(s, c) });
+  ({ dmg: effectiveDmg(s, c), hits: effectiveBasicHits(c, s), shields: c.curShields, sp: effectiveSp(s, c) });
 
 describe("the Flow Change menu's preview", () => {
   it.each([

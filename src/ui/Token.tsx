@@ -457,7 +457,7 @@ export function Token(props: {
   const barTotal = Math.max(1, maxHp + shields);
   const shPct = (shields / barTotal) * 100;
   const hpPct = (Math.max(0, card.curHp) / barTotal) * 100;
-  const hits = effectiveBasicHits(card);
+  const hits = effectiveBasicHits(card, game);
   const cls = [
     "token",
     mine ? "mine" : "enemy",

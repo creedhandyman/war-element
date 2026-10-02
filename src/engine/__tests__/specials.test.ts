@@ -334,9 +334,9 @@ describe("firing specials", () => {
     const home = place(s, "bore_krysteel", "P1", 3, 0); // own back row
     const mid = place(s, "bore_krysteel", "P1", 2, 0); // the aggressive slot
     expect(effectiveDmg(s, s.cards[home.instanceId])).toBe(2);
-    expect(effectiveBasicHits(s.cards[home.instanceId])).toBe(4); // 8 raw
+    expect(effectiveBasicHits(s.cards[home.instanceId], s)).toBe(4); // 8 raw
     expect(effectiveDmg(s, s.cards[mid.instanceId])).toBe(2); // NOT 3 — no per-shard bump
-    expect(effectiveBasicHits(s.cards[mid.instanceId])).toBe(5); // 10 raw
+    expect(effectiveBasicHits(s.cards[mid.instanceId], s)).toBe(5); // 10 raw
   });
 
   it("BLOCK 2 zeroes Krysteel's basic outright — the spray's hard counter", () => {
@@ -1211,7 +1211,7 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
   const mid = (id: string) => {
     const s = prepState();
     const c = place(s, id, "P1", 2, 1, { autoMode: "manual" });
-    return effectiveDmg(s, s.cards[c.instanceId]) * effectiveBasicHits(s.cards[c.instanceId]);
+    return effectiveDmg(s, s.cards[c.instanceId]) * effectiveBasicHits(s.cards[c.instanceId], s);
   };
 
   it("a 4th printed hit no longer makes a card WEAKER in a mid row", () => {
@@ -1258,12 +1258,12 @@ describe("King of the Hill — which half of the bonus a mid row pays", () => {
     for (const d of CARDS) {
       const home = prepState();
       const h = place(home, d.id, "P1", 3, 0, { autoMode: "manual" });
-      const baseHits = effectiveBasicHits(home.cards[h.instanceId]);
+      const baseHits = effectiveBasicHits(home.cards[h.instanceId], home);
       const baseDmg = effectiveDmg(home, home.cards[h.instanceId]);
 
       const s = prepState();
       const c = place(s, d.id, "P1", 2, 1, { autoMode: "manual" });
-      const gotHit = effectiveBasicHits(s.cards[c.instanceId]) > baseHits;
+      const gotHit = effectiveBasicHits(s.cards[c.instanceId], s) > baseHits;
       const gotDmg = effectiveDmg(s, s.cards[c.instanceId]) > baseDmg;
       expect(gotHit && gotDmg, `${d.id} got BOTH halves`).toBe(false);
     }

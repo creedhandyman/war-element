@@ -465,15 +465,15 @@ describe("medium-tier passives (audit batch)", () => {
   it("Rampage buys Totem a second basic hit for 3 rounds, then gives it back", () => {
     const s = prepState();
     const totem = place(s, "gale_totem", "P1", 3, 0);
-    expect(effectiveBasicHits(s.cards[totem.instanceId]), "printed hits").toBe(1);
+    expect(effectiveBasicHits(s.cards[totem.instanceId], s), "printed hits").toBe(1);
     SPECIAL_HANDLERS.empower(s, s.cards[totem.instanceId], [], { selfHits: 1, buffRounds: 3 });
-    expect(effectiveBasicHits(s.cards[totem.instanceId]), "doubled while it runs").toBe(2);
+    expect(effectiveBasicHits(s.cards[totem.instanceId], s), "doubled while it runs").toBe(2);
     // Timed, not permanent: the Cleanup tick that expires `buffs` takes it away.
     for (let r = 0; r < 3; r++) {
       for (const b of s.cards[totem.instanceId].buffs) b.rounds--;
       s.cards[totem.instanceId].buffs = s.cards[totem.instanceId].buffs.filter((b) => b.rounds > 0);
     }
-    expect(effectiveBasicHits(s.cards[totem.instanceId]), "back to one after 3 rounds").toBe(1);
+    expect(effectiveBasicHits(s.cards[totem.instanceId], s), "back to one after 3 rounds").toBe(1);
   });
 
   it("Blackice's basic damage tracks its current shield count", () => {
@@ -2529,18 +2529,18 @@ describe("King of the Hill: only 4+ hit cards trade the mid DMG for a hit", () =
     const s = prepState();
     const single = place(s, "pyro_firebird", "P1", 2, 0); // 1 hit
     expect(effectiveDmg(s, single)).toBe(getDef("pyro_firebird").dmg + 1); // +1 DMG in mid
-    expect(effectiveBasicHits(single)).toBe(1);
+    expect(effectiveBasicHits(single, s)).toBe(1);
 
     const twoHit = place(s, "gale_buf", "P1", 2, 1); // 2 dmg × 2 hits → below the 4 threshold
     expect(effectiveDmg(s, twoHit)).toBe(3); // +1 DMG
-    expect(effectiveBasicHits(twoHit)).toBe(2); // NOT an extra hit
+    expect(effectiveBasicHits(twoHit, s)).toBe(2); // NOT an extra hit
 
     const shredder = place(s, "aqua_vaporem", "P1", 2, 2); // 2 dmg × 5 hits
     expect(effectiveDmg(s, shredder)).toBe(2); // NO per-hit +1
-    expect(effectiveBasicHits(shredder)).toBe(6); // +1 hit instead
+    expect(effectiveBasicHits(shredder, s)).toBe(6); // +1 hit instead
 
     const home = place(s, "aqua_vaporem", "P1", 3, 3); // off the mid rows
-    expect(effectiveBasicHits(home)).toBe(5);
+    expect(effectiveBasicHits(home, s)).toBe(5);
   });
 
   it("assignable hits include bonuses — no false 'too many targets' rejection", () => {
@@ -2820,7 +2820,7 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     // +1; with Tailwind capped at +1 (2026-10-01) both get +1 and the unscaled
     // hill bonus shows. Take it out, halve, put it back.
     const full = effectiveDmg(s, s.cards[twin.instanceId]);
-    const hill = isMidRow(st.pos!.row) && !hillGivesHit(printed.dmg, printed.hits) ? 1 : 0;
+    const hill = isMidRow(st.pos!.row, s.boardSize) && !hillGivesHit(printed.dmg, printed.hits) ? 1 : 0;
     expect(effectiveDmg(s, st), "half power means half the punch")
       .toBe(Math.floor((full - hill) * 0.5) + hill);
   });
@@ -3374,7 +3374,7 @@ describe("element auras", () => {
     applyFlow(vap, "water");
     expect(vap.hitsBonusRound).toBe(1);
     expect(vap.dmgBonusRound).toBe(0);
-    expect(effectiveBasicHits(vap)).toBe(6); // base 5 + 1
+    expect(effectiveBasicHits(vap, s)).toBe(6); // base 5 + 1
 
     // Spinefin is single-hit — Liquid gives the flat +2 DMG.
     const fin = place(s, "aqua_spinefin", "P1", 3, 1);

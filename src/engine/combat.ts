@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
+import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -137,7 +137,7 @@ export function wallEvasion(draft: GameState, card: CardInstance): boolean {
 /** Total basic hits including on-kill (Fenrir) and 1-turn (Flow Change) bonuses,
  *  plus the King-of-the-Hill mid-row bonus for multi-hit cards (they get +1 HIT
  *  in a mid row instead of the +1 DMG single-hit cards get — see effectiveDmg). */
-export function effectiveBasicHits(card: CardInstance): number {
+export function effectiveBasicHits(card: CardInstance, state: GameState): number {
   const def = getDef(card.defId);
   // A loaded ambush (Dirt Driller) IS the attack — exactly its hit count, with
   // none of the usual stacking.
@@ -152,7 +152,7 @@ export function effectiveBasicHits(card: CardInstance): number {
     baseHits + (card.hitsBonus ?? 0) + (card.hitsBonusRound ?? 0) + (card.loadedHits ?? 0) + timedHits;
   // King of the Hill, the +1 HIT half. hillGivesHit() is the single source of
   // truth — effectiveDmg takes the exact complement.
-  if (hillGivesHit(def.dmg, def.hits) && card.pos && isMidRow(card.pos.row)) hits += 1;
+  if (hillGivesHit(def.dmg, def.hits) && onHill(state, card)) hits += 1;
   return hits;
 }
 
@@ -2206,7 +2206,7 @@ export function basicAttack(
   // target merge into one gated volley).
   const groups: { targetId: string; hits: number }[] = [];
   if (picks.length === 1) {
-    groups.push({ targetId: picks[0], hits: effectiveBasicHits(attacker) });
+    groups.push({ targetId: picks[0], hits: effectiveBasicHits(attacker, draft) });
   } else {
     for (const id of picks) {
       const last = groups[groups.length - 1];
@@ -2498,8 +2498,8 @@ export function basicAttack(
     const primary = draft.cards[groups[0].targetId];
     let extra = 0;
     if (bonus.flat) extra += bonus.flat; // Quartz Hound: an added 2-DMG strike
-    if (bonus.midLane && attacker.pos && isMidRow(attacker.pos.row)) extra += bonus.midLane;
-    if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && isMidRow(c.pos.row)).length >= 4)
+    if (bonus.midLane && attacker.pos && isMidRow(attacker.pos.row, draft.boardSize)) extra += bonus.midLane;
+    if (bonus.midLaneFull && boardCards(draft).filter((c) => c.pos && isMidRow(c.pos.row, draft.boardSize)).length >= 4)
       extra += bonus.midLaneFull;
     if (bonus.vsSleeping && primary && hasStatus(primary, "SLEEP")) extra += bonus.vsSleeping;
     if (extra > 0 && primary && primary.curHp > 0) {
@@ -5059,7 +5059,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       .sort((a, b) => manhattan(attacker.pos!, a.pos!) - manhattan(attacker.pos!, b.pos!))
       .slice(0, n);
     const dmg = effectiveDmg(draft, attacker);
-    const hits = effectiveBasicHits(attacker);
+    const hits = effectiveBasicHits(attacker, draft);
     // Re-checked per target: the weapon fires several times and an earlier
     // volley can kill a body or the attacker (REFLECT, thorns) mid-spray.
     for (const e of foes) {

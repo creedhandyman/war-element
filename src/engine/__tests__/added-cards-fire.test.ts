@@ -308,7 +308,7 @@ describe("wave 2: Zephyra, WarPhant, RIP, Scorch", () => {
     // On its Home row, where no King-of-the-Hill hit is added on top.
     const s = prepState();
     const wista = place(s, "gale_wista", "P1", 3, 1);
-    expect(effectiveBasicHits(s.cards[wista.instanceId])).toBe(3);
+    expect(effectiveBasicHits(s.cards[wista.instanceId], s)).toBe(3);
   });
 
   it("Liquark's Bloody Waters waits 3 rounds between casts, and says so", () => {

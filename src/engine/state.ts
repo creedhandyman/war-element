@@ -4,7 +4,7 @@
 import { dealSuits } from "./suits";
 import { getDef, deckById } from "../data/cards";
 import { FOIL_BONUS, foilStatFor } from "../data/foils";
-import { dominationMap, isImpassable } from "../data/domination";
+import { dominationMap, isImpassable, poiRing, type PoiDef } from "../data/domination";
 import { hasElementAura, tailwindDmg, weakenMult, weakenStacks } from "./auras";
 import { coin, shuffle } from "./rng";
 import { BURN_HEAL_MULT } from "./matchups";
@@ -960,21 +960,60 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   // rather than only its printed number: a tamed boss that picks up an on-kill
   // buff is still fighting at half, which is what the promise means.
   if (card.statScale != null && card.statScale !== 1) dmg = Math.floor(dmg * card.statScale);
-  // King of the Hill (A): sitting in a Mid row grants +1 DMG — but heavy
+  // King of the Hill (A): standing on the hill grants +1 DMG — but heavy
   // multi-hit cards get +1 HIT instead (in effectiveBasicHits), so a flat
   // per-hit +1 doesn't balloon on shredders. hillGivesHit() decides which half,
   // and this is its exact complement.
-  if (card.pos && isMidRow(card.pos.row) && !hillGivesHit(def.dmg, def.hits)) dmg += 1;
-  for (let midRow = 0; midRow < state.boardSize; midRow++) {
-    if (!isMidRow(midRow)) continue;
-    let held = 0;
-    for (let col = 0; col < state.boardSize; col++) {
-      const occ = cardAt(state, midRow, col);
-      if (occ && occ.owner === card.owner) held++;
-    }
-    if (held === state.boardSize) dmg += 1;
-  }
+  if (onHill(state, card) && !hillGivesHit(def.dmg, def.hits)) dmg += 1;
+  // ...and every hill held WHOLE lifts the entire side by one more.
+  dmg += fullHills(state, card.owner);
   return Math.max(0, dmg);
+}
+
+/** A Domination Point's ring, when every one of its eight squares holds a card
+ *  of `owner`'s. */
+function pointFilled(state: GameState, poi: PoiDef, owner: PlayerId): boolean {
+  return poiRing(poi).every((p) => cardAt(state, p.row, p.col)?.owner === owner);
+}
+
+/** KING OF THE HILL — is this card standing on the hill?
+ *
+ *  Duel boards: any row strictly between the two Home rows (`isMidRow`), the
+ *  same distance from either seat.
+ *
+ *  DOMINATION (owner, 2026-10-02): there are no hill ROWS on the 7x7 — the
+ *  hill is a Point, and only one its owner has FILLED: all eight ring squares
+ *  its own cards. A card counts while it stands on such a ring. (Rows 1-2 used
+ *  to count here too, which on a four-seat map handed the bonus to whoever
+ *  happened to start nearest the top.) */
+export function onHill(state: GameState, card: CardInstance): boolean {
+  if (!card.pos) return false;
+  if (state.domination) {
+    const map = dominationMap(state.domination.mapId);
+    return !!map?.pois.some((poi) =>
+      poiRing(poi).some((p) => p.row === card.pos!.row && p.col === card.pos!.col)
+      && pointFilled(state, poi, card.owner));
+  }
+  return isMidRow(card.pos.row, state.boardSize);
+}
+
+/** THE FULL-LANE BONUS: +1 DMG to `owner`'s whole board for every hill it holds
+ *  whole — a hill ROW with every square its own on the duel boards, a Point
+ *  with its whole ring filled in Domination. */
+export function fullHills(state: GameState, owner: PlayerId): number {
+  if (state.domination) {
+    const map = dominationMap(state.domination.mapId);
+    return (map?.pois ?? []).filter((poi) => pointFilled(state, poi, owner)).length;
+  }
+  let n = 0;
+  for (let row = 0; row < state.boardSize; row++) {
+    if (!isMidRow(row, state.boardSize)) continue;
+    let held = 0;
+    for (let col = 0; col < state.boardSize; col++)
+      if (cardAt(state, row, col)?.owner === owner) held++;
+    if (held === state.boardSize) n++;
+  }
+  return n;
 }
 
 /** Speed tiers. Movement is a STEP FUNCTION of SP, so these boundaries are

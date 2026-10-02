@@ -3190,8 +3190,18 @@ export function centreHomeSeat(player: PlayerId, boardSize: number): Pos {
   return { row: homeRow(player, boardSize), col: Math.floor(boardSize / 2) } as Pos;
 }
 
-export function isMidRow(row: number): boolean {
-  return row === 1 || row === 2;
+/** "THE MIDDLE" by rows: what War Ready, Sky Scout and Quartz Hound read, and
+ *  King of the Hill's hill on the duel boards (Domination's hill is its Points
+ *  — see `onHill` in state.ts).
+ *
+ *  Every row strictly BETWEEN the two Home rows — rows 1-2 on the 4x4, 1-3 on
+ *  the 5x5 — so it is the same distance from either seat. It used to be a flat
+ *  `row 1 or 2`, written when the 4x4 was the only board; on the 5x5 that is the
+ *  centre row plus the row in front of P2's Home, so the top seat (the AI) stood
+ *  on the hill one step out of its Home while P1 needed two, and could hold a
+ *  full lane right in front of its own back line (owner, 2026-10-02). */
+export function isMidRow(row: number, boardSize: number): boolean {
+  return row > 0 && row < boardSize - 1;
 }
 
 /** THE other seat, in a two-seat match.
