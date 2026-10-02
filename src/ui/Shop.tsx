@@ -28,7 +28,7 @@ import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
-  applyPack, buyBox, buyPremadeDeck, canBuyBox, canBuyPremadeDeck, premadeDeckPrice, shopDecks, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
+  applyPack, buyBox, buyPremadeDeck, canBuyBox, canBuyPremadeDeck, premadeDeckPrice, shopDecks, shopRefreshAt, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
   dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packLeanCost,
   packLeanOf, packOdds, PACK_LEAN, PACK_LEAN_CHANGE_COST, rerollFoil, setPackLean, type PackResult, type StorySave,
 } from "../data/story";
@@ -37,6 +37,13 @@ import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 import { TIER_LABEL, type PremadeDeck } from "../data/custom-decks";
 import { saveSquad, type Squad } from "../data/squads";
+
+/** "3d 4h", "5h 12m", "9m": the time left on the weekly deck shelf. */
+function untilText(ms: number): string {
+  const mins = Math.max(1, Math.ceil(ms / 60_000));
+  const d = Math.floor(mins / 1440), h = Math.floor((mins % 1440) / 60), m = mins % 60;
+  return d > 0 ? `${d}d ${h}h` : h > 0 ? `${h}h ${m}m` : `${m}m`;
+}
 
 /** One hue per difficulty on the premade shelf, easiest coolest. */
 const TIER_HUE: Record<string, string> = {
@@ -233,6 +240,14 @@ export function Shop(props: {
   /** PREMADE DECKS (owner's call, 2026-10-02). A buy spends hundreds of shards,
    *  so the first tap arms the button and the second one pays. */
   const [deckAsk, setDeckAsk] = useState<string | null>(null);
+  /** The clock the weekly deck shelf runs on. Ticks once a minute, which is
+   *  both the countdown's resolution and how a shelf left open across Monday
+   *  midnight swaps to the new week's decks without a reload. */
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(new Date()), 60_000);
+    return () => window.clearInterval(t);
+  }, []);
   const [deckDone, setDeckDone] = useState<{ id: string; added: number } | null>(null);
   const keepSquad = (deck: PremadeDeck) => {
     const next = saveSquad({ name: deck.name, cards: [...deck.cards], spells: deck.spells, boardSize: deck.boardSize });
@@ -559,9 +574,14 @@ export function Shop(props: {
               are worth at pack rates, and every card you already hold comes
               off it, so the deck you are three cards short of costs three
               cards. Buying also saves it as a squad, ready to take into a fight. */}
-          <div className="sr-label deck-shelf-label">PREMADE DECKS · ONE PER DIFFICULTY</div>
+          <div className="sr-label deck-shelf-label">
+            <span>PREMADE DECKS · ONE PER DIFFICULTY</span>
+            <span className="deck-timer" title={`New decks ${shopRefreshAt(now).toLocaleString()}`}>
+              NEW IN {untilText(shopRefreshAt(now).getTime() - now.getTime())}
+            </span>
+          </div>
           <div className="deck-shelf">
-            {shopDecks().map(({ tier, deck }) => {
+            {shopDecks(now).map(({ tier, deck }) => {
               const { full, price, owned } = premadeDeckPrice(save, deck);
               const face = faceOf(deck);
               const els = [...new Set(deck.cards.map((id) => getDef(id).element))];

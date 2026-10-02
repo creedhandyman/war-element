@@ -6437,7 +6437,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* Premade decks: the box's product row, one per difficulty, each wearing its
    rung's hue (--tier) on the border, the chip and the card it is shown by. */
-.deck-shelf-label { margin-top: 18px; align-self: stretch; }
+.deck-shelf-label {
+  margin-top: 18px; align-self: stretch;
+  display: flex; align-items: baseline; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+}
+/* The weekly swap countdown (`shopRefreshAt`). */
+.deck-timer { color: var(--gold-lit); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .deck-shelf { display: flex; flex-direction: column; gap: 10px; width: 100%; }
 .deck-offer {
   display: flex; gap: 12px; align-items: flex-start; width: 100%;

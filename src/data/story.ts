@@ -1985,16 +1985,75 @@ export function buyBox(save: StorySave): StorySave {
 
 // ── premade decks in the Shop (owner's call, 2026-10-02) ───────────────────
 
-/** One ready-made deck per difficulty, for sale under the packs. Standard-board
- *  (4x4) lists, because that is the board the campaign is fought on; each is the
- *  first deck of its rung on the matchmaker's ladder, so what you buy is exactly
- *  what the Arena pits you against at that difficulty. */
-export const SHOP_DECK_IDS: Record<DeckTier, string> = {
-  easy: "pre_sapling_creek",
-  mid: "pre_tidal_gate",
-  hard: "pre_solar_crown",
-  elite: "pre_tombstone",
-};
+/** One ready-made deck per difficulty, for sale under the packs — a DIFFERENT
+ *  one each week (owner, 2026-10-02: "switch out once per week, randomly, one
+ *  per difficulty, have a timer").
+ *
+ *  The pool for a difficulty is every standard-board (4x4) premade on that rung
+ *  of the matchmaker's ladder, so what you buy is something the Arena pits you
+ *  against at that difficulty. The week's pick is a seeded draw from the WEEK
+ *  NUMBER, not from the save: every player sees the same four decks, nothing is
+ *  stored, and a reinstall cannot reroll the shelf. A week never repeats the
+ *  deck the week before it held. Weeks turn at Monday midnight LOCAL time — the
+ *  same local calendar the daily reward keeps (`data/daily.ts`). */
+export const shopDeckPool = (tier: DeckTier): PremadeDeck[] =>
+  PREMADE_DECKS.filter((d) => d.tier === tier && d.boardSize === 4)
+    .sort((a, b) => a.id.localeCompare(b.id));
+
+const DAY_MS = 86_400_000;
+/** Days since 1970-01-01 of the LOCAL calendar date of `d` (DST-proof: built
+ *  from the date's own components, not from elapsed milliseconds). */
+const localDayNumber = (d: Date): number => Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / DAY_MS);
+/** 1970-01-05 was a Monday. */
+const FIRST_MONDAY = 4;
+
+/** Which shop week `now` falls in: 0 for the week of Monday 1970-01-05, +1 a week. */
+export const shopWeek = (now: Date = new Date()): number =>
+  Math.floor((localDayNumber(now) - FIRST_MONDAY) / 7);
+
+/** When the shelf next changes: the coming Monday, 00:00 local. */
+export function shopRefreshAt(now: Date = new Date()): Date {
+  const daysIn = (localDayNumber(now) - FIRST_MONDAY) % 7; // 0 on a Monday
+  return new Date(now.getFullYear(), now.getMonth(), now.getDate() + (7 - daysIn));
+}
+
+/** A small integer hash (xorshift-multiply) — enough to scatter week numbers. */
+function mix(n: number): number {
+  let x = (n | 0) ^ 0x9e3779b9;
+  x = Math.imul(x ^ (x >>> 16), 0x85ebca6b);
+  x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35);
+  return (x ^ (x >>> 16)) >>> 0;
+}
+
+/** The pool in one cycle's shuffled order (Fisher-Yates, seeded per cycle). */
+function cycleOrder(tier: DeckTier, pool: PremadeDeck[], cycle: number): PremadeDeck[] {
+  const out = [...pool];
+  let seed = mix(cycle * 131 + DECK_TIERS.indexOf(tier));
+  for (let i = out.length - 1; i > 0; i--) {
+    seed = mix(seed + i);
+    const j = seed % (i + 1);
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** THE WEEK'S DECK. A difficulty walks its whole pool in a shuffled order, one
+ *  deck a week, then reshuffles — so every deck comes round once per cycle, and
+ *  none waits forever on bad luck. Where a new cycle would open on the deck the
+ *  last one closed on, its first two swap, so no deck is ever on the shelf two
+ *  weeks running. */
+function weekPick(tier: DeckTier, week: number): PremadeDeck | null {
+  const pool = shopDeckPool(tier);
+  const n = pool.length;
+  if (!n) return null;
+  if (n < 3) return pool[((week % n) + n) % n]; // two decks simply alternate
+  const cycle = Math.floor(week / n);
+  const order = cycleOrder(tier, pool, cycle);
+  // Positions 0 and 1 are the only ones the swap touches, so the previous
+  // cycle's LAST deck is read straight off its raw order.
+  if (order[0].id === cycleOrder(tier, pool, cycle - 1)[n - 1].id) [order[0], order[1]] = [order[1], order[0]];
+  return order[week - cycle * n];
+}
 
 /** What one card in a deck costs, in shards. DERIVED, not a second price list:
  *  a pack card is worth `PACK_COST / PACK_SIZE` shards (10), and the rarities
@@ -2004,9 +2063,10 @@ export const SHOP_DECK_IDS: Record<DeckTier, string> = {
 export const deckCardShards = (defId: string): number =>
   Math.round((PACK_COST / PACK_SIZE) * craftCostOf(defId) / CRAFT_COST.rare);
 
-export const shopDecks = (): { tier: DeckTier; deck: PremadeDeck }[] =>
+/** This week's shelf: one deck per difficulty, easiest first. */
+export const shopDecks = (now: Date = new Date()): { tier: DeckTier; deck: PremadeDeck }[] =>
   DECK_TIERS.flatMap((tier) => {
-    const deck = PREMADE_DECKS.find((d) => d.id === SHOP_DECK_IDS[tier]);
+    const deck = weekPick(tier, shopWeek(now));
     return deck ? [{ tier, deck }] : [];
   });
 
