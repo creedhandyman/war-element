@@ -210,7 +210,7 @@ describe("Search and Rescue trades places with the ally you pick", () => {
     expect(act).toContain("if (picksAlly && picks.length === 0) {");
     // ...and with one, sends it. (Widened 2026-10-02 to send a RANGED Talent's
     // picked opponent the same way — Starfall reaches the whole board.)
-    expect(act).toContain("...(picksAlly || picksFoe ? { targetIds: picks.slice(0, 1) } : {}),");
+    expect(act).toContain("...(picksAlly ? { targetIds: picks.slice(0, 1) } : picksFoe ? { targetIds: picks.slice(0, maxPicks) } : {}),");
     expect(act).toContain("if (picksFoe && picks.length === 0) {");
   });
 });

@@ -2161,9 +2161,73 @@ export function talentTargets(state: GameState, instanceId: string): CardInstanc
   if (talent.targetSide === "self") return [card];
   if (talent.targetSide === "ally") return validAllyTargets(state, instanceId);
   const fd = Number(talent.params?.forwardDepth ?? 0);
-  return fd > 0
-    ? forwardAreaTargets(state, card, Number(talent.params?.spread ?? 0), fd)
-    : validSpecialTargets(state, instanceId, talent);
+  if (fd <= 0) return validSpecialTargets(state, instanceId, talent);
+  // A CORRIDOR Talent (Chopper's Full Throttle) points the way a corridor
+  // Special does: forward on a board you cross; on Domination's, any of the
+  // four ways — the one being resolved under once it is aimed.
+  const spread = Number(talent.params?.spread ?? 0);
+  if (state.specialAim?.id === card.instanceId)
+    return forwardAreaTargets(state, card, spread, fd, state.specialAim.dir);
+  if (!domMap(state)) return forwardAreaTargets(state, card, spread, fd);
+  const seen = new Set<string>();
+  return CORRIDOR_DIRS.flatMap((d) => forwardAreaTargets(state, card, spread, fd, d))
+    .filter((t) => !seen.has(t.instanceId) && !!seen.add(t.instanceId));
+}
+
+// ── aiming a Talent (owner's call, 2026-10-02: "Talents should be aimable") ──
+//
+// A Talent is a Special you get once, so it is placed the way a Special is:
+// the player picks where each shot goes. These read the Talent through the
+// Special rules (`specialIsPicked`, `specialShotsStack`) rather than restating
+// them, so the two can never disagree about what is a pick and what is a zone.
+
+/** Talent handlers that act on the caster alone, whatever side they name. */
+const SELF_TALENT_HANDLERS = new Set([
+  "empower", "electroSurge", "reposition", "shellTuck", "grantShield", "loadHits",
+]);
+type TalentDef = NonNullable<CardDef["talent"]>;
+const talentAsSpecial = (t: TalentDef): NonNullable<CardDef["special"]> =>
+  ({ ...t, cost: 0, targetSide: t.targetSide ?? "enemy" });
+
+/** A Talent laid out in one direction from its caster (a corridor). */
+export function talentAimable(t: TalentDef | undefined): boolean {
+  return !!t && (t.targetSide ?? "enemy") === "enemy" && Number(t.params?.forwardDepth ?? 0) > 0;
+}
+
+/** Does the player choose where this Talent's shots go? Yes for every Talent
+ *  that hits a counted number of opponents; no for self-buffs and for the ones
+ *  that hit everyone in reach. A corridor is picked only on Domination's board,
+ *  where the pick names its direction. */
+export function talentIsPicked(state: GameState, t: TalentDef | undefined): boolean {
+  if (!t || (t.targetSide ?? "enemy") !== "enemy" || SELF_TALENT_HANDLERS.has(t.handler)) return false;
+  if (talentAimable(t)) return !!domMap(state);
+  return specialIsPicked(talentAsSpecial(t));
+}
+
+/** Can two of its shots land on the same card? */
+export function talentShotsStack(t: TalentDef | undefined): boolean {
+  return !!t && !talentAimable(t) && specialShotsStack(talentAsSpecial(t));
+}
+
+/** How many picks it takes: one for a corridor (the pick is a direction), else
+ *  its shot count. */
+export function talentPickCap(t: TalentDef | undefined): number {
+  if (!t) return 1;
+  return talentAimable(t) ? 1 : Math.max(1, Number(t.params?.targets ?? 1));
+}
+
+/** Which way a pick points a corridor Talent: the pick's dominant axis when
+ *  that reaches it, else the first direction that does (as `aimFor`). */
+export function talentAimFor(state: GameState, card: CardInstance, pick: CardInstance): Dir {
+  const t = getDef(card.defId).talent;
+  const main = card.pos && pick.pos ? corridorDir(card.pos, pick.pos) : forwardDir(card.owner);
+  if (!t) return main;
+  const fd = Number(t.params?.forwardDepth ?? 0);
+  const spread = Number(t.params?.spread ?? 0);
+  for (const d of [main, ...CORRIDOR_DIRS.filter((c) => c.dr !== main.dr || c.dc !== main.dc)])
+    if (forwardAreaTargets(state, card, spread, fd, d).some((x) => x.instanceId === pick.instanceId))
+      return { dr: d.dr, dc: d.dc };
+  return main;
 }
 
 // ── battle actions ──────────────────────────────────────────────────────────

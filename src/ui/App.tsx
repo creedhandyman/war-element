@@ -9,6 +9,9 @@ import {
   canFireTalent,
   talentAllyChoices,
   talentTargets,
+  talentIsPicked,
+  talentShotsStack,
+  talentPickCap,
   canPlummet,
   plummetTargets,
   canMove,
@@ -3395,9 +3398,9 @@ export function App() {
     if (pending === "talent") {
       const allies = talentAllyChoices(game, awaitingId);
       if (allies.length > 0) return allies.map((t) => t.instanceId);
-      // A RANGED Talent (Starfall) names its opponent anywhere on the board, so
-      // what glows is what IT can reach, not what a basic could.
-      if (game.cards[awaitingId] && getDef(game.cards[awaitingId].defId).talent?.ranged)
+      // A PICKED Talent glows what IT can reach — Starfall's whole board, a
+      // corridor's four ways on Domination — not what a basic could.
+      if (game.cards[awaitingId] && talentIsPicked(game, getDef(game.cards[awaitingId].defId).talent))
         return talentTargets(game, awaitingId).map((t) => t.instanceId);
     }
     return validTargets(game, awaitingId).map((t) => t.instanceId);
@@ -3670,6 +3673,11 @@ export function App() {
     if (!awaitingId || !pending) return 1;
     const def = getDef(game.cards[awaitingId].defId);
     if (pending === "basic") return effectiveBasicHits(game.cards[awaitingId], game);
+    // A Talent places its shots as a Special does (see talentPickCap).
+    if (pending === "talent") {
+      const cap = talentPickCap(def.talent);
+      return talentShotsStack(def.talent) ? cap : Math.max(1, Math.min(cap, legalTargetIds.length));
+    }
     // An aimed corridor takes exactly ONE pick, because the pick is a DIRECTION
     // rather than a victim — the engine fills the rest of the lane in itself.
     if (pending === "special" && game.domination && specialAimable(def.special)) return 1;
@@ -3779,14 +3787,24 @@ export function App() {
           return;
         }
         const tal = getDef(game.cards[awaitingId].defId).talent;
-        if (clicked && tal?.ranged && talentTargets(game, awaitingId).some((t) => t.instanceId === clicked.instanceId)) {
-          setPicks([clicked.instanceId]);
-          setHint(`${tal.name} on <b>${getDef(clicked.defId).name}</b>? Press <b>Confirm</b>, or tap another opponent.`);
+        const picked = talentIsPicked(game, tal);
+        if (clicked && picked && legalTargetIds.includes(clicked.instanceId)) {
+          // One shot replaces the pick; more add to it, stacking when the shots
+          // can share a card, and a second tap takes back one that cannot.
+          const next = maxPicks <= 1
+            ? [clicked.instanceId]
+            : picks.includes(clicked.instanceId) && !talentShotsStack(tal)
+              ? picks.filter((id) => id !== clicked.instanceId)
+              : picks.length < maxPicks ? [...picks, clicked.instanceId] : picks;
+          setPicks(next);
+          setHint(maxPicks <= 1
+            ? `${tal!.name} on <b>${getDef(clicked.defId).name}</b>? Press <b>Confirm</b>, or tap another opponent.`
+            : `${tal!.name}: ${next.length}/${maxPicks} placed. Press <b>Confirm</b> when you are done.`);
           return;
         }
         if (clicked) inspectTapped(clicked);
-        else if (tal?.ranged)
-          setHint(`Tap a <b>glowing opponent</b> for ${tal.name}, then press <b>Confirm</b>.`);
+        else if (picked)
+          setHint(`Tap a <b>glowing opponent</b> for ${tal!.name}, then press <b>Confirm</b>.`);
         else if (talentAllyChoices(game, awaitingId).length > 0)
           setHint("Tap a <b>glowing ally</b>: the one to trade places with.");
         else setHint("This Talent takes no target — press <b>CONFIRM</b> to use it, or <b>CANCEL</b> to back out.");
@@ -4369,9 +4387,9 @@ export function App() {
     // TAPPED. Without a pick it waits rather than firing: the engine would
     // otherwise hand the swap to whichever ally it lists first.
     const picksAlly = talentAllyChoices(game, activeCard.instanceId).length > 0;
-    // A ranged Talent reaches the whole board, so WHICH opponent is the
-    // player's call — without a pick the engine would take the first it lists.
-    const picksFoe = !picksAlly && !!activeDef.talent.ranged;
+    // A picked Talent is aimed by the player — without a pick the engine would
+    // take the first opponent it lists.
+    const picksFoe = !picksAlly && talentIsPicked(game, activeDef.talent);
     if (pending === "talent") {
       if (picksAlly && picks.length === 0) {
         setHint("Tap a <b>glowing ally</b> first: the one to trade places with. Then press <b>Confirm</b>.");
@@ -4383,7 +4401,7 @@ export function App() {
       }
       dispatch({
         type: "BATTLE_ACTION", player: activeCard.owner, action: "talent",
-        ...(picksAlly || picksFoe ? { targetIds: picks.slice(0, 1) } : {}),
+        ...(picksAlly ? { targetIds: picks.slice(0, 1) } : picksFoe ? { targetIds: picks.slice(0, maxPicks) } : {}),
       });
       setPending(null);
       return;
@@ -4405,7 +4423,9 @@ export function App() {
       (picksAlly
         ? `Tap the <b>glowing ally</b> to trade places with, then press <b>Confirm</b>. Free, but there is no second one.`
         : picksFoe
-          ? `Tap the <b>glowing opponent</b> it lands on, then press <b>Confirm</b>. Free, but there is no second one.`
+          ? (talentPickCap(activeDef.talent) > 1
+            ? `Tap where each of its ${talentPickCap(activeDef.talent)} shots goes, then press <b>Confirm</b>. Free, but there is no second one.`
+            : `Tap the <b>glowing opponent</b> it lands on, then press <b>Confirm</b>. Free, but there is no second one.`)
           : `Free, but press <b>Confirm</b> to spend it: there is no second one.`),
     );
   }

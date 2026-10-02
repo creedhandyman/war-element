@@ -52,6 +52,9 @@ import {
   specialTargets,
   spellCommandTargets,
   talentTargets,
+  talentAimable,
+  talentAimFor,
+  talentPickCap,
   canPlummet,
   plummetTargets,
   summonLandingRow,
@@ -1907,13 +1910,33 @@ function performBattleAction(
       const handler = SPECIAL_HANDLERS[t.handler];
       if (!handler) throw new Error(`Unknown talent handler: ${t.handler}`);
       const valid = talentTargets(draft, instanceId);
-      const chosen = picks?.[0] ? valid.find((v) => v.instanceId === picks[0]) : undefined;
-      // Chosen target first, then the rest — multi-target talents spread over
-      // whatever else is in range, same ordering the Special path uses.
-      const targets = chosen
-        ? [chosen, ...valid.filter((v) => v.instanceId !== chosen.instanceId)]
-        : valid;
+      let targets: typeof valid;
+      const aim = picks?.length && domMap(draft) && card.pos && talentAimable(t)
+        ? valid.find((v) => v.instanceId === picks[0])
+        : undefined;
+      if (aim) {
+        // AN AIMED CORRIDOR: the pick names the direction, and the corridor that
+        // way is what it hits — exactly as an aimed Special resolves.
+        draft.specialAim = { id: card.instanceId, dir: talentAimFor(draft, card, aim) };
+        targets = talentTargets(draft, instanceId);
+      } else if (picks && picks.length > 1) {
+        // EVERY SHOT WHERE IT WAS PLACED, repeats stacking, same as a Special.
+        if (picks.length > talentPickCap(t)) throw new Error(`Too many targets (max ${talentPickCap(t)})`);
+        targets = picks.map((id) => {
+          const v = valid.find((x) => x.instanceId === id);
+          if (!v) throw new Error("Illegal Talent target");
+          return v;
+        });
+      } else {
+        // Chosen target first, then the rest — multi-target talents spread over
+        // whatever else is in range, same ordering the Special path uses.
+        const chosen = picks?.[0] ? valid.find((v) => v.instanceId === picks[0]) : undefined;
+        targets = chosen
+          ? [chosen, ...valid.filter((v) => v.instanceId !== chosen.instanceId)]
+          : valid;
+      }
       handler(draft, card, targets, t.params ?? {});
+      delete draft.specialAim; // transient: only ever set for this one resolution
     }
     // A self-status rider, same as Specials get in the branch below — without
     // this a Talent could name selfStatus and be silently ignored.

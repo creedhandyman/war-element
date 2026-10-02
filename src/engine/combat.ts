@@ -3019,23 +3019,26 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
  *  direction is toward it). */
 function chargeThrough(draft: GameState, card: CardInstance, minSteps: number): void {
   if (!card.pos) return;
-  const dir = card.owner === "P1" ? -1 : 1;
+  // The way it is POINTED (`aimOf`): forward everywhere but an aimed Domination
+  // cast, where a bike that burned a trail sideways rolls on along it.
+  const d = aimOf(draft, card);
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
-  const col = card.pos.col;
-  let row = card.pos.row;
+  let { row, col } = card.pos;
   let stepped = 0;
   while (true) {
-    const next = row + dir;
-    if (next < 0 || next >= draft.boardSize) break; // off the board
-    if (draft.slots[next][col].capturedBy) break; // can't stop on / pass a locked slot
-    row = next;
+    const nr = row + d.dr;
+    const nc = col + d.dc;
+    if (nr < 0 || nr >= draft.boardSize || nc < 0 || nc >= draft.boardSize) break; // off the board
+    if (draft.slots[nr][nc].capturedBy) break; // can't stop on / pass a locked slot
+    row = nr;
+    col = nc;
     stepped++;
     if (!cardAt(draft, row, col) && stepped >= minSteps) {
-      card.pos = { row: row as Pos["row"], col };
+      card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
       draft.log.push(`${label(draft, card)} rolls through — ${stepped} slot(s) forward.`);
       return;
     }
-    if (row === enemyHome) break; // don't roll past the enemy home row
+    if (d.dc === 0 && row === enemyHome) break; // don't roll past the enemy home row
   }
   // nowhere open to land: it stays put (still dealt its damage).
 }
