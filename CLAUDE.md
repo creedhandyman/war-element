@@ -3376,10 +3376,14 @@ dev server, which serves modules unbundled and tells you nothing about chunks.
 ## Foil rerolls — what spare essence buys (owner's call, 2026-10-01)
 
 A foil's bonus is HASHED from the card id (data/foils.ts) and stays the
-default. Once a collection is done essence has nothing to buy, so in the
-Collection a foil's detail offers **Reroll bonus · 100 essence of the card's
-element** (`FOIL_REROLL_COST`): the bonus moves to one of the other three stats
-at random (`rollFoilStat`). `canRerollFoil` / `rerollFoil` in story.ts.
+default. Once a collection is done essence has nothing to buy, so the Shop's
+**Crafter** lists your foils under the purse filter ("Foils · reroll a bonus"):
+**Reroll · 100 essence of the card's element** (`FOIL_REROLL_COST`) rolls one of
+the other three stats (`rollFoilStat`), then a dialog asks **Keep new / Keep
+old** — the essence is spent either way, so a reroll never makes a card worse
+(`rerollFoil` spends + rolls, `keepFoilStat` records the pick; closing the
+dialog keeps the old). The card view shows the foil as ONE pill
+(`.cd-foil-line`, "✦ Foil +1 DMG"), the reroll's result included.
 
 - **Stored in `gifts`, not a new save field**: `foil:<card id>:<stat>`, last one
   wins (`withFoilMark` replaces). `loadStory` is a field whitelist, and an older

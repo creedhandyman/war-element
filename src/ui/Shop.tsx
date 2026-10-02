@@ -28,9 +28,11 @@ import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
-  applyPack, buyBox, canBuyBox, canCraft, canOpenPack, craftCard, craftCostOf,
-  dupeEssenceFor, freePacks, openPack, packIsFree, packOdds, type PackResult, type StorySave,
+  applyPack, buyBox, canBuyBox, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
+  dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packOdds,
+  rerollFoil, type PackResult, type StorySave,
 } from "../data/story";
+import { FOIL_BONUS, FOIL_REROLL_COST, FOIL_STAT_LABEL, foilStatOf, type FoilStat } from "../data/foils";
 import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 
@@ -166,6 +168,31 @@ export function Shop(props: {
 
   /** Everything missing, dearest first — the card you most want is the one you
    *  are least likely to have rolled. */
+  /** FOIL REROLLS (owner's call, 2026-10-01): the foils you hold, under the
+   *  same purse filter as the missing cards. Spare essence has nothing else to
+   *  buy once those run out. */
+  const foilStats = foilStatsOf(save);
+  const myFoils = (save.hero?.shiny ?? [])
+    .map((id) => getDef(id))
+    .filter((c) => !!c && (el === "ALL" || c.element === el))
+    .sort((a, b) => a.name.localeCompare(b.name));
+  const bonusText = (st: FoilStat) => `+${FOIL_BONUS[st]} ${FOIL_STAT_LABEL[st]}`;
+  /** A reroll waiting on the player's pick: keep the new bonus or the old.
+   *  The essence is already spent; closing without choosing keeps the old. */
+  const [foilPick, setFoilPick] = useState<{ id: string; from: FoilStat; to: FoilStat } | null>(null);
+  useBackLayer(foilPick !== null, () => setFoilPick(null));
+  const rerollNow = (id: string) => {
+    const r = rerollFoil(save, id, Math.random);
+    if (!r) return;
+    props.onSave(r.save);
+    setFoilPick({ id, from: r.from, to: r.to });
+  };
+  const keepPick = (stat: FoilStat) => {
+    if (!foilPick) return;
+    props.onSave(keepFoilStat(save, foilPick.id, stat));
+    setFoilPick(null);
+  };
+
   const missing = useMemo(
     () =>
       CARDS.filter((c) => !owned.has(c.id) && !c.boss)
@@ -528,8 +555,77 @@ export function Shop(props: {
               })}
             </div>
           )}
+
+          {/* ── FOILS · REROLL A BONUS ───────────────────────────────────
+              What spare essence buys once the missing list runs dry: a foil
+              you hold rolls a new bonus (one of the other three), and you
+              keep whichever of the two you like better. */}
+          <div className="sr-label">FOILS · {myFoils.length} · REROLL A BONUS</div>
+          <p className="craft-blurb">
+            Reroll a foil's bonus for {FOIL_REROLL_COST} of its element's essence. It rolls one of
+            the other three bonuses, and you choose which one to keep.
+          </p>
+          {myFoils.length === 0 ? (
+            <p className="shop-done">
+              {el === "ALL" ? "You don't hold any foils yet." : `You don't hold any ${el} foils.`}
+            </p>
+          ) : (
+            <div className="craft-list">
+              {myFoils.map((c) => {
+                const have = essence[c.element] ?? 0;
+                const check = canRerollFoil(save, c.id);
+                return (
+                  <div key={c.id} className="craft-row foil-row">
+                    <button className="craft-art foil" onClick={() => setPreviewId(c.id)} title={`${c.name} — see the card`}>
+                      <img src={cardThumbSrc(c)} alt="" loading="lazy"
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                    </button>
+                    <div className="craft-meta">
+                      <div className="craft-name">{c.name} <i className="foil-tag">✦ foil</i></div>
+                      <div className="craft-note">
+                        Carries <b className="foil-bonus">{bonusText(foilStatOf(c.id, foilStats))}</b>
+                      </div>
+                    </div>
+                    {check.ok ? (
+                      <button className="craft-buy" onClick={() => rerollNow(c.id)}
+                        title={`Reroll for ${FOIL_REROLL_COST} ${c.element} essence`}>
+                        Reroll<span>{FOIL_REROLL_COST}<ElCoin el={c.element} /></span>
+                      </button>
+                    ) : (
+                      <span className="craft-cost" title={check.reason}>
+                        {have}/{FOIL_REROLL_COST}<ElCoin el={c.element} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </>
       )}
+
+      {/* THE PICK after a reroll: the new bonus or the old one. The essence is
+          spent either way, so neither button costs anything more. */}
+      {foilPick && (() => {
+        const c = getDef(foilPick.id);
+        return (
+          <div className="overlay foil-pick-overlay">
+            <div className="modal foil-pick" role="dialog" aria-label={`${c.name} — keep which bonus?`}>
+              <img className="foil-pick-art" src={cardThumbSrc(c)} alt="" />
+              <h3>{c.name}</h3>
+              <p className="foil-pick-q">The foil rolled <b>{bonusText(foilPick.to)}</b>. Which bonus will it keep?</p>
+              <div className="foil-pick-btns">
+                <button className="lockin" onClick={() => keepPick(foilPick.to)}>
+                  Keep {bonusText(foilPick.to)} <small>new</small>
+                </button>
+                <button className="ghost" onClick={() => keepPick(foilPick.from)}>
+                  Keep {bonusText(foilPick.from)} <small>old</small>
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* The pack itself, for as long as it takes to tear it. The reveal is
           mounted behind this and simply not seen yet, so the two cannot
@@ -728,7 +824,10 @@ export function Shop(props: {
         </div>
       )}
 
-      {previewId && <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />}
+      {previewId && (
+        <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)}
+          foil={(save.hero?.shiny ?? []).includes(previewId)} foilStats={foilStats} />
+      )}
     </div>
   );
 }

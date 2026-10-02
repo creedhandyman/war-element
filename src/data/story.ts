@@ -1601,8 +1601,11 @@ export function canRerollFoil(save: StorySave, defId: string): { ok: boolean; re
   return { ok: true };
 }
 
-/** Spend the essence and reroll the foil's bonus to one of the other three
- *  stats. Refuses (returns null) rather than going negative. */
+/** Spend the essence and ROLL a new bonus for the foil — one of the other
+ *  three stats. Nothing about the card changes yet: the player then keeps the
+ *  new bonus or the old one (`keepFoilStat`), and the essence is spent either
+ *  way (owner's call, 2026-10-01: a reroll can never make a card worse).
+ *  Refuses (returns null) rather than going negative. */
 export function rerollFoil(
   save: StorySave, defId: string, rand: () => number,
 ): { save: StorySave; from: FoilStat; to: FoilStat } | null {
@@ -1615,10 +1618,16 @@ export function rerollFoil(
     save: {
       ...save,
       hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - FOIL_REROLL_COST } },
-      gifts: withFoilMark(save.gifts, defId, to),
     },
     from, to,
   };
+}
+
+/** The player's pick after a reroll: the foil carries `stat` from now on.
+ *  Keeping the bonus it already had changes nothing. */
+export function keepFoilStat(save: StorySave, defId: string, stat: FoilStat): StorySave {
+  if (!isShiny(save, defId) || foilStatOf(defId, foilStatsOf(save)) === stat) return save;
+  return { ...save, gifts: withFoilMark(save.gifts, defId, stat) };
 }
 
 // ── boosters ────────────────────────────────────────────────────────────────

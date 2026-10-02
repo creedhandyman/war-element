@@ -1,6 +1,7 @@
 // FOIL REROLLS (owner's call, 2026-10-01): once a collection is done, spare
-// essence buys a reroll — a foil you hold trades its bonus for one of the other
-// three, at random, for 100 essence of the card's own element. The reroll is
+// essence buys a reroll in the Crafter — a foil you hold rolls one of the other
+// three bonuses for 100 essence of the card's own element, and the player keeps
+// the new bonus or the old one (the essence is spent either way). The reroll is
 // recorded in the save's gifts ledger (an older build that loads the save keeps
 // every gifts string and drops fields it does not know), and stamped on the
 // seat in a match, where summoning a foil reads it.
@@ -11,7 +12,8 @@ import {
   rollFoilStat, withFoilMark, type FoilStat,
 } from "../../data/foils";
 import {
-  canRerollFoil, foilStatsOf, loadStory, newHero, newSave, rerollFoil, saveStory, type StorySave,
+  canRerollFoil, foilStatsOf, keepFoilStat, loadStory, newHero, newSave, rerollFoil, saveStory,
+  type StorySave,
 } from "../../data/story";
 import { summonCard } from "../state";
 import { prepState } from "./helpers";
@@ -62,17 +64,25 @@ describe("rerolling in the collection", () => {
     expect(rerollFoil(holding(FOIL_REROLL_COST - 1), CARD, () => 0)).toBeNull();
   });
 
-  it("spends the essence, changes the stat and remembers it — through a save and load", () => {
+  it("spends the essence and rolls; the card changes only when the new bonus is kept", () => {
     const r = rerollFoil(holding(250), CARD, () => 0.5)!;
     expect(r.from).toBe(foilStatFor(CARD));
     expect(r.to).not.toBe(r.from);
     expect(r.save.hero!.essence[EL]).toBe(250 - FOIL_REROLL_COST);
-    expect(foilStatsOf(r.save)[CARD]).toBe(r.to);
-    // A second reroll starts from the new stat and replaces the record.
-    const again = rerollFoil(r.save, CARD, () => 0)!;
+    expect(foilStatsOf(r.save)[CARD], "nothing kept yet").toBeUndefined();
+    // Keep the old: the card is as it was, the essence is still spent.
+    const old = keepFoilStat(r.save, CARD, r.from);
+    expect(foilStatOf(CARD, foilStatsOf(old))).toBe(r.from);
+    expect(old.hero!.essence[EL]).toBe(250 - FOIL_REROLL_COST);
+    // Keep the new: remembered.
+    const kept = keepFoilStat(r.save, CARD, r.to);
+    expect(foilStatsOf(kept)[CARD]).toBe(r.to);
+    // A second reroll starts from the kept stat and replaces the record.
+    const again = rerollFoil(kept, CARD, () => 0)!;
     expect(again.from).toBe(r.to);
-    expect(again.save.hero!.essence[EL]).toBe(250 - 2 * FOIL_REROLL_COST);
-    expect(Object.keys(foilStatsOf(again.save))).toEqual([CARD]);
+    const kept2 = keepFoilStat(again.save, CARD, again.to);
+    expect(kept2.hero!.essence[EL]).toBe(250 - 2 * FOIL_REROLL_COST);
+    expect(Object.keys(foilStatsOf(kept2))).toEqual([CARD]);
 
     const store = new Map<string, string>();
     const g = globalThis as { localStorage?: unknown };
@@ -83,7 +93,7 @@ describe("rerolling in the collection", () => {
       removeItem: (k: string) => void store.delete(k),
     };
     try {
-      saveStory(again.save);
+      saveStory(kept2);
       expect(foilStatsOf(loadStory())[CARD]).toBe(again.to);
     } finally { g.localStorage = prior; }
   });
