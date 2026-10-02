@@ -9065,13 +9065,15 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 3,
-    dmg: 4,
+    // 3 -> 4 with +2 DMG, +1 HP, +2 SP and EVASION (owner's call, 2026-10-02):
+    // 6 + 11 + 0*2 + 13 = 30 = 5*4+10, exactly on the cost-4 budget.
+    cost: 4,
+    dmg: 6,
     hits: 1,
-    hp: 10,
-    sp: 11,
+    hp: 11,
+    sp: 13,
     shields: 0,
-    keywords: { CRIT: true },
+    keywords: { CRIT: true, EVASION: true },
     tribe: ["Ice", "Dragon"],
     // Dragon's Fury (tribe trait): every kill is +1 DMG, permanently.
     onKill: { buffDmg: 1 },

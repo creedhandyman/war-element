@@ -173,10 +173,12 @@ export const VOID_BOSSES: VoidBoss[] = [
     tribeElement: "AQUA",
     mechanicElement: "BORE",
     tribe: "Ice",
-    // 2×3 + 3×2 = 12. The doc paired Wall with BORE's Cavernous, whose four
+    // 2×4 + 2×2 = 12. The doc paired Wall with BORE's Cavernous, whose four
     // cards (5/6/9/10) cannot land on 12 at all — so the formula flips: tribe
-    // from AQUA's Ice, the armour mechanic from BORE.
-    summons: ["aqua_arctik", "aqua_arctik", "aqua_arctik", "aqua_icynin", "aqua_icynin"],
+    // from AQUA's Ice, the armour mechanic from BORE. Was 2×3 + 3×2 until
+    // Coilblade went 3 -> 4 (2026-10-02); an Arctik came off rather than a
+    // Coilblade, so the floor keeps its two serpents, each now the stronger card.
+    summons: ["aqua_arctik", "aqua_arctik", "aqua_icynin", "aqua_icynin"],
     puzzle: "The wall: break through, or go around.",
   },
   {
@@ -377,10 +379,12 @@ export const VOID_BOSSES: VoidBoss[] = [
     tribeElement: "AQUA",
     mechanicElement: "DUSK",
     tribe: "Dragon",
-    // 9 + 8 + 6 + 5 + 3 + 3 + 2 = 36, exact. THE AQUA DRAGONS, which is the whole
+    // 9 + 8 + 6 + 5 + 4 + 3 + 1 = 36, exact. THE AQUA DRAGONS, which is the whole
     // brief: every ice dragon the set owns — Hydrogon, Phrost, Sapphire,
     // Coilblade — plus DUSK's SkullDrake for the mechanic half, Glacius for
-    // weight and an Arctik to round it out. Five of the seven are Dragons.
+    // weight and Misty to round it out. Five of the seven are Dragons. (Misty
+    // replaced an Arctik when Coilblade went 3 -> 4, 2026-10-02: a Vapor card,
+    // so Hydrogon's aura has one more body to drive.)
     //
     // HYDROGON is the aura carrier here (+4 SP to the Vapor half), and it is the
     // reason this reads as a flight rather than a pile: AQUA's dragons are all
@@ -388,7 +392,7 @@ export const VOID_BOSSES: VoidBoss[] = [
     // fire aura dragon belongs with the fire boss.
     summons: [
       "aqua_hydrogon", "aqua_glacius", "aqua_phrost", "aqua_sapphire",
-      "aqua_icynin", "dusk_skulldrake", "aqua_arctik",
+      "aqua_icynin", "dusk_skulldrake", "aqua_misty",
     ],
     puzzle: "The deep freeze: break it early — every round held hits harder.",
   },
