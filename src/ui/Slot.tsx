@@ -1,6 +1,7 @@
 import { memo } from "react";
 import type { BossTelegraph, CardInstance, GameState, PlayerId, TrapState } from "../engine";
 import { enemyOf, getSpell, homeRow } from "../engine";
+import type { AuraGlow } from "./aura-glow";
 import { EL_COLOR } from "./shared";
 import { Token } from "./Token";
 
@@ -62,6 +63,8 @@ function SlotView(props: {
   trap: TrapState | null;
   canDrop: boolean; // a legal drag-to-summon drop target
   pickCount: number;
+  /** This square's card is lit by an aura landing (Board.tsx, ui/aura-glow.ts). */
+  aura: AuraGlow | null;
   selectedId: string | null;
   actingId: string | null;
   onClick: (row: number, col: number) => void;
@@ -241,6 +244,7 @@ This is your last turn to move out of the red.`
           // Each side's own copies shine. A foil is something in a collection, and
           // the opponent's cards are not in it — online, theirs are unknowable.
           foil={!!props.foils?.[props.card.owner]?.has(props.card.defId)}
+          aura={props.aura}
         />
       )}
     </div>

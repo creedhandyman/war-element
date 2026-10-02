@@ -1,9 +1,10 @@
-import { memo, useEffect, useLayoutEffect, useRef } from "react";
+import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { BossTelegraph, CardInstance, FieldBuff, FieldState, GameState, PlayerId, Pos } from "../engine";
 import type { StrikeZone } from "./attack-zone";
 import { cardAt, enemyOf, getSpell, homeRow, isContested } from "../engine";
 import { getDef } from "../data/cards";
 import { Slot } from "./Slot";
+import { AURA_GLOW_MS, auraArrivals, type AuraGlow } from "./aura-glow";
 import { cardThumbSrc, EL_COLOR, poiHolderSuit } from "./shared";
 import { dominationMap, isImpassable, isRoad, isShrine, isWell, poiAt, poiRing } from "../data/domination";
 
@@ -147,6 +148,9 @@ function objectiveAt(
 const HANDOFF_MS = 260;
 /** A card sliding to a new square (a push, a pull, a charge, a move). */
 const SLIDE_MS = 280;
+/** Nothing glowing — one shared empty map, so a square's `aura` prop stays the
+ *  same `null` render after render. */
+const NO_GLOW: ReadonlyMap<string, AuraGlow> = new Map();
 
 /** Two looks at one continuing match — not a new match, a rematch, or a board
  *  come back from game over, where nothing should animate across. */
@@ -377,6 +381,34 @@ function BoardView(props: {
       }, () => { tok.style.transform = ""; tok.style.transition = ""; tok.style.zIndex = ""; });
     }
   });
+
+  // AN AURA LANDING (ui/aura-glow.ts): the card that projects it glows as it
+  // lands, then every card its aura reaches, nearest first, and the light fades.
+  // Apart from the slides above: it is not a move, so a board that also changed
+  // size still shows it, and reduced motion gets it as a plain fade (styles.css).
+  const [auraLit, setAuraLit] = useState<ReadonlyMap<string, AuraGlow>>(NO_GLOW);
+  const auraSeen = useRef<GameState | null>(null);
+  const auraKey = useRef(0);
+  useEffect(() => {
+    const before = auraSeen.current;
+    auraSeen.current = game;
+    if (!before || before === game || !sameMatch(before, game)) return;
+    const lit = auraArrivals(before, game);
+    if (lit.size === 0) return;
+    const key = ++auraKey.current, start = performance.now();
+    setAuraLit((old) => {
+      const next = new Map(old);
+      for (const [id, light] of lit) next.set(id, { ...light, key, start });
+      return next;
+    });
+    // Not cleared with the effect: the next step lands well inside the glow,
+    // and must not cut it short. A late fire after the board has gone is a
+    // no-op.
+    window.setTimeout(() => setAuraLit((old) => {
+      const next = new Map([...old].filter(([, g]) => g.key !== key));
+      return next.size === old.size ? old : next;
+    }), AURA_GLOW_MS);
+  }, [game]);
   return (
     <div className="board-area">
       {/* Fog of war: the opponent's hand is face-down; their deck is hidden —
@@ -561,6 +593,7 @@ function BoardView(props: {
                   trap={myTrap ?? null}
                   canDrop={isLegalSlot}
                   pickCount={card ? (props.pickCounts[card.instanceId] ?? 0) : 0}
+                  aura={card ? (auraLit.get(card.instanceId) ?? null) : null}
                   selectedId={props.selectedId}
                   actingId={props.actingId}
                   onClick={props.onSlotClick}

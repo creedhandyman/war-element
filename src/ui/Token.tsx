@@ -2,7 +2,8 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
 import { isStealthed } from "../engine/rules";
-import { cardThumbSrc, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
+import type { AuraGlow } from "./aura-glow";
+import { cardThumbSrc, EL_COLOR, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -195,6 +196,28 @@ function useStealthFx(card: CardInstance, stealthed: boolean) {
   return { reveal, sink };
 }
 
+/** AN AURA LANDING on this card (styles.css .tk-aura): a glow in the aura's
+ *  colour that rises and fades once, red on an opponent it weighs on; the card
+ *  that landed also throws a ring out. Its delay is measured from when the
+ *  landing began, not from this mount, so a card that changes square mid-glow
+ *  (a new token, see `cloakLeft`) resumes the glow instead of playing it twice. */
+function AuraLightUp({ glow }: { glow: AuraGlow }) {
+  const [at] = useState(() => Math.round(glow.delay - (performance.now() - glow.start)));
+  const style = {
+    ["--aura-at" as string]: `${at}ms`,
+    ...(glow.role === "foe" ? {} : { ["--aura" as string]: EL_COLOR[glow.element] }),
+  };
+  return (
+    <>
+      <span className={`tk-aura ${glow.role}`} style={style} aria-hidden="true" />
+      {/* A sibling, not the glow's ::after: the ring is brightest as it leaves,
+          exactly while the glow is still fading in, and a child would be dimmed
+          by it. */}
+      {glow.role === "source" && <span className="tk-aura-ring" style={style} aria-hidden="true" />}
+    </>
+  );
+}
+
 /** Floats a "+1" coin off a card the moment it earns its home-slot income, or
  *  the moment it steps onto the home row and becomes able to. Same counter-rise
  *  trick as the others: the engine bumps `fxCoin`, a rise plays it once.
@@ -335,6 +358,9 @@ export function Token(props: {
    *  GameState is replayed and sent to the online peer, and what is in someone's
    *  collection is neither reproducible nor theirs to know. */
   foil?: boolean;
+  /** Lit by an aura landing: its own, or one that reaches it (Board.tsx,
+   *  ui/aura-glow.ts). Plays once. */
+  aura?: AuraGlow | null;
 }) {
   const { game, card } = props;
   const def = getDef(card.defId);
@@ -523,6 +549,7 @@ export function Token(props: {
           <span className="rv-word">REVEALED</span>
         </span>
       )}
+      {props.aura && <AuraLightUp key={props.aura.key} glow={props.aura} />}
       {combatFx && (
         <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}

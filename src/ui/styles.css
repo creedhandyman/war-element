@@ -1369,6 +1369,39 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .rv-word { animation: rvWordCalm 1s linear forwards; }
   @keyframes rvWordCalm { 0%, 80% { opacity: 1; transform: translate(-50%, 0); } 100% { opacity: 0; transform: translate(-50%, 0); } }
 }
+/* AN AURA LANDING (Token.tsx AuraLightUp, ui/aura-glow.ts): the card that
+   projects an aura glows as it lands and throws a ring out, each card its aura
+   reaches glows a beat later, nearest first (`--aura-at`), and then it all
+   fades. Once, about a second and a half all told. The glow is painted once and
+   only its opacity moves, the ring only opacity and scale: nothing repaints per
+   frame. z-index 3 lifts it over the neighbouring squares (a slot is not a
+   stacking context), so the tile beside it neither cuts its edge off nor gets
+   pulled onto a layer to sit above it; it stays under the lifted card (6), the
+   spotlight (8) and the numbers. */
+.tk-aura, .tk-aura-ring {
+  --aura-lit: color-mix(in srgb, var(--aura) 60%, #fff);
+  position: absolute; inset: -3px; z-index: 3; border-radius: 11px; pointer-events: none;
+}
+.tk-aura {
+  border: 2px solid var(--aura-lit);
+  box-shadow: 0 0 11px 2px var(--aura), inset 0 0 14px color-mix(in srgb, var(--aura) 55%, transparent);
+  opacity: 0; animation: auraGlow 1.1s ease-out var(--aura-at, 0ms) both;
+}
+.tk-aura.source {
+  box-shadow: 0 0 16px 4px var(--aura), inset 0 0 20px color-mix(in srgb, var(--aura) 70%, transparent);
+  animation-duration: 1.4s;
+}
+.tk-aura.foe { --aura: var(--threat); }
+.tk-aura-ring {
+  border: 2px solid var(--aura-lit);
+  opacity: 0; animation: auraRing 0.9s ease-out var(--aura-at, 0ms) both;
+}
+@keyframes auraGlow { 0% { opacity: 0; } 20% { opacity: 1; } 50% { opacity: 0.9; } 100% { opacity: 0; } }
+@keyframes auraRing { 0% { opacity: 0.95; transform: scale(1); } 100% { opacity: 0; transform: scale(1.45); } }
+/* Reduced motion keeps the glow (it only fades) and drops the ring that grows. */
+@media (prefers-reduced-motion: reduce) {
+  .tk-aura-ring { display: none; }
+}
 /* Scrim: two plates, not one wash — a dark band behind the TOP name banner and
    a stronger one behind the BOTTOM stat strip, with the art left clear in the
    middle. Stats used to sit straight on busy art and were unreadable; these

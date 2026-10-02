@@ -588,6 +588,64 @@ export function auraSources(state: GameState, card: CardInstance): { name: strin
   return out;
 }
 
+/** Does this card PROJECT an aura — something it does to other cards for as long
+ *  as it stands? The generic stat auras (`aura`/`auras`) and every passive the
+ *  card text files under "Aura". NOT the rules a whole element or class shares
+ *  (AQUA's Tide, a Tank's Bulwark): every card has one of those, so they say
+ *  nothing about this one. A new aura passive belongs here and in `auraReach`;
+ *  aura-reach.test.ts fails on card text that says "Aura" for a card this misses. */
+export function hasAura(def: CardDef): boolean {
+  return !!(def.aura || def.auras?.length || def.splashAura || def.statDropImmuneAura || def.purelightAura ||
+    def.totemSpiritAura || def.tribeDmgAura || def.contagionAura || def.critStatus || def.intimidate || def.blindingStar);
+}
+
+const hasTribe = (def: CardDef, tribe: string): boolean =>
+  Array.isArray(def.tribe) ? def.tribe.includes(tribe) : def.tribe === tribe;
+
+/** THE CARDS `holder`'s AURAS REACH RIGHT NOW — the allies they strengthen and
+ *  the opponents they weigh on — for the board to light up when it lands. The
+ *  holder itself is never listed. Each line mirrors where the engine reads that
+ *  aura, so the two answer "who" the same way:
+ *   - stat auras: `auraMatches`, as `auraBonus` and `effectiveMaxHp` use it;
+ *   - Downpour, Solar Sovereign, Totem Spirit: the whole side (combat.ts splash,
+ *     the WEAKEN guard, `hasTotemSpirit`);
+ *   - Purelight: DAWN allies; Broodmother: its tribe (`tribeAuraDmg`);
+ *     Contagion: allied Zombies;
+ *   - Trapper (`critStatus`): allies that can CRIT — the pin rides a crit, and
+ *     an ally with no crit of its own never rolls one;
+ *   - Blinding Star: every opponent; Intimidation: opponents in its rows whose
+ *     DMG is under its own, as `intimidationPenalty` measures them. */
+export function auraReach(state: GameState, holder: CardInstance): { allies: CardInstance[]; foes: CardInstance[] } {
+  const def = getDef(holder.defId);
+  const allies = new Set<CardInstance>();
+  const foes = new Set<CardInstance>();
+  const mine = boardCards(state, holder.owner).filter((c) => c.instanceId !== holder.instanceId && c.curHp > 0);
+  for (const a of [def.aura, ...(def.auras ?? [])]) {
+    if (!a) continue;
+    for (const c of mine) if (auraMatches(a, holder, c)) allies.add(c);
+  }
+  for (const c of mine) {
+    const cDef = getDef(c.defId);
+    if (
+      def.splashAura || def.statDropImmuneAura || def.totemSpiritAura ||
+      (def.purelightAura && cDef.element === "DAWN") ||
+      (def.tribeDmgAura && hasTribe(cDef, def.tribeDmgAura.tribe)) ||
+      (def.contagionAura && hasTribe(cDef, "Zombie")) ||
+      (def.critStatus && (cDef.keywords.CRIT || cDef.critIfFaster))
+    )
+      allies.add(c);
+  }
+  const theirs = enemyCards(state, holder.owner).filter((c) => c.curHp > 0);
+  if (def.blindingStar) for (const c of theirs) foes.add(c);
+  if (def.intimidate && holder.pos) {
+    const own = dmgBeforeIntimidation(state, holder);
+    for (const c of theirs)
+      if (c.pos && Math.abs(c.pos.row - holder.pos.row) <= def.intimidate.rows && dmgBeforeIntimidation(state, c) < own)
+        foes.add(c);
+  }
+  return { allies: [...allies], foes: [...foes] };
+}
+
 /** A card's effective max HP = its own maxHp plus the highest matching friendly
  *  maxHP aura (Kraken's SeaC +4). Equals maxHp for cards under no such aura, so
  *  it's a safe drop-in for every healing cap and the HP display. */

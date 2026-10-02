@@ -13,6 +13,9 @@ export {
   effectiveDmg,
   effectiveMaxHp,
   auraSources,
+  // An aura landing lights up what it reaches (Board.tsx, ui/aura-glow.ts).
+  hasAura,
+  auraReach,
   hasStatus,
   isBloodfire,
   moveReach,
