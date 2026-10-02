@@ -551,6 +551,53 @@ export function Shop(props: {
             card the dice never gave you. Tap a purse to filter.
           </p>
 
+          {/* ── FOILS · REROLL A BONUS ───────────────────────────────────
+              Above the missing list (owner's call), so a finished collection's one
+              use for essence is the first thing on the tab: a foil
+              you hold rolls a new bonus (one of the other three), and you
+              keep whichever of the two you like better. */}
+          <div className="sr-label">FOILS · {myFoils.length} · REROLL A BONUS</div>
+          <p className="craft-blurb">
+            Reroll a foil's bonus for {FOIL_REROLL_COST} of its element's essence. It rolls one of
+            the other three bonuses, and you choose which one to keep.
+          </p>
+          {myFoils.length === 0 ? (
+            <p className="shop-done">
+              {el === "ALL" ? "You don't hold any foils yet." : `You don't hold any ${el} foils.`}
+            </p>
+          ) : (
+            <div className="craft-list">
+              {myFoils.map((c) => {
+                const have = essence[c.element] ?? 0;
+                const check = canRerollFoil(save, c.id);
+                return (
+                  <div key={c.id} className="craft-row foil-row">
+                    <button className="craft-art foil" onClick={() => setPreviewId(c.id)} title={`${c.name} — see the card`}>
+                      <img src={cardThumbSrc(c)} alt="" loading="lazy"
+                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                    </button>
+                    <div className="craft-meta">
+                      <div className="craft-name">{c.name} <i className="foil-tag">✦ foil</i></div>
+                      <div className="craft-note">
+                        Carries <b className="foil-bonus">{bonusText(foilStatOf(c.id, foilStats))}</b>
+                      </div>
+                    </div>
+                    {check.ok ? (
+                      <button className="craft-buy" onClick={() => rerollNow(c.id)}
+                        title={`Reroll for ${FOIL_REROLL_COST} ${c.element} essence`}>
+                        Reroll<span>{FOIL_REROLL_COST}<ElCoin el={c.element} /></span>
+                      </button>
+                    ) : (
+                      <span className="craft-cost" title={check.reason}>
+                        {have}/{FOIL_REROLL_COST}<ElCoin el={c.element} />
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
           <div className="sr-label">
             MISSING · {missing.length} · DEAREST FIRST
             {el !== "ALL" && <button className="shop-clear" onClick={() => setEl("ALL")}>all elements</button>}
@@ -620,51 +667,6 @@ export function Shop(props: {
             </div>
           )}
 
-          {/* ── FOILS · REROLL A BONUS ───────────────────────────────────
-              What spare essence buys once the missing list runs dry: a foil
-              you hold rolls a new bonus (one of the other three), and you
-              keep whichever of the two you like better. */}
-          <div className="sr-label">FOILS · {myFoils.length} · REROLL A BONUS</div>
-          <p className="craft-blurb">
-            Reroll a foil's bonus for {FOIL_REROLL_COST} of its element's essence. It rolls one of
-            the other three bonuses, and you choose which one to keep.
-          </p>
-          {myFoils.length === 0 ? (
-            <p className="shop-done">
-              {el === "ALL" ? "You don't hold any foils yet." : `You don't hold any ${el} foils.`}
-            </p>
-          ) : (
-            <div className="craft-list">
-              {myFoils.map((c) => {
-                const have = essence[c.element] ?? 0;
-                const check = canRerollFoil(save, c.id);
-                return (
-                  <div key={c.id} className="craft-row foil-row">
-                    <button className="craft-art foil" onClick={() => setPreviewId(c.id)} title={`${c.name} — see the card`}>
-                      <img src={cardThumbSrc(c)} alt="" loading="lazy"
-                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
-                    </button>
-                    <div className="craft-meta">
-                      <div className="craft-name">{c.name} <i className="foil-tag">✦ foil</i></div>
-                      <div className="craft-note">
-                        Carries <b className="foil-bonus">{bonusText(foilStatOf(c.id, foilStats))}</b>
-                      </div>
-                    </div>
-                    {check.ok ? (
-                      <button className="craft-buy" onClick={() => rerollNow(c.id)}
-                        title={`Reroll for ${FOIL_REROLL_COST} ${c.element} essence`}>
-                        Reroll<span>{FOIL_REROLL_COST}<ElCoin el={c.element} /></span>
-                      </button>
-                    ) : (
-                      <span className="craft-cost" title={check.reason}>
-                        {have}/{FOIL_REROLL_COST}<ElCoin el={c.element} />
-                      </span>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
         </>
       )}
 
