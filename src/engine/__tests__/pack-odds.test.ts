@@ -58,6 +58,13 @@ describe("pack odds are the odds a pack really rolls", () => {
     }
   });
 
+  it("a pull is a Mythic about 0.5% of the time (owner, 2026-10-02)", () => {
+    // Close, not exact: the weights are per card, so a new card nudges this.
+    // Far off means the pool has moved enough to re-solve the two weights.
+    expect(packOdds().mythic).toBeGreaterThan(0.0045);
+    expect(packOdds().mythic).toBeLessThan(0.0055);
+  });
+
   it("the guaranteed card is Epic or better, and nothing else", () => {
     const g = packOdds(true);
     expect(g.rare ?? 0).toBe(0);

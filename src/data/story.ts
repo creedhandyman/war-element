@@ -1707,7 +1707,21 @@ export const PACK_SIZE = 5;
 /** Pull weights. Deliberately close to the recruitment table (`DROP_RATE`, which
  *  runs 50/30/15/5) so a pack does not quietly become the best odds in the game;
  *  it trades the story's TARGETED roll for volume, not for better luck. */
+/*
+ *  MYTHIC AT 0.5% A PULL (owner, 2026-10-02), the difference taken from Rare
+ *  alone. Was 58/29/11/2 = Rare 66.15%, Epic 27.49%, Legendary 6.10%, Mythic
+ *  0.26% over the pool then (148 Rare, 123 Epic, 72 Legendary, 17 Mythic). The
+ *  two weights below are solved for that pool to give Mythic 0.500% and Rare
+ *  65.91% with the total unchanged, so Epic and Legendary read exactly as before.
+ *  These are per-CARD weights: adding cards moves the odds, and `packOdds` is
+ *  what the Shop quotes. The Draft keeps the old table (`DRAFT_RARITY_WEIGHT`). */
 export const PACK_WEIGHT: Record<string, number> = {
+  rare: 57.79, epic: 29, legendary: 11, mythic: 3.82,
+};
+
+/** The Draft's rarity weights: PACK_WEIGHT as it stood before the Mythic change,
+ *  so a pack tweak does not quietly re-tune the Draft's offers. */
+export const DRAFT_RARITY_WEIGHT: Record<string, number> = {
   rare: 58, epic: 29, legendary: 11, mythic: 2,
 };
 

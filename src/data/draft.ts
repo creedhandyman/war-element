@@ -47,7 +47,7 @@ import { CARDS, getDef } from "./cards";
 import { deckSizeFor, rollOpponent, type DeckTier } from "./custom-decks";
 import { tierForStreak } from "./matchmaker";
 import type { StorySave } from "./story";
-import { PACK_WEIGHT } from "./story";
+import { DRAFT_RARITY_WEIGHT } from "./story";
 import { SPELLS, spellCapForBoard, spellCostCap } from "../engine/spells";
 import type { CardDef, Element, SpellDef } from "../engine";
 
@@ -241,7 +241,7 @@ function buildGroup(
 ): DraftGroup | null {
   const free = banner.ids.filter((id) => !taken.has(id));
   if (free.length < GROUP_SIZE) return null;
-  const rarity = weightedPick(Object.keys(PACK_WEIGHT), (r) => PACK_WEIGHT[r] ?? 0, rand);
+  const rarity = weightedPick(Object.keys(DRAFT_RARITY_WEIGHT), (r) => DRAFT_RARITY_WEIGHT[r] ?? 0, rand);
   const weightOf = (id: string) => {
     const d = getDef(id);
     const curve = Math.max(CURVE_FLOOR, 1 + (deficit[costBucket(d.cost)] ?? 0));
@@ -382,7 +382,7 @@ export function rollCardOffer(run: DraftRun, rand: () => number = Math.random): 
   const weightOf = (id: string) => {
     const d = getDef(id);
     const curve = Math.max(CURVE_FLOOR, 1 + (deficit[costBucket(d.cost)] ?? 0));
-    const rarity = PACK_WEIGHT[d.rarity ?? ""] ?? 1;
+    const rarity = DRAFT_RARITY_WEIGHT[d.rarity ?? ""] ?? 1;
     const mine = tribesOf(d).some((t) => own.has(t)) ? 2 : 1;
     return curve * rarity * mine;
   };
