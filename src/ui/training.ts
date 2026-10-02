@@ -17,6 +17,7 @@ import {
   type CardInstance, type CardDef, type Element, type GameState, type Keyword, type StatusKind,
 } from "../engine";
 import { RANGED_REACH, holdsTheLine, isAirborne, shoveTarget } from "../engine/rules";
+import { homeRow } from "../engine/types";
 import { addFreePacks, addShards, type StorySave } from "../data/story";
 import { STATUS_TEXT, TANK_BULWARK_TEXT, describeSharedPassives } from "./card-text";
 
@@ -118,6 +119,18 @@ export const LESSONS: Lesson[] = [
           + "between it and the target blocks the shot (your own cards never do). Keep shooters behind your fighters "
           + "and pick targets the front line isn't covering.",
         when: (g) => fielded(g, (d, c) => c.owner === "P1" && d.attackType === "Ranged"),
+      },
+      {
+        // KING OF THE HILL's reach half (`rangedReachFor`): a ranged card that
+        // has left its own home row sees one square further, and keeps it as it
+        // pushes on. Owner's call (2026-10-02) to teach it here — it is the one
+        // reason to march a shooter forward rather than park it at the back.
+        id: "reach-hill", title: "Step out to see further",
+        body: `Move a ranged card off your home row onto the battlefield and its reach grows from ${RANGED_REACH} `
+          + `to ${RANGED_REACH + 1} squares. It keeps the bonus anywhere past your home row, so a shooter that `
+          + "pushes forward can hit targets a back-line shooter cannot. Melee cards do not get it.",
+        when: (g) => fielded(g, (d, c) => c.owner === "P1" && d.attackType === "Ranged"
+          && c.pos!.row !== homeRow("P1", g.boardSize)),
       },
       {
         id: "reach-bulwark", title: "Tanks and Warriors hold the line",
