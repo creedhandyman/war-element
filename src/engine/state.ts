@@ -1120,7 +1120,8 @@ export function summonCard(
   // own ceiling, and so the extra room arrives FILLED — a foil is bigger, not
   // wounded.
   if (draft.players[player].foils?.includes(defId)) {
-    const stat = foilStatFor(defId);
+    // A rerolled foil carries the stat it was rerolled to (data/foils.ts).
+    const stat = draft.players[player].foilStats?.[defId] ?? foilStatFor(defId);
     const n = FOIL_BONUS[stat];
     if (stat === "dmg") inst.dmgBonus += n;
     else if (stat === "sp") inst.spBonus += n;

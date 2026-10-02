@@ -158,10 +158,14 @@ export interface Room {
    *
    *  Sent on arrival AND again whenever this player changes deck or readiness
    *  in the lobby: the host keys on `clientId`, so a re-send UPDATES that seat
-   *  rather than taking another one. */
+   *  rather than taking another one.
+   *
+   *  `foilStats`: the foils this player has REROLLED (data/foils.ts), card id
+   *  -> stat. Optional on the wire, so a client too old to send it simply
+   *  plays its foils at their default stat. */
   sendJoin: (
     clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
-    ready?: boolean,
+    ready?: boolean, foilStats?: Record<string, string>,
   ) => void;
   /** Host → the room: the whole lobby, every time it changes. */
   sendLobby: (seats: LobbySeat[], need: number) => void;
@@ -213,7 +217,7 @@ export function joinRoom(
     onState: (state: GameState, meta?: StateMeta) => void;
     onJoin?: (
       clientId: string, cards: string[], spells?: string[], name?: string, foils?: string[],
-      ready?: boolean,
+      ready?: boolean, foilStats?: Record<string, string>,
     ) => void; // host only
     onLobby?: (seats: LobbySeat[], need: number) => void; // guests
     onSeat?: (clientId: string, seat: PlayerId, have: number, need: number) => void; // guests
@@ -290,6 +294,7 @@ export function joinRoom(
         payload.name as string | undefined,
         payload.foils as string[] | undefined,
         payload.ready as boolean | undefined,
+        payload.foilStats as Record<string, string> | undefined,
       ),
     );
   }
@@ -368,10 +373,10 @@ export function joinRoom(
     },
     snapshot: () => (newest ? { ...newest } : null),
     quietFor: () => Date.now() - heard,
-    sendJoin: (clientId, cards, spells, name, foils, ready) =>
+    sendJoin: (clientId, cards, spells, name, foils, ready, foilStats) =>
       void channel.send({
         type: "broadcast", event: "join",
-        payload: { clientId, cards, spells, name, foils, ready },
+        payload: { clientId, cards, spells, name, foils, ready, foilStats },
       }),
     sendLobby: (seats, need) =>
       void channel.send({ type: "broadcast", event: "lobby", payload: { seats, need } }),

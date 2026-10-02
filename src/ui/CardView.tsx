@@ -40,7 +40,7 @@ import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
 import { chipify, describeOwnPassives, describeSharedPassives, liveDef, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
-import { foilBonusFor, FOIL_STAT_LABEL } from "../data/foils";
+import { foilBonusFor, FOIL_BONUS, FOIL_STAT_LABEL, type FoilStat } from "../data/foils";
 
 export type CardViewProps =
   | {
@@ -65,6 +65,17 @@ export type CardViewProps =
       /** This card is held in foil. Browse only — in a match the board and the
        *  hand already carry it, and `inspect` is about the live instance. */
       foil?: boolean;
+      /** The viewer's rerolled foil stats (data/foils.ts), so the bonus shown
+       *  is the one this copy carries. */
+      foilStats?: Readonly<Record<string, FoilStat>>;
+      /** Offer a REROLL of this foil's bonus — the Collection passes it. */
+      foilReroll?: {
+        cost: number; element: string; have: number;
+        ok: boolean; reason?: string;
+        /** What the last reroll on this card did, to say so on the panel. */
+        last?: { from: FoilStat; to: FoilStat } | null;
+        onReroll: () => void;
+      };
     };
 
 /** What the zones actually read. Both modes collapse to this before render. */
@@ -304,7 +315,9 @@ export function CardView(props: CardViewProps) {
             is derived from the card id so the card face can state it without
             asking the save anything. */}
         {props.mode === "browse" && props.foil && (() => {
-          const b = foilBonusFor(d.id);
+          const b = foilBonusFor(d.id, props.foilStats);
+          const rr = props.foilReroll;
+          const said = (st: FoilStat) => `+${FOIL_BONUS[st]} ${FOIL_STAT_LABEL[st]}`;
           return (
             <div className="cd-section cd-foil">
               <div className="cd-h">
@@ -315,6 +328,31 @@ export function CardView(props: CardViewProps) {
                 Every foil copy is printed a little better. This one carries
                 +{b.amount} {FOIL_STAT_LABEL[b.stat]}.
               </p>
+              {/* THE REROLL (owner's call): spare essence trades this bonus for
+                  one of the other three, at random. Says the price and what you
+                  hold before the press, and what changed after it. */}
+              {rr && (
+                <div className="cd-foil-reroll">
+                  {rr.last && (
+                    <p className="cd-foil-result">
+                      Rerolled: {said(rr.last.from)} → <b>{said(rr.last.to)}</b>
+                    </p>
+                  )}
+                  <button
+                    className="lockin sm"
+                    disabled={!rr.ok}
+                    onClick={rr.onReroll}
+                    title={rr.ok ? undefined : rr.reason}
+                  >
+                    Reroll bonus · {rr.cost} {rr.element} essence
+                  </button>
+                  <span className="cd-foil-have">
+                    {rr.ok
+                      ? `You have ${rr.have}. Lands on one of the other three bonuses at random.`
+                      : rr.reason}
+                  </span>
+                </div>
+              )}
             </div>
           );
         })()}

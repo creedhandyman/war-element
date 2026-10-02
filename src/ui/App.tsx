@@ -226,6 +226,7 @@ import {
 } from "../data/draft";
 import { autoPrefFor } from "./auto-prefs";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
+import { FOIL_STATS, foilStatsFromLedger, type FoilStat } from "../data/foils";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { newHero, rawStoredLoadouts } from "../data/story";
@@ -699,6 +700,9 @@ export function App() {
    *  card ids. Null offline, where only the local player can have any. */
   const [seatFoils, setSeatFoils] = useState<Partial<Record<PlayerId, string[]>> | null>(null);
   const seatFoilsRef = useRef<Partial<Record<PlayerId, string[]>> | null>(null);
+  /** Online, each seat's REROLLED foil stats, as the host dealt them (null
+   *  offline). Kept for the rematch, which deals a fresh state. */
+  const seatFoilStatsRef = useRef<Partial<Record<PlayerId, Record<string, FoilStat>>> | null>(null);
   /** What this match was dealt FROM, kept so a rematch can run the same two
    *  decks back. Not derivable from the finished state — by the end the decks
    *  are drawn down and the cards are dead or scattered. */
@@ -756,6 +760,8 @@ export function App() {
   const lobbyRef = useRef<{
     clientId: string; seat: PlayerId; cards: string[];
     spells?: string[]; name?: string; foils: string[]; ready: boolean;
+    /** The guest's rerolled foil stats, as it sent them. */
+    foilStats?: Record<string, string>;
   }[]>([]);
   /** GUEST: this client's id, and the seat the host gave it. A two-seat room
    *  never needed either — the guest WAS P2 — and with four the host is the
@@ -894,6 +900,16 @@ export function App() {
    *  from the campaign save even in the Arena: a shiny is yours wherever you
    *  play it, and the Arena deck is drawn from the same cards. */
   const foilIds = useMemo(() => new Set(story.hero?.shiny ?? []), [story.hero?.shiny]);
+  /** The foils you have REROLLED (data/foils.ts), card id -> the stat each now
+   *  carries. Recorded in the save's gifts ledger, so it is read from there. */
+  const myFoilStats = useMemo(() => foilStatsFromLedger(story.gifts), [story.gifts]);
+  /** Stamp your rerolled stats onto the seats of a new match that hold YOUR
+   *  foils. The foil lists themselves go in through `createInitialState`; the
+   *  stats ride beside them on the seat, where `summonCard` reads them. */
+  const stampFoilStats = (g: GameState, seats: readonly PlayerId[]) => {
+    if (Object.keys(myFoilStats).length === 0) return;
+    for (const seat of seats) if (g.players[seat]) g.players[seat].foilStats = { ...myFoilStats };
+  };
   /** The foils to hand a new match, by seat.
    *
    *  Hot-seat is why this is a function rather than `{ P1: foils }`: both
@@ -2045,6 +2061,17 @@ export function App() {
     // SAME OPPONENT, NEW DEAL: the AI skill carries over, and everything else
     // about the deal is fresh — the suits included.
     g.aiSkill = s.skill;
+    // ...and the same FOILS. A rematch used to deal none at all, so every foil
+    // in the match went plain the moment you asked to play it again. Online,
+    // the seat map the first deal relayed; offline, yours as the first deal had.
+    const seatFoils = seatFoilsRef.current ?? seatFoilsFor();
+    for (const seat of Object.keys(seatFoils) as PlayerId[])
+      if (g.players[seat] && seatFoils[seat]?.length) g.players[seat].foils = [...seatFoils[seat]!];
+    const seatStats = seatFoilStatsRef.current;
+    if (seatStats) {
+      for (const seat of Object.keys(seatStats) as PlayerId[])
+        if (g.players[seat] && seatStats[seat]) g.players[seat].foilStats = { ...seatStats[seat]! };
+    } else stampFoilStats(g, Object.keys(seatFoils) as PlayerId[]);
     setGame(g);
     setViewSide(online?.myId ?? "P1");
     setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
@@ -2329,6 +2356,7 @@ export function App() {
       // of the owner, not of the deck. An AI seat has none.
       seatFoilsFor(),
     );
+    stampFoilStats(fresh, Object.keys(seatFoilsFor()) as PlayerId[]);
     // THE HANDICAP, on every Arena match including the tuned ones. An event or a
     // Void Trial is a designed encounter, but it is designed around the same
     // opponent everything else faces — and a player who needs the handicap needs
@@ -2597,7 +2625,7 @@ export function App() {
     } else {
       roomRef.current.sendJoin(
         clientIdRef.current, deckNowRef.current.cards, deckNowRef.current.spells,
-        deckNowRef.current.name, [...foilIds], ready);
+        deckNowRef.current.name, [...foilIds], ready, myFoilStats);
     }
   }
 
@@ -2649,7 +2677,7 @@ export function App() {
       onState: (state) => remoteQueue.receive(state),
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
-      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady) => {
+      onJoin: (clientId, guestCards, guestSpells, guestName, guestFoils, guestReady, guestFoilStats) => {
         if (onlineStartedRef.current) return; // already playing — ignore re-joins
         const lobby = lobbyRef.current;
         // A REJOIN keeps its seat. `sendJoin` fires on every subscribe, and a
@@ -2667,12 +2695,14 @@ export function App() {
           already.spells = guestSpells;
           already.name = guestName;
           already.foils = guestFoils ?? [];
+          already.foilStats = guestFoilStats;
           already.ready = !!guestReady;
         } else {
           if (lobby.length >= hostSeatCount - 1) return; // room is full
           lobby.push({
             clientId, seat, cards: guestCards, spells: guestSpells,
             name: guestName, foils: guestFoils ?? [], ready: !!guestReady,
+            foilStats: guestFoilStats,
           });
         }
         // Tell them which seat they are in, and how full the room is. Sent on a
@@ -2743,6 +2773,20 @@ export function App() {
     // card id, so neither side has to trust a number the other sent.
     for (const seat of Object.keys(foils) as PlayerId[])
       if (foils[seat]?.length) g.players[seat].foils = [...foils[seat]!];
+    // ...and the stats each player REROLLED their foils to, the same way:
+    // stamped into the state the host broadcasts, so a guest's rerolls are real
+    // on every client. A stat that is not one of the four is dropped, not
+    // trusted — it arrived over the wire.
+    const seatStats: Partial<Record<PlayerId, Record<string, FoilStat>>> = { P1: { ...myFoilStats } };
+    for (const e of lobby) {
+      const clean: Record<string, FoilStat> = {};
+      for (const [id, st] of Object.entries(e.foilStats ?? {}))
+        if ((FOIL_STATS as readonly string[]).includes(st)) clean[id] = st as FoilStat;
+      seatStats[e.seat] = clean;
+    }
+    for (const seat of Object.keys(seatStats) as PlayerId[])
+      if (g.players[seat] && Object.keys(seatStats[seat]!).length) g.players[seat].foilStats = seatStats[seat];
+    seatFoilStatsRef.current = seatStats;
     setupRef.current = {
       p1: hostCards, p1s: hostSpells, p2: lobby[0].cards, p2s: lobby[0].spells,
       board: hostBoardSize, humans: seats,
@@ -2793,7 +2837,7 @@ export function App() {
       onRematch: () => setRematchTheirs(true),
       onChat: receiveChat,
       onSubscribed: () => roomRef.current?.sendJoin(
-        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false),
+        clientIdRef.current, guestCards, guestSpells, guestName, [...foilIds], false, myFoilStats),
     });
     setOnline({ role: "guest", code, myId: "P2" });
   }
@@ -5557,6 +5601,7 @@ export function App() {
               const trial = createInitialState(newSeed(), deck, enc.deck, ["P1"], bossBook, enc.spells,
                 enc.boardSize, undefined, undefined, { P2: enc.stacked.P2 },
                 undefined, { P1: [...foilIds] });
+              stampFoilStats(trial, ["P1"]);
               trial.aiSkill = autoRung;
               seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });
               enterStoryFight(trial, node, getDef(borderBoss).name);
@@ -5607,6 +5652,7 @@ export function App() {
               deploy, terrain,
               node.kind === "throne" ? { P2: THRONE_OPENING_STACK } : undefined,
               undefined, { P1: [...foilIds] });
+            stampFoilStats(fresh, ["P1"]);
             // THE DIAL, IN THE CAMPAIGN. Story fights have always been played
             // against the full opponent — nothing ever set this here — while
             // Story is precisely where a new player learns the game and where
@@ -6573,6 +6619,7 @@ export function App() {
         // opened on top of.
         onChange={setCustomDecks}
         boardSize={builderBoard}
+        foilStats={myFoilStats}
         story={{
           owned: storyBuilderOwned,
           cap: builderCap,
@@ -6608,6 +6655,7 @@ export function App() {
         // foil set used to ride on that prop, which is the whole reason a foil
         // went plain here.
         foils={foilIds}
+        foilStats={myFoilStats}
         incomingCode={linkedDeck}
         onIncomingConsumed={() => setLinkedDeck(null)}
         onClose={() => { setBuilderOpen(false); setLinkedDeck(null); }}

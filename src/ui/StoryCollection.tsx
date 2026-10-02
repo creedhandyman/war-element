@@ -15,11 +15,12 @@
 import { useMemo, useState } from "react";
 import { useBackLayer } from "./use-back-layer";
 import type { CardClass, Element, Keyword } from "../engine";
-import { CARDS } from "../data/cards";
+import { CARDS, getDef } from "../data/cards";
 import {
-  PLACED_CARDS, bestSource, deckCapFor, isShiny, markSeen, recruitChance, sourcesOf,
-  type StorySave,
+  PLACED_CARDS, bestSource, canRerollFoil, deckCapFor, foilStatsOf, isShiny, markSeen,
+  recruitChance, rerollFoil, sourcesOf, type StorySave,
 } from "../data/story";
+import { FOIL_REROLL_COST, type FoilStat } from "../data/foils";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
   ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
@@ -86,6 +87,8 @@ export function StoryCollection(props: {
    *  twice. */
   const [filtersOpen, toggleFilters] = useFilterFold();
   const [detailId, setDetailId] = useState<string | null>(null);
+  /** What the last foil reroll did, for the card it was made on. */
+  const [lastReroll, setLastReroll] = useState<{ id: string; from: FoilStat; to: FoilStat } | null>(null);
   // Back closes a card's detail before the collection under it.
   useBackLayer(detailId !== null, () => setDetailId(null));
   const owned = useMemo(() => new Set(save.collection), [save.collection]);
@@ -367,6 +370,23 @@ export function StoryCollection(props: {
           the Collection knows: where this card actually drops. */}
       {detail && (
         <CardView mode="browse" foil={isShiny(save, detail.id)}
+          foilStats={foilStatsOf(save)}
+          foilReroll={(() => {
+            if (!isShiny(save, detail.id)) return undefined;
+            const el = getDef(detail.id).element;
+            const can = canRerollFoil(save, detail.id);
+            return {
+              cost: FOIL_REROLL_COST, element: el, have: save.hero?.essence[el] ?? 0,
+              ok: can.ok, reason: can.reason,
+              last: lastReroll?.id === detail.id ? lastReroll : null,
+              onReroll: () => {
+                const r = rerollFoil(save, detail.id, Math.random);
+                if (!r) return;
+                props.onSave(r.save);
+                setLastReroll({ id: detail.id, from: r.from, to: r.to });
+              },
+            };
+          })()}
           def={detail}
           onClose={() => setDetailId(null)}
           extra={

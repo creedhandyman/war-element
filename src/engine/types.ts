@@ -2715,6 +2715,10 @@ export interface PlayerState {
    *  rather than stored. Absent = no foils, which is every AI seat and every
    *  headless harness. */
   foils?: readonly string[];
+  /** Foils this seat has REROLLED, by card id -> the stat it now carries
+   *  (data/foils.ts). Absent for a card = its hashed stat. Lives in the state,
+   *  so online it reaches every client inside the broadcast. */
+  foilStats?: Readonly<Record<string, "dmg" | "hp" | "shield" | "sp">>;
   elementPerm?: {
     element: Element;
     sp?: number;

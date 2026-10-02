@@ -136,6 +136,9 @@ export function DeckBuilder(props: {
    *  cards — drew every one of them plain, while the story Collection one tap
    *  away shone them. `story.foils` still works and wins if both are given. */
   foils?: ReadonlySet<string>;
+  /** Rerolled foil stats (data/foils.ts), so a foil's detail states the bonus
+   *  this copy actually carries. */
+  foilStats?: Readonly<Record<string, "dmg" | "hp" | "shield" | "sp">>;
 }) {
   const story = props.story;
   const foils = story?.foils ?? props.foils;
@@ -1514,7 +1517,7 @@ export function DeckBuilder(props: {
       {/* Expanded card details — a sub-overlay above the builder. Shared with
           the story Collection so the two can't drift apart. */}
       {detail && (
-        <CardView mode="browse" foil={!!foils?.has(detail.id)}
+        <CardView mode="browse" foil={!!foils?.has(detail.id)} foilStats={props.foilStats}
           def={detail}
           onClose={() => setDetailId(null)}
           action={{

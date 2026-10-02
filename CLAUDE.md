@@ -3373,6 +3373,29 @@ drives. Splitting either means restructuring App, not moving an import.
 Verify bundle changes against `vite preview` (the production build), never the
 dev server, which serves modules unbundled and tells you nothing about chunks.
 
+## Foil rerolls — what spare essence buys (owner's call, 2026-10-01)
+
+A foil's bonus is HASHED from the card id (data/foils.ts) and stays the
+default. Once a collection is done essence has nothing to buy, so in the
+Collection a foil's detail offers **Reroll bonus · 100 essence of the card's
+element** (`FOIL_REROLL_COST`): the bonus moves to one of the other three stats
+at random (`rollFoilStat`). `canRerollFoil` / `rerollFoil` in story.ts.
+
+- **Stored in `gifts`, not a new save field**: `foil:<card id>:<stat>`, last one
+  wins (`withFoilMark` replaces). `loadStory` is a field whitelist, and an older
+  build that loads the save keeps every gifts string but drops unknown fields —
+  see the Hard-mode loss. `foilStatsOf(save)` reads them back.
+- **In a match** the stat rides on the seat as `players[seat].foilStats`, which
+  `summonCard` reads before the hash. App's `stampFoilStats` sets it for your
+  seats on every deal (Arena/hot-seat, story fights, Void Tower trials, the
+  rematch — which used to deal NO foils at all and now carries them).
+- **Online**: the guest sends `foilStats` with its join (optional — an older
+  client's foils play at the default); the host validates them against the
+  four stats and stamps them into the state it broadcasts, so every client
+  agrees without trusting a number per summon.
+- `foil-reroll.test.ts` pins the roll, the ledger, the cost/element, a save
+  round-trip and the summon.
+
 ## Card Gallery — the screen that shows what the other grids hide
 
 `src/ui/CardGallery.tsx`. Every def in the game in one grid: **366 plates** —

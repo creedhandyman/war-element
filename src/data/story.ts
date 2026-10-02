@@ -12,6 +12,9 @@
 // duplicate of it here that could drift.
 
 import { CARDS, CARD_INDEX, getDef } from "./cards";
+import {
+  FOIL_REROLL_COST, foilStatOf, foilStatsFromLedger, rollFoilStat, withFoilMark, type FoilStat,
+} from "./foils";
 import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spells";
 import { DOMINATION_7X7 } from "./domination";
 import { DECK_TIERS } from "./custom-decks";
@@ -1581,6 +1584,41 @@ export function addShiny(save: StorySave, ids: readonly string[]): StorySave {
   const next = [...new Set([...hero.shiny, ...ids])];
   if (next.length === hero.shiny.length) return save;
   return { ...save, hero: { ...hero, shiny: next } };
+}
+
+/** The foils this save has rerolled, by card id (see data/foils.ts). */
+export const foilStatsOf = (save: StorySave): Record<string, FoilStat> => foilStatsFromLedger(save.gifts);
+
+/** Can this foil be rerolled right now? It has to be a foil you hold, and the
+ *  essence comes from the card's own element, like crafting it would. */
+export function canRerollFoil(save: StorySave, defId: string): { ok: boolean; reason?: string } {
+  if (!CARD_INDEX[defId]) return { ok: false, reason: "No such card" };
+  if (!isShiny(save, defId)) return { ok: false, reason: "Only a foil you hold can be rerolled" };
+  const el = getDef(defId).element;
+  const have = save.hero?.essence[el] ?? 0;
+  if (have < FOIL_REROLL_COST)
+    return { ok: false, reason: `Needs ${FOIL_REROLL_COST} ${el} essence — you have ${have}` };
+  return { ok: true };
+}
+
+/** Spend the essence and reroll the foil's bonus to one of the other three
+ *  stats. Refuses (returns null) rather than going negative. */
+export function rerollFoil(
+  save: StorySave, defId: string, rand: () => number,
+): { save: StorySave; from: FoilStat; to: FoilStat } | null {
+  if (!canRerollFoil(save, defId).ok) return null;
+  const hero = save.hero!;
+  const el = getDef(defId).element;
+  const from = foilStatOf(defId, foilStatsOf(save));
+  const to = rollFoilStat(from, rand);
+  return {
+    save: {
+      ...save,
+      hero: { ...hero, essence: { ...hero.essence, [el]: (hero.essence[el] ?? 0) - FOIL_REROLL_COST } },
+      gifts: withFoilMark(save.gifts, defId, to),
+    },
+    from, to,
+  };
 }
 
 // ── boosters ────────────────────────────────────────────────────────────────

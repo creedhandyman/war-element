@@ -8918,6 +8918,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    Talent block, tinted gold so it reads as the finish rather than an ability. */
 .cd-foil .cd-h { color: var(--gold-hi); }
 .cd-foil .cd-cost-pill { border-color: var(--gold-line); color: var(--gold-hi); }
+/* The foil REROLL: the button, what you hold, and what the last one did. */
+.cd-foil-reroll { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 8px; }
+.cd-foil-have { font-size: 11px; color: var(--ink-dim); }
+.cd-foil-result { margin: 0; font-size: 12px; color: var(--ink-dim); }
+.cd-foil-result b { color: var(--gold-hi); }
 
 /* ── DRAFT · groups of three, then the book ───────────────────────────────
    Three banners side by side, each over its own trio. Nothing animates: the

@@ -148,7 +148,8 @@ describe("the wiring", () => {
   it("says on the card what the foil is worth", () => {
     // A bonus nobody can see is a bonus nobody has.
     const CV = ui("CardView.tsx");
-    expect(CV).toContain("foilBonusFor(d.id)");
+    // ...the bonus THIS copy carries: a rerolled foil states its new stat.
+    expect(CV).toContain("foilBonusFor(d.id, props.foilStats)");
     expect(CV).toContain("FOIL_STAT_LABEL[b.stat]");
   });
 });

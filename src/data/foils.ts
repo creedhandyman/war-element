@@ -59,8 +59,8 @@ export const foilStatFor = (defId: string): FoilStat =>
   FOIL_STATS[hashId(defId) % FOIL_STATS.length]!;
 
 /** The stat and the amount together, for a UI that wants to print it. */
-export const foilBonusFor = (defId: string): { stat: FoilStat; amount: number } => {
-  const stat = foilStatFor(defId);
+export const foilBonusFor = (defId: string, stats?: FoilStats): { stat: FoilStat; amount: number } => {
+  const stat = stats?.[defId] ?? foilStatFor(defId);
   return { stat, amount: FOIL_BONUS[stat] };
 };
 
@@ -68,3 +68,57 @@ export const foilBonusFor = (defId: string): { stat: FoilStat; amount: number } 
 export const FOIL_STAT_LABEL: Readonly<Record<FoilStat, string>> = {
   dmg: "DMG", hp: "max HP", shield: "shield", sp: "SP",
 };
+
+/** ── REROLLING A FOIL ─────────────────────────────────────────────────────
+ *
+ *  Owner's call, 2026-10-01: once a collection is done, essence has nothing to
+ *  buy, so it buys a REROLL — a foil you already hold trades its bonus for one
+ *  of the other three, at random. The hashed stat above stays the DEFAULT, and
+ *  every one of its three properties holds for a foil nobody has rerolled. A
+ *  rerolled one is the player's own choice of copy, so it is STORED: in the
+ *  save's `gifts` ledger as `foil:<card id>:<stat>` (not a new save field — an
+ *  older build that loads the save keeps every gifts string and would silently
+ *  drop a field it does not know), and in a match as `foilStats` on the seat,
+ *  which travels inside the broadcast state online, so both clients still
+ *  stamp the same number.
+ */
+
+/** Essence a reroll costs, of the card's own element (crafting's currency). */
+export const FOIL_REROLL_COST = 100;
+
+/** A foil's rerolled stat, by card id. Absent = it carries the hashed one. */
+export type FoilStats = Readonly<Record<string, FoilStat>>;
+
+const MARK = "foil:";
+
+/** The ledger entry that records `defId`'s rerolled stat. */
+export const foilMark = (defId: string, stat: FoilStat): string => `${MARK}${defId}:${stat}`;
+
+/** Every rerolled stat recorded in a gifts ledger. A malformed entry is
+ *  skipped rather than trusted, and the LAST entry for a card wins. */
+export function foilStatsFromLedger(gifts: readonly string[] | undefined): Record<string, FoilStat> {
+  const out: Record<string, FoilStat> = {};
+  for (const g of gifts ?? []) {
+    if (!g.startsWith(MARK)) continue;
+    const at = g.lastIndexOf(":");
+    const id = g.slice(MARK.length, at);
+    const stat = g.slice(at + 1) as FoilStat;
+    if (id && FOIL_STATS.includes(stat)) out[id] = stat;
+  }
+  return out;
+}
+
+/** The ledger with `defId`'s reroll set to `stat` (its old entry replaced). */
+export const withFoilMark = (gifts: readonly string[] | undefined, defId: string, stat: FoilStat): string[] =>
+  [...(gifts ?? []).filter((g) => !g.startsWith(`${MARK}${defId}:`)), foilMark(defId, stat)];
+
+/** The stat this copy actually carries: its reroll if it has one. */
+export const foilStatOf = (defId: string, stats?: FoilStats): FoilStat =>
+  stats?.[defId] ?? foilStatFor(defId);
+
+/** A reroll's result: one of the OTHER three, evenly — a reroll always
+ *  changes the card. `rand` is supplied so the roll can be tested. */
+export function rollFoilStat(current: FoilStat, rand: () => number): FoilStat {
+  const others = FOIL_STATS.filter((s) => s !== current);
+  return others[Math.min(others.length - 1, Math.floor(rand() * others.length))]!;
+}
