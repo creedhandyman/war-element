@@ -17,7 +17,7 @@ import {
 } from "./foils";
 import { SPELLS, getSpell, legalSpellIds, spellCapForBoard } from "../engine/spells";
 import { DOMINATION_7X7 } from "./domination";
-import { DECK_TIERS } from "./custom-decks";
+import { DECK_TIERS, PREMADE_DECKS, type DeckTier, type PremadeDeck } from "./custom-decks";
 import type { GauntletState } from "./gauntlet";
 import type { DraftGroup, DraftRun } from "./draft";
 import { playerLevel } from "./player";
@@ -1981,6 +1981,64 @@ export function buyBox(save: StorySave): StorySave {
     { ...save, hero: { ...hero, shards: Math.max(0, hero.shards - BOX_COST) } },
     BOX_PACKS,
   );
+}
+
+// ── premade decks in the Shop (owner's call, 2026-10-02) ───────────────────
+
+/** One ready-made deck per difficulty, for sale under the packs. Standard-board
+ *  (4x4) lists, because that is the board the campaign is fought on; each is the
+ *  first deck of its rung on the matchmaker's ladder, so what you buy is exactly
+ *  what the Arena pits you against at that difficulty. */
+export const SHOP_DECK_IDS: Record<DeckTier, string> = {
+  easy: "pre_sapling_creek",
+  mid: "pre_tidal_gate",
+  hard: "pre_solar_crown",
+  elite: "pre_tombstone",
+};
+
+/** What one card in a deck costs, in shards. DERIVED, not a second price list:
+ *  a pack card is worth `PACK_COST / PACK_SIZE` shards (10), and the rarities
+ *  keep the crafter's ratios between them (`CRAFT_COST`), so a Rare is 10, an
+ *  Epic 20, a Legendary 40 and a Mythic 125. Retune the pack or the crafter and
+ *  the decks follow. */
+export const deckCardShards = (defId: string): number =>
+  Math.round((PACK_COST / PACK_SIZE) * craftCostOf(defId) / CRAFT_COST.rare);
+
+export const shopDecks = (): { tier: DeckTier; deck: PremadeDeck }[] =>
+  DECK_TIERS.flatMap((tier) => {
+    const deck = PREMADE_DECKS.find((d) => d.id === SHOP_DECK_IDS[tier]);
+    return deck ? [{ tier, deck }] : [];
+  });
+
+/** A deck's price for THIS save: the full value of its cards, less every card
+ *  already collected — you only ever pay for what you do not have. */
+export function premadeDeckPrice(save: StorySave, deck: PremadeDeck): {
+  full: number; price: number; missing: string[]; owned: number;
+} {
+  const have = new Set(save.collection);
+  const missing = deck.cards.filter((id) => !have.has(id));
+  const full = deck.cards.reduce((n, id) => n + deckCardShards(id), 0);
+  const price = missing.reduce((n, id) => n + deckCardShards(id), 0);
+  return { full, price, missing, owned: deck.cards.length - missing.length };
+}
+
+export const canBuyPremadeDeck = (save: StorySave, deck: PremadeDeck): boolean => {
+  const { price, missing } = premadeDeckPrice(save, deck);
+  return missing.length > 0 && (save.hero?.shards ?? 0) >= price;
+};
+
+/** Buy a premade: charge for the missing cards and add them to the collection.
+ *  Unchanged when it cannot be afforded or there is nothing left to buy — the
+ *  guard lives here, where the shards move, not only on the button. */
+export function buyPremadeDeck(save: StorySave, deck: PremadeDeck): StorySave {
+  if (!canBuyPremadeDeck(save, deck)) return save;
+  const { price, missing } = premadeDeckPrice(save, deck);
+  const hero = save.hero ?? newHero();
+  return markUnseen({
+    ...save,
+    collection: [...save.collection, ...missing],
+    hero: { ...hero, shards: hero.shards - price },
+  }, missing);
 }
 
 /** Bank shards. The one place they are added, so a grant that is not a match

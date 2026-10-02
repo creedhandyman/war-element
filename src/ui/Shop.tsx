@@ -28,13 +28,25 @@ import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
-  applyPack, buyBox, canBuyBox, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
+  applyPack, buyBox, buyPremadeDeck, canBuyBox, canBuyPremadeDeck, premadeDeckPrice, shopDecks, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
   dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packLeanCost,
   packLeanOf, packOdds, PACK_LEAN, PACK_LEAN_CHANGE_COST, rerollFoil, setPackLean, type PackResult, type StorySave,
 } from "../data/story";
 import { FOIL_BONUS, FOIL_REROLL_COST, FOIL_STAT_LABEL, foilStatOf, type FoilStat } from "../data/foils";
 import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
+import { TIER_LABEL, type PremadeDeck } from "../data/custom-decks";
+import { saveSquad, type Squad } from "../data/squads";
+
+/** One hue per difficulty on the premade shelf, easiest coolest. */
+const TIER_HUE: Record<string, string> = {
+  easy: "#5fc77a", mid: "#4f9dde", hard: "#e08a3c", elite: "#b071e8",
+};
+const RARITY_RANK: Record<string, number> = { rare: 0, epic: 1, legendary: 2, mythic: 3 };
+/** The card a deck is shown by: its rarest, then its dearest. */
+const faceOf = (deck: PremadeDeck) =>
+  [...deck.cards].map((id) => getDef(id)).sort((a, b) =>
+    (RARITY_RANK[b.rarity ?? "rare"] ?? 0) - (RARITY_RANK[a.rarity ?? "rare"] ?? 0) || b.cost - a.cost)[0];
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 /** A share as the Shop prints it: one decimal for the common tiers, two
@@ -117,6 +129,9 @@ export function Shop(props: {
    *  open", which is a different question: you can stand here for a minute
    *  after the cards are turned. */
   onBusy?: (busy: boolean) => void;
+  /** The squad library changed: a bought deck is saved as a squad, and the
+   *  App keeps the library in state. */
+  onSquads?: (squads: Squad[]) => void;
 }) {
   const { save } = props;
   const [tab, setTab] = useState<"packs" | "crafter">(props.openTab ?? "packs");
@@ -213,6 +228,25 @@ export function Shop(props: {
     const next = setPackLean(save, leanAsk.to);
     if (next) props.onSave(next);
     setLeanAsk(null);
+  };
+
+  /** PREMADE DECKS (owner's call, 2026-10-02). A buy spends hundreds of shards,
+   *  so the first tap arms the button and the second one pays. */
+  const [deckAsk, setDeckAsk] = useState<string | null>(null);
+  const [deckDone, setDeckDone] = useState<{ id: string; added: number } | null>(null);
+  const keepSquad = (deck: PremadeDeck) => {
+    const next = saveSquad({ name: deck.name, cards: [...deck.cards], spells: deck.spells, boardSize: deck.boardSize });
+    props.onSquads?.(next);
+  };
+  const buyDeck = (deck: PremadeDeck) => {
+    if (deckAsk !== deck.id) { setDeckAsk(deck.id); return; }
+    const added = premadeDeckPrice(save, deck).missing.length;
+    const next = buyPremadeDeck(save, deck);
+    setDeckAsk(null);
+    if (next === save) return;
+    props.onSave(next);
+    keepSquad(deck);
+    setDeckDone({ id: deck.id, added });
   };
 
   const missing = useMemo(
@@ -518,6 +552,66 @@ export function Shop(props: {
               : owedPacks > 0
                 ? ""
                 : `${PACK_COST - shards} more shards for a pack`}
+          </div>
+
+          {/* ── PREMADE DECKS ──────────────────────────────────────────────
+              One ready-made deck per difficulty. The price is what its cards
+              are worth at pack rates, and every card you already hold comes
+              off it, so the deck you are three cards short of costs three
+              cards. Buying also saves it as a squad, ready to take into a fight. */}
+          <div className="sr-label deck-shelf-label">PREMADE DECKS · ONE PER DIFFICULTY</div>
+          <div className="deck-shelf">
+            {shopDecks().map(({ tier, deck }) => {
+              const { full, price, owned } = premadeDeckPrice(save, deck);
+              const face = faceOf(deck);
+              const els = [...new Set(deck.cards.map((id) => getDef(id).element))];
+              const complete = owned === deck.cards.length;
+              const can = canBuyPremadeDeck(save, deck);
+              const armed = deckAsk === deck.id;
+              return (
+                <div key={deck.id} className="deck-offer" style={{ ["--tier" as string]: TIER_HUE[tier] }}>
+                  <div className="deck-shot">
+                    <img src={cardThumbSrc(face)} alt="" loading="lazy" draggable={false}
+                      onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                  </div>
+                  <div className="box-body">
+                    <div className="deck-head">
+                      <span className="deck-tier">{TIER_LABEL[tier]}</span>
+                      <span className="box-name">{deck.name}</span>
+                    </div>
+                    <div className="deck-note">{deck.note}</div>
+                    <div className="deck-meta">
+                      {els.map((e) => (
+                        <img key={e} className="deck-el" src={EL_ICON[e as keyof typeof EL_ICON]} alt={e} title={e} />
+                      ))}
+                      <span>{deck.cards.length} cards · <b>{owned}</b> owned</span>
+                    </div>
+                    {deckDone?.id === deck.id ? (
+                      <div className="deck-done">
+                        {deckDone.added} card{deckDone.added === 1 ? "" : "s"} added · saved to your squads
+                      </div>
+                    ) : complete ? (
+                      <button className="box-buy can" onClick={() => { keepSquad(deck); setDeckDone({ id: deck.id, added: 0 }); }}>
+                        All owned · save as a squad
+                      </button>
+                    ) : (
+                      <div className="deck-buy-row">
+                        <button className={`box-buy ${can ? "can" : ""} ${armed ? "armed" : ""}`}
+                          disabled={!can} onClick={() => buyDeck(deck)}>
+                          {!can
+                            ? <>{price - shards} more shards</>
+                            : armed
+                              ? <>Confirm · {price}<i className="shard" /></>
+                              : <>Buy for {price}<i className="shard" /></>}
+                        </button>
+                        {price < full && <s className="deck-full">{full}</s>}
+                        {armed && <button className="ghost sm" onClick={() => setDeckAsk(null)}>Cancel</button>}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       ) : (

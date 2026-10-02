@@ -6385,6 +6385,42 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .box-shot { flex-basis: 62px; height: 78px; }
 }
 
+/* Premade decks: the box's product row, one per difficulty, each wearing its
+   rung's hue (--tier) on the border, the chip and the card it is shown by. */
+.deck-shelf-label { margin-top: 18px; align-self: stretch; }
+.deck-shelf { display: flex; flex-direction: column; gap: 10px; width: 100%; }
+.deck-offer {
+  display: flex; gap: 12px; align-items: flex-start; width: 100%;
+  padding: 11px; border-radius: 12px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--tier) 45%, transparent);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--tier) 14%, transparent), rgba(10, 10, 17, .55));
+}
+.deck-shot {
+  flex: 0 0 70px; height: 96px; border-radius: 8px; overflow: hidden; line-height: 0;
+  border: 1px solid color-mix(in srgb, var(--tier) 60%, transparent); background: var(--void-2);
+}
+.deck-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.deck-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.deck-tier {
+  padding: 1px 7px; border-radius: 6px; font-size: var(--fs-1); font-weight: 800;
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--tier); border: 1px solid var(--tier);
+  background: color-mix(in srgb, var(--tier) 14%, transparent);
+}
+.deck-note { font-size: var(--fs-4); color: var(--ink-dim); line-height: 1.35; }
+.deck-meta { display: flex; align-items: center; gap: 5px; font-size: var(--fs-4); color: var(--ink-dim); }
+.deck-meta b { color: var(--ink); }
+.deck-el { width: 18px; height: 18px; display: block; }
+.deck-meta span { margin-left: 3px; }
+.deck-buy-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.deck-full { font-size: var(--fs-4); color: var(--ink-faint); margin-top: 5px; }
+.box-buy.armed { border-color: var(--gold-hi); box-shadow: 0 0 0 1px var(--gold-hi); }
+.deck-buy-row .ghost.sm { margin-top: 5px; }
+.deck-done { margin-top: 5px; font-size: var(--fs-4); font-weight: 700; color: var(--tier); }
+@media (max-width: 380px) {
+  .deck-shot { flex-basis: 56px; height: 78px; }
+}
+
 .odds-head {
   margin-top: 6px; font-size: var(--fs-1); letter-spacing: 0.1em;
   color: var(--ink-faint); text-transform: uppercase;

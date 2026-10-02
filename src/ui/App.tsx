@@ -6538,6 +6538,7 @@ export function App() {
                 without unmounting Shop, so the reset below never happened. */}
             <Shop key={shopTab} save={story} openTab={shopTab}
               onBusy={setPackBusy}
+              onSquads={setCustomDecks}
               onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>
