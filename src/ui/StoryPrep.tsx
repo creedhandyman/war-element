@@ -21,7 +21,7 @@ import {
   type StoryNode, type StoryRegion, type StorySave, STANDARD_CAP, bookForLoadout,
 } from "../data/story";
 import {
-  deleteSquad, preferredSquad, saveSquad, squadNamed, squadsFor, type Squad,
+  deleteSquad, loadSquads, preferredSquad, saveSquad, squadNamed, squadsFor, type Squad,
 } from "../data/squads";
 import { CardView } from "./CardView";
 import { cardThumbSrc } from "./shared";
@@ -133,7 +133,17 @@ export function StoryPrep(props: {
     // Follow the POINTER as well as the cards: the builder records which squad
     // it just saved, and dropping that on the way back left the shelf showing
     // nothing selected for a squad that was, in fact, exactly what you held.
-    if (save.deck.length) { setDeck(save.deck.filter((id) => pool.includes(id))); setPickedTeam(save.lastTeamId ?? null); }
+    if (save.deck.length) {
+      setDeck(save.deck.filter((id) => pool.includes(id)));
+      setPickedTeam(save.lastTeamId ?? null);
+      // ...and the squad's SPELLBOOK. Only the cards came back here, so a book
+      // edited in the builder sat behind the old one on this screen and only
+      // reached a fight after the prep screen next remounted. Read from the
+      // library itself: the builder has already written it, while the
+      // `squads` prop catches up a render later.
+      const squad = save.lastTeamId ? loadSquads().find((sq) => sq.id === save.lastTeamId) : undefined;
+      if (squad) setBook(squad.spells ?? []);
+    }
   }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
   /** Is the squad list open? Closed by default — see the Quick select block. */
