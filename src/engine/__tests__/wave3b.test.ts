@@ -38,9 +38,15 @@ describe("Magalogoon", () => {
     const mag = place(s, "aqua_magalogoon", "P1", 2, 0, { movedThisRound: true });
     const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20 });
     expect(canTarget(s, s.cards[foe.instanceId], s.cards[mag.instanceId])).toBe(true);
+    // The round it MOVED ends, and it stays in the open for the next one too:
+    // "doing either gives it up until the next round it stays still" (idle
+    // stealth, 2026-10-02). It used to re-bury at this very Cleanup.
     const next = advance(atCleanup(s));
     expect(next.cards[mag.instanceId].movedThisRound).toBe(false);
-    expect(canTarget(next, next.cards[foe.instanceId], next.cards[mag.instanceId])).toBe(false);
+    expect(canTarget(next, next.cards[foe.instanceId], next.cards[mag.instanceId])).toBe(true);
+    // ...and a round spent still is what buries it again.
+    const after = advance(atCleanup(next));
+    expect(canTarget(after, after.cards[foe.instanceId], after.cards[mag.instanceId])).toBe(false);
   });
 
   it("a real MOVE sets the flag (not just the test poking it)", () => {

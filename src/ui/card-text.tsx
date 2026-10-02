@@ -1004,7 +1004,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onHitRampUntilSpecial)
     named("onHitRampUntilSpecial", `Volcanic Fury: each landed basic grants +${def.onHitRampUntilSpecial} DMG, building until the Special is used (then it resets).`);
   if (def.stealthWhenIdle)
-    named("stealthWhenIdle", "Buried in the muck: hidden and untargetable each round it neither moves nor attacks — doing either gives it up until the next round it stays still.");
+    named("stealthWhenIdle", "Hidden and untargetable while it stays still. Moving, attacking or using its Special gives that up for the rest of the round and all of the next — it hides again after a full round without acting.");
   if (def.hiveAbsorb) {
     // Name the CARD when the swarm is one card ("Living Beebots soak…"), the
     // tribe when it is a category. Reading the def is what keeps the line right

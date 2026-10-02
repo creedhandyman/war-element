@@ -2221,6 +2221,11 @@ export interface CardInstance {
    *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the
    *  one-move-per-turn budget for the whole side. Reset each Cleanup. */
   movedThisRound?: boolean;
+  /** Idle stealth (Grizzly, Magalogoon): this card moved or attacked LAST
+   *  round, so it stays in the open for all of this one. Set at Cleanup from
+   *  the round that just ended, so acting costs the hide for the rest of that
+   *  round AND the next; one round spent still brings it back. */
+  exposedFromLastRound?: boolean;
   /** The largest max-HP AURA BONUS this card has ever stood under — the aura
    *  part alone, never the total.
    *

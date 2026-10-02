@@ -850,7 +850,10 @@ export function rangedReachFor(state: GameState, card: CardInstance): number {
 export function isStealthed(def: CardDef, card: CardInstance): boolean {
   if (hasStatus(card, "STEALTH")) return true;
   if (def.keywords.STEALTH && !card.attackedThisRound) return true;
-  if (def.stealthWhenIdle && !card.attackedThisRound && !card.movedThisRound) return true;
+  // Idle stealth needs a whole round still: acting last round keeps it in the
+  // open this round too (`exposedFromLastRound`), not just until Cleanup.
+  if (def.stealthWhenIdle && !card.attackedThisRound && !card.movedThisRound
+    && !card.exposedFromLastRound) return true;
   return false;
 }
 

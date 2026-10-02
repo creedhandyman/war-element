@@ -3990,6 +3990,10 @@ function doCleanupPhase(draft: GameState): void {
   draft.players.P2.specialDiscountRound = 0;
   for (const card of boardCards(draft)) {
     card.summonedThisRound = false;
+    // Idle stealth remembers this round before the flags clear: a card that
+    // moved or attacked stays exposed through the NEXT round as well, and only
+    // a round spent still (both flags false here) lets it hide again.
+    card.exposedFromLastRound = !!(card.attackedThisRound || card.movedThisRound);
     card.attackedThisRound = false;
     card.movedThisRound = false;
     card.critsThisRound = 0; // Jackpot (Highroller) counts crits per round
