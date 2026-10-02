@@ -39,6 +39,7 @@ import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
 import { ACHIEVEMENTS, achievementState } from "../data/achievements";
 import { DailyReward } from "./DailyReward";
+import { LESSONS, lessonDone } from "./training";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
  *  top — only one thing can be the most urgent. */
@@ -99,6 +100,8 @@ export function HomeScreen(props: {
   onSkipOnboarding: () => void;
   /** Open the Achievements screen. */
   onAchievements: () => void;
+  /** The Training Ground: practice fights, one mechanic each. */
+  onTraining: () => void;
   /** Take today's login reward. */
   onClaimDaily: () => void;
   /** Signed-in address, or null. Only used to label the button, so the home
@@ -173,6 +176,7 @@ export function HomeScreen(props: {
   const feature = live.find((l) => l.feature);
   const rows = live.filter((l) => !l.feature);
   const events = useMemo(() => homeEvents(save), [save]);
+  const lessonsWon = LESSONS.filter((l) => lessonDone(save, l.id)).length;
   const ach = useMemo(() => {
     const st = ACHIEVEMENTS.map((a) => achievementState(save, a));
     return { earned: st.filter((x) => x.done).length, ready: st.filter((x) => x.done && !x.claimed).length };
@@ -394,6 +398,15 @@ export function HomeScreen(props: {
             {ach.ready > 0
               ? <span className="home-tile-num gold">{ach.ready} TO CLAIM</span>
               : <span className="home-tile-num">{ach.earned === ACHIEVEMENTS.length ? "ALL EARNED" : `${ACHIEVEMENTS.length - ach.earned} TO GO`}</span>}
+          </button>
+          {/* The fifth tile spans the row on a phone (styles.css) rather than
+              leaving a hole beside it. */}
+          <button className="home-tile trn" onClick={props.onTraining}>
+            <span className="home-tile-name">Training Ground</span>
+            <span className="home-tile-sub">Learn the mechanics, one fight each</span>
+            {lessonsWon < LESSONS.length
+              ? <span className="home-tile-num">{lessonsWon} OF {LESSONS.length} WON</span>
+              : <span className="home-tile-num gold">ALL WON</span>}
           </button>
         </div>
 

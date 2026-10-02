@@ -362,10 +362,13 @@ describe("the wiring in App.tsx", () => {
     // ...yet it settled as the event, which is read off the deck in the chair.
     expect(APP).toContain("const event = eventForDeck(p2DeckId);");
     expect(APP).toContain("const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;");
-    // The result screen is the one place the button is handed out.
+    // The result screen is the one place the button is handed out. A Training
+    // Ground lesson deals itself again (startLesson); everything else keeps the
+    // event rule.
     expect(APP.match(/onRematch=\{[^\n]*/g)).toEqual([
-      "onRematch={(online || setupRef.current) && !eventRun ? askRematch : undefined}",
+      "onRematch={trainingRun ? () => startLesson(trainingRun)",
     ]);
+    expect(APP).toContain(": (online || setupRef.current) && !eventRun ? askRematch : undefined}");
   });
 
   // ── Domination in Streak and Gauntlet ─────────────────────────────────────

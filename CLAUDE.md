@@ -3841,6 +3841,37 @@ matches too"; a screen off a Home tile.
 - **Achievements vs Trophies.** The profile's TROPHIES are boss heads worn as
   avatars (`earnedAvatars`) — a different thing, hence the name.
 
+## Training Ground — `ui/training.ts`, `ui/LessonCoach.tsx`, `ui/TrainingGround.tsx`
+
+Owner, 2026-10-02: practice fights that teach statuses, melee vs ranged, the
+element auras, crit, trample, evasion and the keywords. Opened from Home's fifth
+tile (it spans the row on a phone).
+
+- **A lesson is an ordinary match with both decks fixed** (`Lesson.you/foe`, 14
+  cards each, 4x4, no spells, AI `"learning"`), its subject stacked into the
+  opening hand (`youFirst`/`foeFirst` → `createInitialState`'s `stacked`). Dealt
+  by App's `startLesson`; `trainingRun` (state, not derived from the lobby)
+  marks the match. Any order, nothing locked.
+- **Tips fire on what the board shows** (`LessonTip.when(game)`): the first BURN
+  on any card, the first `CRITS` log line, a trampler beside a lighter enemy in
+  Prep. LessonCoach queues each the first time it holds and shows them one at a
+  time; nothing persists, so a refight teaches again. The rule text is QUOTED
+  from STATUS_TEXT, `describeSharedPassives` and ELEMENT_AURA — never retype it.
+  The card shares TutorialCoach's look and docking (`useCoachDock`); the
+  first-fight tutorial is hidden during a lesson.
+- **Pays once:** `completeLesson` adds the id to `StorySave.trainingDone` (in the
+  loadStory whitelist) and pays LESSON_SHARDS in the same write; the last new
+  lesson also pays GRADUATION_PACKS. It settles at the top of the Arena settle
+  effect and returns, so a lesson never touches the skill dial, runs, the ladder
+  or the Arena achievements. Rematch deals the lesson again; New Match goes back
+  to the lesson list.
+- **Balance, measured** (P1 on the full AI vs the learning AI, 40 seeds, scratch
+  harness): reach 88%, statuses 83, auras 73, crit 93, trample 75, evasion 98,
+  keywords 73. Re-measure after a card change to any lesson deck.
+  `training.test.ts` checks every deck card is real, tips are unique and
+  non-empty, the payout, the save round trip, and that each lesson plays out
+  with its intro and at least two more tips firing.
+
 ## Rejoining an online match — `net/resume.ts` + the `sync` handshake
 
 Online has no server copy of a match (Realtime broadcast, "no DB, no auth"), so a

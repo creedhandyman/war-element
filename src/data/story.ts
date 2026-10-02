@@ -3165,6 +3165,10 @@ export interface StorySave {
    *  impossible. Absent on every save written before events existed, which
    *  correctly reads as "none beaten yet". */
   eventsDone?: string[];
+  /** TRAINING GROUND lesson ids already won (`ui/training.ts`). Like
+   *  `eventsDone`, the reward is paid by the write that adds the id, so this is
+   *  also what stops a lesson paying twice. */
+  trainingDone?: string[];
   /** VOID TOWER TAMINGS: boss card id -> battles remaining on it.
    *
    *  Beat an ENRAGED boss (any boss on a floor you have cleared) and it fights
@@ -3487,6 +3491,10 @@ export function loadStory(): StorySave {
       // event up before it pays — so keeping them costs nothing.
       eventsDone: Array.isArray(p.eventsDone)
         ? [...new Set(p.eventsDone.filter((x): x is string => typeof x === "string"))]
+        : [],
+      // Kept whole for the same reason: dropping an id would re-pay its lesson.
+      trainingDone: Array.isArray(p.trainingDone)
+        ? [...new Set(p.trainingDone.filter((x): x is string => typeof x === "string"))]
         : [],
       // Tamings. Clamped to 1..TAME_USES on the way in and dropped at 0, so a
       // hand-edited save cannot mint an infinite loaner and a spent entry can

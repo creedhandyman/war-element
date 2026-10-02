@@ -240,6 +240,9 @@ import {
 } from "./Onboarding";
 import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
+import { LessonCoach } from "./LessonCoach";
+import { TrainingGround } from "./TrainingGround";
+import { LESSON_BOARD, completeLesson, type Lesson } from "./training";
 import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
@@ -422,6 +425,7 @@ interface ResumePlace {
   tab: Tab;
   homeCollection: boolean;
   homeAchievements: boolean;
+  homeTraining?: boolean;
   shopTab: "packs" | "crafter";
   profileOpen: boolean;
   rulesOpen: boolean;
@@ -871,6 +875,14 @@ export function App() {
   const [homeCollection, setHomeCollection] = useState(false);
   /** Home's other sub-screen, Achievements — the same shape as the collection. */
   const [homeAchievements, setHomeAchievements] = useState(false);
+  /** Home's Training Ground screen (TrainingGround.tsx). */
+  const [homeTraining, setHomeTraining] = useState(false);
+  /** The lesson being fought while a Training Ground match is on, else null.
+   *  Stated rather than derived: a lesson is not a deck in the Arena's chair,
+   *  so nothing about the lobby can say that this match is one. */
+  const [trainingRun, setTrainingRun] = useState<Lesson | null>(null);
+  /** Bumped on every lesson deal, so the coach starts fresh on a refight. */
+  const [trainingDeal, setTrainingDeal] = useState(0);
   /** Which Shop economy to open on, when Home sent you there for a reason. */
   const [shopTab, setShopTab] = useState<"packs" | "crafter">("packs");
   /** WHERE YOU ARE IN STORY MODE, as one value — see `story-nav.ts`. This was
@@ -1455,7 +1467,7 @@ export function App() {
   const tableLabel = (id: string, extras: readonly string[]) =>
     extras.length ? `${deckLabel(id)} + ${extras.length} more` : deckLabel(id);
   const nextUp: NextUp | null = (() => {
-    if (storyNode || eventRun || twoPlayer || onlineMode) return null;
+    if (storyNode || eventRun || twoPlayer || onlineMode || trainingRun) return null;
     if (game.phase !== "gameover") return null;
     const elements = [...new Set(resolveDeckCards(p2DeckId).map((id) => getDef(id).element))];
     const foes = 1 + ladderExtras.length;
@@ -1596,6 +1608,19 @@ export function App() {
     if (game.phase !== "gameover") return;
     if (settledMatch.current === game) return;         // one settlement per match
     settledMatch.current = game;
+    // A LESSON settles on its own: a first win pays (completeLesson), a loss or
+    // a refight records nothing. Before everything below, because a lesson is
+    // not an Arena match — it must not move the skill dial, a run, the ladder
+    // or the Arena achievements, whatever deck the lobby still has seated.
+    if (trainingRun) {
+      if (game.win?.winner !== "P1") return;
+      setStory((prev) => {
+        const next = completeLesson(prev, trainingRun.id);
+        if (next !== prev) saveStory(next);
+        return next;
+      });
+      return;
+    }
     // ONLINE settles on its own short path and never touches the arena's.
     //
     // It used to fall straight through this effect, which got both halves
@@ -1741,7 +1766,7 @@ export function App() {
       const climbed = recordLadderMatch(story.ladder, { won, tier: tierOf(p2DeckId), boardSize });
       dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
     }
-  }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story, online]);
+  }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story, online, trainingRun]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -2301,6 +2326,7 @@ export function App() {
   }
 
   function startArenaMatch() {
+    setTrainingRun(null);
     const humans: PlayerId[] = twoPlayer ? ["P1", "P2"] : ["P1"];
     // Only Domination seats more than two, and only against AI: hot-seat and
     // online both hand the other seat to a person, and there is one other
@@ -2412,6 +2438,7 @@ export function App() {
   /** Put a built story fight on the table: a node's battle, or a Hard border's
    *  boss. The one tail both share, so the two cannot drift apart. */
   function enterStoryFight(fresh: GameState, node: StoryNode, foeName: string) {
+    setTrainingRun(null);
     setGame(fresh);
     // The campaign gets the tell too. Its foes are AI seats with a
     // dealt suit exactly as the Arena's are, and a node you have never
@@ -2424,6 +2451,31 @@ export function App() {
     setPending(null);
     setPicks([]);
     setMullToss([]);
+    setHint("Mulligan: click cards to send back, then confirm.");
+    setStarted(true);
+  }
+
+  /** Deal a Training Ground lesson and put it on the table: both decks are the
+   *  lesson's, its subject is stacked into the opening hands, no spells (the
+   *  lesson is the cards), and the gentlest AI. */
+  function startLesson(lesson: Lesson) {
+    const fresh = createInitialState(
+      newSeed(), [...lesson.you], [...lesson.foe], ["P1"], [], [], LESSON_BOARD,
+      undefined, undefined,
+      { P1: lesson.youFirst, ...(lesson.foeFirst ? { P2: lesson.foeFirst } : {}) },
+    );
+    fresh.aiSkill = "learning";
+    // A lesson is fought against the AI, and the lobby's hot-seat switch would
+    // otherwise hand this screen to two people.
+    setArenaMode("ai");
+    setTrainingRun(lesson);
+    setTrainingDeal((n) => n + 1);
+    setGame(fresh);
+    setIntroNames({ P1: "Training deck", P2: lesson.foeName });
+    setMatchIntro(true);
+    setViewSide("P1");
+    setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+    setRematchMine(false); setRematchTheirs(false);
     setHint("Mulligan: click cards to send back, then confirm.");
     setStarted(true);
   }
@@ -4491,7 +4543,7 @@ export function App() {
    *  changes tabs — so until it is pressed the card shows centred with no ring
    *  rather than pointing confidently at nothing. */
   const guideOnTab = guideStep
-    ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection && !homeAchievements
+    ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection && !homeAchievements && !homeTraining
     : false;
 
   /** Acknowledge a tour step, into the same `taught` list the coach uses. */
@@ -4508,7 +4560,7 @@ export function App() {
     if (!guideStep) return;
     switch (guideStep.id) {
       case "pack":
-        setShopTab("packs"); setHomeCollection(false); setHomeAchievements(false); navDo({ t: "close" }); setTab("shop");
+        setShopTab("packs"); setHomeCollection(false); setHomeAchievements(false); setHomeTraining(false); navDo({ t: "close" }); setTab("shop");
         break;
       case "squad":
         // Straight into the builder. The anchor is the Home tile, but the tile
@@ -4532,6 +4584,7 @@ export function App() {
         if (press.goTo) {
           setHomeCollection(false);
           setHomeAchievements(false);
+          setHomeTraining(false);
           navDo({ t: press.goTo === "story" ? "open" : "close" });
           setTab(press.goTo as Tab);
         }
@@ -4552,6 +4605,7 @@ export function App() {
     // of its own: tapping Home from anywhere has to land on Home.
     setHomeCollection(false);
     setHomeAchievements(false);
+    setHomeTraining(false);
     // Likewise the Shop opens on Packs unless Home had a reason to
     // send you to the Crafter. Reaching it from the nav is not one.
     setShopTab("packs");
@@ -4614,7 +4668,7 @@ export function App() {
   const placeRef = useRef<ResumePlace | null>(null);
   useLayoutEffect(() => {
     placeRef.current = {
-      tab: shownTab, homeCollection, homeAchievements, shopTab,
+      tab: shownTab, homeCollection, homeAchievements, homeTraining, shopTab,
       profileOpen, rulesOpen, galleryOpen, accountOpen, builderOpen,
     };
   });
@@ -4628,6 +4682,7 @@ export function App() {
     // goTab lands on each tab's front door; put back what was open over it.
     if (p.tab === "home" && p.homeCollection) setHomeCollection(true);
     if (p.tab === "home" && p.homeAchievements) setHomeAchievements(true);
+    if (p.tab === "home" && p.homeTraining) setHomeTraining(true);
     if (p.tab === "shop") setShopTab(p.shopTab);
     if (p.profileOpen) setProfileOpen(true);
     if (p.rulesOpen) setRulesOpen(true);
@@ -4665,6 +4720,7 @@ export function App() {
   useBackLayer(!started && !storyOpen && tab === "arena" && arenaView !== "hub", () => enterArenaView("hub"));
   useBackLayer(!started && !storyOpen && tab === "home" && homeCollection, () => setHomeCollection(false));
   useBackLayer(!started && !storyOpen && tab === "home" && homeAchievements, () => setHomeAchievements(false));
+  useBackLayer(!started && !storyOpen && tab === "home" && homeTraining, () => setHomeTraining(false));
   useBackLayer(builderOpen, () => { setBuilderOpen(false); setLinkedDeck(null); });
   useBackLayer(profileOpen, () => setProfileOpen(false));
   useBackLayer(accountOpen, () => setAccountOpen(false));
@@ -5175,7 +5231,8 @@ export function App() {
           clearance, so its DOM parent should be something that never hides,
           never reflows and never moves it. `.controls` is none of those on a
           phone. */}
-      {started && !online && !twoPlayer && !(story.taught ?? []).includes("SKIP") && (
+      {started && trainingRun && <LessonCoach key={trainingDeal} game={game} lesson={trainingRun} />}
+      {started && !online && !twoPlayer && !trainingRun && !(story.taught ?? []).includes("SKIP") && (
         <TutorialCoach
           game={game}
           me={me}
@@ -5478,7 +5535,10 @@ export function App() {
           // Arena, where New Match leaves it seated and Start Match deals it
           // properly. Gated on `eventRun`, the deck in the chair, which is the
           // same read that makes a result settle as the event.
-          onRematch={(online || setupRef.current) && !eventRun ? askRematch : undefined}
+          // A lesson's rematch deals the LESSON again — setupRef holds the
+          // last Arena match, which is not what was just played.
+          onRematch={trainingRun ? () => startLesson(trainingRun)
+            : (online || setupRef.current) && !eventRun ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           next={nextUp ?? undefined}
           // Online is the only mode that pays on the result screen's own terms
@@ -5502,6 +5562,8 @@ export function App() {
             // whole loop is built around; the Arena's deck picker is not where
             // you find out you now own a dragon.
             if (towerOpenOn) setTab("tower");
+            // ...and a lesson goes back to the lesson list, ticked.
+            if (trainingRun) { setTrainingRun(null); setTab("home"); setHomeTraining(true); }
           }}
         />
       )}
@@ -6425,7 +6487,7 @@ export function App() {
           keeps its place, one tap down, which is where the redesign puts it:
           building and browsing are things you do BETWEEN fights and neither
           earns a permanent tab against four. */}
-      {!started && !storyOpen && tab === "home" && !homeCollection && !homeAchievements && (
+      {!started && !storyOpen && tab === "home" && !homeCollection && !homeAchievements && !homeTraining && (
         <HomeScreen
           save={story}
           regionId={nav.regionId}
@@ -6448,6 +6510,7 @@ export function App() {
           // Arena is where you pick it, so walking in without that step would be
           // fighting a 30-card DUSK build with whatever was last selected.
           onEvent={seatEventFight}
+          onTraining={() => setHomeTraining(true)}
           onShop={(t) => { setShopTab(t); setTab("shop"); }}
           onBuilder={() => navDo({ t: "builder", open: true })}
           onCollection={() => setHomeCollection(true)}
@@ -6469,6 +6532,14 @@ export function App() {
           onAchievements={() => setHomeAchievements(true)}
           onClaimDaily={claimToday}
           accountEmail={accountEmail}
+        />
+      )}
+
+      {!started && !storyOpen && tab === "home" && homeTraining && (
+        <TrainingGround
+          save={story}
+          onStart={startLesson}
+          onClose={() => setHomeTraining(false)}
         />
       )}
 

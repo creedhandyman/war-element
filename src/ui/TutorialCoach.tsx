@@ -94,16 +94,12 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   },
 ];
 
-export function TutorialCoach(props: {
-  game: GameState;
-  /** The seat the local player holds — steps only fire on your own turn. */
-  me: PlayerId | null;
-  taught: string[];
-  onTaught: (id: string) => void;
-  onSkipAll: () => void;
-}) {
-  const { game, me, taught } = props;
-  const [dismissed, setDismissed] = useState<string | null>(null);
+/** Where a floating coach card can sit without covering the hand or the phase
+ *  ribbon: measured gaps from the bottom and top edges. Shared by the first-
+ *  fight tutorial and the Training Ground's lesson coach (LessonCoach.tsx).
+ *  `deps` re-measures; pass whatever changes the furniture (step, phase, the
+ *  acting card). */
+export function useCoachDock(deps: unknown[]): { bottomGap: number; topGap: number } {
   /** HOW FAR UP THE BOTTOM EDGE ACTUALLY IS.
    *
    *  A bottom-docked card at `bottom: 8px` sits ON the hand, which is the whole
@@ -125,42 +121,6 @@ export function TutorialCoach(props: {
    *  height changes across three media queries in styles.css, and a number
    *  copied out of one of them is wrong in the other two. */
   const [topGap, setTopGap] = useState(0);
-
-  /** The player's override of the step's own end of the screen. Each step picks
-   *  the end that is clear of what IT is about, which is right for the lesson
-   *  and cannot be right for every board — a card mid-fight can be anywhere.
-   *  So there is a button, and it is one tap, and it costs nothing to be wrong. */
-  const [flipped, setFlipped] = useState(false);
-
-  /** Which idea does the board want explained right now?
-   *
-   *  Ordered by specificity, not by curriculum order: the goal leads because it
-   *  is the frame for everything else, and the rest follow the phases as the
-   *  player meets them. A step already taught falls through to the next. */
-  const due = ((): TutorialStep | null => {
-    const step = (id: string) => TUTORIAL_STEPS.find((s) => s.id === id)!;
-    const untaught = (id: string) => !taught.includes(id);
-    if (game.phase === "gameover") return null;
-    // SILENT UNDER A MODAL. The mulligan owns the whole screen, and "how you
-    // win" printed over the top of it was the player's first two seconds of the
-    // game asking them to read two panels at once. The board is not visible
-    // then either, so the lesson has nothing to point at. It waits.
-    if (game.phase === "mulligan") return null;
-    if (untaught("goal")) return step("goal");
-    // Deployment reuses the prep phase but nothing may move, so the move lesson
-    // would be a lie during it — hold it until the ordinary prep turn.
-    if (game.phase === "prep" && game.opening && untaught("summon")) return step("summon");
-    if (game.phase === "prep" && !game.opening) {
-      if (untaught("summon")) return step("summon");
-      // BEFORE the move lesson, and that order is the correction: "you may move
-      // one card a turn" invites a player to start marching, and until they know
-      // the back line is what pays for the march, marching is how they go broke.
-      if (untaught("income")) return step("income");
-      if (untaught("move")) return step("move");
-    }
-    if (game.phase === "battle" && untaught("battle")) return step("battle");
-    return null;
-  })();
 
   // Re-measured on every step and every phase, because the bottom furniture is
   // not the same in Deploy, Prep and Battle — which is also what makes the card
@@ -215,7 +175,59 @@ export function TutorialCoach(props: {
     return () => { window.removeEventListener("resize", measure); ro?.disconnect(); };
     // `awaitingInput` is the acting/not-acting flip, and it re-runs this so the
     // observer is re-attached to whatever the panel swapped in.
-  }, [due?.id, game.phase, game.battle?.awaitingInput]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+
+  return { bottomGap, topGap };
+}
+
+export function TutorialCoach(props: {
+  game: GameState;
+  /** The seat the local player holds — steps only fire on your own turn. */
+  me: PlayerId | null;
+  taught: string[];
+  onTaught: (id: string) => void;
+  onSkipAll: () => void;
+}) {
+  const { game, me, taught } = props;
+  const [dismissed, setDismissed] = useState<string | null>(null);
+  /** The player's override of the step's own end of the screen. Each step picks
+   *  the end that is clear of what IT is about, which is right for the lesson
+   *  and cannot be right for every board — a card mid-fight can be anywhere.
+   *  So there is a button, and it is one tap, and it costs nothing to be wrong. */
+  const [flipped, setFlipped] = useState(false);
+
+  /** Which idea does the board want explained right now?
+   *
+   *  Ordered by specificity, not by curriculum order: the goal leads because it
+   *  is the frame for everything else, and the rest follow the phases as the
+   *  player meets them. A step already taught falls through to the next. */
+  const due = ((): TutorialStep | null => {
+    const step = (id: string) => TUTORIAL_STEPS.find((s) => s.id === id)!;
+    const untaught = (id: string) => !taught.includes(id);
+    if (game.phase === "gameover") return null;
+    // SILENT UNDER A MODAL. The mulligan owns the whole screen, and "how you
+    // win" printed over the top of it was the player's first two seconds of the
+    // game asking them to read two panels at once. The board is not visible
+    // then either, so the lesson has nothing to point at. It waits.
+    if (game.phase === "mulligan") return null;
+    if (untaught("goal")) return step("goal");
+    // Deployment reuses the prep phase but nothing may move, so the move lesson
+    // would be a lie during it — hold it until the ordinary prep turn.
+    if (game.phase === "prep" && game.opening && untaught("summon")) return step("summon");
+    if (game.phase === "prep" && !game.opening) {
+      if (untaught("summon")) return step("summon");
+      // BEFORE the move lesson, and that order is the correction: "you may move
+      // one card a turn" invites a player to start marching, and until they know
+      // the back line is what pays for the march, marching is how they go broke.
+      if (untaught("income")) return step("income");
+      if (untaught("move")) return step("move");
+    }
+    if (game.phase === "battle" && untaught("battle")) return step("battle");
+    return null;
+  })();
+
+  const { bottomGap, topGap } = useCoachDock([due?.id, game.phase, game.battle?.awaitingInput]);
 
   // A new step clears the local dismissal, so tapping "Got it" advances rather
   // than silencing the coach for the rest of the fight. It also clears the flip:
