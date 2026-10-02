@@ -293,7 +293,8 @@ export const slipstreamPct = (sp: number): number =>
  *  (same commit) DAWN core vs the other seven, both seats, both boards, 1,400
  *  matches: 30 -> 58.5%, 35 -> 58.9%, 40 -> 60.0%. Sweep before the BORE
  *  change: 65 -> 68.9, 45 -> 63.6, 25 -> 58.4, 0 -> 53.4. */
-export const DAWN_STRIKE_PCT = 40;
+/** FIFTY since 2026-10-01 (owner: "Dawn's summon dmg to 50%"), was 40. */
+export const DAWN_STRIKE_PCT = 50;
 
 /** Where First Light (DAWN) stops quickening — an ABSOLUTE ceiling, and that
  *  shape is the owner's call, made twice. It was 14; a relative +5 was tried
@@ -329,7 +330,7 @@ export const LEAF_SHIELD_CAP = 3;
  *  other, never both — so the card text has to be able to lift precisely this
  *  clause back out for those eight (`describeSharedPassives`). Spelled once
  *  here, the text it removes can never drift from the text it removes it from. */
-export const DUSK_DEATH_HIT_TEXT = "deals its full DMG back to the killer, and ";
+export const DUSK_DEATH_HIT_TEXT = "deals half its DMG back to the killer, and ";
 
 /** "1st", "5th" — VOID's deflect cadence, stated as the hits a player counts. */
 function ordinal(n: number): string {
@@ -349,7 +350,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   LEAF: { name: "Photosynthesis", desc: "End of round, LEAF cards heal +2 HP — plus 1 more for every ROOTed opponent — and regrow +1 shield per hit they took that round, up to 3 shields total." },
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare ${EXOSTONE_SHIELDS.rare}, Epic ${EXOSTONE_SHIELDS.epic}, Legendary ${EXOSTONE_SHIELDS.legendary}, Mythic ${EXOSTONE_SHIELDS.mythic}. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
-  DUSK: { name: "Midnight Shade", desc: `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +5% dodge for a round, stacking with each fallen DUSK card (max 25%).` },
+  DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%).`; } },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (caps at SP ${DAWN_SP_CAP}).` },
   GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
@@ -568,11 +569,14 @@ export const PYRO_BURN_DURATION = 2;
  *
  *  At a divisor of 1 the max(1, ...) floor below only does work for RIP, the
  *  one DUSK-aura carrier printing 0 DMG. */
-export const DUSK_SHADE_DEATH_DIVISOR = 1;
+/** HALF since 2026-10-01 (owner: "death dmg reduced to 50%"). */
+export const DUSK_SHADE_DEATH_DIVISOR = 2;
 
 /** Midnight Shade's second half: each DUSK card that falls thickens the shadows
  *  over its surviving DUSK allies by this much dodge chance. */
-export const DUSK_SHADE_PCT = 5;
+/** 3% a fallen DUSK card since 2026-10-01 (owner: "keep dusk's dodge stacking
+ *  at 3%"), was 5. Still stacks to DUSK_SHADE_MAX_STACKS. */
+export const DUSK_SHADE_PCT = 3;
 
 /** And no further. DUSK is the disposable-body element — 7 of its cards cost 2
  *  or less and two of them are spawnable tokens — so it can put more corpses on
