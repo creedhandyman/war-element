@@ -193,7 +193,7 @@ export const GALE_SP_CAP = 21;
  *  a lever whose price has already been measured once. */
 export const GALE_TAILWIND_PER = 6;
 /** ...to here, so a multi-hit body cannot turn it into a blowout. */
-export const GALE_TAILWIND_CAP = 3;
+export const GALE_TAILWIND_CAP = 1; // +1 since 2026-10-01 (owner), was +3
 
 /** SLIPSTREAM: dodge starts once a card is faster than this. */
 export const GALE_SLIPSTREAM_BASE = 6;
@@ -202,7 +202,7 @@ export const GALE_SLIPSTREAM_PER = 3;
 export const GALE_SLIPSTREAM_PCT = 5;
 /** And no further — a card that dodges most of what is thrown at it stops
  *  being fragile-and-fast and starts being unkillable. */
-export const GALE_SLIPSTREAM_CAP = 20;
+export const GALE_SLIPSTREAM_CAP = 15; // 15% since 2026-10-01 (owner), was 20
 
 /** Tailwind's bonus damage, per hit, for a card at `sp`. */
 export const tailwindDmg = (sp: number): number =>
@@ -294,7 +294,7 @@ export const slipstreamPct = (sp: number): number =>
  *  matches: 30 -> 58.5%, 35 -> 58.9%, 40 -> 60.0%. Sweep before the BORE
  *  change: 65 -> 68.9, 45 -> 63.6, 25 -> 58.4, 0 -> 53.4. */
 /** FIFTY since 2026-10-01 (owner: "Dawn's summon dmg to 50%"), was 40. */
-export const DAWN_STRIKE_PCT = 50;
+export const DAWN_STRIKE_PCT = 40; // back to 40 the same day (owner)
 
 /** How much First Light (DAWN) can ADD: +5 SP over the printed speed, since
  *  2026-10-01 (owner: "dawn speed growth capped at +5"). That replaced the
@@ -357,7 +357,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%).`; } },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (up to +${DAWN_SP_GROWTH} over its printed speed).` },
-  GALE: { name: "Zephyr", desc: "Its speed is a weapon: +1 DMG per 6 SP (max +3), and a dodge chance of 5% per 3 SP above 6 (max 20%). End of round, +2 SP (caps at SP 21)." },
+  GALE: { name: "Zephyr", get desc() { return `Its speed is a weapon: +1 DMG per ${GALE_TAILWIND_PER} SP (max +${GALE_TAILWIND_CAP}), and a dodge chance of ${GALE_SLIPSTREAM_PCT}% per ${GALE_SLIPSTREAM_PER} SP above ${GALE_SLIPSTREAM_BASE} (max ${GALE_SLIPSTREAM_CAP}%). End of round, +2 SP (caps at SP ${GALE_SP_CAP}).`; } },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
   VOID: { name: "One Eyes", desc: `Takes what it hits: each basic attack that lands steals ${VOID_STEAL_PER_ATTACK} DMG from its target and keeps it — once per attack, however many hits land (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — the first hit it takes is deflected, then every ${ordinal(VOID_DEFLECT_EVERY)} after that (${[0, 1, 2].map((k) => ordinal(1 + k * VOID_DEFLECT_EVERY)).join(", ")}…), taking half and returning half to the attacker.` },
 };

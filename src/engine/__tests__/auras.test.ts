@@ -12,7 +12,7 @@ import { describeSharedPassives } from "../../ui/card-text";
 import {
   ARC_DISCHARGE_DIVISOR, DAWN_SP_GROWTH, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, ELEMENT_AURA, EXOSTONE_DEFAULT,
   EXOSTONE_SHIELDS, GALE_SP_CAP, LEAF_SHIELD_CAP, PYRO_BURN_DURATION, PYRO_BURN_STACK_CAP, hasElementAura,
-  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, applyFlow, DUSK_DRAIN } from "../auras";
+  slipstreamPct, tailwindDmg, GALE_TAILWIND_PER, GALE_TAILWIND_CAP, GALE_SLIPSTREAM_CAP, applyFlow, DUSK_DRAIN } from "../auras";
 import { applyStatus, basicAttack, defeatCard, shadeDodgePct, shadeStacksLive, slipstreamDodgePct } from "../combat";
 import { advance, applyIntent, openFlowRepick } from "../phases";
 import { basicIsInert } from "../rules";
@@ -577,7 +577,9 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
   });
 
   it("converts SP into dodge, on a curve with a ceiling", () => {
-    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct)).toEqual([0, 0, 0, 5, 10, 15, 20, 20]);
+    // Ceiling went 20 -> 15 on 2026-10-01 (GALE_SLIPSTREAM_CAP).
+    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct))
+      .toEqual([0, 0, 0, 5, 10, 15, 20, 20].map((n) => Math.min(n, GALE_SLIPSTREAM_CAP)));
   });
 
   it("a GALE card's printed damage is raised by its own speed", () => {

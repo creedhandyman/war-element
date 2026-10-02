@@ -4,7 +4,8 @@
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, drainMaxHp, effectiveBasicHits, hasEvasion, shadeDodgePct, shadeStacksLive, SPECIAL_HANDLERS, TARGETLESS_HANDLERS } from "../combat";
-import { weakenStacks } from "../auras";
+import { weakenStacks, tailwindDmg } from "../auras";
+import { hillGivesHit, isMidRow } from "../types";
 import { applyFlow, DAWN_STRIKE_PCT, DUSK_DRAIN, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, FOG_MISS_PCT, hasElementAura, MISTY_FOG_MISS_PCT, PYRO_BURN_STACK_CAP } from "../auras";
 import { advance, applyIntent } from "../phases";
 import { basicIsInert, canFireSpecial, canFireTalent, canMove, canTarget, effectiveSpecialCost, specialTargets, validTargets } from "../rules";
@@ -2662,15 +2663,16 @@ describe("Autumnal's Fall's Emergence scales Leaf Storm", () => {
 describe("Klipso's Harsh Winds", () => {
   it("adds bonus DMG on the first strike vs an opponent, once", () => {
     const s = prepState();
-    // 8 printed + 2 Tailwind (GALE aura, +1 DMG per 6 SP — Klipso is SP 13, so
-    // floor(13/6) = 2) = 10, plus the 4 first-strike bonus on the opener.
+    // Printed + Tailwind (GALE aura; capped at +1 since 2026-10-01, so derived
+    // rather than written out), plus the 4 first-strike bonus on the opener.
     const klipso = place(s, "gale_klipso", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
-    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(10);
+    const base = getDef("gale_klipso").dmg + tailwindDmg(getDef("gale_klipso").sp);
+    expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(base);
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(46); // 60 − (10 + 4)
+    expect(s.cards[foe.instanceId].curHp).toBe(60 - (base + 4));
     basicAttack(s, klipso.instanceId, foe.instanceId);
-    expect(s.cards[foe.instanceId].curHp).toBe(36); // 46 − 10 (no bonus the 2nd time)
+    expect(s.cards[foe.instanceId].curHp).toBe(60 - (base + 4) - base); // no bonus the 2nd time
   });
 });
 
@@ -2812,9 +2814,15 @@ describe("Kloud's Twisted Rage raises a storm", () => {
     // difference left is the scaling.
     const twinCol = [0, 1, 2, 3].find((c) => c !== st.pos!.col && !cardAt(s, st.pos!.row, c))!;
     const twin = place(s, STORM, "P1", st.pos!.row as never, twinCol as never);
+    // EXCEPT King of the Hill: its mid-row +1 is added AFTER `statScale`
+    // (state.ts), so it is not halved. `floor(full * 0.5)` only matched by
+    // coincidence while Tailwind gave the full-SP twin +2 and the half-SP storm
+    // +1; with Tailwind capped at +1 (2026-10-01) both get +1 and the unscaled
+    // hill bonus shows. Take it out, halve, put it back.
     const full = effectiveDmg(s, s.cards[twin.instanceId]);
+    const hill = isMidRow(st.pos!.row) && !hillGivesHit(printed.dmg, printed.hits) ? 1 : 0;
     expect(effectiveDmg(s, st), "half power means half the punch")
-      .toBe(Math.floor(full * 0.5));
+      .toBe(Math.floor((full - hill) * 0.5) + hill);
   });
 
   it("and only one at a time, however often the Special fires", () => {
