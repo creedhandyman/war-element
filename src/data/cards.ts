@@ -14000,7 +14000,11 @@ export const CARDS: CardDef[] = [
     pushImmune: true,
     special: {
       name: "Breach",
-      cost: 3,
+      // 1, down from 3, and it reaches anywhere (`ranged`) — both owner's calls,
+      // 2026-10-02. The whale surfaces under its target wherever it is, so a
+      // Tank on SP 2 that could only shove what was already touching it gets a
+      // cheap answer to the backline. FREEZE and the shove are unchanged.
+      cost: 1,
       handler: "strike",
       // A shove rather than a self-buff. `empower` with `selfMaxHp` was the
       // Talent version and worked BECAUSE it fired once — repeatable, a
@@ -14009,7 +14013,8 @@ export const CARDS: CardDef[] = [
       // could have printed; FREEZE is what makes it AQUA's.
       params: { dmg: 8, push: 2, statusKind: "FREEZE", statusDuration: 2 },
       targetSide: "enemy",
-      text: "Surface under an opponent for 9 DMG and shove it back 2 spaces.",
+      ranged: true,
+      text: "Surface under any opponent on the board for 9 DMG and shove it back 2 spaces.",
     },
   },
   {
