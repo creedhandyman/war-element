@@ -337,7 +337,7 @@ describe("Sticky (Stickers): four jabs build one wound", () => {
   });
 });
 
-describe("First Light (DAWN): +1 SP a round, up to +5", () => {
+describe("First Light (DAWN): +1 SP a round, up to +DAWN_SP_GROWTH", () => {
   it("quickens a DAWN card each round", () => {
     const s = prepState();
     const dawn = place(s, "dawn_beam", "P1", 3, 0);

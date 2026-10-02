@@ -311,7 +311,7 @@ export const DAWN_STRIKE_PCT = 50;
  *  in the turn order than they used to.
  *
  *  Well under GALE's 21 either way: speed stays GALE's identity. */
-export const DAWN_SP_GROWTH = 5;
+export const DAWN_SP_GROWTH = 4; // +4 since 2026-10-01 (owner), was +5 that morning
 
 /** The most armour Photosynthesis will regrow a LEAF card to — a FLAT TOTAL,
  *  not a bonus on top of its printed shields.
@@ -580,7 +580,7 @@ export const DUSK_SHADE_DEATH_DIVISOR = 2;
  *  over its surviving DUSK allies by this much dodge chance. */
 /** 3% a fallen DUSK card since 2026-10-01 (owner: "keep dusk's dodge stacking
  *  at 3%"), was 5. Still stacks to DUSK_SHADE_MAX_STACKS. */
-export const DUSK_SHADE_PCT = 3;
+export const DUSK_SHADE_PCT = 5; // back to 5 the same day (owner: "give the 5% dodge back")
 
 /** And no further. DUSK is the disposable-body element — 7 of its cards cost 2
  *  or less and two of them are spawnable tokens — so it can put more corpses on
