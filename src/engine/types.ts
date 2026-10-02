@@ -2529,7 +2529,12 @@ export interface SpellDef {
   /** Recon Ping: reveal the opponent's hand for the rest of this round. */
   revealHand?: boolean;
   /** Trap spells: the payload delivered when an enemy steps on the square. */
-  trap?: { dmg: number; pen?: boolean; status?: { kind: StatusKind; duration: number; power: number }; splash?: boolean };
+  trap?: {
+    dmg: number; pen?: boolean; status?: { kind: StatusKind; duration: number; power: number }; splash?: boolean;
+    /** Lay one trap on EVERY empty, uncaptured, untrapped slot of the row the
+     *  picked slot is in (Overgrowth). Each springs on its own, once. */
+    row?: boolean;
+  };
   /** Cleanse rider: remove up to N negative statuses from each of the caster's
    *  element allies (99 = all). Runs on support spells and on Judgment. */
   cleanse?: number;

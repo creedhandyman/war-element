@@ -741,8 +741,11 @@ export const SPELLS: SpellDef[] = [
     element: "LEAF",
     cost: 8,
     kind: "trap",
-    text: "Hide a trap on an empty slot. The first opponent to MOVE onto it — and every opponent beside it — is ROOTed for 2 rounds and takes BLEED 1 for 2 rounds.",
-    trap: { dmg: 0, status: { kind: "ROOT", duration: 2, power: 0 }, splash: true },
+    // A WHOLE ROW (owner's call, 2026-10-02): one trap on every empty slot of
+    // the row picked, each springing on its own. It was one slot, at cost 8 —
+    // four ranks above Snare's single mine for a splash and a shorter ROOT.
+    text: "Hide a trap on every empty slot of a row. Each springs on the first opponent to MOVE onto it: that opponent and every opponent beside it are ROOTed for 2 rounds and take BLEED 1 for 2 rounds.",
+    trap: { dmg: 0, status: { kind: "ROOT", duration: 2, power: 0 }, splash: true, row: true },
     status: { kind: "BLEED", duration: 2, power: 1 },
   },
   {

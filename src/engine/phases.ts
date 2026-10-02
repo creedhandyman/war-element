@@ -1098,19 +1098,28 @@ function resolveSpell(
   if (spell.kind === "trap") {
     const t = spell.trap;
     if (t && row != null && col != null) {
-      draft.traps.push({
-        owner: player,
-        spellId: spell.id,
-        element: spell.element,
-        pos: { row, col },
-        dmg: t.dmg,
-        pen: t.pen,
-        status: t.status,
-        // The spell's own top-level status is a SECOND payload, not a spare copy
-        // of the first — see TrapState.extraStatus.
-        extraStatus: spell.status,
-        splash: t.splash,
-      });
+      // A ROW trap (Overgrowth) mines every slot of the picked slot's row that
+      // could take a trap of its own: empty, uncaptured, not already trapped.
+      // The picked slot passed `canCastSpell`, so there is always at least one.
+      const cols = t.row
+        ? Array.from({ length: draft.boardSize }, (_, c) => c).filter((c) =>
+          !cardAt(draft, row, c) && !draft.slots[row][c].capturedBy
+          && !draft.traps.some((x) => x.pos.row === row && x.pos.col === c))
+        : [col];
+      for (const c of cols)
+        draft.traps.push({
+          owner: player,
+          spellId: spell.id,
+          element: spell.element,
+          pos: { row, col: c } as Pos,
+          dmg: t.dmg,
+          pen: t.pen,
+          status: t.status,
+          // The spell's own top-level status is a SECOND payload, not a spare copy
+          // of the first — see TrapState.extraStatus.
+          extraStatus: spell.status,
+          splash: t.splash,
+        });
       // Deliberately vague in the shared log: both players read this, and a trap
       // the opponent can locate from the log is not hidden.
       draft.log.push(`${player} sets ${spell.name}.`);

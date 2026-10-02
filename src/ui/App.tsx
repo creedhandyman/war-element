@@ -3962,7 +3962,9 @@ export function App() {
         if (chk.ok) {
           castSpell(
             { type: "CAST_SPELL", player: me, spellId: sel.spellId, row, col },
-            `${spell.name} set. Keep going, or <b>Pass Priority</b>.`,
+            spell.trap?.row
+              ? `${spell.name} set on every empty slot of row ${row + 1}. Keep going, or <b>Pass Priority</b>.`
+              : `${spell.name} set. Keep going, or <b>Pass Priority</b>.`,
           );
         } else {
           setHint(`⚠ ${chk.reason}`);
