@@ -6148,6 +6148,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .home-daily-day.now b { color: #dff2ff; }
 
+/* Desktop: the same widening the Arena gets at 900px (owner, 2026-10-01), so
+   the two sibling screens stay one width as you tab between them. Every Home
+   section is already fluid; only the logo band and the tile row change shape. */
+@media (min-width: 900px) {
+  .home-screen { width: min(880px, 96vw); }
+  .home-logo { height: 220px; }
+  .home-prep { grid-template-columns: repeat(4, 1fr); }
+}
+
 /* ── achievements (owner, 2026-09-28) ─────────────────────────────────────
    The screen off Home's tile. A `.story-wrap` like the collection, so it gets
    the nav reserve and the mute-button inset that surface already pays for. */
@@ -6240,6 +6249,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
 /* ── shop ─────────────────────────────────────────────────────────────────── */
 .shop-modal { max-width: min(640px, 94vw); text-align: left; }
+/* Desktop: as wide as the Arena and Home (owner, 2026-10-01). The card grid
+   and wallet are auto-fill, so the extra width becomes more cards per row. */
+@media (min-width: 900px) {
+  .shop-modal { width: min(880px, 96vw); max-width: min(880px, 96vw); }
+  /* `.picker` is a flex row and the shop its only child, sized to its content —
+     without this the panel widened around a 439px column. */
+  .shop-modal > .shop { flex: 1; min-width: 0; }
+  /* Centred under the centred pack; at phone width the row already fills. */
+  .lean-row { justify-content: center; }
+}
 .shop-head h2 { font-family: var(--head); font-size: 19px; margin: 0 0 2px; }
 .shop-head p { font-size: 12px; color: var(--ink-dim); margin: 0 0 12px; line-height: 1.45; }
 .shop-wallet { display: grid; grid-template-columns: repeat(auto-fit, minmax(58px, 1fr)); gap: 5px; }
