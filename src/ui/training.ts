@@ -132,14 +132,16 @@ export const LESSONS: Lesson[] = [
     blurb: "Burn, bleed, freeze, root and the rest — what each one does to a card.",
     foeName: "Training Dummies",
     you: [
-      "leaf_stickviper", "aqua_subcool", "bolt_twotales", "dusk_grafft", "bolt_scrapper", "aqua_bulletshrimp", "pyro_heatsink_golem",
-      "leaf_python", "pyro_ember_scorpion", "dawn_quasar", "dusk_gool", "gale_klouy", "pyro_wick", "leaf_oak",
+      // One carrier for every status the lesson explains: SLEEP (Ankylosaur),
+      // SCALD (Spinefin) and MUTED (Webster) had none, so their tips never fired.
+      "leaf_stickviper", "aqua_subcool", "bolt_twotales", "dusk_grafft", "bolt_webster", "aqua_spinefin", "bolt_scrapper",
+      "leaf_python", "pyro_ember_scorpion", "dawn_quasar", "dusk_gool", "gale_klouy", "pyro_wick", "bore_ankylosaur",
     ],
     foe: [
       "bore_hillbilly", "leaf_birch", "dusk_zombie_husk", "dawn_glime", "leaf_cactus", "aqua_bootlegger", "dusk_skeleton_knight",
       "aqua_blub", "pyro_ingit", "dusk_pumpkin", "leaf_weeds", "dawn_stbern", "aqua_misty", "leaf_birch",
     ],
-    youFirst: ["leaf_stickviper", "aqua_subcool", "bolt_twotales", "dusk_grafft"],
+    youFirst: ["leaf_stickviper", "aqua_subcool", "bolt_twotales", "bore_ankylosaur"],
     tips: [
       {
         id: "st-intro", title: "Hits that linger",

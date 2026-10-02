@@ -30,6 +30,21 @@ describe("Training Ground lessons", () => {
     }
   });
 
+  it("every status the Statuses lesson explains has a card in its deck that applies it", () => {
+    // SLEEP, SCALD and MUTED once had no carrier, so their tips could never fire.
+    const lesson = LESSONS.find((l) => l.id === "statuses")!;
+    const kinds = lesson.tips.filter((t) => /^st-[A-Z]+$/.test(t.id)).map((t) => t.id.slice(3));
+    // Two arrive by element aura rather than a printed on-hit status.
+    const viaAura: Record<string, string> = { BURN: "PYRO", ELECTRIFIED: "BOLT" };
+    for (const kind of kinds) {
+      const carried = lesson.you.some((id) => {
+        const d = PLAYABLE.get(id)!;
+        return d.onHitStatus?.kind === kind || d.element === viaAura[kind];
+      });
+      expect(carried, kind).toBe(true);
+    }
+  });
+
   it("the auras lesson covers the eight playable elements and not VOID", () => {
     const auras = LESSONS.find((l) => l.id === "auras")!;
     const els = auras.tips.filter((t) => /^au-[A-Z]+$/.test(t.id)).map((t) => t.id.slice(3));
