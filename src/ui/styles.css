@@ -1240,9 +1240,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   object-fit: cover; object-position: 50% 16%; border-radius: 7px;
   pointer-events: none; filter: saturate(1.08);
 }
-/* STEALTH (Token.tsx useStealthReveal): the art drains to a dim near-grey and
-   a shadow drifts over it while the card is cloaked; when the cloak breaks the
-   shadow is thrown off in one burst and the art flashes back to full colour.
+/* STEALTH (Token.tsx useStealthFx): the art drains to a dim near-grey and
+   a shadow drifts over it while the card is hidden — a granted STEALTH, the
+   keyword, or a card lying still; when the cloak breaks the shadow is thrown
+   off in one burst and the art flashes back to full colour.
    The drift is opacity + transform only — no repaint while it loops. */
 .token.stealthed .card-art { filter: grayscale(0.55) brightness(0.78) contrast(1.05); transition: filter 0.4s ease; }
 .token.stealthed { border-style: dashed; }
@@ -1257,6 +1258,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 @keyframes veilDrift {
   from { opacity: 0.8; transform: translate(-3%, 1%) scale(1.04); }
   to { opacity: 1; transform: translate(3%, -2%) scale(1.08); }
+}
+/* Going back under (`sink`): a still round re-buries Magalogoon and Grizzly,
+   and a granted STEALTH can land mid-fight. The shadow closes in over the art
+   and ends on the drift's first frame, so the hand-off has no seam. */
+.tk-veil.sinking { animation: veilSink 0.6s ease-out both, veilDrift 3.2s ease-in-out 0.6s infinite alternate; }
+@keyframes veilSink {
+  from { opacity: 0; transform: scale(1.18); }
+  to { opacity: 0.8; transform: translate(-3%, 1%) scale(1.04); }
 }
 /* THE UNCOVERING (~1.1s). Every piece animates opacity/transform only and
    plays once, so it costs nothing after it is done. */
@@ -1332,6 +1341,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 @media (prefers-reduced-motion: reduce) {
   .tk-veil { animation: none; }
+  .tk-veil.sinking { animation: veilSinkCalm 0.3s linear both; }
+  @keyframes veilSinkCalm { from { opacity: 0; } to { opacity: 1; } }
   .tk-veil.lifting { animation: veilLift 0.2s linear forwards; }
   .token.revealing .card-art { animation: none; }
   .tk-reveal > :not(.rv-word) { display: none; }

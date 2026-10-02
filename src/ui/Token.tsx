@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
+import { isStealthed } from "../engine/rules";
 import { cardThumbSrc, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
@@ -141,34 +142,65 @@ function useShieldLoss(instanceId: string, defId: string, knocked: number) {
   return fx;
 }
 
+/** A card that changes square is drawn by a NEW token. Every square renders its
+ *  own, so a step, a charge or a shove unmounts the card on one square and
+ *  mounts it fresh on the next — and a cloak given up BY the move (Magalogoon
+ *  and Grizzly lose theirs the moment they step, and Grizzly's Maul charges in)
+ *  would land on a token that never saw it on: the shadow simply gone, nothing
+ *  thrown off. So each token leaves its last state here as it goes, and the one
+ *  that mounts for the same card takes it up. React runs every layout-effect
+ *  cleanup in a commit before any layout effect, so a real hand-off is a moment
+ *  old; anything older is a card that died. */
+const cloakLeft = new Map<string, { stealthed: boolean; at: number }>();
+const CLOAK_HANDOFF_MS = 100;
+
+/** STEALTH, seen: the card sits under a drifting shadow while it is hidden, and
+ *  the moment the cloak breaks — it attacked, it stepped off its ambush, or it
+ *  simply ran out — the shadow is thrown off once (`reveal`, ~1.1s). Going back
+ *  under fades the shadow in (`sink`) rather than switching it on: a still round
+ *  re-buries Magalogoon and Grizzly, and a granted STEALTH can land mid-fight.
+ *  A layout effect, so neither leaves a frame of bare art between the shadow and
+ *  its animation. Keyed on the card — instance AND def, because ids restart at
+ *  c1 every game and a replayed fight can hand one to another card — so nothing
+ *  plays a reveal it did not earn. */
+function useStealthFx(card: CardInstance, stealthed: boolean) {
+  const who = `${card.instanceId}:${card.defId}`;
+  const prev = useRef<{ who: string; stealthed: boolean } | null>(null);
+  const keyRef = useRef(0);
+  const [reveal, setReveal] = useState(0);
+  // Keys the veil, and never counts back down: each sink mounts a fresh shadow
+  // that fades in, and 0 — hidden since this token first drew it — fades none.
+  const [sink, setSink] = useState(0);
+  useLayoutEffect(() => {
+    const last = prev.current;
+    prev.current = { who, stealthed };
+    let was: boolean | null = null; // cloaked before this commit? null = unknown
+    if (last?.who === who) was = last.stealthed;
+    else {
+      if (last) { setReveal(0); setSink(0); } // another card took the square
+      // Just drawn here. If it came from another square, its state is waiting.
+      const left = cloakLeft.get(who);
+      cloakLeft.delete(who);
+      if (left && performance.now() - left.at < CLOAK_HANDOFF_MS) was = left.stealthed;
+    }
+    if (was === true && !stealthed) setReveal(++keyRef.current);
+    else if (was === false && stealthed) setSink(++keyRef.current);
+    return () => { cloakLeft.set(who, { stealthed, at: performance.now() }); };
+  }, [who, stealthed]);
+  useEffect(() => {
+    if (!reveal) return;
+    const t = setTimeout(() => setReveal(0), 1200);
+    return () => clearTimeout(t);
+  }, [reveal]);
+  return { reveal, sink };
+}
+
 /** Floats a "+1" coin off a card the moment it earns its home-slot income, or
  *  the moment it steps onto the home row and becomes able to. Same counter-rise
  *  trick as the others: the engine bumps `fxCoin`, a rise plays it once.
  *
  *  Keyed on a counter rather than on position so it cannot re-fire on an
  *  unrelated re-render, and reset when a different card occupies the slot. */
-/** STEALTH, seen: the card sits under a drifting shadow while it is cloaked,
- *  and the moment the cloak breaks — it attacked, or it simply ran out — the
- *  shadow is thrown off once (`revealing`, ~0.7s). Keyed on the instance, so
- *  a different card taking the square never plays a reveal it did not earn. */
-function useStealthReveal(instanceId: string, stealthed: boolean) {
-  const prev = useRef({ id: instanceId, stealthed });
-  const keyRef = useRef(0);
-  const [reveal, setReveal] = useState(0);
-  useEffect(() => {
-    const was = prev.current;
-    prev.current = { id: instanceId, stealthed };
-    if (was.id !== instanceId) { setReveal(0); return; }
-    if (was.stealthed && !stealthed) setReveal(++keyRef.current);
-  }, [instanceId, stealthed]);
-  useEffect(() => {
-    if (!reveal) return;
-    const t = setTimeout(() => setReveal(0), 1200);
-    return () => clearTimeout(t);
-  }, [reveal]);
-  return reveal;
-}
-
 function useCoinFloat(instanceId: string, coin: number) {
   const prev = useRef({ coin, id: instanceId });
   const keyRef = useRef(0);
@@ -319,8 +351,12 @@ export function Token(props: {
   const dmgFx = useDamageFloats(card.instanceId, card.fxDmgSeq ?? 0, card.fxDmgHits ?? EMPTY_HITS);
   const shieldFx = useShieldLoss(card.instanceId, card.defId, card.fxShieldsKnocked ?? 0);
   const coinFx = useCoinFloat(card.instanceId, card.fxCoin ?? 0);
-  const stealthed = card.statuses.some((st) => st.kind === "STEALTH");
-  const revealFx = useStealthReveal(card.instanceId, stealthed);
+  // Hidden by whatever the targeting reads: a granted STEALTH, the keyword
+  // before the card's first attack of the round, or a card lying still (Swamp
+  // Monster, Thicket Ambush). This read the status alone, so a card whose cloak
+  // is a rule rather than a status sat untargetable with nothing to show it.
+  const stealthed = isStealthed(def, card);
+  const { reveal: revealFx, sink: sinkFx } = useStealthFx(card, stealthed);
   // Same bump-a-counter shape as the coin float — a PARALYZE that actually cost
   // the card its turn floats the word, so a turn that produced nothing reads as
   // the coin it was rather than as the game skipping a beat.
@@ -465,9 +501,12 @@ export function Token(props: {
       {/* A real element rather than ::after — the token already spends its
           ::after on the bottom scrim that keeps the stat row readable. */}
       {props.foil && <span className="tk-foil foil-sheen" aria-hidden="true" />}
-      {/* The cloak: shadow over the art while STEALTHED, thrown off once when
-          it breaks. Over the picture, under the name and stat strips. */}
-      {stealthed && <span className="tk-veil" aria-hidden="true" />}
+      {/* The cloak: shadow over the art while hidden, fading in when the card
+          goes back under, thrown off once when it breaks. Over the picture,
+          under the name and stat strips. */}
+      {stealthed && (
+        <span key={`veil${sinkFx}`} className={sinkFx ? "tk-veil sinking" : "tk-veil"} aria-hidden="true" />
+      )}
       {/* THE UNCOVERING: the shadow tears in two and is flung off both sides,
           wisps of it scatter, a shockwave rings out past the card, the art
           flashes and shudders back to colour, and it says so. One-shot. */}
