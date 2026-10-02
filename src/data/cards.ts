@@ -6478,9 +6478,10 @@ export const CARDS: CardDef[] = [
     sp: 5,
     shields: 1,
     keywords: {},
-    // Jolt Fist: a 40% chance to PARALYZE on a basic hit. On Kill: +2 shields.
+    // Jolt Fist: a 50% chance to PARALYZE for 2 rounds on a basic hit (owner,
+    // 2026-10-02; was 40% for 1). On Kill: +2 shields.
     passiveNames: { onHitStatus: "Jolt Fist", onKill: "Salvage Plating" },
-    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0, chance: 40 },
+    onHitStatus: { kind: "PARALYZE", duration: 2, power: 0, chance: 50 },
     onKill: { gainShields: 2 },
   },
   {
