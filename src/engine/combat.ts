@@ -4672,7 +4672,11 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (e.curHp <= 0 || !e.pos || alongOf(attacker.pos, e.pos, aim) !== 2) continue;
         if (farRowDmg > 0) directDamage(draft, attacker, e, farRowDmg, false);
         if (farRowStatus > 0 && farStatusKind && draft.cards[e.instanceId] && e.curHp > 0)
-          applyStatus(draft, e, farStatusKind, num(params, "statusDuration", 1), num(params, "statusPower"), getDef(attacker.defId).element);
+          // `farRowStatusDuration`: the far row can hold the status for less
+          // time than the row in front (Killer Whale: half). Absent = the same.
+          applyStatus(draft, e, farStatusKind,
+            num(params, "farRowStatusDuration", num(params, "statusDuration", 1)),
+            num(params, "statusPower"), getDef(attacker.defId).element);
       }
     }
     // farRowRootNext (Evera): the roots snake on — a DELAYED ROOT lands on the

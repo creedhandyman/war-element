@@ -10513,9 +10513,14 @@ export const CARDS: CardDef[] = [
       name: "Tidal Crush",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "FREEZE", statusDuration: 2 },
+      // THE WAVE ROLLS ON (owner's call, 2026-10-02): the row behind the first
+      // takes half of it — 3 DMG and a 1-round FREEZE — through the far-row
+      // rider Aftermath and Evera already use. Breach casts this free on
+      // summon, so the landing reaches two ranks deep too.
+      params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "FREEZE", statusDuration: 2,
+                farRowDmg: 3, farRowStatus: 1, farRowStatusDuration: 1 },
       targetSide: "enemy",
-      text: "6 DMG to every opponent in the row directly ahead and FREEZE them for 2 rounds.",
+      text: "6 DMG to every opponent in the row directly ahead and FREEZE them for 2 rounds. The row behind it takes 3 DMG and is FROZEN for 1 round.",
     },
   },
   {
