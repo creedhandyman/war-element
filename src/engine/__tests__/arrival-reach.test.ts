@@ -85,3 +85,29 @@ describe("arrivalStrike — the range a summon's arrival attack covers", () => {
     expect(has(a.reach, 2, 0)).toBe(false);
   });
 });
+
+describe("Krakler — Abyssal Grasp skips a FROZEN target", () => {
+  function summonKrakler(frozenNear: boolean, allFrozen = false) {
+    const s = prepState(42, "P1");
+    s.players.P1.gold = 9;
+    const frozen = { kind: "FREEZE" as const, duration: 2, power: 0, source: "AQUA" as const };
+    const near = place(s, "dusk_gool", "P2", 2, 0, frozenNear ? { status: frozen } : {});
+    const far = place(s, "dusk_gool", "P2", 0, 3, allFrozen ? { status: frozen } : {});
+    const handId = giveHand(s, "P1", "aqua_krakler");
+    const g = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    const scalded = (id: string) => g.cards[id].statuses.some((x) => x.kind === "SCALD");
+    return { near: scalded(near.instanceId), far: scalded(far.instanceId) };
+  }
+
+  it("takes the nearest opponent when none is frozen", () => {
+    expect(summonKrakler(false)).toEqual({ near: true, far: false });
+  });
+
+  it("passes over a frozen nearest opponent for the next one", () => {
+    expect(summonKrakler(true)).toEqual({ near: false, far: true });
+  });
+
+  it("falls back to the nearest when every opponent is frozen", () => {
+    expect(summonKrakler(true, true)).toEqual({ near: true, far: false });
+  });
+});

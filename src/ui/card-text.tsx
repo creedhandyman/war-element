@@ -113,7 +113,11 @@ function describeOnSummon(os: {
     if (p.spread != null) return "enemies in the area ahead";
     const t = Number(p.targets ?? 1);
     // Board-wide, nearest first (Sticks' Boon Striker): the count is the promise.
-    if (p.reachNearest != null) return t === 1 ? "the nearest enemy" : `the ${t} nearest enemies`;
+    if (p.reachNearest != null) {
+      // `skipStatus` (Krakler): passes over a card that already carries it.
+      const not = typeof p.skipStatus === "string" ? ` not already ${String(p.skipStatus).toLowerCase() === "freeze" ? "FROZEN" : p.skipStatus}` : "";
+      return t === 1 ? `the nearest enemy${not}` : `the ${t} nearest enemies${not}`;
+    }
     // A LINE sourced from the board rather than from the card's reach.
     const count = t >= 99 ? "every enemy" : t === 1 ? "one enemy" : `up to ${t} enemies`;
     if (p.sameColumn != null) return `${count} in its column`;

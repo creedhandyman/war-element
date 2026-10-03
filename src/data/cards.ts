@@ -3658,7 +3658,10 @@ export const CARDS: CardDef[] = [
     // `reachNearest` for the same reason as Zap and Electricel: a Melee card
     // lands in its own home row and its on-summon list is king-step reach, so on
     // the turn you play it there is usually nothing to put the SCALD on.
-    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, reachNearest: 1, statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
+    // ...and the NEAREST NOT-FROZEN one (owner, 2026-10-03): `skipStatus` passes
+    // over a card that is already FROZEN, falling back to the nearest only when
+    // every opponent is.
+    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, reachNearest: 1, skipStatus: "FREEZE", statusKind: "SCALD", statusPower: 3, statusDuration: 2, debuffStatus: "FREEZE", debuffStatusRounds: 2 } },
   },
 
   // ───────────────────────── PYRO ─────────────────────────

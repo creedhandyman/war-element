@@ -1665,7 +1665,16 @@ export function onSummonTargets(
   }
   // reachNearest (Sticks' Boon Striker): pounce the NEAREST enemy anywhere.
   if (Number(params.reachNearest ?? 0) > 0) {
-    return alive().sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!));
+    const near = alive().sort((a, b) => manhattan(card.pos!, a.pos!) - manhattan(card.pos!, b.pos!));
+    // `skipStatus` (Krakler): the nearest opponent NOT already carrying that
+    // status — re-freezing a frozen card wastes the pounce. Only when every
+    // opponent has it does the nearest one take it again.
+    const skip = typeof params.skipStatus === "string" ? (params.skipStatus as StatusKind) : null;
+    if (skip) {
+      const fresh = near.filter((t) => !hasStatus(t, skip));
+      if (fresh.length) return fresh;
+    }
+    return near;
   }
 
   // Wildfire (Scorch): a ZONE, not an attack — sourced from the board because
