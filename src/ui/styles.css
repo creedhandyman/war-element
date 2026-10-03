@@ -2340,6 +2340,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .spec-desc { color: var(--ink); line-height: 1.35; }
 .spec-desc b { color: var(--accent); }
 .spec-cost { color: var(--ink-dim); font-weight: 600; }
+/* A Special's cost is MAGIC — the same purple as the Magic counters. */
+.spec-cost.magic { color: #b6a6f2; }
 /* Opponent is mid-decision: a calm, centered "waiting" panel (no controls). */
 .bprompt.oppwait { align-items: center; justify-content: center; text-align: center; gap: 4px; }
 .bprompt.oppwait .bp-title { font-size: 13px; color: var(--ink-dim); }

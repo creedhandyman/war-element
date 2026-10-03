@@ -4426,8 +4426,8 @@ export function App() {
           ? `<b>${spec.name}</b>: nobody in range yet. Press <b>Confirm</b> to step forward and rake anyone the step brings into reach.`
           : `<b>${spec.name}</b> hits the glowing area — press <b>Confirm</b> to fire.`
         : aimedArea
-          ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
-          : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (cost ${specCost})`} — ${cap > 1
+          ? `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (✦ ${specCost} Magic)`} — tap a glowing target to <b>aim</b>; the squares it will cover light up, then press <b>Fire</b>.`
+          : `<b>${spec.name}</b>${spec.talent ? " (Talent · once per game)" : ` (✦ ${specCost} Magic)`} — ${cap > 1
             ? `up to ${cap} shots: tap a glowing target for each${specialShotsStack(spec) ? " (tap one again to stack)" : ""}, or press <b>Fire</b> after the first to send the rest to the nearest others.`
             : "tap a glowing target."}`,
     );
@@ -5119,7 +5119,7 @@ export function App() {
                     activeDef.special
                       ? activeDef.special.talent
                         ? `${activeDef.special.name} (Talent, free · once per game): ${activeDef.special.text}`
-                        : `${activeDef.special.name} (cost ${specCost}): ${activeDef.special.text}`
+                        : `${activeDef.special.name} (✦ ${specCost} Magic): ${activeDef.special.text}`
                       : "No special"
                   }
                   onClick={actSpecial}
@@ -5157,7 +5157,11 @@ export function App() {
               {pending === "special" && activeDef.special && (
                 <div className="bp-text spec-desc">
                   <b>{activeDef.special.name}</b>
-                  <span className="spec-cost"> · {activeDef.special.talent ? "Talent · once per game" : `${specCost} SP`}</span> — {activeDef.special.text}
+                  {/* MAGIC, not SP: a Special is paid from the Magic pool. This read
+                      "2 SP" — SP is the speed stat, a different number entirely. */}
+                  {activeDef.special.talent
+                    ? <span className="spec-cost"> · Talent · once per game</span>
+                    : <span className="spec-cost magic"> · ✦ {specCost} Magic</span>} — {activeDef.special.text}
                 </div>
               )}
               {pending !== "special" && !specialCheck.ok && activeDef.special && (
