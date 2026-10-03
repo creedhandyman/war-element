@@ -174,25 +174,33 @@ def gale():
     save("gale", a * 0.82)
 
 
-# ── BOLT: steel deck plates ──────────────────────────────────────────────────
+# ── BOLT: city asphalt under violet neon ─────────────────────────────────────
 def bolt():
+    # Fine aggregate: high-frequency grain, a scatter of lighter stones, and
+    # broad wear so no tile reads as a flat colour.
+    grain = noise(16, 1.0, power=0.2)
+    wear = noise(17, 70, power=0.5)
+    h = grain * 0.6 + noise(19, 3, power=0.6) * 0.4
+    r = np.random.default_rng(16)
+    stones = np.zeros((N, N))
+    ys, xs = r.integers(0, N, (2, 2600))
+    stones[ys, xs] = r.uniform(0.4, 1.0, 2600)
+    base = ramp(wear, [(0, (22, 23, 25)), (1, (38, 39, 42))])
+    a = shade(base, lit(h, 2.5), 0.6)
+    a += stones[..., None] * np.array([42, 42, 44])
+    # Tar-sealed cracks: dark, a touch glossy along the edge.
+    e = cracks(18, 7)
+    tar = np.exp(-(e / 1.6) ** 2)
+    a = a * (1 - tar[..., None] * 0.6) + np.exp(-((e - 2.6) / 0.9) ** 2)[..., None] * np.array([16, 16, 20])
+    # Neon: wet sheen catching violet signage, and a couple of glowing dashes.
+    sheen = np.clip(noise(20, 40, power=0.7) * 1.6 - 0.9, 0, 1) ** 1.5
+    a += sheen[..., None] * np.array([70, 30, 110]) * 0.5
     yy, xx = np.mgrid[0:N, 0:N].astype(float)
-    P = N / 2
-    u, v = xx % P, yy % P
-    seam = np.minimum(np.minimum(u, P - u), np.minimum(v, P - v))
-    h = 0.6 + 0.12 * noise(16, 4, power=0.6)
-    tread = np.clip(np.sin((xx + yy) / 7.0) * np.sin((xx - yy) / 7.0) * 3 - 2.2, 0, 1)
-    h = h + tread * 0.25 - np.exp(-(seam / 2.2) ** 2) * 0.6
-    for cx in (12, P / 2, P - 12):
-        for cy in (12, P / 2, P - 12):
-            if cx == P / 2 and cy == P / 2:
-                continue
-            h += np.exp(-(np.hypot(u - cx, v - cy) / 3.2) ** 2) * 0.45
-    base = ramp(noise(17, 60, power=0.5), [(0, (40, 46, 56)), (1, (58, 66, 78))])
-    a = shade(base, lit(h, 3.5), 0.5)
-    trace = np.exp(-(np.abs(v - P / 2) / 1.3) ** 2) * (np.abs(u - P / 2) < P * 0.35)
-    a += trace[..., None] * np.array([20, 120, 170]) * 0.55
-    a *= (0.78 + 0.3 * noise(18, 40, power=0.6))[..., None]
+    for y0, dash in ((N * 0.28, 70), (N * 0.78, 54)):
+        on = ((xx + y0) % (dash * 2)) < dash
+        d = np.abs(((yy - y0 + N / 2) % N) - N / 2)
+        a += (np.exp(-(d / 2.0) ** 2) * on)[..., None] * np.array([170, 90, 255]) * 1.1
+        a += (np.exp(-(d / 9) ** 2) * on)[..., None] * np.array([70, 24, 120]) * 0.6
     save("bolt", a)
 
 
@@ -229,14 +237,30 @@ def dusk():
     save("dusk", a * 0.9)
 
 
-# ── DAWN: sun-warmed golden flagstones ───────────────────────────────────────
+# ── DAWN: golden bricks ──────────────────────────────────────────────────────
 def dawn():
-    e = cracks(29, 14)
-    joint = np.exp(-(e / 1.7) ** 2)
-    h = noise(30, 3, power=0.8) * 0.5 + 0.5 - joint * 0.7
-    base = ramp(noise(31, 35, power=0.6), [(0, (92, 70, 34)), (0.5, (118, 92, 46)), (1, (140, 112, 58))])
-    a = shade(base, lit(h, 4), 0.5) * (1 - joint[..., None] * 0.55)
-    save("dawn", a * 0.74)
+    rows, cols = 10, 4            # whole bricks per texture, so it tiles
+    BH, BW = N / rows, N / cols
+    yy, xx = np.mgrid[0:N, 0:N].astype(float)
+    row = np.floor(yy / BH)
+    shift = (row % 2) * BW / 2    # running bond: every other course offset
+    col = np.floor(((xx + shift) % N) / BW)
+    u = ((xx + shift) % N) - col * BW
+    v = yy - row * BH
+    edge = np.minimum(np.minimum(u, BW - u), np.minimum(v, BH - v))
+    mortar = np.clip(1 - (edge - 1.5) / 2.0, 0, 1)  # ~2-3px joints
+    bevel = np.clip(edge / 7, 0, 1) ** 0.6           # rounded brick shoulders
+    # Per-brick colour: hash the brick's index so each one is a slightly
+    # different fire of gold.
+    k = (row * 7919 + col * 104729) % 9973
+    tone = (np.sin(k * 12.9898) * 43758.5453) % 1.0
+    h = bevel * 0.7 + noise(30, 2, power=0.6) * 0.3 - mortar * 0.5
+    brick = ramp(tone * 0.7 + noise(31, 30, power=0.6) * 0.3,
+                 [(0, (150, 104, 30)), (0.5, (184, 138, 44)), (1, (212, 168, 66))])
+    a = shade(brick, lit(h, 5), 0.5)
+    a = a * (1 - mortar[..., None]) + mortar[..., None] * np.array([40, 28, 16])
+    a *= (0.8 + 0.3 * noise(32, 80, power=0.4))[..., None]  # soot and sun
+    save("dawn", a * 0.66)
 
 
 ALL = (leaf, pyro, aqua, gale, bolt, bore, dusk, dawn)
