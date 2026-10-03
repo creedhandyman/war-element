@@ -527,8 +527,13 @@ function BoardView(props: {
                 (t) => t.owner === props.viewPlayer && t.pos.row === row && t.pos.col === col,
               );
               const isTargetCard = card !== null && props.legalTargetIds.includes(card.instanceId);
-              const redTarget = isTargetCard && props.targetsAreEnemies;
-              const greenLegal = isLegalSlot || (isTargetCard && !props.targetsAreEnemies);
+              // RED is for the other side. A pick on one of the viewer's OWN cards
+              // glows green even on a turn whose targets are otherwise enemies —
+              // Glacius's Ice Armor offers allies beside the foes his basic hits,
+              // and an ally lit red read as "this attack will hurt your card".
+              const friendlyPick = isTargetCard && card !== null && card.owner === props.viewPlayer;
+              const redTarget = isTargetCard && props.targetsAreEnemies && !friendlyPick;
+              const greenLegal = isLegalSlot || (isTargetCard && (!props.targetsAreEnemies || friendlyPick));
               const preview = props.previewArea.some((p) => p.row === row && p.col === col);
               const reach = !preview && (props.previewReach ?? []).some((p) => p.row === row && p.col === col);
               const aim = props.aimArea.some((p) => p.row === row && p.col === col);
