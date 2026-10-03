@@ -6,7 +6,7 @@ import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
 import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, isImpassable, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_GROWTH, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
-  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, starBlast, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
+  applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, plateAlly, pushBack, spellHit, starBlast, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
 import { chance, coin, randInt } from "./rng";
@@ -2213,11 +2213,24 @@ function performBattleAction(
   // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row
   // hit bonuses, not just the printed count.
   const maxHits = effectiveBasicHits(card, draft);
-  // Ice Armor (Glacius): one ally may be named instead of enemies — the whole
-  // attack becomes the shield plate, so it is a single pick.
-  const iceAlly = picks?.length === 1 && allyShieldTargets(draft, instanceId).some((a) => a.instanceId === picks[0]);
-  if (iceAlly) {
-    basicAttack(draft, instanceId, picks![0]);
+  // Ice Armor (Glacius): EACH SHOT may be aimed at an ally instead of an enemy
+  // (owner, 2026-10-03 — it used to spend the whole attack on one ally). A shot
+  // on an ally plates it; repeat an ally to plate it again. Whatever shots are
+  // left go at the enemies picked alongside: one enemy takes them all, several
+  // take one each, exactly as an ordinary volley splits.
+  const shieldable = allyShieldTargets(draft, instanceId);
+  const allyPicks = (picks ?? []).filter((id) => shieldable.some((a) => a.instanceId === id));
+  if (allyPicks.length > 0) {
+    if (picks!.length > maxHits)
+      throw new Error(`Too many targets (this card has ${maxHits} hit(s))`);
+    const foes = picks!.filter((id) => !allyPicks.includes(id));
+    const valid = validTargets(draft, instanceId);
+    for (const id of foes)
+      if (!valid.some((t) => t.instanceId === id)) throw new Error("Illegal basic-attack target");
+    for (const id of allyPicks) plateAlly(draft, card, draft.cards[id]);
+    const left = maxHits - allyPicks.length;
+    if (foes.length === 1 && left > 0) basicAttack(draft, instanceId, foes[0], false, left);
+    else if (foes.length > 1) basicAttack(draft, instanceId, foes);
     payAttackTrade(draft, card);
     return;
   }
@@ -2307,7 +2320,12 @@ function stepBattle(draft: GameState): boolean {
   const canBasic = !basicIsInert(draft, card) && validTargets(draft, id).length > 0;
   const canSpec = canFireSpecial(draft, id).ok;
   const canTal = canFireTalent(draft, id).ok;
-  if (!canBasic && !canSpec && !canTal) {
+  // Ice Armor (Glacius): with no enemy in reach he can still spend his shots
+  // plating allies (owner, 2026-10-03), so a HUMAN-controlled Glacius is asked
+  // rather than skipped. The AI and Auto never plate (allyShieldTargets is kept
+  // out of validTargets), so for them nothing changes.
+  const canShield = draft.humans.includes(card.owner) && allyShieldTargets(draft, id).length > 0;
+  if (!canBasic && !canSpec && !canTal && !canShield) {
     draft.log.push(`${label(draft, card)} has no valid action.`);
     battle.index++;
     return true;

@@ -4409,8 +4409,8 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Freezer Burn: SCALD any FROZEN enemy for 2 each Cleanup (pairs with the Special).
     roundTick: { scaldFrozen: 2 },
-    // Ice Armor (owner, 2026-10-03): aim the basic at an ally to plate it with
-    // 2 shields. It used to FREEZE the ally too; the owner dropped that the
+    // Ice Armor (owner, 2026-10-03): aim a shot of the basic at an ally to plate
+    // it with 2 shields — each of the two shots separately. It used to FREEZE the ally too; the owner dropped that the
     // same day — armour for a friend, not a cost to them.
     passiveNames: { basicShieldsAllies: "Ice Armor" },
     basicShieldsAllies: { shields: 2 },

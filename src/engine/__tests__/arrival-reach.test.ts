@@ -1,7 +1,7 @@
 // Owner, 2026-10-02: "Hawko passive not working" and "summoning attacks need
 // to do a better job of telling the player the range of the attack".
 import { describe, expect, it } from "vitest";
-import { applyIntent } from "../phases";
+import { advance, applyIntent } from "../phases";
 import { allyShieldTargets, arrivalStrike, canFireSpecial, validTargets } from "../rules";
 import { CARDS, getDef } from "../../data/cards";
 import { giveHand, place, prepState } from "./helpers";
@@ -172,6 +172,56 @@ describe("Glacius — Ice Armor", () => {
     expect(a.statuses.some((x) => x.kind === "FREEZE"), "the ally is NOT frozen (owner, 2026-10-03)").toBe(false);
     expect(a.statuses).toHaveLength(0);
     expect(g.cards[gl.instanceId]).toBeDefined();
+  });
+
+  it("each shot can plate an ally: two allies, or one ally twice", () => {
+    const { s, gl, ally } = setup();
+    const other = place(s, "leaf_birch", "P1", 1, 2);
+    const sh = { a: ally.curShields, o: other.curShields };
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [ally.instanceId, other.instanceId] });
+    expect(g.cards[ally.instanceId].curShields).toBe(sh.a + 2);
+    expect(g.cards[other.instanceId].curShields).toBe(sh.o + 2);
+    const { s: s2, ally: a2 } = setup();
+    const before = a2.curShields;
+    const g2 = applyIntent(s2, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [a2.instanceId, a2.instanceId] });
+    expect(g2.cards[a2.instanceId].curShields).toBe(before + 4);
+    void gl;
+  });
+
+  it("one shot plates an ally and the other hits a foe — ONE hit, not the whole volley", () => {
+    const { s, gl, ally, foe } = setup();
+    const shOn = ally.curShields;
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [ally.instanceId, foe.instanceId] });
+    expect(g.cards[ally.instanceId].curShields).toBe(shOn + 2);
+    // Compare with the same foe taking BOTH shots.
+    const { s: s2, foe: f2 } = setup();
+    const both = applyIntent(s2, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [f2.instanceId] });
+    const lostOne = 30 - g.cards[foe.instanceId].curHp;
+    const lostTwo = 30 - both.cards[f2.instanceId].curHp;
+    expect(lostOne).toBeGreaterThan(0);
+    expect(lostOne).toBeLessThan(lostTwo);
+    void gl;
+  });
+
+  it("can't place more shots than it has", () => {
+    const { s, ally, foe } = setup();
+    expect(() => applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic",
+      targetIds: [ally.instanceId, ally.instanceId, foe.instanceId] })).toThrow();
+  });
+
+  it("with no enemy in reach, a player's Glacius is still asked — and can plate an ally", () => {
+    const s = prepState();
+    const gl = place(s, "aqua_glacius", "P1", 3, 0, { autoMode: "manual" });
+    const ally = place(s, "leaf_birch", "P1", 3, 1);
+    place(s, "dusk_gool", "P2", 0, 3, { curHp: 30, maxHp: 30 });
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [gl.instanceId], index: 0, awaitingInput: null };
+    expect(validTargets(s, gl.instanceId)).toHaveLength(0);
+    const asked = advance(s);
+    expect(asked.battle?.awaitingInput, "not skipped").toBe(gl.instanceId);
+    const before = ally.curShields;
+    const g = applyIntent(asked, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [ally.instanceId, ally.instanceId] });
+    expect(g.cards[ally.instanceId].curShields).toBe(before + 4);
   });
 
   it("allies are offered to the player only — never in validTargets, so the AI and Auto never pick them", () => {

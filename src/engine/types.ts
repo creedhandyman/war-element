@@ -1562,8 +1562,9 @@ export interface CardDef {
    *  them for its DMG instead of striking. Allies become legal basic targets. */
   basicHealsAllies?: boolean;
   /** Ice Armor (Glacius, owner 2026-10-03): its basic attack may be aimed at an
-   *  ALLY in reach, granting it `shields` — once per attack, however many hits
-   *  it prints. No status: it froze the ally too until the owner dropped that.
+   *  ALLY in reach, granting it `shields` — ONCE PER SHOT aimed at an ally, so
+   *  his two shots can plate two allies, one ally twice, or one ally and one
+   *  foe (`plateAlly`, owner 2026-10-03). No status: it froze the ally too until the owner dropped that.
    *  Offered to the player only (`allyShieldTargets`): it is never in
    *  `validTargets`, so the AI, Auto and hit-spreading keep swinging at foes. */
   basicShieldsAllies?: { shields: number };

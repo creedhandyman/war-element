@@ -2092,6 +2092,18 @@ export function payAttackTrade(draft: GameState, card: CardInstance): void {
  *  (FireFly's BlastOff) can't recurse into itself forever. */
 const autoFiring = new Set<string>();
 
+/** Ice Armor (Glacius): ONE shot aimed at an ally — plate it with the card's
+ *  printed shields. Each of his shots can be spent this way, on the same ally
+ *  or different ones (owner, 2026-10-03); the battle action calls it once per
+ *  ally pick and sends whatever shots are left at the enemies picked. */
+export function plateAlly(draft: GameState, attacker: CardInstance, ally: CardInstance): void {
+  const ice = getDef(attacker.defId).basicShieldsAllies;
+  if (!ice) return;
+  ally.curShields += ice.shields;
+  notePassive(draft, attacker, "basicShieldsAllies");
+  draft.log.push(`${label(draft, attacker)} encases ${label(draft, ally)} in ice armour (+${ice.shields} shields).`);
+}
+
 /** Fire a card's OWN Special for free (no magic cost, no targeting UI) — used by
  *  passives that auto-cast (Voltcher's High Voltage Sentry, Highroller's Jackpot,
  *  FireFly's BlastOff). */
@@ -2145,6 +2157,9 @@ export function basicAttack(
   attackerId: string,
   target: string | string[],
   fromFollowup = false,
+  /** How many hits a SINGLE pick takes, when fewer than the card's full volley
+   *  are left for it — Glacius's shots not spent plating allies. */
+  hitsForOne?: number,
 ): AttackResult | null {
   const attacker = draft.cards[attackerId];
   if (!attacker) return null;
@@ -2189,15 +2204,13 @@ export function basicAttack(
   // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —
   // no hit roll, no statuses, no riders. Checked before anything else so none of
   // the combat machinery below ever sees a friendly target.
-  // Ice Armor (Glacius): aimed at an ALLY, the basic plates it with shields —
-  // no hit roll, no damage, no status, no riders.
+  // Ice Armor (Glacius): aimed at an ALLY, the shot plates it with shields —
+  // no hit roll, no damage, no status, no riders. (The battle action spends one
+  // shot per ally pick through `plateAlly`; this catches a lone ally pick.)
   if (aDef.basicShieldsAllies) {
     const first = draft.cards[picks[0]];
     if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
-      const ice = aDef.basicShieldsAllies;
-      first.curShields += ice.shields;
-      notePassive(draft, attacker, "basicShieldsAllies");
-      draft.log.push(`${label(draft, attacker)} encases ${label(draft, first)} in ice armour (+${ice.shields} shields).`);
+      plateAlly(draft, attacker, first);
       return { landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false };
     }
   }
@@ -2236,7 +2249,7 @@ export function basicAttack(
   // target merge into one gated volley).
   const groups: { targetId: string; hits: number }[] = [];
   if (picks.length === 1) {
-    groups.push({ targetId: picks[0], hits: effectiveBasicHits(attacker, draft) });
+    groups.push({ targetId: picks[0], hits: hitsForOne ?? effectiveBasicHits(attacker, draft) });
   } else {
     for (const id of picks) {
       const last = groups[groups.length - 1];

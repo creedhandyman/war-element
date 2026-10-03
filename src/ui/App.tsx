@@ -3916,12 +3916,9 @@ export function App() {
         setHint(`Aimed — the lit squares are what it covers. Press <b>Fire</b>, or tap another target to re-aim.`);
         return;
       }
-      // Ice Armor (Glacius): an ALLY is the whole attack — plate it with
-      // shields. One tap fires; there are no hits to spread.
-      if (pending === "basic" && clicked && allyShieldTargets(game, awaitingId).some((a) => a.instanceId === clicked.instanceId)) {
-        firePicks([clicked.instanceId]);
-        return;
-      }
+      // Ice Armor (Glacius): an ally is picked like any target now — each shot
+      // placed on one plates it (owner, 2026-10-03), so it goes through the
+      // ordinary pick-and-stack below instead of firing on the first tap.
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {
         const armed = pending === "special" ? getDef(game.cards[awaitingId].defId).special : undefined;
         // A status nova lands once per card, so a second pick on the same card
@@ -4253,7 +4250,10 @@ export function App() {
     activeCard && activeDef?.special ? effectiveSpecialCost(game, activeCard, activeDef.special.cost) : 0;
   const talentCheck = awaitingId ? canFireTalent(game, awaitingId) : { ok: false };
   const plummetCheck = awaitingId ? canPlummet(game, awaitingId) : { ok: false };
-  const basicOk = awaitingId ? validTargets(game, awaitingId).length > 0 : false;
+  // Ice Armor counts: Glacius can attack to plate an ally with no enemy in reach.
+  const basicOk = awaitingId
+    ? validTargets(game, awaitingId).length > 0 || allyShieldTargets(game, awaitingId).length > 0
+    : false;
   // An area Special with no manual pick to make (hits everything it reaches):
   // it's previewed on the first click and fired on a Confirm.
   const specialValid =
