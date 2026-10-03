@@ -19,6 +19,7 @@
  */
 import { useEffect, useRef } from "react";
 import type { GameState, PlayerId } from "../../engine";
+import type { Dir } from "../../engine/rules";
 import type { ImpactLayer, Rect } from "./impact-layer";
 import { centre, platePoint } from "./looks/base";
 import { createWorkerLayer } from "./worker-layer";
@@ -84,19 +85,21 @@ function rowRect(row: number): Rect | null {
   return { x, y, w: right - x, h: bottom - y };
 }
 
-/** "Ahead" for a card on `at`, as a screen unit vector: toward the square
- *  `dir` rows on (`rowAhead`), measured off the DOM because the board is drawn
- *  flipped for a P2 viewer. At the board's edge, away from the square behind. */
-function aheadOf(at: At, dir: number): { x: number; y: number } {
+/** "Ahead" for a card on `at`, as a screen unit vector: toward the next square
+ *  the way it faced (`dir`, spell-fx `facing`: forward, or where an aimed
+ *  Special pointed), measured off the DOM because the board is drawn flipped
+ *  for a P2 viewer. At the board's edge, away from the square behind. */
+function aheadOf(at: At, dir: Dir): { x: number; y: number } {
   const here = squareRect(at);
-  const on = squareRect({ row: at.row + dir, col: at.col }), back = squareRect({ row: at.row - dir, col: at.col });
+  const on = squareRect({ row: at.row + dir.dr, col: at.col + dir.dc });
+  const back = squareRect({ row: at.row - dir.dr, col: at.col - dir.dc });
   const unit = (dx: number, dy: number) => {
     const d = Math.hypot(dx, dy) || 1;
     return { x: dx / d, y: dy / d };
   };
   if (here && on) return unit(on.x - here.x, on.y - here.y);
   if (here && back) return unit(here.x - back.x, here.y - back.y);
-  return { x: 0, y: dir < 0 ? -1 : 1 };
+  return unit(dir.dc, dir.dr);
 }
 
 function boardRect(): Rect | null {

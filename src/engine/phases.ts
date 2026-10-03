@@ -1967,6 +1967,7 @@ function performBattleAction(
         // AN AIMED CORRIDOR: the pick names the direction, and the corridor that
         // way is what it hits — exactly as an aimed Special resolves.
         draft.specialAim = { id: card.instanceId, dir: talentAimFor(draft, card, aim) };
+        card.fxAim = { ...draft.specialAim.dir, n: (card.fxAim?.n ?? 0) + 1 };
         targets = talentTargets(draft, instanceId);
       } else if (picks && picks.length > 1) {
         // EVERY SHOT WHERE IT WAS PLACED, repeats stacking, same as a Special.
@@ -2028,6 +2029,7 @@ function performBattleAction(
         : undefined;
     if (aim?.pos && card.pos) {
       draft.specialAim = { id: card.instanceId, dir: aimFor(draft, card, aim) };
+      card.fxAim = { ...draft.specialAim.dir, n: (card.fxAim?.n ?? 0) + 1 };
       const lane = specialTargets(draft, instanceId);
       targets = lane.some((t) => t.instanceId === aim.instanceId)
         ? [aim, ...lane.filter((t) => t.instanceId !== aim.instanceId)]

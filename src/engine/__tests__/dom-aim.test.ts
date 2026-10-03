@@ -18,6 +18,7 @@ import {
   bestAimPick, previewSpecialAim, previewSpecialFarRow, specialAimable, specialTargets,
 } from "../rules";
 import { summonCard } from "../state";
+import { cardAttack, cardAttackEffects } from "../../ui/vfx/spell-fx";
 import { atBattle, place, prepState } from "./helpers";
 import type { CardInstance, GameState, PlayerId } from "../types";
 
@@ -147,6 +148,43 @@ describe("aimed on Domination's board", () => {
     // stands on: the aim has to be the direction that actually reaches it.
     const { s, me, them } = board("gale_masala", [3, 2], [[0, 5]]);
     expect(previewSpecialAim(s, me.instanceId, them[0])!.every((c) => c.row === 0)).toBe(true);
+  });
+});
+
+// THE ANIMATION FACES THE AIM. Owner, 2026-10-02: "the animation for Pyrogon
+// doesn't change the direction if it is cast in a different direction." The
+// engine drops `specialAim` once a cast resolves, so the effects only ever saw
+// "forward"; the caster now keeps `fxAim`, and spell-fx `facing` reads it.
+describe("a signature faces the way it was aimed", () => {
+  const sig = (fx: ReturnType<typeof cardAttackEffects>) => fx.find((f) => f.kind === "signature");
+
+  it("Pyrogon breathes left when it is pointed left, and right when right", () => {
+    for (const [col, dc] of [[1, -1], [5, 1]] as const) {
+      const { s, me, them } = board("pyro_pyrogon", [3, 3], [[3, col]]);
+      const b = atBattle(s);
+      b.battle = { queue: [me.instanceId], index: 0, awaitingInput: me.instanceId };
+      const out = applyIntent(b, { type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [them[0].instanceId] } as never);
+      expect(out.cards[me.instanceId].fxAim, "the engine keeps the aim").toMatchObject({ dr: 0, dc });
+      expect(cardAttack(b, out)?.dir).toEqual({ dr: 0, dc });
+      expect(sig(cardAttackEffects(b, out)), "the signature is drawn").toMatchObject({ key: "pyro_pyrogon", dir: { dr: 0, dc } });
+    }
+  });
+
+  it("a lane Special faces down the lane it was pointed along (Coreborer, backwards)", () => {
+    const { s, me, them } = board("bore_the_coreborer", [3, 3], [[5, 3]]);
+    const b = atBattle(s);
+    b.battle = { queue: [me.instanceId], index: 0, awaitingInput: me.instanceId };
+    const out = applyIntent(b, { type: "BATTLE_ACTION", player: "P1", action: "special", targetIds: [them[0].instanceId] } as never);
+    expect(sig(cardAttackEffects(b, out))).toMatchObject({ dir: { dr: 1, dc: 0 } }); // P1's forward is -1
+  });
+
+  it("an aim from an EARLIER cast is not this step's: a basic faces forward", () => {
+    const { s, me, them } = board("pyro_pyrogon", [3, 3], [[3, 1], [2, 3]]);
+    const b = atBattle(s);
+    b.battle = { queue: [me.instanceId], index: 0, awaitingInput: me.instanceId };
+    b.cards[me.instanceId].fxAim = { dr: 0, dc: -1, n: 1 }; // pointed left last time
+    const out = applyIntent(b, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetId: them[1].instanceId } as never);
+    expect(cardAttack(b, out)?.dir).toEqual({ dr: -1, dc: 0 });
   });
 });
 

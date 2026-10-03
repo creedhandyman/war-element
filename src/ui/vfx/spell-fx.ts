@@ -17,7 +17,8 @@
  *  Only the viewer's own trap placement gets an effect. */
 import type { CardDef, CardInstance, Element, GameState, PlayerId, StatusKind } from "../../engine";
 import { chebyshev, effectiveSp } from "../../engine/state";
-import { FX_DMG_KEEP, rowAhead } from "../../engine/combat";
+import { FX_DMG_KEEP } from "../../engine/combat";
+import { forwardDir, type Dir } from "../../engine/rules";
 import { getSpell } from "../../engine/spells";
 import { DUSK_DRAIN, hasElementAura } from "../../engine/auras";
 import { getDef } from "../../data/cards";
@@ -70,9 +71,9 @@ export type SpellFx =
    *  lands — drawn as itself (vfx/signatures/) instead of the per-target hit
    *  marks. `key` is the card's id. `lands`: where the card ends the step (a
    *  charge or a dive moves it). `damage`/`killed` align with `targets`.
-   *  `dir`: the row direction toward its enemy (`rowAhead`). */
+   *  `dir`: the way the move faced (`facing`). */
   | { kind: "signature"; key: string; element: Element; actor: At; lands: At; targets: At[]; damage: number[]; killed: boolean[];
-      spawned: At[]; allies: At[]; dir: number; arriving: boolean }
+      spawned: At[]; allies: At[]; dir: Dir; arriving: boolean }
   /** A WHOLE-BOARD spell (Tsunami, Volcanic Eruption, Lightning Storm...):
    *  the set piece that sweeps the board, over and above each card's own
    *  effect. `targets` are the opposing cards it reached, which the set piece
@@ -257,8 +258,9 @@ export interface CardAttack {
   /** Where the card ends the step, when that is not where it struck from: a
    *  charge, a dive, a ride. */
   lands?: At;
-  /** The row direction toward its enemy (`rowAhead`): -1 or 1. */
-  dir: number;
+  /** The way it faced (`facing`): where an aimed Special pointed, else
+   *  forward for its seat. */
+  dir: Dir;
 }
 
 /** A MYTHIC's signature: its card id, when the step is its Special or the
@@ -348,6 +350,7 @@ function striker(before: GameState, after: GameState) {
     return {
       id, seat: was.owner, at: was.pos, def: getDef(was.defId),
       special: !!now && now.specialCasts > was.specialCasts, arriving: false, variant: lookVariant(was),
+      dir: facing(was, now),
     };
   }
   // A summon that spawns tokens brings several cards: the one with an
@@ -358,7 +361,20 @@ function striker(before: GameState, after: GameState) {
   const def = getDef(card.defId);
   return {
     id: card.instanceId, seat: card.owner, at: card.pos, def, special: !!def.onSummon, arriving: true, variant: lookVariant(card),
+    dir: forwardDir(card.owner),
   };
+}
+
+/** Which way a step faced. On Domination's board a Special or Talent laid out
+ *  in one direction (a corridor, a lane, a row) is AIMED, any of four ways, and
+ *  the engine forgets the aim once the cast resolves; it leaves `fxAim` on the
+ *  caster instead, and a count that rose is this step's cast. Anything else
+ *  faces forward for its seat. A signature is drawn along this, so Pyrogon
+ *  breathes the way it was pointed (owner, 2026-10-02: "doesn't change the
+ *  direction if it is cast in a different direction"). */
+function facing(was: CardInstance, now: CardInstance | undefined): Dir {
+  const aim = now?.fxAim;
+  return aim && aim.n > (was.fxAim?.n ?? 0) ? { dr: aim.dr, dc: aim.dc } : forwardDir(was.owner);
 }
 
 /** What a striker's step was aimed at: the opposing cards it reached (hurt,
@@ -396,7 +412,7 @@ export function cardAttack(before: GameState, after: GameState): CardAttack | nu
     }),
     signature: signatureOf(a),
     ...(lands && (lands.row !== a.at.row || lands.col !== a.at.col) ? { lands } : {}),
-    dir: rowAhead(a.seat, 0),
+    dir: a.dir,
   };
 }
 
@@ -452,7 +468,7 @@ export function cardAttackEffects(before: GameState, after: GameState): SpellFx[
       }),
       spawned: mine.filter((c) => !before.cards[c.instanceId]).map((c) => c.pos!),
       allies: mine.map((c) => c.pos!),
-      dir: rowAhead(a.seat, 0), arriving: a.arriving,
+      dir: a.dir, arriving: a.arriving,
     });
   }
   return out;

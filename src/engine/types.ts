@@ -2226,6 +2226,12 @@ export interface CardInstance {
    *  attacking does. Per-CARD, unlike prep.movedThisTurn which is the
    *  one-move-per-turn budget for the whole side. Reset each Cleanup. */
   movedThisRound?: boolean;
+  /** Which way this card's last AIMED Special or Talent pointed, and how many
+   *  it has aimed (Domination's four-way corridors, lanes and rows; see
+   *  `specialAimable`). `specialAim` is gone the moment a cast resolves, so this
+   *  is the trace the effects read (spell-fx.ts): a count that rose this step
+   *  means this step's cast pointed `dr`/`dc`, and its signature faces that way. */
+  fxAim?: { dr: number; dc: number; n: number };
   /** Idle stealth (Grizzly, Magalogoon): this card moved or attacked LAST
    *  round, so it stays in the open for all of this one. Set at Cleanup from
    *  the round that just ended, so acting costs the hide for the rest of that

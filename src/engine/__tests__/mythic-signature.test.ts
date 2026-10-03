@@ -52,14 +52,14 @@ describe("a mythic's signature move", () => {
     const after = step(s, k.instanceId);
     after.cards[k.instanceId].specialCasts += 1;
     hurt(after, t.instanceId, 8);
-    expect(sigOf(cardAttackEffects(s, after))[0].dir).toBe(1);
+    expect(sigOf(cardAttackEffects(s, after))[0].dir).toEqual({ dr: 1, dc: 0 });
     const s2 = prepState(1);
     const k2 = place(s2, "aqua_kraken", "P1", 2, 1);
     const t2 = place(s2, "leaf_greegon", "P2", 1, 1, { curHp: 20 });
     const after2 = step(s2, k2.instanceId);
     after2.cards[k2.instanceId].specialCasts += 1;
     hurt(after2, t2.instanceId, 8);
-    expect(sigOf(cardAttackEffects(s2, after2))[0].dir).toBe(-1);
+    expect(sigOf(cardAttackEffects(s2, after2))[0].dir).toEqual({ dr: -1, dc: 0 });
   });
 
   it("a basic attack is not its signature — only the move it is known for", () => {
