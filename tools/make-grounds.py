@@ -427,7 +427,7 @@ def dusk():
 
 # ── DAWN: golden bricks ──────────────────────────────────────────────────────
 def dawn():
-    rows, cols = 10, 4                               # whole bricks per texture, so it tiles
+    rows, cols = 16, 6                               # whole bricks per texture, so it tiles
     BH, BW = N / rows, N / cols
     row = np.floor(YY / BH)
     shift = (row % 2) * BW / 2                       # running bond
@@ -438,7 +438,7 @@ def dawn():
     chip = (noise(60, 2.5, 0.9) - 0.5) * 1.8 * S     # irregular, chipped arrises
     edge = np.minimum(np.minimum(u, BW - u), np.minimum(v, BH - v)) + chip
     mortar = np.clip(1 - (edge - 0.5 * S) / (0.8 * S), 0, 1)
-    bevel = np.clip(edge / (5 * S), 0, 1) ** 0.5
+    bevel = np.clip(edge / (4 * S), 0, 1) ** 0.5
     tilt = ((hash01(k, 1) - 0.5) * (u / BW) + (hash01(k, 2) - 0.5) * (v / BH)) * 0.18
     r = np.random.default_rng(61)
     pits = np.zeros((N, N))
@@ -449,14 +449,14 @@ def dawn():
     dif, spec = lighting(h, 8, spec_pow=24)
     ao = occlusion(h, 3, 3.0, 0.5)
     brick = ramp(hash01(k, 3) * 0.55 + noise(31, 30, 0.6) * 0.25 + fbm(65, [1.5, 5]) * 0.2,
-                 [(0, (146, 92, 18)), (0.45, (198, 140, 34)), (1, (236, 184, 64))])
+                 [(0, (178, 116, 14)), (0.45, (226, 164, 28)), (1, (252, 206, 70))])
     a = shade(brick, dif, 0.48, ao)
     glaze = (1 - mortar) * (0.5 + 0.5 * hash01(k, 4))   # some bricks are glazed and catch the sun
     a += (spec * glaze)[..., None] * np.array([255, 220, 140]) * 0.22
     grit = ramp(noise(64, 0.8, 0.2), [(0, (66, 54, 38)), (1, (100, 84, 60))])
     a = a * (1 - mortar[..., None]) + shade(grit, dif, 0.8) * mortar[..., None]
-    a *= (0.8 + 0.3 * noise(32, 80, 0.4))[..., None]   # soot and sun
-    save("dawn", a * 0.66)
+    a *= (0.86 + 0.22 * noise(32, 80, 0.4))[..., None]   # soot and sun
+    save("dawn", a * 0.7)
 
 
 ALL = {f.__name__: f for f in (leaf, pyro, aqua, gale, bolt, bore, dusk, dawn)}
