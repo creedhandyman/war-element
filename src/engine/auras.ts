@@ -447,9 +447,12 @@ export const BOLT_VS_STATUS_DMG = 1;
 export const BLINDING_STAR_MISS_PCT = 10;
 
 /** How often an attack is lost in a standing fog, when the source does not say
- *  otherwise. A coin, which is what the mechanic has always been — Aftermath's
- *  Smog still pays a cost-4 Special off a cost-6 body for exactly that. */
-export const FOG_MISS_PCT = 50;
+ *  otherwise: Aftermath's Smog and AQUA's Dense Fog field.
+ *
+ *  25, down from a coin (owner's call, 2026-10-02: "I thought this whole time
+ *  that dense fog was not 50%"). Every fog in the game is a quarter now — Misty's
+ *  free one included — so "lost in the fog" means one thing wherever it reads. */
+export const FOG_MISS_PCT = 25;
 
 /** Misty's Fog Settlement, which is the same mechanic bought at a very
  *  different price: a cost-1 body that lays it FREE the moment it lands, with

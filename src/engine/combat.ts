@@ -1197,17 +1197,19 @@ export function resolveHit(
     }
     // 0. BLIND — −50% accuracy, rolled PER HIT on a basic attack (so a blinded
     //    multi-hit lands some and whiffs others). Specials auto-hit.
-    // Dense Fog (AQUA): the ENEMY's field makes this attack roll to miss, on the
-    // same coin BLIND uses. Read from the OPPONENT's fields, not the attacker's
-    // — it is the only field in the game that debuffs the other side.
+    // Dense Fog (AQUA): the ENEMY's field makes this attack roll to miss, at
+    // FOG_MISS_PCT (25 — it was BLIND's coin until 2026-10-02). Read from the
+    // OPPONENT's fields, not the attacker's — it is the only field in the game
+    // that debuffs the other side. Its own line in the log, so a player can
+    // tell it from Misty's or Aftermath's fog when both are up.
     const fogged =
       opts.kind === "basic" &&
       !aDef.alwaysHit &&
       !neverMiss &&
       draft.fields.some((f) => f.owner !== attacker.owner && f.enemyMissChance);
-    if (fogged && !coin(draft)) {
+    if (fogged && pctChance(draft, FOG_MISS_PCT)) {
       result.dodgedHits = (result.dodgedHits ?? 0) + 1;
-      draft.log.push(`${label(draft, attacker)} loses the shot in the fog.`);
+      draft.log.push(`${label(draft, attacker)} loses the shot in the dense fog.`);
       continue;
     }
     // Fog Settlement (Misty) / Smog (Aftermath): attacks aimed at a fogged

@@ -809,7 +809,7 @@ export const SPELLS: SpellDef[] = [
     kind: "field",
     // A field that hurts the OTHER side — the only one of its kind, which is
     // why it needs its own flag rather than reusing an ally buff.
-    text: "Field (3 rounds): a fog rolls in — every opponent attack has a chance to miss.",
+    text: "Field (3 rounds): a fog rolls in — every opponent basic attack has a 25% chance to miss.",
     field: { rounds: 3, enemyMissChance: true },
   },
   {

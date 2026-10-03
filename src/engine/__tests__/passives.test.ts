@@ -4255,21 +4255,21 @@ describe("the fog mechanic, and the two very differently priced cards that lay i
     return total;
   }
 
-  it("Misty's Fog Settlement is a quarter, not a coin", () => {
+  it("every fog is a quarter, not a coin", () => {
+    // Misty's free fog was always a quarter; Smog's paid one and the Dense Fog
+    // field were coins until 2026-10-02 (owner's call), and are quarters too.
     const clear = dealt(400, undefined, 0); // no fog at all — the control
     expect(clear, "nothing else in this setup causes a miss").toBe(400 * 4);
-    const thin = 1 - dealt(400, MISTY_FOG_MISS_PCT) / clear;
-    const thick = 1 - dealt(400, FOG_MISS_PCT) / clear;
     // Wide bands — this pins the MAGNITUDE each constant names, not the RNG's
     // luck on 400 draws.
-    expect(thin).toBeGreaterThan(0.15);
-    expect(thin).toBeLessThan(0.35);
-    expect(thick).toBeGreaterThan(0.40);
-    expect(thick).toBeLessThan(0.60);
-    expect(thin).toBeLessThan(thick);
+    for (const pct of [MISTY_FOG_MISS_PCT, FOG_MISS_PCT]) {
+      const lost = 1 - dealt(400, pct) / clear;
+      expect(lost, `${pct}%`).toBeGreaterThan(0.15);
+      expect(lost, `${pct}%`).toBeLessThan(0.35);
+    }
   });
 
-  it("Misty lays the thin one; Aftermath's paid Smog still lays the coin", () => {
+  it("Misty lays its fog; Aftermath's paid Smog writes its own rate over it", () => {
     // The reason the rate lives on the player rather than in the roll: these two
     // buy the same mechanic at wildly different prices — a cost-1 body that fogs
     // free on arrival, against a cost-4 Special off a cost-6 card.

@@ -8280,7 +8280,7 @@ export const CARDS: CardDef[] = [
       handler: "smokeScreen",
       params: { rounds: 2 },
       targetSide: "self",
-      text: "Blanket your side in smoke for 2 rounds — attacks on your cards may miss.",
+      text: "Blanket your side in smoke for 2 rounds — basic attacks on your cards have a 25% chance to miss.",
     },
   },
   {
