@@ -11,6 +11,13 @@
   --gold: #c9a24b;
   --gold-lit: #e8c877;
   --gold-hi: #ffe9b0;
+  /* COIN GOLD — the colour of the currency itself: the Gold counter's number
+     and every price paid in it (the cost on a hand card). Saturated on purpose:
+     --gold-hi is a pale cream that reads as white on a small number, so the
+     link between "this card costs 3" and "you have 3 Gold" was invisible
+     (owner's call, 2026-10-03). */
+  --coin: #ffc93c;
+  --coin-dim: #a8822e;
   --gold-line: rgba(201, 162, 75, 0.4);
   /* Blue is the secondary accent (MAGIC). */
   --steel: #5b74d8;
@@ -1758,7 +1765,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .res-gem.gold .gem-face::before { background: linear-gradient(160deg, #3a2c10, #1c1508); border: 2px solid var(--gold); box-shadow: 0 0 18px rgba(232, 200, 119, 0.4), inset 0 0 14px rgba(232, 200, 119, 0.22); }
 .res-gem.magic .gem-face::before { background: linear-gradient(160deg, #181c3a, #0b0d1e); border: 2px solid var(--steel); box-shadow: 0 0 18px rgba(110, 140, 240, 0.4), inset 0 0 14px rgba(110, 140, 240, 0.28); }
 .gem-val { position: relative; font-size: 22px; font-weight: 900; line-height: 1; }
-.res-gem.gold .gem-val { color: var(--gold-hi); text-shadow: 0 0 10px rgba(232, 200, 119, 0.7); }
+.res-gem.gold .gem-val { color: var(--coin); text-shadow: 0 0 10px rgba(255, 201, 60, 0.6); }
 .res-gem.magic .gem-val { color: #b9c8ff; text-shadow: 0 0 10px rgba(130, 160, 255, 0.7); }
 .gem-lbl { font-family: var(--head); font-size: 12px; letter-spacing: 0.14em; font-weight: 700; }
 .res-gem.gold .gem-lbl { color: var(--gold-lit); }
@@ -1850,7 +1857,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle, rgba(6, 7, 12, .58) 24%, rgba(6, 7, 12, .1) 64%, transparent 80%);
 }
 .hcard .hc-cost b {
-  position: relative; z-index: 1; font-size: 15px; font-weight: 800; color: var(--gold-hi);
+  position: relative; z-index: 1; font-size: 15px; font-weight: 800; color: var(--coin);
   line-height: 1; display: block;
   text-shadow: 0 1px 3px #000, 0 0 4px #000, 0 0 8px rgba(0, 0, 0, .95);
 }
@@ -1862,7 +1869,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .hcard .hc-cost.discounted b { color: var(--stat-hp); }
 
 .hcard.unaffordable .hc-cost { border-color: #c98a8a; box-shadow: none; }
-.hcard.unaffordable .hc-cost b { color: #f0b8b8; }
+/* Still GOLD when you cannot pay it — it is still a Gold price — just dimmed;
+   the red ring is what says "not yet". */
+.hcard.unaffordable .hc-cost b { color: var(--coin-dim); }
 .hcard.unaffordable .hc-cost::after { background: radial-gradient(circle, rgba(40, 10, 10, .62) 24%, rgba(20, 6, 6, .16) 64%, transparent 80%); }
 /* THE HAND CARD'S PLATE — name, class, stats and the bar — sits on the card's
    bottom edge, and everything on it is LEFT-aligned. In the fan every card
