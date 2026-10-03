@@ -479,6 +479,24 @@ export function isCaptured(state: GameState, row: number, col: number): boolean 
   return state.slots[row][col].capturedBy !== null;
 }
 
+/** Ground NO BODY may stop on, by any route: a captured Home slot, or — in
+ *  Domination — a Point's citadel (`isImpassable`).
+ *
+ *  ONE QUESTION, ASKED EVERYWHERE A CARD IS PLACED (owner's call, 2026-10-02:
+ *  "lock the citadels down"). Every placement path used to ask only about
+ *  capture, because capture was the only closed ground there was; the citadel
+ *  came later and was taught to the Move and to `spawnTokens`, but not to the
+ *  thirty-odd other ways a card arrives on a square. A headless audit of 150
+ *  Domination games found ~200 bodies standing on a citadel, put there by
+ *  FRIGHTEN, trample shoves, charges, roll-throughs, drags, swaps-in and spawns.
+ *  Asking the TERRAIN question in one place is what keeps the next new
+ *  placement path from re-opening it. */
+export function groundClosed(state: GameState, row: number, col: number): boolean {
+  if (state.slots[row][col].capturedBy) return true;
+  const m = state.domination ? dominationMap(state.domination.mapId) : undefined;
+  return !!m && isImpassable(m, row, col);
+}
+
 /** How many of `player`'s OWN home slots they are standing in.
  *
  *  The summon economy is built on this (see `doResourcePhase`): income is one

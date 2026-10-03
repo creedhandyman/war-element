@@ -18,7 +18,7 @@ import {
   effectiveSp,
   moveReachFor,
   movesLikeKing,
-  SP_MID_MAX, enemyCards } from "./state";
+  SP_MID_MAX, enemyCards, groundClosed } from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -428,7 +428,7 @@ export function shoveTarget(
       && effectiveMaxHp(state, victim) >= effectiveMaxHp(state, card)) return null;
   const open = (p: { row: number; col: number }) =>
     p.row >= 0 && p.row < state.boardSize && p.col >= 0 && p.col < state.boardSize
-    && !state.slots[p.row][p.col].capturedBy && !cardAt(state, p.row, p.col);
+    && !groundClosed(state, p.row, p.col) && !cardAt(state, p.row, p.col);
 
   // STRAIGHT BACK FIRST — the shove proper, and still what happens whenever
   // there is room for it.
@@ -2270,7 +2270,7 @@ export function plummetTargets(state: GameState, instanceId: string): CardInstan
     // what keeps this a FINISHER rather than a same-cost trade.
     if (e.curHp >= dmg) return false;
     // The square has to be somewhere it can actually land.
-    if (state.slots[e.pos.row][e.pos.col].capturedBy) return false;
+    if (groundClosed(state, e.pos.row, e.pos.col)) return false;
     return canTarget(state, card, e, false, false);
   });
 }
@@ -2489,7 +2489,7 @@ export function forwardStepOpen(state: GameState, card: CardInstance): boolean {
   if (!card.pos) return false;
   const row = card.pos.row + (card.owner === "P1" ? -1 : 1);
   if (row < 0 || row >= state.boardSize) return false;
-  if (state.slots[row][card.pos.col].capturedBy) return false;
+  if (groundClosed(state, row, card.pos.col)) return false;
   return !cardAt(state, row, card.pos.col);
 }
 

@@ -3,7 +3,7 @@
 
 import { getDef } from "../data/cards";
 import { VOID_GATE, voidPlayerHeadStart } from "../data/void-tower";
-import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, poiRing, resolveHolders, poiAt} from "../data/domination";
+import { DOMINATION_HOLD_ROUNDS, DOMINATION_MAJORITY, POI_GOLD, dominationMap, heldCount, isImpassable, poiRing, resolveHolders, poiAt} from "../data/domination";
 import { applyFlow, AQUA_TIDE_EVERY, AQUA_TIDE_MAX, ARC_DISCHARGE_DIVISOR, DUSK_DRAIN, DAWN_SP_GROWTH, DAWN_STRIKE_PCT, EXOSTONE_DEFAULT, EXOSTONE_SHIELDS, type FlowMode, GALE_SP_CAP, hasArcDischarge, hasElementAura, LEAF_SHIELD_CAP, MISTY_FOG_MISS_PCT } from "./auras";
 import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, starBlast, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
@@ -32,7 +32,7 @@ import {
   removeCard,
   manhattan,
   spawnTokens,
-  summonCard, enemyCards } from "./state";
+  summonCard, enemyCards, groundClosed } from "./state";
 import {
   aoeRowsHit,
   basicIsInert,
@@ -112,6 +112,46 @@ function clone(state: GameState): GameState {
 
 /** Apply one player intent. Throws on illegal intents (UI should pre-check via rules). */
 export function applyIntent(state: GameState, intent: Intent): GameState {
+  return keepOffClosedGround(applyIntentRaw(state, intent));
+}
+
+/** THE BACKSTOP for "nothing stands on a citadel" (owner's call, 2026-10-02).
+ *
+ *  Every placement path asks `groundClosed` before it puts a body down — that
+ *  is the rule, and it is where a fix belongs. This is the net under it: a
+ *  path written later that forgets to ask still cannot leave a card on a
+ *  Point's citadel past the end of the step, because both entry points to the
+ *  engine (`applyIntent`, `advance`) end here. It moves the card to the
+ *  nearest open square and says so in the log — and `citadel.test.ts` fails on
+ *  that log line, so a forgotten path is caught by the suite rather than
+ *  quietly corrected forever. Costs one board scan a step, Domination only. */
+export const CITADEL_EVICTED = "is turned back from the citadel";
+function keepOffClosedGround(state: GameState): GameState {
+  if (!state.domination) return state;
+  const map = dominationMap(state.domination.mapId);
+  if (!map) return state;
+  const onCitadel = (c: CardInstance) => !!c.pos && isImpassable(map, c.pos.row, c.pos.col);
+  if (!boardCards(state).some(onCitadel)) return state;
+  const draft = clone(state);
+  for (const card of boardCards(draft).filter(onCitadel)) {
+    const from = card.pos!;
+    let best: Pos | null = null;
+    for (let ring = 1; ring < draft.boardSize && !best; ring++)
+      for (let r = from.row - ring; r <= from.row + ring && !best; r++)
+        for (let c = from.col - ring; c <= from.col + ring && !best; c++) {
+          if (Math.max(Math.abs(r - from.row), Math.abs(c - from.col)) !== ring) continue;
+          if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
+          if (groundClosed(draft, r, c) || cardAt(draft, r, c)) continue;
+          best = { row: r as Pos["row"], col: c as Pos["col"] };
+        }
+    if (!best) continue;
+    card.pos = best;
+    draft.log.push(`${getDef(card.defId).name} ${CITADEL_EVICTED}.`);
+  }
+  return draft;
+}
+
+function applyIntentRaw(state: GameState, intent: Intent): GameState {
   const draft = clone(state);
   switch (intent.type) {
     case "MULLIGAN": {
@@ -182,7 +222,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
         while (rolled < def.summonAdvance && inst.pos) {
           const nextRow: number = inst.pos.row + dir;
           if (nextRow < 0 || nextRow >= draft.boardSize) break;
-          if (cardAt(draft, nextRow, inst.pos.col) || draft.slots[nextRow][inst.pos.col].capturedBy) break;
+          if (cardAt(draft, nextRow, inst.pos.col) || groundClosed(draft, nextRow, inst.pos.col)) break;
           inst.pos = { row: nextRow as Pos["row"], col: inst.pos.col };
           rolled++;
         }
@@ -364,7 +404,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               const r = inst.pos.row + dr;
               const c = inst.pos.col + dc;
               if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
-              if (draft.slots[r][c].capturedBy || cardAt(draft, r, c)) continue;
+              if (groundClosed(draft, r, c) || cardAt(draft, r, c)) continue;
               const d = Math.abs(r - guard.pos.row) + Math.abs(c - guard.pos.col);
               if (d < bestD) { bestD = d; best = { row: r, col: c }; }
             }
@@ -400,7 +440,7 @@ export function applyIntent(state: GameState, intent: Intent): GameState {
               const r = inst.pos.row + dr;
               const c = inst.pos.col + dc;
               if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize) continue;
-              if (draft.slots[r][c].capturedBy || cardAt(draft, r, c)) continue;
+              if (groundClosed(draft, r, c) || cardAt(draft, r, c)) continue;
               // Never drop a body onto the enemy's own summoning row.
               if (r === homeRow(inst.owner, draft.boardSize)) continue;
               const d = guard.pos ? Math.abs(r - guard.pos.row) + Math.abs(c - guard.pos.col) : 0;
@@ -1103,7 +1143,7 @@ function resolveSpell(
       // The picked slot passed `canCastSpell`, so there is always at least one.
       const cols = t.row
         ? Array.from({ length: draft.boardSize }, (_, c) => c).filter((c) =>
-          !cardAt(draft, row, c) && !draft.slots[row][c].capturedBy
+          !cardAt(draft, row, c) && !groundClosed(draft, row, c)
           && !draft.traps.some((x) => x.pos.row === row && x.pos.col === c))
         : [col];
       for (const c of cols)
@@ -1886,7 +1926,7 @@ function performBattleAction(
     // goes through, so on-death riders and the slay-to-win check all still fire.
     const removed = defeatCard(draft, victim, "dive", card);
     if (removed && !cardAt(draft, landing.row, landing.col)
-        && !draft.slots[landing.row][landing.col].capturedBy) {
+        && !groundClosed(draft, landing.row, landing.col)) {
       card.pos = { row: landing.row as Pos["row"], col: landing.col as Pos["col"] };
     }
     // The landing, and it is UNPREVENTABLE: straight off curHp, so shields and
@@ -2669,7 +2709,7 @@ export function chargeOnArrival(draft: GameState, card: CardInstance): void {
   for (;;) {
     const next = row + dir;
     if (next < 0 || next >= draft.boardSize) break;
-    if (draft.slots[next][col].capturedBy) break;
+    if (groundClosed(draft, next, col)) break;
     const occupant = cardAt(draft, next, col);
     if (occupant) {
       if (occupant.owner === card.owner) break; // it will not run down its own
@@ -2810,7 +2850,7 @@ function doRoundTicks(draft: GameState): void {
       while (rolled < rt.advance && card.pos) {
         const nextRow: number = card.pos.row + dir;
         if (nextRow < 0 || nextRow >= draft.boardSize) break;
-        if (cardAt(draft, nextRow, card.pos.col) || draft.slots[nextRow][card.pos.col].capturedBy) break;
+        if (cardAt(draft, nextRow, card.pos.col) || groundClosed(draft, nextRow, card.pos.col)) break;
         card.pos = { row: nextRow as Pos["row"], col: card.pos.col };
         rolled++;
       }
@@ -2896,11 +2936,11 @@ function doRoundTicks(draft: GameState): void {
         for (let n = 0; n < steps; n++) {
           if (want < 0 || want === card.pos.col) break;
           const col: number = card.pos.col + (want > card.pos.col ? 1 : -1);
-          if (draft.slots[home][col].capturedBy) break; // nothing rests on a captured slot
+          if (groundClosed(draft, home, col)) break; // nothing rests on a captured slot
           const sitting = cardAt(draft, home, col);
           if (sitting) {
             // A captured slot cannot take the victim either, so the trade is off.
-            if (!rt.aimLateralSwap || draft.slots[home][card.pos.col].capturedBy) break;
+            if (!rt.aimLateralSwap || groundClosed(draft, home, card.pos.col)) break;
             const from = { ...card.pos };
             card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
             sitting.pos = { row: from.row as Pos["row"], col: from.col as Pos["col"] };
@@ -2928,7 +2968,7 @@ function doRoundTicks(draft: GameState): void {
       if (up >= rt.escortAdvance.need) {
         const row = card.pos.row + dir;
         if (row >= 0 && row < draft.boardSize && !cardAt(draft, row, card.pos.col)
-            && !draft.slots[row][card.pos.col].capturedBy) {
+            && !groundClosed(draft, row, card.pos.col)) {
           card.pos = { row: row as Pos["row"], col: card.pos.col };
           draft.log.push(`${label(draft, card)} — ${gait ?? "the pack"} moves up together.`);
         }
@@ -2943,7 +2983,7 @@ function doRoundTicks(draft: GameState): void {
       if ((100 * card.curHp) / maxHp < rt.kite.belowPct) {
         const back = card.pos.row + (card.owner === "P1" ? 1 : -1);
         if (back >= 0 && back < draft.boardSize && !cardAt(draft, back, card.pos.col)
-            && !draft.slots[back][card.pos.col].capturedBy) {
+            && !groundClosed(draft, back, card.pos.col)) {
           card.pos = { row: back as Pos["row"], col: card.pos.col };
           draft.log.push(`${label(draft, card)} breaks off and gives ground.`);
         }
@@ -2965,7 +3005,7 @@ function doRoundTicks(draft: GameState): void {
           if (counts[c] < fewest) { fewest = counts[c]; want = c; }
         if (want >= 0 && want !== card.pos.col) {
           const col = card.pos.col + (want > card.pos.col ? 1 : -1);
-          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+          if (!cardAt(draft, home, col) && !groundClosed(draft, home, col)) {
             card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
             draft.log.push(`${label(draft, card)} drifts clear — column ${col}.`);
           }
@@ -3012,7 +3052,7 @@ function doRoundTicks(draft: GameState): void {
         const row = card.pos.row + step;
         if (row >= 0 && row < draft.boardSize
             && !cardAt(draft, row, card.pos.col)
-            && !draft.slots[row][card.pos.col].capturedBy) {
+            && !groundClosed(draft, row, card.pos.col)) {
           card.pos = { row: row as Pos["row"], col: card.pos.col };
           draft.log.push(`${label(draft, card)} ${step === dir ? "stalks closer" : "coils back"}.`);
         }
@@ -3036,7 +3076,7 @@ function doRoundTicks(draft: GameState): void {
       if (card.pos.row === home) {
         for (let step = 1; step < draft.boardSize; step++) {
           const col = (card.pos.col + rt.shiftLateral * step) % draft.boardSize;
-          if (!cardAt(draft, home, col) && !draft.slots[home][col].capturedBy) {
+          if (!cardAt(draft, home, col) && !groundClosed(draft, home, col)) {
             card.pos = { row: home as Pos["row"], col: col as Pos["col"] };
             draft.log.push(`${label(draft, card)} shifts along its row.`);
             break;
@@ -3196,6 +3236,7 @@ function doRoundTicks(draft: GameState): void {
         const nc = e.pos.col + mc;
         if (nr === e.pos.row && nc === e.pos.col) continue;
         if (nr < 0 || nr >= draft.boardSize || nc < 0 || nc >= draft.boardSize) continue;
+        if (groundClosed(draft, nr, nc)) continue; // turned, never onto closed ground
         const key = `${nr},${nc}`;
         if (taken.has(key)) continue;
         taken.delete(`${e.pos.row},${e.pos.col}`);
@@ -3238,7 +3279,7 @@ function doRoundTicks(draft: GameState): void {
           // simply produces nothing this round rather than throwing.
           const open: number[] = [];
           for (let c = 0; c < draft.boardSize; c++)
-            if (!cardAt(draft, ahead, c) && !draft.slots[ahead][c].capturedBy) open.push(c);
+            if (!cardAt(draft, ahead, c) && !groundClosed(draft, ahead, c)) open.push(c);
           if (open.length) {
             const col = open[randInt(draft, open.length)];
             const born = summonCard(draft, card.owner, token, { row: ahead, col } as never);
@@ -3274,6 +3315,7 @@ function doRoundTicks(draft: GameState): void {
           // better than no hurricane.
           const open = (r: number, c: number) =>
             r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize
+            && !groundClosed(draft, r, c)
             && !boardCards(draft).some((x) => x.pos?.row === r && x.pos.col === c);
           let placed = false;
           for (let r = want; r >= 0 && r < draft.boardSize && !placed; r += forward)
@@ -4332,6 +4374,10 @@ export function needsP1Input(state: GameState): boolean {
  * game is waiting on P1 (idempotent) — callers loop or setTimeout on it.
  */
 export function advance(state: GameState): GameState {
+  return keepOffClosedGround(advanceRaw(state));
+}
+
+function advanceRaw(state: GameState): GameState {
   if (state.phase === "gameover") return state;
   if (needsP1Input(state)) return state;
   const draft = clone(state);

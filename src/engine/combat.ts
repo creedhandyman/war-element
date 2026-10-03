@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
+import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, groundClosed, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -343,7 +343,7 @@ export function applyStatus(
     if (
       row >= 0 &&
       row < draft.slots.length &&
-      !draft.slots[row][target.pos.col].capturedBy &&
+      !groundClosed(draft, row, target.pos.col) &&
       !cardAt(draft, row, target.pos.col)
     ) {
       target.pos = { ...target.pos, row };
@@ -751,7 +751,7 @@ export function dragInto(draft: GameState, victim: CardInstance, row: number): b
   // Bog Ambush's drag did not, so it moved Old Timer and Sakuroot anyway.
   if (getDef(victim.defId).pushImmune) return false;
   if (victim.pos.row === row) return false;
-  const free = (c: number) => !cardAt(draft, row, c) && !draft.slots[row][c].capturedBy;
+  const free = (c: number) => !cardAt(draft, row, c) && !groundClosed(draft, row, c);
   const cols = [...Array(draft.boardSize).keys()].sort(
     (a, b) => Math.abs(a - victim.pos!.col) - Math.abs(b - victim.pos!.col),
   );
@@ -842,7 +842,7 @@ export function pushBack(
   const total = steps + (side ? fieldPushBonus(draft, side) : 0);
   const blocked = (row: number, col: number) =>
     row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize ||
-    draft.slots[row][col].capturedBy || !!cardAt(draft, row, col) ||
+    groundClosed(draft, row, col) || !!cardAt(draft, row, col) ||
     slotIsImpassable(draft, row, col);
   let moved = 0;
   if (from) {
@@ -931,7 +931,7 @@ export function pullToward(
     const row: number = pos.row + dir;
     if (row < 0 || row >= draft.boardSize) break;
     if (row === pullerHome) break; // your own back line is not a place to put an enemy
-    if (draft.slots[row][pos.col].capturedBy || cardAt(draft, row, pos.col)) break;
+    if (groundClosed(draft, row, pos.col) || cardAt(draft, row, pos.col)) break;
     if (slotIsImpassable(draft, row, pos.col)) break; // a citadel is not a slot
     card.pos = { row: row as Pos["row"], col: pos.col };
     moved++;
@@ -982,7 +982,7 @@ export function reelToCaster(
       const row = pos.row + r, col = pos.col + c;
       if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) continue;
       if (row === pullerHome) continue; // your own back line is not a place to put an enemy
-      if (draft.slots[row][col].capturedBy || cardAt(draft, row, col)) continue;
+      if (groundClosed(draft, row, col) || cardAt(draft, row, col)) continue;
       if (slotIsImpassable(draft, row, col)) continue; // a citadel is not a slot
       card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
       stepped = true;
@@ -2990,7 +2990,7 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
     const row: number = pos.row + d.dr;
     const col: number = pos.col + d.dc;
     if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) break;
-    if (draft.slots[row][col].capturedBy) break;
+    if (groundClosed(draft, row, col)) break;
     const blocker = cardAt(draft, row, col);
     if (blocker) {
       // A JUGGERNAUT SHOVES. A TRAMPLE card walking into a lighter body drives
@@ -3031,7 +3031,7 @@ function chargeThrough(draft: GameState, card: CardInstance, minSteps: number): 
     const nr = row + d.dr;
     const nc = col + d.dc;
     if (nr < 0 || nr >= draft.boardSize || nc < 0 || nc >= draft.boardSize) break; // off the board
-    if (draft.slots[nr][nc].capturedBy) break; // can't stop on / pass a locked slot
+    if (groundClosed(draft, nr, nc)) break; // can't stop on / pass a locked slot
     row = nr;
     col = nc;
     stepped++;
@@ -3077,7 +3077,7 @@ function chargeToward(
   const canDiagonal = diagonal || isFlying(card);
   const open = (r: number, c: number) =>
     r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
-    !draft.slots[r][c].capturedBy && !cardAt(draft, r, c);
+    !groundClosed(draft, r, c) && !cardAt(draft, r, c);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;
@@ -3588,7 +3588,7 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
       draft.log.push(`${name} strikes the weakest — ${def.lowestHpDmg} DMG to ${getDef(prey.defId).name}.`);
       directDamage(draft, killer, prey, def.lowestHpDmg, false);
       if (dest && killer.curHp > 0 && killer.pos
-          && !draft.slots[dest.row][dest.col].capturedBy
+          && !groundClosed(draft, dest.row, dest.col)
           && !cardAt(draft, dest.row, dest.col)) {
         killer.pos = { row: dest.row as Pos["row"], col: dest.col };
         draft.log.push(`${name} closes in.`);
@@ -3765,7 +3765,7 @@ function applySelfRiders(
     while (dir !== 0 && moved < back) {
       const r = row + dir;
       if (r < 0 || r >= draft.boardSize) break;
-      if (cardAt(draft, r, col) || draft.slots[r][col].capturedBy) break;
+      if (cardAt(draft, r, col) || groundClosed(draft, r, col)) break;
       row = r;
       caster.pos = { row: row as Pos["row"], col };
       moved++;
@@ -3780,7 +3780,7 @@ function applySelfRiders(
     // the middle column of an odd board (whose mirror is itself) saw itself in
     // the way and hopped sideways to a slot that is not the mirror of anything.
     const free = (c: number) =>
-      c >= 0 && c < draft.boardSize && !draft.slots[row][c].capturedBy
+      c >= 0 && c < draft.boardSize && !groundClosed(draft, row, c)
       && (c === caster.pos!.col || !cardAt(draft, row, c));
     let dest = -1;
     for (let d = 0; d < draft.boardSize && dest < 0; d++)
@@ -4206,7 +4206,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // that shuffled bodies, a spawn-on-death filling its own corpse's square).
     if (num(params, "takeSpotOnKill") > 0 && r.targetDied && center
         && attacker.curHp > 0 && attacker.pos
-        && !draft.slots[center.row][center.col].capturedBy
+        && !groundClosed(draft, center.row, center.col)
         && !cardAt(draft, center.row, center.col)) {
       attacker.pos = { row: center.row as Pos["row"], col: center.col };
       draft.log.push(`${label(draft, attacker)} takes the ground it cleared.`);
@@ -4977,7 +4977,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       ? boardCards(draft, attacker.owner).filter((c) => c.curHp > 0 && c.defId === spawn).length
       : 0;
     if (spawn && dead && where && (cap <= 0 || rolling < cap)
-        && !draft.slots[where.row][where.col].capturedBy
+        && !groundClosed(draft, where.row, where.col)
         && !boardCards(draft).some((c) => c.pos?.row === where.row && c.pos.col === where.col)) {
       const born = summonCard(draft, attacker.owner, spawn, where as never);
       born.summonedThisRound = false;
@@ -6051,7 +6051,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const kind = params.statusKind;
     let laid = 0;
     for (let col = 0; col < draft.boardSize; col++) {
-      if (draft.slots[row][col].capturedBy) continue;
+      if (groundClosed(draft, row, col)) continue;
       if (draft.traps.some((t) => t.pos.row === row && t.pos.col === col)) continue;
       draft.traps.push({
         owner: attacker.owner,
