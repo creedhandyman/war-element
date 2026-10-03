@@ -4919,7 +4919,12 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
   //     Talent is worth more on that card than the gold was. Noted apart from
   //     the other three on purpose — "it was here first" and "we decided to"
   //     are different arguments, and only the second one can be made again.
-  const EXCEPTIONS = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister", "dawn_quasar"]);
+  //
+  // The Butler is the one exception that is not a balance argument at all: it
+  // is Nightfang's DISGUISE, a mask with no place in any deck, and its cost-8
+  // line is Nightfang's own. Its Unmask Talent is how the legendary under it
+  // comes out on command (owner's call, 2026-10-03).
+  const EXCEPTIONS = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister", "dawn_quasar", "dusk_butler"]);
 
   it("every Talent sits on a cost-3 Rare", () => {
     const wrong = talented
@@ -4934,7 +4939,7 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
     // this fails and the list shrinks — an exception set that cannot quietly
     // grow, and cannot quietly keep a name it has stopped earning either.
     const stillWrong = [...EXCEPTIONS].filter((id) => {
-      const d = CARDS.find((c) => c.id === id);
+      const d = talented.find((c) => c.id === id);
       return d && d.talent && (d.rarity !== "rare" || d.cost !== 3);
     });
     expect(stillWrong.sort()).toEqual([...EXCEPTIONS].sort());

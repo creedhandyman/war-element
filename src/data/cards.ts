@@ -3345,13 +3345,16 @@ export const CARDS: CardDef[] = [
         statusKind: "DOT", statusDuration: 3, statusPower: 3,
         spDebuff: 5, spDebuffRounds: 3,
         debuffStatus: "BLIND", debuffStatusRounds: 3,
-        selfStatus: "STEALTH", selfStatusDuration: 1, // slips back underground after the quake
+        // Slips back underground after the quake — for TWO rounds now, up from
+        // one (owner's call, 2026-10-03). STEALTH still breaks the moment it
+        // attacks, so this buys a second round of cover only if it sits still.
+        selfStatus: "STEALTH", selfStatusDuration: 2,
         // Surfacing costs it. Deliberately NO selfHpLethal — a 10-cost mythic
         // deleting itself is a misclick, so the cast is refused at 5 HP or less.
         selfHpCost: 5,
       },
       targetSide: "enemy",
-      text: "Tear off 5 HP to sinkhole all opponents in range for 3 DMG — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH. 3-round cooldown.",
+      text: "Tear off 5 HP to sinkhole all opponents in range for 3 DMG — DOT 3, −5 SP, −50% accuracy for 3 rounds — then slip into STEALTH for 2 rounds. 3-round cooldown.",
     },
   },
 
@@ -15199,6 +15202,16 @@ export const TOKENS: CardDef[] = [
     // to stand with the people it keeps alive.
     passiveNames: { roundTick: "Butler's Service" },
     roundTick: { healAlliesInRange: 4 },
+    // Unmask (Talent, free, once per game): Nightfang drops the disguise on
+    // command instead of only when killed (owner's call, 2026-10-03). It stands
+    // revealed at full HP; the free Soul Slash stays the answer for whoever
+    // kills the Butler, so waiting for the hit is still the bigger payoff.
+    talent: {
+      name: "Unmask",
+      text: "Drop the disguise: Nightfang stands revealed at full HP. Takes this turn's action.",
+      handler: "unmask",
+      targetSide: "self",
+    },
   },
   {
     id: "gale_ollie",

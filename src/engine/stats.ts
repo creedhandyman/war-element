@@ -25,13 +25,21 @@ export function emptyStats(): MatchStats {
   };
 }
 
+/** The card a body really IS, for the report: the card in the deck, not a form
+ *  it is wearing. Nightfang spends most of a match as its Butler, and its row
+ *  was named after the Butler — so the legendary in the deck never showed up in
+ *  its own match report (owner's call, 2026-10-03). Siren's Sea Terror is the
+ *  same field and the same answer: the row belongs to Siren. The report is
+ *  post-match, so naming the true card gives nothing away mid-game. */
+const identityOf = (card: CardInstance): string => card.transformedFrom ?? card.defId;
+
 /** Lazily create (and return) the per-card row for a card. */
 function cardRow(stats: MatchStats, card: CardInstance) {
   let row = stats.byCard[card.instanceId];
   if (!row) {
     row = {
-      defId: card.defId,
-      name: getDef(card.defId).name,
+      defId: identityOf(card),
+      name: getDef(identityOf(card)).name,
       owner: card.owner,
       dmg: 0, heal: 0, captures: 0, kills: 0,
       taken: 0, shielded: 0, healRecv: 0, debuffs: 0, deaths: 0,

@@ -2326,7 +2326,7 @@ export function canPlummet(
  *  self-affecting handler cannot quietly end up gated on enemies it does not
  *  want. */
 export const TALENT_NEEDS_NO_TARGET: ReadonlySet<string> = new Set([
-  "loadHits", "empower", "shellTuck", "electroSurge", "reposition",
+  "loadHits", "empower", "shellTuck", "electroSurge", "reposition", "unmask",
 ]);
 
 /** Does this Talent need something to aim at before it is worth firing?
@@ -2391,6 +2391,9 @@ export function canFireTalent(
   const def = getDef(card.defId);
   if (!def.talent) return { ok: false, reason: "No Talent" };
   if (card.talentUsed) return { ok: false, reason: "Talent already used this game" };
+  // Unmask drops a disguise; a Butler that is only a Butler has none to drop.
+  if (def.talent.handler === "unmask" && !card.transformedFrom)
+    return { ok: false, reason: "Nothing to unmask" };
   if (isActionBlocked(card)) return { ok: false, reason: "Status prevents acting" };
   // NOTHING TO AIM AT IS NOT A TURN. The Special has refused this since it was
   // written (`canFireSpecial`, "No valid target"); the Talent never got the

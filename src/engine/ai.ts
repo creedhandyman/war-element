@@ -1782,6 +1782,17 @@ function chooseBattleActionUnaimed(state: GameState, instanceId: string): Battle
     return { action: "plummet", targetId: best.instanceId };
   }
 
+  // UNMASK (the Butler): keep the disguise — being killed in it is worth a free
+  // Soul Slash — and drop it only to take a kill the Butler cannot: something
+  // in reach that Nightfang's basic would finish and the Butler's would not.
+  if (def.talent?.handler === "unmask") {
+    if (card.transformedFrom && canFireTalent(state, instanceId).ok && !basicCanKill) {
+      const tf = getDef(card.transformedFrom);
+      const finish = targets.some((t) =>
+        willKill(t, estimateVolley(tf.dmg, tf.hits, Boolean(tf.keywords.PEN), t), state.boardSize));
+      if (finish) return { action: "talent" };
+    }
+  } else
   // Talent (Dart Frog's Bleed Out): trade this turn's attack to load the darts
   // — but only when there's nothing to kill right now and the darts aren't
   // already loaded, so next turn's basic hits far harder.

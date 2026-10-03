@@ -358,6 +358,26 @@ export function label(_draft: GameState, card: CardInstance): string {
 
 /** Defeat a card, honoring on-revive (Bearocks). Returns true if it was
  *  actually removed, false if it revived and survives. */
+/** Drop a borrowed form and stand as the card it really is, at FULL HP, with the
+ *  old form's buffs, bonuses and statuses gone. Shared by the two ways a mask
+ *  comes off: being killed in it (`defeatCard`, Siren's Sea Terror and
+ *  Nightfang's Butler) and choosing to (the Butler's Unmask Talent). */
+export function revertToTrueForm(card: CardInstance): void {
+  if (!card.transformedFrom) return;
+  const orig = getDef(card.transformedFrom);
+  card.defId = card.transformedFrom;
+  card.transformedFrom = undefined;
+  card.maxHp = orig.hp;
+  card.curHp = orig.hp; // reverts at FULL HP
+  card.curShields = orig.shields;
+  card.dmgBonus = 0;
+  card.spBonus = 0;
+  card.hitsBonus = 0;
+  card.buffs = [];
+  card.statuses = [];
+  card.transformed = false;
+}
+
 export function defeatCard(
   draft: GameState,
   card: CardInstance,
@@ -409,18 +429,7 @@ export function defeatCard(
   // Sea Terror (Siren): a transformed form doesn't die — it reverts to the
   // original card at full HP.
   if (card.transformedFrom && card.pos) {
-    const orig = getDef(card.transformedFrom);
-    card.defId = card.transformedFrom;
-    card.transformedFrom = undefined;
-    card.maxHp = orig.hp;
-    card.curHp = orig.hp; // reverts at FULL HP
-    card.curShields = orig.shields;
-    card.dmgBonus = 0;
-    card.spBonus = 0;
-    card.hitsBonus = 0;
-    card.buffs = [];
-    card.statuses = [];
-    card.transformed = false;
+    revertToTrueForm(card);
     // Nightfang: the Butler was never the card. Whoever pulled the mask off
     // takes the true form's Special to the face — free, and off cooldown. That
     // is the whole point of wearing one.
@@ -5274,6 +5283,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   spawnOrbs(draft, attacker, _targets, _params) {
     attacker.orbs = [...ORB_KINDS];
     draft.log.push(`${label(draft, attacker)} conjures 3 Light Orbs (blue · green · red).`);
+  },
+  /** Unmask (the Butler's Talent): Nightfang drops the disguise ON COMMAND
+   *  rather than waiting to be killed in it (owner's call, 2026-10-03). Same
+   *  revert the death-reveal uses — full HP, the Butler's buffs gone — but no
+   *  free Soul Slash: that answer is for whoever pulls the mask off, and here
+   *  nobody did. A card that is not wearing a disguise has nothing to drop
+   *  (`canFireTalent` refuses it). */
+  unmask(draft, attacker, _targets) {
+    if (!attacker.transformedFrom) return;
+    const mask = getDef(attacker.defId).name;
+    revertToTrueForm(attacker);
+    draft.log.push(`${mask} drops the act — ${label(draft, attacker)} stands revealed!`);
   },
   /** Sea Terror (Siren): transform into another card. It takes on the new form's
    *  stats and fires that form's On Summon; when the form dies it reverts (see

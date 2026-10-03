@@ -438,6 +438,18 @@ describe("The Deepest — Drilling Quake sinkhole", () => {
     expect(effectiveSp(next, f)).toBe(getDef("leaf_alpha").sp - 5); // −5 SP
   });
 
+  it("slips back underground for TWO rounds after the quake (owner's call, 2026-10-03)", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const deepest = place(s, "bore_deepest", "P1", 2, 0);
+    const foe = place(s, "leaf_alpha", "P2", 1, 0, { curHp: 40, maxHp: 40, curShields: 0 });
+    const next = applyIntent(battleWith(s, deepest.instanceId), {
+      type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId,
+    });
+    expect(statusOf(next.cards[deepest.instanceId], "STEALTH")?.duration).toBe(2);
+    expect(getDef("bore_deepest").special!.text).toContain("STEALTH for 2 rounds");
+  });
+
   it("is a RANGED Special (reaches a far opponent)", () => {
     expect(getDef("bore_deepest").attackType).toBe("Ranged"); // blind sonar-support
     const s = prepState();
