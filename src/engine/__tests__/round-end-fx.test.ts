@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getDef } from "../../data/cards";
 import { advance, applyIntent } from "../phases";
 import { getSpell } from "../spells";
 import type { GameState, StatusEffect } from "../types";
@@ -93,6 +94,13 @@ describe("an icy AQUA card attacks in ice", () => {
     expect(lookVariant(place(s, "leaf_greegon", "P2", 0, 1, { flowMode: "ice" }))).toBeUndefined(); // AQUA's only
   });
 
+  it("but the Blue Whale throws water, though its Breach freezes; the Frozen Flow still turns it", () => {
+    const s = prepState(1);
+    expect(JSON.stringify(getDef("aqua_bluewhale")), "the kit still freezes").toContain('"FREEZE"');
+    expect(lookVariant(place(s, "aqua_bluewhale", "P1", 3, 0))).toBeUndefined();
+    expect(lookVariant(place(s, "aqua_bluewhale", "P1", 3, 1, { flowMode: "ice" }))).toBe("ice");
+  });
+
   it("carries it from the attack down to every hit it lands", () => {
     const s = prepState(1);
     const polar = place(s, "aqua_polarking", "P1", 2, 1);
@@ -106,6 +114,24 @@ describe("an icy AQUA card attacks in ice", () => {
     const hits = cardAttackEffects(s, after).filter((f) => f.kind === "hit");
     expect(hits).toHaveLength(1);
     expect(hits[0]).toMatchObject({ variant: "ice" });
+  });
+
+  it("the Blue Whale's shot and its Breach both land as water", () => {
+    for (const action of ["basic", "special"] as const) {
+      const s = prepState(1);
+      s.players.P1.magicPool = 5;
+      const whale = place(s, "aqua_bluewhale", "P1", 3, 1);
+      const foe = place(s, "leaf_greegon", "P2", 1, 1, { curShields: 0 });
+      s.phase = "battle";
+      s.battle = { queue: [whale.instanceId], index: 0, awaitingInput: whale.instanceId };
+      const after = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action, targetId: foe.instanceId });
+      const atk = cardAttack(s, after);
+      expect(atk, action).toMatchObject({ melee: false, special: action === "special" });
+      expect(atk?.variant, action).toBeUndefined();
+      const hits = cardAttackEffects(s, after).filter((f) => f.kind === "hit");
+      expect(hits.length, action).toBeGreaterThan(0);
+      for (const h of hits) expect(h, action).not.toHaveProperty("variant", "ice");
+    }
   });
 });
 

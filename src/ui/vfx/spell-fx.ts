@@ -308,13 +308,22 @@ function freezes(def: CardDef): boolean {
   return f;
 }
 
+/** WATER, whatever its kit freezes. The Blue Whale's Breach brings the cold up
+ *  with it (FREEZE), but what the whale throws is sea water — owner, 2026-10-02:
+ *  "Update the blue whale's projectile to be liquid water." It went Ranged the
+ *  same day, so its freezing kit had started firing ice shards. */
+const WATER_ALWAYS: ReadonlySet<string> = new Set(["aqua_bluewhale"]);
+
 /** An AQUA card that is ICE rather than water attacks in ice: it took the
  *  Frozen Flow as it landed, its kit freezes, or it is named for the cold.
- *  Read off the card, not a list — a new ice card is drawn in ice on day one. */
+ *  Read off the card, not a list — a new ice card is drawn in ice on day one.
+ *  The Frozen Flow outranks WATER_ALWAYS: that one is a choice made in play. */
 export function lookVariant(card: CardInstance): LookVariant | undefined {
   const def = getDef(card.defId);
   if (def.element !== "AQUA") return undefined;
-  return card.flowMode === "ice" || freezes(def) || ICY_NAME.test(def.name) ? "ice" : undefined;
+  if (card.flowMode === "ice") return "ice";
+  if (WATER_ALWAYS.has(def.id)) return undefined;
+  return freezes(def) || ICY_NAME.test(def.name) ? "ice" : undefined;
 }
 
 /** Cards on the board in `after` that were not in `before` — summoned, or
