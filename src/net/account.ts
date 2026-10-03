@@ -88,6 +88,10 @@ function db(): SupabaseClient | null {
   return client;
 }
 
+/** The signed-in client, for the foil market (net/market.ts). The same
+ *  session the cloud save uses — a listing is made AS the account. */
+export const accountClient = (): SupabaseClient | null => db();
+
 const TABLE = "player_saves";
 
 /** The localStorage keys that ARE the player's progress.

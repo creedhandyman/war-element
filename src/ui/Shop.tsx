@@ -23,6 +23,7 @@
  *  the table.
  */
 import { useEffect, useMemo, useRef, useState } from "react";
+import { MarketTab } from "./MarketTab";
 import { useBackLayer } from "./use-back-layer";
 import { CARDS, getDef } from "../data/cards";
 import {
@@ -139,9 +140,13 @@ export function Shop(props: {
   /** The squad library changed: a bought deck is saved as a squad, and the
    *  App keeps the library in state. */
   onSquads?: (squads: Squad[]) => void;
+  /** The foil market (MarketTab.tsx): collect what the server says this
+   *  player is owed, and open the account panel to sign in. */
+  onMarketSettle?: () => Promise<void>;
+  onSignIn?: () => void;
 }) {
   const { save } = props;
-  const [tab, setTab] = useState<"packs" | "crafter">(props.openTab ?? "packs");
+  const [tab, setTab] = useState<"packs" | "crafter" | "market">(props.openTab ?? "packs");
   /** Falls back to the drawn seal if the pack shot fails to load — the Packs
    *  tab should never be a hole where its one object was. */
   const [packArt, setPackArt] = useState(true);
@@ -389,7 +394,7 @@ export function Shop(props: {
             wallet the crafter will refuse to spend from — so with a purse
             selected the line reads that purse, and with none it says plainly
             that the total is spread across elements. */}
-        {tab === "packs" ? (
+        {tab === "packs" || tab === "market" ? (
           <span className="shop-bal shards"><b>{shards}</b><i className="shard" /></span>
         ) : el === "ALL" ? (
           <span className="shop-bal">
@@ -407,9 +412,13 @@ export function Shop(props: {
       <div className="shop-tabs">
         <button className={`shop-tab ${tab === "packs" ? "on" : ""}`} onClick={() => setTab("packs")}>Packs</button>
         <button className={`shop-tab ${tab === "crafter" ? "on" : ""}`} onClick={() => setTab("crafter")}>Crafter</button>
+        <button className={`shop-tab ${tab === "market" ? "on" : ""}`} onClick={() => setTab("market")}>Market</button>
       </div>
 
-      {tab === "packs" ? (
+      {tab === "market" ? (
+        <MarketTab save={save} onSave={props.onSave} onSignIn={props.onSignIn}
+          onSettle={props.onMarketSettle ?? (async () => {})} />
+      ) : tab === "packs" ? (
         /* One object, centred, with the whole cost of a mistake stated before
            you tap it: the odds, the guarantee, the foil rate, and what the
            duplicates pay back. */

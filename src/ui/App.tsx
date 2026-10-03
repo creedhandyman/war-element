@@ -1311,6 +1311,40 @@ export function App() {
   // Cloud autosave for a signed-in device (cloud-autosave.ts).
   useCloudAutosave();
 
+  // ── THE FOIL MARKET: collecting what you are owed ──────────────────────────
+  // A sale, a returned foil or a purchase is recorded on the server; this
+  // applies it to the save (data/market.ts `applySettlements`, once per
+  // listing), SAVES, and only then tells the server it is done — so a crash in
+  // between is retried next time, never lost or paid twice. Runs when a
+  // signed-in player opens the game and after every Market action. Loaded on
+  // demand, like the account module, to keep it out of the first download.
+  const [marketNotes, setMarketNotes] = useState<string[]>([]);
+  const marketStoryRef = useRef(story);
+  marketStoryRef.current = story;
+  const marketSettling = useRef(false);
+  const runMarketSettle = useCallback(async () => {
+    if (marketSettling.current) return;
+    marketSettling.current = true;
+    try {
+      const [net, rules] = await Promise.all([import("../net/market"), import("../data/market")]);
+      const owed = await net.pendingSettlements();
+      if (!owed.ok || owed.value.length === 0) return;
+      const r = rules.applySettlements(marketStoryRef.current, owed.value);
+      if (r.save !== marketStoryRef.current) {
+        marketStoryRef.current = r.save;
+        setStory(r.save);
+        saveStory(r.save);
+      }
+      await net.ackSettlements(owed.value.map((s) => s.id));
+      if (r.notes.length) setMarketNotes((n) => [...n, ...r.notes]);
+    } finally {
+      marketSettling.current = false;
+    }
+  }, []);
+  useEffect(() => {
+    if (accountEmail) void runMarketSettle();
+  }, [accountEmail, runMarketSettle]);
+
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | "p3" | "p4" | null>(null);
   // Premade builds sized for the CHOSEN battlefield — a 30-card large build must
@@ -5611,6 +5645,15 @@ export function App() {
           draft — and shown when that is done, so it never lands on top of the
           moment that earned it. Tapping goes to the Achievements screen; it is
           claimed there. */}
+      {/* FOIL MARKET NEWS — a sale, a returned foil, a purchase collected
+          (runMarketSettle). Held during a match, like the achievement toast. */}
+      {marketNotes.length > 0 && !started && (
+        <div className="mkt-toast" role="status">
+          <div className="mkt-toast-head">MARKET</div>
+          {marketNotes.map((n, i) => <p key={i}>{n}</p>)}
+          <button className="lockin" onClick={() => setMarketNotes([])}>OK</button>
+        </div>
+      )}
       {achToastIds.length > 0 && !started && !levelUp && !packBusy && !builderOpen && !nav.builder
         && !(draftRun && !draftComplete(draftRun)) && !(tab === "home" && homeAchievements) && (
         <AchievementToast
@@ -6754,6 +6797,8 @@ export function App() {
             <Shop key={shopTab} save={story} openTab={shopTab}
               onBusy={setPackBusy}
               onSquads={setCustomDecks}
+              onMarketSettle={runMarketSettle}
+              onSignIn={() => setAccountOpen(true)}
               onSave={(next) => { setStory(next); saveStory(next); }} />
           </div>
         </div>

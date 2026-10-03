@@ -9520,3 +9520,86 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   flex: 1; min-width: 0; padding: 7px 10px; border-radius: 9px; font-size: 12px;
   color: var(--ink); background: rgba(0, 0, 0, .3); border: 1px solid var(--panel-line);
 }
+
+/* ── the foil market (owner, 2026-10-03) — the Shop's Market tab ───────────
+   MarketTab.tsx. Reuses the Shop's tab strip and .box-buy; the rest is here. */
+.mkt { display: flex; flex-direction: column; gap: 10px; }
+.mkt-views { margin-bottom: 0; }
+.mkt-msg {
+  padding: 8px 11px; border-radius: 9px; font-size: 12px; color: #ffd2c9;
+  border: 1px solid rgba(229, 83, 61, 0.45); background: rgba(229, 83, 61, 0.1);
+}
+.mkt-empty {
+  padding: 18px 14px; border-radius: 12px; text-align: center; font-size: 12px; line-height: 1.5;
+  color: var(--ink-dim); border: 1px dashed var(--panel-line); background: rgba(6, 7, 12, 0.35);
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.mkt-empty b { font-size: 14px; color: var(--ink); }
+.mkt-empty p { margin: 0; max-width: 380px; }
+.mkt-note { margin: 0; font-size: 11px; line-height: 1.45; color: var(--ink-faint); }
+.mkt-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.mkt-chip {
+  padding: 5px 11px; border-radius: 999px; cursor: pointer; font: inherit; font-size: 11px; font-weight: 600;
+  color: var(--ink-dim); border: 1px solid var(--panel-line); background: rgba(6, 7, 12, 0.4);
+}
+.mkt-chip.on { color: var(--gold-hi); border-color: var(--gold-line); background: rgba(201, 162, 75, 0.12); }
+.mkt-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 9px; }
+.mkt-card {
+  position: relative; display: flex; flex-direction: column; overflow: hidden;
+  border-radius: 12px; border: 1px solid var(--panel-line); background: var(--void-2);
+}
+.mkt-card.r-rare { border-color: var(--rar-rare, var(--panel-line)); }
+.mkt-card.r-epic { border-color: var(--rar-epic); }
+.mkt-card.r-legendary { border-color: var(--rar-legendary); }
+.mkt-card.r-mythic { border-color: var(--rar-mythic); }
+.mkt-art { width: 100%; height: 96px; object-fit: cover; object-position: 50% 20%; display: block; }
+.mkt-foil {
+  position: absolute; top: 6px; left: 6px; padding: 1px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 800; letter-spacing: 0.12em; color: #1a1408;
+  background: linear-gradient(110deg, #ffe8a3, #b9f3ff, #f7b8ff, #ffe8a3);
+}
+.mkt-body { display: flex; flex-direction: column; gap: 3px; padding: 8px 9px 9px; }
+.mkt-body b { font-size: 13px; color: var(--ink); }
+.mkt-body small { font-size: 10px; color: var(--ink-faint); line-height: 1.35; }
+.mkt-body .box-buy { align-self: stretch; justify-content: center; }
+.box-buy.armed { box-shadow: 0 0 0 1px var(--gold-lit), 0 0 12px rgba(255, 214, 122, 0.35); }
+.mkt-mine { display: flex; flex-direction: column; gap: 6px; }
+.mkt-row {
+  display: flex; align-items: center; gap: 10px; padding: 7px 9px; border-radius: 10px;
+  border: 1px solid var(--panel-line); background: rgba(6, 7, 12, 0.4);
+}
+.mkt-row img { flex: none; width: 34px; height: 46px; border-radius: 6px; object-fit: cover; object-position: 50% 20%; }
+.mkt-row-meta { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.mkt-row-meta b { font-size: 13px; color: var(--ink); }
+.mkt-row-meta small { font-size: 10px; color: var(--ink-faint); }
+.mkt-foils { display: grid; grid-template-columns: repeat(auto-fill, minmax(84px, 1fr)); gap: 7px; }
+.mkt-pick {
+  display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 6px; border-radius: 10px;
+  cursor: pointer; font: inherit; color: var(--ink-dim); border: 1px solid var(--panel-line); background: rgba(6, 7, 12, 0.4);
+}
+.mkt-pick img { width: 100%; height: 72px; border-radius: 7px; object-fit: cover; object-position: 50% 20%; }
+.mkt-pick span { font-size: 11px; font-weight: 600; text-align: center; line-height: 1.2; }
+.mkt-pick.on { color: var(--gold-hi); border-color: var(--gold-lit); background: rgba(201, 162, 75, 0.12); }
+.mkt-sell {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px; border-radius: 12px;
+  border: 1px solid var(--gold-line); background: rgba(201, 162, 75, 0.06);
+}
+.mkt-sell b { font-size: 14px; color: var(--ink); }
+.mkt-price { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--ink-dim); }
+.mkt-price input {
+  width: 96px; padding: 6px 8px; border-radius: 8px; font: inherit; font-size: 14px; font-weight: 700;
+  color: var(--ink); border: 1px solid var(--panel-line); background: rgba(0, 0, 0, 0.35);
+}
+.mkt-price small { color: var(--ink-faint); }
+.mkt-sell input[type="range"] { width: 100%; accent-color: var(--gold); }
+.mkt-sell .lockin { align-self: flex-start; }
+.mkt-toast {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(10px + env(safe-area-inset-top, 0px)); z-index: var(--z-toast);
+  width: min(420px, calc(100vw - 24px)); box-sizing: border-box; padding: 11px 14px 12px;
+  border-radius: 14px; border: 1px solid var(--gold-lit); background: rgba(14, 17, 26, 0.97);
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.55), 0 0 18px rgba(201, 162, 75, 0.25);
+}
+.mkt-toast-head { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--gold-lit); margin-bottom: 4px; }
+.mkt-toast p { margin: 0 0 5px; font-size: 12px; line-height: 1.4; color: var(--ink); }
+.mkt-toast .lockin { margin-top: 4px; padding: 6px 16px; }
