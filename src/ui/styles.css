@@ -9414,7 +9414,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .overlay.on-top.rv-overlay, .overlay.on-top.mh-overlay { z-index: calc(var(--z-modal) + 1); }
 .rv-overlay { overflow-y: auto; padding: 12px 0; }
 .rv {
-  width: min(980px, 96vw); max-height: none; display: flex; flex-direction: column; gap: 10px;
+  width: min(1180px, 96vw); max-height: none; display: flex; flex-direction: column; gap: 10px;
   background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 16px;
 }
 .rv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
@@ -9425,9 +9425,49 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 12px; text-align: left;
   color: #ffe3a3; background: rgba(200, 150, 40, .14); border: 1px solid rgba(200, 150, 40, .4);
 }
-.rv-stage { display: flex; gap: 14px; align-items: flex-start; justify-content: center; }
-.rv-board { --board-size: min(58vh, 92vw, 560px); --board-h: var(--board-size); --board-tilt: 0deg; flex: none; }
-.rv-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.rv-stage { display: flex; gap: 16px; align-items: flex-start; justify-content: center; }
+/* THE BOARD AT MATCH PROPORTIONS. Where the live match fits the board to the
+   screen its tiles are a touch taller than wide (--board-h = 87/70 of the
+   width); a square board here squashed every card. As tall as the viewport
+   allows, never wider than its column. */
+.rv-board {
+  --board-size: min(calc((100vh - 270px) * 70 / 87), 640px, calc(96vw - 400px));
+  --board-h: calc(var(--board-size) * 87 / 70);
+  --board-tilt: 0deg; flex: none;
+}
+.rv-board .slot { cursor: pointer; }
+.rv-side { flex: 1; min-width: 240px; max-width: 360px; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.rv-tip { float: right; font-size: 11px; color: var(--ink-dim); opacity: .8; }
+/* The spell being cast, big enough to read: its edge in the spell's element,
+   its side told by the label (yours green, theirs red). */
+.rv-cast {
+  display: flex; gap: 10px; padding: 8px; border-radius: 12px;
+  border: 1px solid color-mix(in srgb, var(--el) 60%, transparent);
+  background: linear-gradient(150deg, color-mix(in srgb, var(--el) 18%, transparent), rgba(0, 0, 0, .3));
+}
+.rv-cast.fresh { box-shadow: 0 0 18px color-mix(in srgb, var(--el) 45%, transparent); }
+.rv-cast-art { flex: 0 0 64px; height: 86px; border-radius: 8px; overflow: hidden; display: grid; place-items: center;
+  background: rgba(0, 0, 0, .35); font-size: 30px; }
+.rv-cast-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.rv-cast-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.rv-cast-who { font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; }
+.rv-cast.mine .rv-cast-who { color: var(--legal); }
+.rv-cast.theirs .rv-cast-who { color: var(--threat); }
+.rv-cast-name { font-family: var(--head); font-size: 15px; color: var(--ink); }
+.rv-cast-name i { font-style: normal; font-size: 12px; color: #b6a6f2; margin-left: 4px; }
+.rv-cast-text { font-size: 12px; line-height: 1.35; color: var(--ink-dim); }
+.rv-spells { display: flex; flex-direction: column; gap: 5px; }
+.rv-spells-h { font-size: 11px; color: var(--ink-dim); letter-spacing: .04em; }
+.rv-spells-row { display: flex; flex-wrap: wrap; gap: 5px; }
+.rv-chip {
+  padding: 3px 8px; border-radius: 999px; font-size: 11px; font-weight: 700; cursor: pointer;
+  color: var(--ink); background: color-mix(in srgb, var(--el) 16%, rgba(0, 0, 0, .3));
+  border: 1px solid color-mix(in srgb, var(--el) 50%, transparent);
+  border-left: 3px solid var(--legal);
+}
+.rv-chip.theirs { border-left-color: var(--threat); }
+.rv-chip.later { opacity: .4; }
+.rv-chip.on { box-shadow: 0 0 0 1px var(--el); }
 .rv-where { font-size: 13px; color: var(--ink-dim); }
 .rv-where b { color: var(--gold-lit); font-size: 16px; }
 .rv-log { list-style: none; margin: 0; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
@@ -9440,7 +9480,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .rv-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
 @media (max-width: 760px) {
   .rv-stage { flex-direction: column; align-items: center; }
-  .rv-side { width: 100%; }
+  .rv-side { width: 100%; max-width: none; min-width: 0; }
+  /* Full width on a phone, still at match proportions. */
+  .rv-board { --board-size: min(calc(100vw - 52px), calc(62vh * 70 / 87)); }
 }
 .win-replay { margin: 4px auto 0; display: block; }
 
