@@ -1067,6 +1067,10 @@ export function canTarget(
 
   const defenderHome = homeRow(target.owner, state.boardSize);
   if (
+    // DOMINATION HAS NO HOME-SLOT RULE (owner, 2026-10-03). The 7x7 is won on
+    // the Points, not by capturing a back row, so a back row you could not
+    // shoot into was only a place to hide. The 4x4 and 5x5 keep it.
+    !state.domination &&
     target.pos.row === defenderHome &&
     defenderHome === homeRow(enemyOf(attacker.owner), state.boardSize) &&
     !aDef.ignoresHomeRule && // Catapult-style passives skip this rule
