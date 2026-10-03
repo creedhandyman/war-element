@@ -46,6 +46,8 @@ export function WinScreen(props: {
    *  online pays on a LOSS too, and that is precisely the case nobody would
    *  think to go and check their balance after. */
   earned?: number;
+  /** Watch the match just played (ReplayViewer). Absent when it has no replay. */
+  onReplay?: () => void;
 }) {
   const { game, me } = props;
   const win = game.win;
@@ -134,6 +136,9 @@ export function WinScreen(props: {
         )}
 
         <MatchReport game={game} me={me} />
+        {props.onReplay && (
+          <button className="ghost sm win-replay" onClick={props.onReplay}>Watch replay</button>
+        )}
 
         {/* WHAT IS NEXT, before you have to leave the screen to find out. A
             mode that picks your opponent owes you a look at it. */}

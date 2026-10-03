@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useReducer, useRef, u
 import type { ComponentProps, ReactNode } from "react";
 import type { AutoMode, CardInstance, EnchantMode, GameState, Intent, PlayerId, Pos } from "../engine";
 import {
-  advance,
   applyIntent,
   canCastSpell,
   canFireSpecial,
@@ -272,6 +271,12 @@ import { arrivals } from "./vfx/spell-fx";
 import { spellCast, strikeZone, type StrikeZone } from "./attack-zone";
 import { createRemoteQueue, type StageShow } from "./remote-queue";
 import { WinScreen, type NextUp } from "./WinScreen";
+import { MatchRecorder, recAdvance, recApply } from "./replay-recorder";
+import { ReplayViewer, type ReplayMeta } from "./ReplayViewer";
+import { MatchHistory } from "./MatchHistory";
+import { mvpScore } from "./MatchReport";
+import { hasReplay, loadReplay, newMatchId, saveMatch } from "../data/match-history";
+import type { Replay } from "../engine/replay";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
@@ -1059,6 +1064,52 @@ export function App() {
    *  is. The deck in the chair already answers the question, and it answers it
    *  correctly for free: pick any other deck and this goes null on its own. */
   const eventRun: GameEvent | null = eventForDeck(p2DeckId) ?? null;
+
+  // ── REPLAYS + MATCH HISTORY (owner's call, 2026-10-02) ────────────────────
+  // Every state that lands on screen is shown to the recorder, which keeps the
+  // match's recipe (ui/replay-recorder.ts). When the match ends it is saved to
+  // the history with its replay; online matches are listed without one, since
+  // the other player's moves arrive as finished states, not as steps.
+  const recorderRef = useRef(new MatchRecorder());
+  const savedMatchRef = useRef(0);
+  /** The id the match just finished was saved under (the result screen's
+   *  "Watch replay"), or null. */
+  const [lastMatchId, setLastMatchId] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [watching, setWatching] = useState<{ replay: Replay; meta: ReplayMeta } | null>(null);
+  useEffect(() => {
+    if (!started) return;
+    const rec = recorderRef.current;
+    rec.observe(game);
+    if (online) rec.markUnreplayable();
+    if (game.phase !== "gameover" || !game.win || savedMatchRef.current === rec.matchNo) return;
+    savedMatchRef.current = rec.matchNo;
+    const me: PlayerId = online?.myId ?? "P1";
+    const ranked = Object.values(game.stats.byCard).sort((a, b) => mvpScore(b) - mvpScore(a));
+    const mode = trainingRun ? `Training · ${trainingRun.title}`
+      : storyNode ? `Story · ${storyNode.name}`
+      : eventRun ? eventRun.name
+      : online ? "Online"
+      : twoPlayer ? "Hot seat"
+      : game.domination ? "Domination"
+      : "Arena";
+    const id = newMatchId();
+    const names = { ...((online ? seatNames : introNames) ?? {}) };
+    const replay = rec.finish(game);
+    if (replay) replay.meta = { title: mode, names, me };
+    saveMatch({
+      id, at: Date.now(), mode, names,
+      me, winner: game.win.winner, by: game.win.by, rounds: game.round,
+      mvp: ranked[0] && mvpScore(ranked[0]) > 0 ? ranked[0].name : undefined,
+      replayable: replay !== null,
+    }, replay);
+    setLastMatchId(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- the labels are read at the moment the match ends
+  }, [game, started]);
+  const watchMatch = (id: string) => {
+    const r = loadReplay(id);
+    if (r) setWatching({ replay: r, meta: r.meta ?? { title: "Last match", me: online?.myId ?? "P1" } });
+  };
   /** DOES A HAND-PICKED RUNG APPLY TO THIS FIGHT? Casual only.
    *
    *  Casual is the sandbox — an opponent you chose, a deck you chose, nothing
@@ -1832,7 +1883,7 @@ export function App() {
       // An overlay is up. The deps re-run this the moment it clears, and that
       // run shows the step properly; this timer is only the old fallback in
       // case one ever outstays its welcome.
-      const t = setTimeout(() => commitNow(advance(game)), delay);
+      const t = setTimeout(() => commitNow(recAdvance(game)), delay);
       return () => clearTimeout(t);
     }
     // KEEP TO THE EFFECTS' PACE. With several AI seats (Domination) the steps
@@ -1851,7 +1902,7 @@ export function App() {
     // had anyway; the computed state is then applied as-is. What lights up is
     // therefore what actually happens (ui/attack-zone.ts), and an ordinary
     // targeted step costs ~120ms, not a second pause.
-    const next = advance(game);
+    const next = recAdvance(game);
     const zone = strikeZone(game, next);
     const cast = spellCast(game, next);
     let t: number;
@@ -2510,7 +2561,7 @@ export function App() {
    *  the state the player is about to be looking at. */
   function dispatch(intent: Intent, doneHint?: (next: GameState) => string) {
     try {
-      const next = applyIntent(game, intent);
+      const next = recApply(game, intent);
       setGame(next);
       setSel(null);
       setPending(null);
@@ -4110,7 +4161,7 @@ export function App() {
     let next = game;
     for (const c of Object.values(game.cards)) {
       if (c.owner === view && c.pos)
-        next = applyIntent(next, { type: "SET_AUTO", player: view, instanceId: c.instanceId, mode });
+        next = recApply(next, { type: "SET_AUTO", player: view, instanceId: c.instanceId, mode });
     }
     setGame(next);
     if (online) broadcast(next); // keep the other client in sync
@@ -5585,6 +5636,11 @@ export function App() {
         />
       )}
 
+      {historyOpen && (
+        <MatchHistory onWatch={(replay, meta) => setWatching({ replay, meta })} onClose={() => setHistoryOpen(false)} />
+      )}
+      {watching && <ReplayViewer replay={watching.replay} meta={watching.meta} onClose={() => setWatching(null)} />}
+
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
       {started && !storyNode && (
@@ -5614,6 +5670,7 @@ export function App() {
             : (online || setupRef.current) && !eventRun ? askRematch : undefined}
           rematch={{ mine: rematchMine, theirs: rematchTheirs, online: !!online }}
           next={nextUp ?? undefined}
+          onReplay={lastMatchId && hasReplay(lastMatchId) ? () => watchMatch(lastMatchId) : undefined}
           // Online is the only mode that pays on the result screen's own terms
           // — every other one banks quietly into the shop's counter.
           earned={
@@ -5865,6 +5922,7 @@ export function App() {
                   onPick={(id) => enterArenaView(viewForEntry(id, arenaPrefs.friend))}
                   onBuild={() => setBuilderOpen(true)}
                   onRules={() => setRulesOpen(true)}
+                  onHistory={() => setHistoryOpen(true)}
                 />
               </>
             ) : (

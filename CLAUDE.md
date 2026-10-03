@@ -4038,6 +4038,35 @@ citadel (`poiHolderSuit` in shared.ts), in that seat's suit colour. The letter's
 colour is viewer-relative, and in a free-for-all "held against you" has three
 answers.
 
+## Replays and match history — `engine/replay.ts`, `ui/replay-recorder.ts`, `data/match-history.ts`
+
+A replay is the opening state plus the steps (`Intent` or a run of `advance`
+calls, stored as a number), re-run through the pure reducer. `finalHash`
+(FNV-1a of the last state's JSON) tells the viewer when a later build plays it
+out differently; it says so instead of passing it off as the real match.
+
+- **Recording.** The App moves the live match only through `recApply` /
+  `recAdvance` (dispatch, the AI auto-advance, the all-auto sweep). Each new
+  state is tagged with the step that made it; the recorder (`MatchRecorder`,
+  fed every state that LANDS via an effect on `game`) walks the tags back to
+  the last state it logged, so a staged cast that never landed is never logged
+  and React rendering only the last of several states loses nothing. A new
+  engine call that moves the live game must go through `recApply` /
+  `recAdvance`, or every match after it saves without a replay.
+- **What breaks a recording.** Any state the tags cannot explain: a state from
+  the other player online, a rejoin. A fresh deal (mulligan, nobody kept)
+  starts a new one. Online matches go to history marked "No replay (online)":
+  the guest's moves arrive as finished states, so v1 has no recipe for them.
+- **Storage.** Last 30 matches (`we_match_history_v1`), replays apart
+  (`we_replay_v1_<id>`, ~7 KB each) so a full storage drops the oldest replays,
+  never the rows. Share codes are gzip+base64 (`WER1.` prefix, ~1.5 KB) and
+  carry the title and seat names in `replay.meta`.
+- **UI.** Result screen "Watch replay"; Arena hub "Match history" (watch, copy
+  code, delete, paste a code). `ReplayViewer` renders the real `Board` and keeps
+  a snapshot every 20 steps, re-running forward from the nearest when scrubbing.
+- Pinned by `replay.test.ts` (whole AI-vs-AI matches replay to the same hash
+  from a JSON round trip; share code round-trips) and `replay-recorder.test.ts`.
+
 ## Traps found the hard way
 
 - **A source-level test that slices App.tsx to `"\n  }\n"` is vacuous on a

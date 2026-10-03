@@ -35,6 +35,8 @@ export function ArenaHub(props: {
   onPick: (id: HubEntryId) => void;
   onBuild: () => void;
   onRules: () => void;
+  /** Match history and replays (MatchHistory.tsx). */
+  onHistory?: () => void;
 }) {
   return (
     <div className="ah">
@@ -62,6 +64,7 @@ export function ArenaHub(props: {
       <div className="ar-ghosts ah-foot">
         <button className="ghost" onClick={props.onBuild}>Build a squad</button>
         <button className="ghost" onClick={props.onRules}>How to play</button>
+        {props.onHistory && <button className="ghost" onClick={props.onHistory}>Match history</button>}
       </div>
     </div>
   );

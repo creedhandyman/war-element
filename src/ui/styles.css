@@ -9404,3 +9404,67 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 @media (min-width: 1180px) and (min-height: 541px) and (max-width: 1499px) {
   .hand-float .hcard .hc-stats { font-size: 11.5px; gap: 2px; }
 }
+
+/* ===== Replays + match history (ReplayViewer.tsx, MatchHistory.tsx) =====
+   The viewer is the real Board at a size of its own (it sits in an overlay,
+   not the match grid), with the round, the last log lines and the transport
+   beside or under it. */
+/* Opened FROM the result screen, which is itself `.overlay.on-top`, so one
+   step above it — same layer otherwise, and DOM order would decide. */
+.overlay.on-top.rv-overlay, .overlay.on-top.mh-overlay { z-index: calc(var(--z-modal) + 1); }
+.rv-overlay { overflow-y: auto; padding: 12px 0; }
+.rv {
+  width: min(980px, 96vw); max-height: none; display: flex; flex-direction: column; gap: 10px;
+  background: var(--panel); border: 1px solid var(--panel-line); border-radius: 16px; padding: 16px;
+}
+.rv-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rv-title { display: flex; flex-direction: column; gap: 2px; text-align: left; min-width: 0; }
+.rv-title b { font-family: var(--head); font-size: 16px; color: var(--gold-lit); letter-spacing: .04em; }
+.rv-title span { font-size: 12px; color: var(--ink-dim); }
+.rv-warn {
+  margin: 0; padding: 8px 10px; border-radius: 10px; font-size: 12px; text-align: left;
+  color: #ffe3a3; background: rgba(200, 150, 40, .14); border: 1px solid rgba(200, 150, 40, .4);
+}
+.rv-stage { display: flex; gap: 14px; align-items: flex-start; justify-content: center; }
+.rv-board { --board-size: min(58vh, 92vw, 560px); --board-h: var(--board-size); --board-tilt: 0deg; flex: none; }
+.rv-side { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.rv-where { font-size: 13px; color: var(--ink-dim); }
+.rv-where b { color: var(--gold-lit); font-size: 16px; }
+.rv-log { list-style: none; margin: 0; padding: 8px 10px; display: flex; flex-direction: column; gap: 4px;
+  border-radius: 10px; background: rgba(0, 0, 0, .25); border: 1px solid var(--panel-line); font-size: 12px; color: var(--ink); }
+.rv-log li:last-child { color: var(--gold-lit); }
+.rv-controls { display: flex; justify-content: center; align-items: center; gap: 6px; flex-wrap: wrap; }
+.rv-controls .ghost.sm { min-width: 40px; font-size: 13px; }
+.rv-speed { font-variant-numeric: tabular-nums; }
+.rv-scrub { width: 100%; accent-color: var(--gold-lit); }
+.rv-foot { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--ink-dim); font-variant-numeric: tabular-nums; }
+@media (max-width: 760px) {
+  .rv-stage { flex-direction: column; align-items: center; }
+  .rv-side { width: 100%; }
+}
+.win-replay { margin: 4px auto 0; display: block; }
+
+.mh { width: min(640px, 94vw); text-align: left; display: flex; flex-direction: column; gap: 10px; }
+.mh-head { display: flex; align-items: center; justify-content: space-between; }
+.mh-head h3 { margin: 0; color: var(--gold-lit); }
+.mh-blurb, .mh-empty, .mh-note { margin: 0; font-size: 12px; color: var(--ink-dim); }
+.mh-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.mh-row {
+  display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 10px;
+  border: 1px solid var(--panel-line); border-left: 3px solid var(--ink-dim); background: rgba(0, 0, 0, .2);
+}
+.mh-row.won { border-left-color: var(--stat-hp); }
+.mh-row.lost { border-left-color: var(--threat); }
+.mh-main { flex: 1; min-width: 0; display: grid; grid-template-columns: auto 1fr; column-gap: 8px; row-gap: 2px; align-items: baseline; }
+.mh-result { font-family: var(--head); font-weight: 800; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; }
+.mh-row.won .mh-result { color: var(--stat-hp); }
+.mh-row.lost .mh-result { color: var(--threat); }
+.mh-mode { font-size: 13px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-vs, .mh-meta { grid-column: 2; font-size: 11px; color: var(--ink-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mh-acts { display: flex; align-items: center; gap: 6px; flex: none; }
+.mh-none { font-size: 11px; color: var(--ink-dim); }
+.mh-paste { display: flex; gap: 8px; }
+.mh-paste input {
+  flex: 1; min-width: 0; padding: 7px 10px; border-radius: 9px; font-size: 12px;
+  color: var(--ink); background: rgba(0, 0, 0, .3); border: 1px solid var(--panel-line);
+}
