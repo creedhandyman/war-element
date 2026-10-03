@@ -2215,13 +2215,20 @@ export function basicAttack(
     landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false,
   };
   // (BLIND accuracy is rolled per hit inside resolveHit now.)
-  // PARALYZE: 50% chance to attack at all.
-  if (hasStatus(attacker, "PARALYZE") && !chance(draft, 50)) {
+  // PARALYZE: 50% chance to attack at all. On the card's OWN turn the coin was
+  // already flipped as the turn started (stepBattle → `battle.paraRoll`), so the
+  // owner saw it before choosing; that roll stands for every basic this turn. A
+  // basic swung outside its turn (nothing rolled for it) still flips here.
+  const turnRoll = draft.battle?.paraRoll;
+  const ownTurn = turnRoll && turnRoll.id === attackerId && turnRoll.at === draft.battle!.index
+    ? turnRoll : null;
+  if (hasStatus(attacker, "PARALYZE") && (ownTurn ? ownTurn.fizzle : !chance(draft, 50))) {
     draft.log.push(`${label(draft, attacker)} is paralyzed and can't attack.`);
     // Say so ON THE CARD as well. This was a log line and nothing else: the
     // turn simply produced no numbers, which reads as a bug rather than as the
     // coin PARALYZE is. Cosmetic only — the return below is the behaviour.
-    attacker.fxParalyzed = (attacker.fxParalyzed ?? 0) + 1;
+    // (A turn-start roll already floated it.)
+    if (!ownTurn) attacker.fxParalyzed = (attacker.fxParalyzed ?? 0) + 1;
     return missed;
   }
 

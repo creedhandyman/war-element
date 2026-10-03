@@ -67,6 +67,7 @@ export {
   effectiveSpecialCost,
   plannedAction,
   isActionBlocked,
+  paralyzedThisTurn,
   validSpecialTargets,
   specialTargets,
   previewOnSummonArea,

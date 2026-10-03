@@ -9,7 +9,7 @@ import {
   applyShove, applyStatus, applyTimedBuff, basicAttack, chargeForward, checkLowHpTransform, defeatCard, directDamage, drainMaxHp, effectiveBasicHits, fireCardSpecial, fireElectrifiedVolley, label, noteDamageFx, noteShieldFx, onEnemySide, payAttackTrade, pushBack, spellHit, starBlast, TARGETLESS_HANDLERS, tickDamage, SPECIAL_HANDLERS } from "./combat";
 import { getSpell } from "./spells";
 import { creditCapture } from "./stats";
-import { coin, randInt } from "./rng";
+import { chance, coin, randInt } from "./rng";
 import {
   applyMulligan,
   boardCards,
@@ -2283,6 +2283,22 @@ function stepBattle(draft: GameState): boolean {
     draft.log.push(`${label(draft, card)} can't act (${blocker?.kind}).`);
     battle.index++;
     return true;
+  }
+
+  // PARALYZE: flip the coin NOW, as the turn starts, not at the swing — so a
+  // lost basic attack is known (and greyed out) before anyone picks an action,
+  // and the Special or Talent PARALYZE never blocked is still on offer. Once per
+  // turn: the guard makes a second visit to the same turn a no-op.
+  if (hasStatus(card, "PARALYZE")) {
+    const r = battle.paraRoll;
+    if (!r || r.id !== id || r.at !== battle.index) {
+      const fizzle = !chance(draft, 50);
+      battle.paraRoll = { id, at: battle.index, fizzle };
+      if (fizzle) {
+        draft.log.push(`${label(draft, card)} is paralyzed — no basic attack this turn.`);
+        card.fxParalyzed = (card.fxParalyzed ?? 0) + 1;
+      }
+    }
   }
 
   // An inert basic (0 DMG, no on-hit effect) doesn't count as an action — a

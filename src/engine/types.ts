@@ -2781,6 +2781,14 @@ export interface BattleState {
   index: number; // next card to act
   /** Set when a P1 manual card is up and has at least one legal action. */
   awaitingInput: string | null; // instanceId
+  /** PARALYZE's coin for the card whose turn it is, flipped when that turn
+   *  STARTS (stepBattle) rather than at the swing. Rolled at the swing, the
+   *  owner picked an attack and a target and only then learned the attack was
+   *  gone; rolled up front, a lost basic is greyed out before they choose, and
+   *  the Special or Talent (which PARALYZE never touched) is still there to
+   *  take. Same 50%, same thing lost — only the timing moved. `at` is the queue
+   *  index of that turn, so the roll can never leak onto a later one. */
+  paraRoll?: { id: string; at: number; fizzle: boolean };
 }
 
 export interface SlotState {

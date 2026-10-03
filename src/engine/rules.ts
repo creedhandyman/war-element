@@ -1119,9 +1119,15 @@ export function validTargets(
   // battle resolver). On-summon abilities borrow it for "everything in normal
   // range" and pass false — they are not basics and keep the old full reach,
   // same exemption the Specials get.
-  const enemies = enemyCards(state, attacker.owner).filter((t) =>
-    canTarget(state, attacker, t, false, forBasic, extraReach),
-  );
+  // PARALYZE, when this turn's coin has already come up against it. Gated here
+  // for the same reason as RELOADING: the UI, the AI and canBasicAttack all
+  // read this list. Enemies only — a healer's touch on an ally was never subject
+  // to the coin (basicAttack resolves it before the PARALYZE check).
+  const enemies = forBasic && paralyzedThisTurn(state, attackerId)
+    ? []
+    : enemyCards(state, attacker.owner).filter((t) =>
+        canTarget(state, attacker, t, false, forBasic, extraReach),
+      );
   // Morning Dew (Vernal): a healer aims its basic at hurt friends too. Only
   // wounded allies are offered — healing something at full HP is a wasted turn,
   // and it keeps the AI from picking one.
@@ -2261,6 +2267,13 @@ export function talentAimFor(state: GameState, card: CardInstance, pick: CardIns
  */
 export function isActionBlocked(card: CardInstance): boolean {
   return hasStatus(card, "STUN") || hasStatus(card, "SLEEP");
+}
+
+/** Has this card's PARALYZE coin already cost it the basic attack on the turn it
+ *  is taking right now? See `BattleState.paraRoll`. */
+export function paralyzedThisTurn(state: GameState, instanceId: string): boolean {
+  const r = state.battle?.paraRoll;
+  return !!r && r.fizzle && r.id === instanceId && r.at === state.battle!.index;
 }
 
 export function canBasicAttack(state: GameState, instanceId: string): boolean {

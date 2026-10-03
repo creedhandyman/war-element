@@ -52,6 +52,7 @@ import {
   specialTargets,
   validAllyTargets,
   validTargets,
+  paralyzedThisTurn,
   distributeBasicHits,
   boardCards,
   isCaptured,
@@ -4643,7 +4644,7 @@ export function App() {
           title: "Skip this card's turn" },
         { key: "basic", short: pending === "basic" ? (picks.length > 0 ? `FIRE ${picks.length}` : "AUTO") : "ATTACK",
           tone: "#e5533d", disabled: !basicOk, armed: pending === "basic", onClick: actBasic,
-          title: basicOk ? "Basic attack" : "Nothing in reach" },
+          title: basicOk ? "Basic attack" : awaitingId && paralyzedThisTurn(game, awaitingId) ? "Paralyzed this turn" : "Nothing in reach" },
         // PLUMMET takes the SPECIAL seat, and only on a card that has no Special
         // to be displaced — the ring holds four and the Talent is not the one to
         // give up. On a diving Rare that seat was a permanently disabled

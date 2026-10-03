@@ -1455,7 +1455,7 @@ export const STATUS_TEXT: Record<StatusKind, string> = {
   // The coin is on the BASIC, not the turn: a paralysed card still fires its
   // Special (basicAttack is the only place PARALYZE rolls). "Skip its action"
   // told the player the Special was off the table too.
-  PARALYZE: `Paralyzed — each basic attack has a 50% chance to fizzle (Specials still fire), and it moves only 1 space (no effect on movement at SP ${SP_SLOW_MAX} and under).`,
+  PARALYZE: `Paralyzed — each turn, a 50% chance it loses its basic attack — rolled as its turn starts, so you know before you choose (Specials still fire), and it moves only 1 space (no effect on movement at SP ${SP_SLOW_MAX} and under).`,
   MUTED: "Muted — can't fire its Special.",
   SLEEP: "Asleep — can't act until it wakes.",
   // Not just "forward": `canMove` refuses a FRIGHTENED card every move.

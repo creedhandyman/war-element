@@ -266,8 +266,8 @@ export function RulesBook(props: { onClose: () => void }) {
               <li><b>AI</b> — the opponent's card.</li>
               <li>
                 {/* No PARALYZE here: the tag is worked out before the turn, the
-                    PARALYZE coin is rolled at the swing, and a paralysed card can
-                    still fire its Special anyway. */}
+                    PARALYZE coin is rolled as the turn starts, and a paralysed
+                    card can still fire its Special anyway. */}
                 <b>CAN'T ACT</b> — this card can do nothing this turn: either a status
                 is stopping it (STUN or SLEEP) or it has no legal action — nothing in
                 range and no Special it can afford. It stays in the queue and passes.
@@ -376,7 +376,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <ul className="rules-defs">
               <li><b>STUN</b> — skips its whole turn.</li>
               <li><b>SLEEP</b> — skips its turn until any hit wakes it.</li>
-              <li><b>PARALYZE</b> — 50% chance its <i>basic attack</i> fizzles, rolled each time (Bolt). It does not cost the turn: a paralysed card still fires its Special normally, and it still moves — capped to a single step.</li>
+              <li><b>PARALYZE</b> — 50% chance it loses its <i>basic attack</i>, rolled as its turn starts — before you choose, so you see it (Bolt). It does not cost the turn: a paralysed card still fires its Special normally, and it still moves — capped to a single step.</li>
               <li><b>FREEZE</b> — SP drops to 0 <i>and</i> its <b>basic</b> damage is halved. Specials print their own number and are unaffected.</li>
               <li><b>ROOT</b> — SP drops to 0: it can't move and acts last.</li>
               <li><b>MUTED</b> — can't fire its Special.</li>
