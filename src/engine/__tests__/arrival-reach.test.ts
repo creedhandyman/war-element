@@ -2,7 +2,7 @@
 // to do a better job of telling the player the range of the attack".
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { allyShieldTargets, arrivalStrike, validTargets } from "../rules";
+import { allyShieldTargets, arrivalStrike, canFireSpecial, validTargets } from "../rules";
 import { CARDS, getDef } from "../../data/cards";
 import { giveHand, place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -202,5 +202,38 @@ describe("BlackIce — Avalanche shields allies nearby", () => {
     expect(g.cards[foe.instanceId].curHp).toBeLessThan(30);
     expect(g.cards[near.instanceId].curShields).toBe(sh.near + 3);
     expect(g.cards[far.instanceId].curShields).toBe(sh.far);
+  });
+});
+
+describe("Killer Whale — Tidal Crush reaches the whole row and the row behind", () => {
+  function cast(foes: [number, number][]) {
+    const s = prepState();
+    s.players.P1.magicPool = 9;
+    const kw = place(s, "aqua_killerwhale", "P1", 3, 1);
+    const fs = foes.map(([r, c]) => place(s, "dusk_gool", "P2", r, c, { curHp: 30, maxHp: 30, curShields: 0 }));
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [kw.instanceId], index: 0, awaitingInput: kw.instanceId };
+    const ok = canFireSpecial(s, kw.instanceId).ok;
+    const g = ok ? applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special" }) : s;
+    return { ok, hp: fs.map((f) => g.cards[f.instanceId]?.curHp) };
+  }
+
+  it("hits an opponent two squares along the row ahead, not only the adjacent ones", () => {
+    const r = cast([[2, 1], [2, 3]]);
+    expect(r.ok).toBe(true);
+    expect(r.hp[0]).toBeLessThan(30);
+    expect(r.hp[1]).toBeLessThan(30);
+  });
+
+  it("can be cast with nobody beside it, for a foe two squares along the row", () => {
+    const r = cast([[2, 3]]);
+    expect(r.ok).toBe(true);
+    expect(r.hp[0]).toBeLessThan(30);
+  });
+
+  it("can be cast when only the row behind holds anyone, and that row takes the wave", () => {
+    const r = cast([[1, 1]]);
+    expect(r.ok).toBe(true);
+    expect(r.hp[0]).toBe(27); // the far row's 3 DMG
   });
 });

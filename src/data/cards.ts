@@ -10530,6 +10530,11 @@ export const CARDS: CardDef[] = [
       params: { dmg: 6, targets: 99, rowAhead: 1, statusKind: "FREEZE", statusDuration: 2,
                 farRowDmg: 3, farRowStatus: 1, farRowStatusDuration: 1 },
       targetSide: "enemy",
+      // A WAVE, not a swing: the whole row ahead, not only the squares touching
+      // it. A melee Special reaches king-step only, so this hit just the one or
+      // two adjacent squares of "every opponent in the row" and could not be
+      // cast at all with nothing beside it (owner, 2026-10-03).
+      ranged: true,
       text: "6 DMG to every opponent in the row directly ahead and FREEZE them for 2 rounds. The row behind it takes 3 DMG and is FROZEN for 1 round.",
     },
   },

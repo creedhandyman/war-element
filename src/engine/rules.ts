@@ -2494,6 +2494,16 @@ export function canFireSpecial(
     // SP 0, and Razor Guard's step is the only way it ever advances.
     if (Number(def.special.params?.moveIfNoTarget ?? 0) > 0 && forwardStepOpen(state, card))
       return { ok: true };
+    // THE ROW BEHIND COUNTS (Killer Whale's Tidal Crush, owner 2026-10-03): a
+    // Special with a far-row rider is worth casting when only that row holds
+    // anyone — the wave rolls on past an empty front rank.
+    const fp = def.special.params ?? {};
+    if (Number(fp.farRowDmg ?? 0) > 0 && card.pos) {
+      const far = farRowCells(state.boardSize, card.owner, card.pos, fp);
+      if (enemyCards(state, card.owner).some((e) => e.curHp > 0 && e.pos
+          && far.some((c) => c.row === e.pos!.row && c.col === e.pos!.col)))
+        return { ok: true };
+    }
     // Said plainly for the wave: "no valid target" beside a board full of enemies
     // reads as a bug, when the rule is simply that nobody is standing in the one
     // row it breaks on.
