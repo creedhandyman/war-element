@@ -700,9 +700,10 @@ export const SPELLS: SpellDef[] = [
     cost: 10,
     kind: "aoe",
     area: "board",
-    text: "Deal 15 DMG to every opponent and BURN 5 each for 3 rounds. For the rest of the game, your PYRO allies permanently gain +2 DMG.",
+    text: "Deal 15 DMG to every opponent and BURN 3 each for 3 rounds. For the rest of the game, your PYRO allies permanently gain +2 DMG.",
     dmg: 15,
-    status: { kind: "BURN", duration: 3, power: 5 },
+    // BURN 3 a round (owner, 2026-10-03; was 5).
+    status: { kind: "BURN", duration: 3, power: 3 },
     grantElementDmg: 2,
   },
 
