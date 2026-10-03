@@ -162,14 +162,15 @@ describe("Glacius — Ice Armor", () => {
     return { s, gl, ally, foe };
   }
 
-  it("aimed at an ally, it FREEZEs it and gives +2 shields, with no damage", () => {
+  it("aimed at an ally, it gives +2 shields and nothing else — no damage, no FREEZE", () => {
     const { s, gl, ally } = setup();
     const before = { hp: ally.curHp, sh: ally.curShields };
     const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [ally.instanceId] });
     const a = g.cards[ally.instanceId];
     expect(a.curHp).toBe(before.hp);
     expect(a.curShields).toBe(before.sh + 2);
-    expect(a.statuses.some((x) => x.kind === "FREEZE")).toBe(true);
+    expect(a.statuses.some((x) => x.kind === "FREEZE"), "the ally is NOT frozen (owner, 2026-10-03)").toBe(false);
+    expect(a.statuses).toHaveLength(0);
     expect(g.cards[gl.instanceId]).toBeDefined();
   });
 

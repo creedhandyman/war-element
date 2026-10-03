@@ -3916,8 +3916,8 @@ export function App() {
         setHint(`Aimed — the lit squares are what it covers. Press <b>Fire</b>, or tap another target to re-aim.`);
         return;
       }
-      // Ice Armor (Glacius): an ALLY is the whole attack — freeze it and plate
-      // it. One tap fires; there are no hits to spread.
+      // Ice Armor (Glacius): an ALLY is the whole attack — plate it with
+      // shields. One tap fires; there are no hits to spread.
       if (pending === "basic" && clicked && allyShieldTargets(game, awaitingId).some((a) => a.instanceId === clicked.instanceId)) {
         firePicks([clicked.instanceId]);
         return;

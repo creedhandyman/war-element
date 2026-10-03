@@ -2189,16 +2189,15 @@ export function basicAttack(
   // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —
   // no hit roll, no statuses, no riders. Checked before anything else so none of
   // the combat machinery below ever sees a friendly target.
-  // Ice Armor (Glacius): aimed at an ALLY, the basic FREEZES it and plates it
-  // with shields — no hit roll, no damage, no riders.
+  // Ice Armor (Glacius): aimed at an ALLY, the basic plates it with shields —
+  // no hit roll, no damage, no status, no riders.
   if (aDef.basicShieldsAllies) {
     const first = draft.cards[picks[0]];
     if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
       const ice = aDef.basicShieldsAllies;
-      applyStatus(draft, first, "FREEZE", ice.freezeRounds, 0, aDef.element);
       first.curShields += ice.shields;
       notePassive(draft, attacker, "basicShieldsAllies");
-      draft.log.push(`${label(draft, attacker)} encases ${label(draft, first)} in ice (+${ice.shields} shields, FROZEN).`);
+      draft.log.push(`${label(draft, attacker)} encases ${label(draft, first)} in ice armour (+${ice.shields} shields).`);
       return { landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false };
     }
   }

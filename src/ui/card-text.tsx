@@ -1344,7 +1344,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.basicHealsAllies)
     passives.push("Its basic attack can be aimed at a wounded ally to heal them for its DMG instead of striking.");
   if (def.basicShieldsAllies)
-    named("basicShieldsAllies", `Ice Armor: its basic attack can be aimed at an ally in reach instead — it FREEZES them for ${def.basicShieldsAllies.freezeRounds} round${def.basicShieldsAllies.freezeRounds === 1 ? "" : "s"} and gives them +${def.basicShieldsAllies.shields} shields.`);
+    named("basicShieldsAllies", `Ice Armor: its basic attack can be aimed at an ally in reach instead — it gives them +${def.basicShieldsAllies.shields} shields.`);
   if (def.basicHealsTeam)
     named("basicHealsTeam", `Raising Star: a landed basic attack also heals every ally +${def.basicHealsTeam} HP.`);
   if (def.idleBuff)

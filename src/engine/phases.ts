@@ -2214,7 +2214,7 @@ function performBattleAction(
   // hit bonuses, not just the printed count.
   const maxHits = effectiveBasicHits(card, draft);
   // Ice Armor (Glacius): one ally may be named instead of enemies — the whole
-  // attack becomes the freeze-and-plate, so it is a single pick.
+  // attack becomes the shield plate, so it is a single pick.
   const iceAlly = picks?.length === 1 && allyShieldTargets(draft, instanceId).some((a) => a.instanceId === picks[0]);
   if (iceAlly) {
     basicAttack(draft, instanceId, picks![0]);
