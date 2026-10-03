@@ -21,7 +21,7 @@ import {
   CHEAP_COST, CHEAP_OFFERS, GROUP_SIZE, OFFER_SIZE, SINGLE_OFFER, SINGLE_PICKS,
   TARGET_CURVE, cardsComplete, costBucket, curveDeficit, draftComplete, draftSize,
   draftSpellCap, groupCards, inGroupPhase, inSinglePhase, picksLeft, pickCard,
-  pickGroup, pickSpell, rollCardOffer, rollGroups, rollSpellOffer, spellsComplete, startDraft,
+  KEY_PIECES, pickGroup, pickSpell, rollCardOffer, rollGroups, rollSpellOffer, spellsComplete, startDraft,
   type DraftRun,
 } from "../../data/draft";
 
@@ -113,7 +113,10 @@ describe("a pick is a warband, not a card", () => {
       for (const g of startDraft(4, seeded(seed)).offer) {
         for (const id of g.cards) {
           const d = getDef(id);
-          if (g.kind === "tribe") {
+          if (g.kind === "mythic") {
+            // A key piece is named after its Mythic, and the Mythic is in it.
+            expect(g.cards.map((c) => getDef(c).name), `${g.label} is missing its Mythic`).toContain(g.label);
+          } else if (g.kind === "tribe") {
             const tr = d.tribe == null ? [] : Array.isArray(d.tribe) ? d.tribe : [d.tribe];
             expect(tr, `${d.id} is not a ${g.label}`).toContain(g.label);
           } else {
@@ -584,5 +587,48 @@ describe("the last six are single cards", () => {
     const share = inTribe / total;
     expect(share, "the pull does nothing at all").toBeGreaterThan(0);
     expect(share, "the offer is only ever your own tribes").toBeLessThan(0.6);
+  });
+});
+
+// THE FIRST PICK IS THE KEY PIECE (owner's call, 2026-10-02): three trios, each
+// a Mythic and two cards that back it, drawn at random from `KEY_PIECES`.
+describe("the first pick is a key piece", () => {
+  const mythics = CARDS.filter((c) => !c.boss && c.rarity === "mythic").map((c) => c.id);
+
+  it("opens on three Mythic trios, each with its Mythic in it", () => {
+    for (let seed = 0; seed < 40; seed++) {
+      const offer = startDraft(4, seeded(seed)).offer;
+      expect(offer).toHaveLength(OFFER_SIZE);
+      for (const g of offer) {
+        expect(g.kind, g.label).toBe("mythic");
+        expect(g.cards).toHaveLength(GROUP_SIZE);
+        expect(g.cards.filter((id) => getDef(id).rarity === "mythic"), `${g.label}: exactly one Mythic`).toHaveLength(1);
+      }
+    }
+  });
+
+  it("has exactly one trio for every Mythic a draft can hold, and no card in two", () => {
+    expect(KEY_PIECES.map((k) => k.mythic).sort()).toEqual([...mythics].sort());
+    const all = KEY_PIECES.flatMap((k) => [k.mythic, ...k.partners]);
+    expect(new Set(all).size, "a card sits in two trios").toBe(all.length);
+    for (const id of all) {
+      expect(CARDS.some((c) => c.id === id && !c.boss), `${id} is not a draftable card`).toBe(true);
+      expect(id.endsWith("_tok"), `${id} is a token`).toBe(false);
+    }
+  });
+
+  it("deals them at random — every Mythic turns up across enough drafts", () => {
+    const seen = new Set<string>();
+    for (let seed = 0; seed < 300; seed++)
+      for (const g of startDraft(4, seeded(seed * 17 + 3)).offer) seen.add(g.cards[0]);
+    expect([...seen].sort()).toEqual(KEY_PIECES.map((k) => k.mythic).sort());
+  });
+
+  it("goes back to tribe and element warbands after the key piece", () => {
+    const rand = seeded(11);
+    let run = startDraft(4, rand);
+    run = pickGroup(run, run.offer[0].label, rand);
+    expect(run.picks).toHaveLength(GROUP_SIZE);
+    for (const g of run.offer) expect(["tribe", "element"]).toContain(g.kind);
   });
 });

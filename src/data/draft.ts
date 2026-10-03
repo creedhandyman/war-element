@@ -131,10 +131,83 @@ export const costBucket = (cost: number): string =>
 
 /** Three cards that belong together, and why. */
 export interface DraftGroup {
-  /** "Avian", "Dragon" — or an element, when the three had no tribe to share. */
+  /** "Avian", "Dragon" — or an element, when the three had no tribe to share —
+   *  or, on the FIRST pick, the Mythic the trio is built around. */
   label: string;
-  kind: "tribe" | "element";
+  kind: "tribe" | "element" | "mythic";
   cards: string[];
+}
+
+/** THE FIRST PICK IS YOUR KEY PIECE (owner's call, 2026-10-02).
+ *
+ *  A draft used to open on three tribe warbands, so the card a squad is built
+ *  AROUND turned up whenever it happened to — often never: 17 Mythics among 360
+ *  cards, offered three at a time inside banners they mostly do not lead. Now
+ *  the first offer is three of these trios, drawn at random: a Mythic and two
+ *  cards picked to back it, so every draft starts from the piece it is about.
+ *
+ *  Each trio is the Mythic, a CHEAP card that shares its tribe (its aura lands
+ *  on it — Kraken's SeaC, Griffith's Avian, Nitro's Forged Tech), and a mid-cost
+ *  one. Cheap on purpose: a Mythic costs 9 or 10, and the warbands that follow
+ *  steer the curve off what this pick leaves (`curveDeficit`). The two Mythics
+ *  with no tribe (Velvolt Knight, Oakgre) take two of their element instead.
+ *
+ *  DISJOINT — no card sits in two trios — so the three on the table can never
+ *  share a card, and taking one never strips another. `draft.test.ts` pins that,
+ *  and that every Mythic in the pool has exactly one trio. */
+export const KEY_PIECES: readonly { mythic: string; partners: readonly [string, string] }[] = [
+  { mythic: "aqua_hydrogon",       partners: ["aqua_misty", "aqua_sapphire"] },          // Vapor
+  { mythic: "aqua_kraken",         partners: ["aqua_blub", "aqua_divebill"] },           // SeaC
+  { mythic: "bolt_velvolt_knight", partners: ["bolt_rodd", "bolt_jellyfish"] },          // no tribe: BOLT
+  { mythic: "bolt_elecdroid",      partners: ["bolt_zipp", "bolt_static"] },             // ARC
+  { mythic: "bore_the_coreborer",  partners: ["bore_hillbilly", "bore_ufo"] },           // Cavernous
+  { mythic: "bore_deepest",        partners: ["bore_cavedweller", "bore_score"] },       // Cavernous
+  { mythic: "dawn_supernova",      partners: ["dawn_sparkle", "dawn_star"] },            // Stars
+  { mythic: "dawn_equestrian",     partners: ["dawn_roy", "dawn_musk_ox"] },             // Suns
+  { mythic: "dawn_imperator",      partners: ["dawn_able", "dawn_solstice"] },           // Suns
+  { mythic: "dusk_skullking",      partners: ["dusk_skeleton_knight", "dusk_skulldrake"] }, // Skeleton
+  { mythic: "dusk_shadowhorsemen", partners: ["dusk_crow", "dusk_hix"] },                // Dark
+  { mythic: "gale_stormfang",      partners: ["gale_luna", "gale_whirlwolf"] },          // Wolf
+  { mythic: "gale_griffith",       partners: ["gale_hawko", "gale_hawk"] },              // Avian
+  { mythic: "leaf_trinezer",       partners: ["leaf_stickviper", "leaf_gecko"] },        // Reptile
+  { mythic: "leaf_oakgre",         partners: ["leaf_monkey", "leaf_dartfrog"] },         // no tribe: LEAF
+  { mythic: "pyro_nitro",          partners: ["pyro_canister", "pyro_spitfire"] },       // Forged Tech
+  { mythic: "pyro_pyrogon",        partners: ["pyro_ember_scorpion", "pyro_fenrir"] },   // Volcanic / Dragon
+];
+
+/** The opening offer: three key-piece trios at random. Two of them carry a
+ *  1-cost card whenever two can — the same cheap floor (`CHEAP_OFFERS`) every
+ *  warband offer keeps, and an empty draft is always behind on it. */
+function rollKeyPieces(rand: () => number): DraftGroup[] {
+  const trios: DraftGroup[] = KEY_PIECES.map((k) => ({
+    label: getDef(k.mythic).name,
+    kind: "mythic",
+    cards: [k.mythic, ...k.partners],
+  }));
+  const hasCheap = (g: DraftGroup) => g.cards.some((id) => getDef(id).cost <= CHEAP_COST);
+  const take = (from: DraftGroup[]): DraftGroup | null => {
+    if (!from.length) return null;
+    const g = from[Math.min(from.length - 1, Math.floor(rand() * from.length))];
+    trios.splice(trios.indexOf(g), 1);
+    return g;
+  };
+  const out: DraftGroup[] = [];
+  while (out.length < CHEAP_OFFERS) {
+    const g = take(trios.filter(hasCheap));
+    if (!g) break;
+    out.push(g);
+  }
+  while (out.length < OFFER_SIZE) {
+    const g = take(trios);
+    if (!g) break;
+    out.push(g);
+  }
+  // Shuffled, so the cheap ones are not always the first two on the table.
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
 }
 
 export interface DraftRun {
@@ -273,6 +346,8 @@ function buildGroup(
 
 /** Roll the three groups a pick chooses between. */
 export function rollGroups(run: DraftRun, rand: () => number = Math.random): DraftGroup[] {
+  // The first pick is the key piece — see `KEY_PIECES`.
+  if (run.picks.length === 0) return rollKeyPieces(rand);
   const taken = new Set(run.picks);
   const deficit = curveDeficit(run.picks);
   const lead = new Set(leadingElements(run.picks).slice(0, 2));

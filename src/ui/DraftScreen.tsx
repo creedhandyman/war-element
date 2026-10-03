@@ -151,7 +151,7 @@ export function DraftScreen(props: {
                     {/* Tribe or element, said out loud. They are drawn the same
                         way and they are not the same thing — a quarter of the
                         set carries no tribe and forms element groups instead. */}
-                    <span className="dr-banner-kind">{g.kind === "tribe" ? "tribe" : "element"}</span>
+                    <span className="dr-banner-kind">{g.kind === "mythic" ? "key piece" : g.kind === "tribe" ? "tribe" : "element"}</span>
                   </button>
                   <div className="dr-trio">
                     {g.cards.map((id) => (

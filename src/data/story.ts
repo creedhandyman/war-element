@@ -3655,7 +3655,7 @@ export function loadStory(): StorySave {
             const grp = g as DraftGroup | null;
             return !!grp && typeof grp === "object"
               && typeof grp.label === "string"
-              && (grp.kind === "tribe" || grp.kind === "element")
+              && (grp.kind === "tribe" || grp.kind === "element" || grp.kind === "mythic")
               && ids(grp.cards);
           });
         const num = (x: unknown): boolean => x === undefined || (typeof x === "number" && x >= 0);
