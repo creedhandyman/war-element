@@ -257,6 +257,7 @@ import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
 import { SpeedQueue } from "./SpeedQueue";
+import { useCloudAutosave } from "./cloud-autosave";
 import { SpellTray } from "./SpellTray";
 import { ArenaHeader, ArenaHub, ArenaSettings } from "./ArenaScreens";
 import {
@@ -1306,6 +1307,9 @@ export function App() {
       stop?.();
     };
   }, []);
+
+  // Cloud autosave for a signed-in device (cloud-autosave.ts).
+  useCloudAutosave();
 
   /** Which seat the deck sheet is filling, or null when it is shut. */
   const [pickSeat, setPickSeat] = useState<"p1" | "p2" | "p3" | "p4" | null>(null);

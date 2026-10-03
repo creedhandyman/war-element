@@ -16,9 +16,9 @@
 // and the player is asked whenever both sides have something to lose.
 import { useEffect, useState } from "react";
 import {
-  accountConfigured, applyBundle, arrivedFromEmailLink, clearPendingSignIn, currentUser,
-  localBundle, onAuthChange, pendingSignIn, pullSave, pushSave, requestCode, resendWaitMs,
-  sameSave, signOut, summarize,
+  accountConfigured, applyBundle, arrivedFromEmailLink, autosaveEnabled, clearPendingSignIn, currentUser,
+  lastAutosave, localBundle, noteSynced, onAuthChange, pendingSignIn, pullSave, pushSave, requestCode, resendWaitMs,
+  sameSave, setAutosave, signOut, summarize,
   type AccountUser, type SaveBundle, type SaveSummary,
 } from "../net/account";
 import { verifyCode } from "../net/account";
@@ -73,6 +73,8 @@ export function AccountPanel(props: {
   const [msg, setMsg] = useState<{ text: string; bad?: boolean } | null>(null);
   const [cloud, setCloud] = useState<SaveBundle | null>(null);
   const [loadedCloud, setLoadedCloud] = useState(false);
+  /** This device's autosave switch (a device setting — see `autosaveOnce`). */
+  const [auto, setAuto] = useState(() => autosaveEnabled());
 
   const local = localBundle();
   const localS = summarize(local);
@@ -101,7 +103,11 @@ export function AccountPanel(props: {
     let live = true;
     void pullSave().then((r) => {
       if (!live) return;
-      if (r.ok) { setCloud(r.bundle); setLoadedCloud(true); }
+      if (r.ok) {
+        setCloud(r.bundle); setLoadedCloud(true);
+        // Already the same save: that IS a sync, so autosave may build on it.
+        if (r.bundle && sameSave(localBundle(), r.bundle)) noteSynced(r.bundle);
+      }
       else setMsg({ text: r.error, bad: true });
     });
     return () => { live = false; };
@@ -151,13 +157,14 @@ export function AccountPanel(props: {
     const b = localBundle();
     const r = await pushSave(b);
     setBusy(null);
-    if (r.ok) { setCloud(b); setMsg({ text: "This device's save is now in the cloud." }); }
+    if (r.ok) { noteSynced(b); setCloud(b); setMsg({ text: "This device's save is now in the cloud." }); }
     else setMsg({ text: r.error, bad: true });
   }
 
   function doRestore() {
     if (!cloud) return;
     applyBundle(cloud);
+    noteSynced(cloud);
     props.onRestored();
     setMsg({ text: "Restored from the cloud." });
   }
@@ -293,6 +300,28 @@ export function AccountPanel(props: {
               Restoring replaces everything on this phone — campaign, collection, shards
               and squads. It does not merge.
             </p>
+
+            {/* AUTOSAVE. One switch, this device only. It never decides a
+                conflict: when another device has saved since this one last
+                synced, it stops, and the choice above is the player's. */}
+            <label className="acct-auto">
+              <input
+                type="checkbox" checked={auto}
+                onChange={(e) => { setAutosave(e.target.checked); setAuto(e.target.checked); }}
+              />
+              <span>
+                <b>Autosave to the cloud</b>
+                <small>
+                  {!auto
+                    ? "Off on this device — use the buttons above to save."
+                    : conflict
+                      ? "Paused: another device has saved since this one. Choose above which to keep, and it picks up from there."
+                      : lastAutosave()
+                        ? `On — last saved ${new Date(lastAutosave()!).toLocaleString()}.`
+                        : "On — saves your progress about once a minute, and when you leave the app."}
+                </small>
+              </span>
+            </label>
           </>
         )}
 

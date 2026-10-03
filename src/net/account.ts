@@ -434,3 +434,130 @@ export function summarize(b: SaveBundle | null): SaveSummary {
   out.empty = out.cards === 0 && out.cleared === 0 && out.shards === 0 && out.squads === 0;
   return out;
 }
+
+// ── autosave ────────────────────────────────────────────────────────────────
+//
+// THE SAVE GOES UP BY ITSELF (owner's call, 2026-10-03), so nobody has to open
+// this screen and press "Save this device to the cloud" after every session.
+//
+// The header's rule still holds, and autosave is built around it: newest-wins
+// is the rule that deletes campaigns. So autosave only ever does the one thing
+// that cannot lose anything — it pushes THIS device's save over the cloud save
+// THIS device last synced with. It remembers that cloud save by fingerprint
+// (`we_cloud_base`), and before every push it reads the cloud back: if anyone
+// else has written since — another phone, another browser — the fingerprints
+// differ, autosave stops, and the panel asks, exactly as it always has. An
+// empty save is never pushed.
+//
+// Both of these are DEVICE settings, and are deliberately not in SAVE_KEYS:
+// whether a phone autosaves, and which cloud save it last saw, are facts about
+// that phone, not about the campaign.
+
+const AUTOSAVE_KEY = "we_cloud_autosave";
+const BASE_KEY = "we_cloud_base";
+const LAST_KEY = "we_cloud_autosave_at";
+
+/** A stable fingerprint of a bundle's PAYLOAD (FNV-1a over the save keys in a
+ *  fixed order). Metadata — `savedAt`, `device` — is left out for the same
+ *  reason `sameSave` leaves it out: it is about the write, not the game. A hash
+ *  rather than a copy, because the save is the biggest thing in localStorage
+ *  and keeping a second one just to compare against would double it. */
+export function fingerprint(b: SaveBundle | null): string {
+  if (!b) return "";
+  let h = 0x811c9dc5;
+  const text = SAVE_KEYS.map((k) => `${k}=${b.keys[k] ?? "\u0000"}`).join("\u0001");
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return `${text.length}:${h.toString(16)}`;
+}
+
+const read = (k: string): string | null => {
+  try { return localStorage.getItem(k); } catch { return null; }
+};
+const write = (k: string, v: string | null): void => {
+  try { if (v == null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch { /* ignore */ }
+};
+
+/** ON unless this device has switched it off — a player who signs in did so to
+ *  keep their progress, and having to find a second switch was the complaint. */
+export const autosaveEnabled = (): boolean => read(AUTOSAVE_KEY) !== "0";
+export const setAutosave = (on: boolean): void => write(AUTOSAVE_KEY, on ? "1" : "0");
+/** When autosave last pushed, ISO, or null. */
+export const lastAutosave = (): string | null => read(LAST_KEY);
+
+/** Record that this device and the cloud now hold `b` — after an upload, after
+ *  a restore, or on finding the two already match. The baseline autosave will
+ *  refuse to push over anything but. */
+export function noteSynced(b: SaveBundle): void {
+  write(BASE_KEY, fingerprint(b));
+}
+
+export type AutosaveStep = "skip" | "push" | "conflict";
+
+/** Does `local` CONTINUE `cloud` — the same campaign, played further? Every card
+ *  the cloud owns is still owned here, and every node it cleared is still
+ *  cleared. Progress in this game only ever accumulates, so a save that holds
+ *  all of another's is that save plus play, never a different game.
+ *
+ *  Used ONLY for a device's first sync (no baseline yet): a player who uploaded
+ *  by hand before autosave existed would otherwise be asked about a "conflict"
+ *  that is just their own older save. Once a baseline exists, the baseline is
+ *  the rule — a second device that only edited squads would pass this test, and
+ *  its edits are not this phone's to overwrite. */
+export function continuesSave(local: SaveBundle, cloud: SaveBundle): boolean {
+  const parse = (b: SaveBundle) => {
+    try { return JSON.parse(b.keys["we_story_v1"] ?? "null") as Record<string, unknown> | null; } catch { return null; }
+  };
+  const l = parse(local), c = parse(cloud);
+  if (!l || !c) return false;
+  const list = (s: Record<string, unknown>, ...ks: string[]) =>
+    new Set(ks.flatMap((k) => (Array.isArray(s[k]) ? (s[k] as unknown[]).filter((x) => typeof x === "string") as string[] : [])));
+  const lc = list(l, "collection"), cc = list(c, "collection");
+  const lClr = list(l, "cleared", "firstRunCleared"), cClr = list(c, "cleared", "firstRunCleared");
+  return [...cc].every((id) => lc.has(id)) && [...cClr].every((id) => lClr.has(id));
+}
+
+/** WHAT AUTOSAVE DOES, given the three facts it has. Pure, so the rule that
+ *  stands between a phone and someone else's campaign is testable on its own.
+ *
+ *    nothing on this device   → skip  (an empty side never overwrites)
+ *    same as the cloud        → skip  (already there)
+ *    cloud empty              → push
+ *    cloud is what we last saw→ push  (only this device has moved on)
+ *    no baseline yet, and this
+ *      save continues the cloud's → push  (first sync of an older upload)
+ *    anything else            → conflict — someone else wrote; ask the player */
+export function autosaveStep(local: SaveBundle, cloud: SaveBundle | null, base: string | null): AutosaveStep {
+  if (summarize(local).empty) return "skip";
+  if (cloud && sameSave(local, cloud)) return "skip";
+  if (!cloud || summarize(cloud).empty) return "push";
+  if (base != null) return fingerprint(cloud) === base ? "push" : "conflict";
+  return continuesSave(local, cloud) ? "push" : "conflict";
+}
+
+export type AutosaveResult =
+  | { status: "off" | "signed-out" | "unchanged" | "saved" | "conflict" }
+  | { status: "error"; error: string };
+
+/** One autosave attempt. Cheap when nothing changed: it compares this device's
+ *  save with the baseline before touching the network at all. */
+export async function autosaveOnce(): Promise<AutosaveResult> {
+  if (!accountConfigured || !autosaveEnabled()) return { status: "off" };
+  const c = db();
+  const { data } = (await c?.auth.getSession()) ?? { data: { session: null } };
+  if (!data.session?.user) return { status: "signed-out" };
+  const local = localBundle();
+  if (summarize(local).empty || fingerprint(local) === read(BASE_KEY)) return { status: "unchanged" };
+  const pulled = await pullSave();
+  if (!pulled.ok) return { status: "error", error: pulled.error };
+  const step = autosaveStep(local, pulled.bundle, read(BASE_KEY));
+  if (step === "skip") { noteSynced(local); return { status: "unchanged" }; }
+  if (step === "conflict") return { status: "conflict" };
+  const pushed = await pushSave(local);
+  if (!pushed.ok) return { status: "error", error: pushed.error };
+  noteSynced(local);
+  write(LAST_KEY, local.savedAt);
+  return { status: "saved" };
+}

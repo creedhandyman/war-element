@@ -5,7 +5,10 @@
 // save. The auth calls are Supabase's and are not worth mocking; these are the
 // rules that are OURS.
 import { beforeEach, describe, expect, it } from "vitest";
-import { SAVE_KEYS, applyBundle, localBundle, sameSave, summarize } from "../../net/account";
+import {
+  SAVE_KEYS, applyBundle, autosaveEnabled, autosaveStep, continuesSave, fingerprint, localBundle,
+  noteSynced, sameSave, setAutosave, summarize, type SaveBundle,
+} from "../../net/account";
 
 /** A localStorage that behaves, for a test environment that may not have one. */
 function fakeStorage() {
@@ -145,5 +148,65 @@ describe("summarize — what the player is shown before overwriting anything", (
     // `empty` must mean "nothing to lose", not "no cards". Shards alone are
     // worth protecting.
     expect(summarize({ keys: { we_story_v1: '{"hero":{"shards":40}}' }, savedAt: "" }).empty).toBe(false);
+  });
+});
+
+// AUTOSAVE (owner's call, 2026-10-03). The rule that decides whether a phone
+// may push over the cloud — the one thing in this file that could overwrite
+// another device's campaign — so it is pinned case by case.
+describe("autosave never overwrites another device's progress", () => {
+  const bundle = (story: string | null, squads: string | null = SQUADS): SaveBundle => ({
+    keys: {
+      ...(story ? { we_story_v1: story } : {}),
+      ...(squads ? { we_squads_v1: squads } : {}),
+    },
+    savedAt: "2026-10-03T12:00:00Z",
+  });
+  const older = bundle(STORY());
+  const played = bundle(STORY({ collection: ["leaf_alpha", "pyro_baboom", "dusk_gool", "aqua_kraken"], cleared: ["L1", "L2", "L3"] }));
+  const otherDevice = bundle(STORY({ collection: ["gale_hawk"], cleared: ["P1"] }));
+
+  it("pushes over the cloud save this device last synced with", () => {
+    expect(autosaveStep(played, older, fingerprint(older))).toBe("push");
+  });
+
+  it("stops and asks when someone else has written since", () => {
+    // Synced at `older`; the cloud now holds a different device's save.
+    expect(autosaveStep(played, otherDevice, fingerprint(older))).toBe("conflict");
+    // ...even one that only changed squads: the baseline is the rule, not progress.
+    const squadEdit = bundle(STORY(), JSON.stringify({ v: 1, squads: [] }));
+    expect(autosaveStep(played, squadEdit, fingerprint(older))).toBe("conflict");
+  });
+
+  it("never pushes an empty save, and skips one that is already there", () => {
+    expect(autosaveStep(bundle(null, null), older, fingerprint(older))).toBe("skip");
+    expect(autosaveStep(older, older, null)).toBe("skip");
+  });
+
+  it("fills an empty cloud", () => {
+    expect(autosaveStep(played, null, null)).toBe("push");
+  });
+
+  it("on a first sync, pushes only a save that continues the cloud's", () => {
+    // An older hand-upload of this same campaign: every card and node still here.
+    expect(continuesSave(played, older)).toBe(true);
+    expect(autosaveStep(played, older, null)).toBe("push");
+    // A different campaign is a conflict, however much it holds.
+    expect(continuesSave(played, otherDevice)).toBe(false);
+    expect(autosaveStep(played, otherDevice, null)).toBe("conflict");
+  });
+
+  it("fingerprints the game, not the write", () => {
+    expect(fingerprint({ ...older, savedAt: "2030-01-01T00:00:00Z", device: "iPad" })).toBe(fingerprint(older));
+    expect(fingerprint(played)).not.toBe(fingerprint(older));
+  });
+
+  it("is on by default, a per-device switch, and outside the synced keys", () => {
+    expect(autosaveEnabled()).toBe(true);
+    setAutosave(false);
+    expect(autosaveEnabled()).toBe(false);
+    noteSynced(older);
+    for (const k of ["we_cloud_autosave", "we_cloud_base", "we_cloud_autosave_at"])
+      expect((SAVE_KEYS as readonly string[]).includes(k), `${k} must not travel`).toBe(false);
   });
 });
