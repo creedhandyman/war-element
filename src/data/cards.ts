@@ -13974,7 +13974,10 @@ export const CARDS: CardDef[] = [
     element: "AQUA",
     cardClass: "Tank",
     tribe: "SeaC",
-    attackType: "Melee",
+    // RANGED (owner's call, 2026-10-02): the whale's song carries — a Tank on
+    // SP 2 rarely reached anything to bite, so its 3-DMG basic now reaches like
+    // a shooter's while it holds the line.
+    attackType: "Ranged",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
