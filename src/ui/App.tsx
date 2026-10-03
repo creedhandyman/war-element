@@ -4988,7 +4988,9 @@ export function App() {
                 : null
             }
             viewPlayer={view}
-            ground={storyNode ? regionOfNode(storyNode.id)?.element.toLowerCase() : undefined}
+            // A Story fight stands on its region; anything else on the element
+            // its decks are mostly made of (engine/ground.ts, picked at setup).
+            ground={(storyNode ? regionOfNode(storyNode.id)?.element : game.ground)?.toLowerCase()}
             onSlotClick={boardHandlers.click}
             onSlotDragOver={boardHandlers.over}
             onSlotDrop={boardHandlers.drop}

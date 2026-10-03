@@ -168,6 +168,7 @@ export function ReplayViewer(props: { replay: Replay; meta: ReplayMeta; onClose:
           <div className="rv-board">
             <Board
               game={cur}
+              ground={cur.ground?.toLowerCase()}
               legalSlots={NO_POS}
               legalTargetIds={NO_POS}
               targetsAreEnemies

@@ -22,6 +22,6 @@ describe("every story region fights on its own ground", () => {
 
   it("the board passes the region's element through", () => {
     const app = readFileSync(join(root, "src", "ui", "App.tsx"), "utf8");
-    expect(app).toContain("ground={storyNode ? regionOfNode(storyNode.id)?.element.toLowerCase() : undefined}");
+    expect(app).toContain("ground={(storyNode ? regionOfNode(storyNode.id)?.element : game.ground)?.toLowerCase()}");
   });
 });

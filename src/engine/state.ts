@@ -2,6 +2,7 @@
 // incoming state once (structuredClone) and mutate only the clone.
 
 import { dealSuits } from "./suits";
+import { pickGround } from "./ground";
 import { getDef, deckById } from "../data/cards";
 import { FOIL_BONUS, foilStatFor } from "../data/foils";
 import { dominationMap, isImpassable, poiRing, type PoiDef } from "../data/domination";
@@ -159,6 +160,10 @@ export function createInitialState(
       state.log.push(`— ${terrain.name} runs over the whole battlefield, at terrain strength. —`);
     }
   }
+
+  // The battlefield's ground, read off the WHOLE decks before a card is drawn
+  // (ground.ts) — it hashes the seed and draws nothing from the cursor.
+  state.ground = pickGround(seed | 0, seats.map((seat) => state.players[seat].deck));
 
   // Every SEATED player, not the first two: a four-player match deals four
   // opening hands. An unseated P3/P4 has an empty deck and is not in `seats`,

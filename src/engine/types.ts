@@ -2872,6 +2872,11 @@ export interface GameState {
    *  hand-built fixture) has none; `styleOf` falls back to the seat's
    *  traditional suit so no reader has to check. */
   seatSuits?: Record<PlayerId, Suit>;
+  /** The element this match's battlefield is painted as — the most common one
+   *  across the seated decks, ties broken by the seed (`ground.ts`). Cosmetic
+   *  only; a Story fight overrides it with its region in the UI. Absent on an
+   *  older state, or when no card counts, which renders the stone. */
+  ground?: string;
   /** How much of the game the AI seats know this match — see `skill.ts`.
    *
    *  A HANDICAP, and the only knob in the engine that exists to make the game
