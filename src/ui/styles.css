@@ -800,10 +800,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 @keyframes badgeBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-2px); } }
 .slot.dimmed { opacity: 0.32; }
-/* Idle opponent team on your turn: dimmed only, still clickable. No grayscale —
-   it drained the element rim and the card art, which are what you read the
-   board by; opacity alone is enough to say "not acting right now". */
-.slot.grayed .token { opacity: 0.7; transition: opacity 0.2s; }
+/* Idle opponent team on your turn: grayed SLIGHTLY, still clickable, and fully
+   OPAQUE (owner, 2026-10-03). It was opacity 0.7, which on the element grounds
+   let the grass or the golden bricks show through the card art. A light
+   grayscale keeps the element rim and the art readable — the heavy one that
+   drained them was dropped for that reason — and still says "not acting". */
+.slot.grayed .token { filter: grayscale(0.4) brightness(0.88); transition: filter 0.2s; }
 /* A threatened Home slot. The tile's border holds the dim red and the cue lays
    the full red exactly over it — the cue is the tile's BORDER box (inset by
    the border's width, same radius), so the ring it draws is the border. */
