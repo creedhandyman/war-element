@@ -8500,21 +8500,42 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The 4x4 / 5x5 boards keep their red/blue end-tinting exactly as it was — the
    objective highlight below is Domination-only. */
 
-/* A Point's letter, on its citadel. The citadel is closed ground, so this is
-   the one square in a Point that can never have a token drawn over it. */
+/* A Point's TOWER, on its citadel (owner's art, 2026-10-02) — the closed
+   middle square, the one square in a Point that can never have a token drawn
+   over it. One tower per letter, each in its own colour; it stands on the
+   tile's lower edge the way a building stands on ground. The holder's colour
+   rides on its glow (below), so the tower itself reads as the score. */
+.poi-tower {
+  position: absolute; left: 50%; bottom: 3%;
+  height: 94%; width: auto; max-width: 96%; object-fit: contain;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85));
+  pointer-events: none; user-select: none;
+  z-index: 1;
+}
+.slot.obj-yours .poi-tower     { filter: drop-shadow(0 0 5px rgba(64, 210, 125, 0.95)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85)); }
+.slot.obj-theirs .poi-tower    { filter: drop-shadow(0 0 5px rgba(240, 92, 92, 0.95)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85)); }
+.slot.obj-contested .poi-tower { filter: drop-shadow(0 0 6px rgba(255, 158, 46, 1)) drop-shadow(0 2px 3px rgba(0, 0, 0, 0.85)); }
+/* The tower replaces the citadel's diamond; the crossroads, closed ground with
+   no Point on it, keeps its diamond. */
+.slot.dom-closed.dom-poi::after { content: none; }
+/* The LETTER, now a corner tag: the one painted on the tower is a few pixels
+   tall on a phone's 7x7, and the tag carries the holder's colour and suit. */
 .poi-letter {
   position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
+  right: 3px; bottom: 1px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
   font-family: var(--head);
-  font-size: clamp(13px, 3.4vw, 22px);
+  font-size: clamp(9px, 1.7vw, 14px);
   font-weight: 800;
   letter-spacing: 0.04em;
+  line-height: 1;
   color: rgba(255, 214, 214, 0.92);
-  text-shadow: 0 0 10px rgba(255, 90, 90, 0.55), 0 2px 4px #000;
+  text-shadow: 0 0 10px rgba(255, 90, 90, 0.55), 0 1px 3px #000, 0 0 4px #000;
   pointer-events: none;
-  z-index: 1;
+  z-index: 2;
 }
 /* ...and it takes the holder's colour, so the letter itself reads as the score. */
 .slot.obj-yours .poi-letter    { color: rgba(190, 255, 214, 0.95); text-shadow: 0 0 10px rgba(64, 210, 125, 0.65), 0 2px 4px #000; }
@@ -8524,8 +8545,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* THE HOLDER'S SUIT, above the letter. The letter's colour answers "is it
    mine"; in a free-for-all "held against you" has up to three answers, and
    the suit is the one mark that says whose — the glyph and colour that seat's
-   cards wear. Stacked with the letter as one centred group. */
-.poi-letter { align-content: center; }
+   cards wear. Sits just before the letter in the corner tag. */
 .poi-suit {
   font-style: normal;
   font-size: max(11px, 0.85em);

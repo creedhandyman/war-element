@@ -168,6 +168,19 @@ function SlotView(props: {
           ::after already belongs to traps and closed squares, and this must
           sit OVER the card standing here — that card is the point. */}
       {props.strike && <i className="slot-strike" aria-hidden="true" />}
+      {/* The Point's tower, standing on its citadel (owner's art, 2026-10-02):
+          one per letter, each in its own colour — A blue, B red, C green, D
+          violet. The letter below stays as a small corner tag: the one printed
+          on the tower is a few pixels tall on a phone's 7x7. */}
+      {props.poiLetter && (
+        <img
+          className="poi-tower"
+          src={`/poi/tower-${props.poiLetter.toLowerCase()}.webp`}
+          alt=""
+          aria-hidden="true"
+          draggable={false}
+        />
+      )}
       {props.poiLetter && (
         <span className="poi-letter" aria-hidden="true">
           {props.poiSuit && <i className={`poi-suit suit-${props.poiSuit.key}`}>{props.poiSuit.glyph}</i>}
