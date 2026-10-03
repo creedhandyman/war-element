@@ -4792,6 +4792,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
         if (a.curHp > 0 && (a.statuses.length || a.buffs.length)) { stripNegatives(a); cleaned++; }
       if (cleaned) draft.log.push(`${label(draft, attacker)} washes the team down (${cleaned} ally(ies) cleansed).`);
     }
+    // SHIELD THE CASTER'S SIDE (Polar Shift, owner 2026-10-03): every ally on
+    // the board, the caster included, gains `alliesShields` shields — for good,
+    // not for the round, like any other shield grant that is not marked temp.
+    const teamSh = num(params, "alliesShields");
+    if (teamSh > 0) {
+      const side = boardCards(draft, attacker.owner).filter((a) => a.curHp > 0);
+      for (const a of side) a.curShields += teamSh;
+      if (side.length) draft.log.push(`${label(draft, attacker)} ices over its side — +${teamSh} shields to ${side.length} ally(ies).`);
+    }
     // Solara's Blinding Sunrise also calls another Radiant Guardian to her side.
     const spawnTok = typeof params.spawnToken === "string" ? params.spawnToken : "";
     if (spawnTok && attacker.curHp > 0)
@@ -5262,6 +5271,27 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.hitsBonus = 0;
     attacker.buffs = [];
     draft.log.push(`${label(draft, attacker)} erupts — it transforms into ${newDef.name}!`);
+    // A BURST AROUND THE CHANGE (Sea Terror, owner 2026-10-03): SCALD and FREEZE
+    // every opponent TOUCHING the card as it transforms. It replaces the new
+    // form's own On Summon rather than adding to it — Krakler's Abyssal Grasp
+    // is the same two statuses on one target, and firing both would double up
+    // on the nearest foe.
+    if (num(params, "touchScald") > 0 || num(params, "touchFreezeRounds") > 0) {
+      const el = getDef(attacker.defId).element;
+      const touching = attacker.pos
+        ? enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && e.pos && chebyshev(e.pos, attacker.pos!) === 1)
+        : [];
+      for (const e of touching) {
+        if (num(params, "touchScald") > 0)
+          applyStatus(draft, e, "SCALD", num(params, "touchScaldRounds", 2), num(params, "touchScald"), el);
+        if (num(params, "touchFreezeRounds") > 0 && draft.cards[e.instanceId])
+          applyStatus(draft, e, "FREEZE", num(params, "touchFreezeRounds"), 0, el);
+      }
+      draft.log.push(touching.length
+        ? `${newDef.name} lashes out at ${touching.length} touching foe(s) — SCALD and FREEZE.`
+        : `${newDef.name} lashes out — nobody is close enough to catch it.`);
+      return;
+    }
     // Fire the new form's On Summon (Krakler's Abyssal Grasp).
     const os = newDef.onSummon;
     if (os?.handler) {

@@ -1489,10 +1489,11 @@ export const CARDS: CardDef[] = [
       name: "Polar Shift",
       cost: 4,
       handler: "statusNova",
-      params: { statusKind: "FREEZE", statusDuration: 2, targets: 3 },
+      // ...and +3 shields to every ally (owner, 2026-10-03).
+      params: { statusKind: "FREEZE", statusDuration: 2, targets: 3, alliesShields: 3 },
       targetSide: "enemy",
       ranged: true, // "FREEZE all opponents ≤4 HP" — reaches the whole board
-      text: "FREEZE up to 3 opponents anywhere for 2 rounds.",
+      text: "FREEZE up to 3 opponents anywhere for 2 rounds, and give allies 3 shields.",
     },
   },
   {
@@ -7882,16 +7883,17 @@ export const CARDS: CardDef[] = [
     // Siren Song (On Hit): FREEZE the attacker for 1 round.
     passiveNames: { onHitByMelee: "Siren Song" },
     onHitByMelee: { anyAttacker: true, status: { kind: "FREEZE", duration: 1, power: 0 } },
-    // Sea Terror: transform into Krakler (9/8/SP8). Krakler's Abyssal Grasp fires
-    // on the change (SCALD 3 + FREEZE a foe); when Krakler dies, Siren returns at
-    // full HP.
+    // Sea Terror: transform into Krakler (9/8/SP8), and SCALD 3 + FREEZE (2
+    // rounds each) every opponent touching it as it changes (owner, 2026-10-03 —
+    // it was Krakler's own Abyssal Grasp on one foe). When Krakler dies, Siren
+    // returns at full HP.
     special: {
       name: "Sea Terror",
       cost: 4,
       handler: "transform",
-      params: { into: "aqua_krakler" },
+      params: { into: "aqua_krakler", touchScald: 3, touchScaldRounds: 2, touchFreezeRounds: 2 },
       targetSide: "self",
-      text: "Transform into Krakler (9/8/SP8), applying SCALD 3 + FREEZE. When Krakler dies, revert to Siren at full HP.",
+      text: "Transform into Krakler (9/8/SP8), applying SCALD 3 + FREEZE to all touching opponents. When Krakler dies, revert to Siren at full HP.",
     },
   },
   {

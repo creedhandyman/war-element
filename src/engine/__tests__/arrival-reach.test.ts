@@ -111,3 +111,42 @@ describe("Krakler — Abyssal Grasp skips a FROZEN target", () => {
     expect(summonKrakler(true, true)).toEqual({ near: true, far: false });
   });
 });
+
+describe("Siren — Sea Terror bursts on every touching opponent", () => {
+  it("SCALD 3 + FREEZE on each foe touching it as it becomes Krakler, nobody else", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const siren = place(s, "aqua_siren", "P1", 2, 1);
+    const a = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    const b = place(s, "dusk_gool", "P2", 1, 2, { curHp: 30, maxHp: 30 });
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 30, maxHp: 30 });
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [siren.instanceId], index: 0, awaitingInput: siren.instanceId };
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: siren.instanceId });
+    expect(g.cards[siren.instanceId].defId).toBe("aqua_krakler");
+    for (const id of [a.instanceId, b.instanceId]) {
+      const st = g.cards[id].statuses;
+      expect(st.find((x) => x.kind === "SCALD")?.power, id).toBe(3);
+      expect(st.some((x) => x.kind === "FREEZE"), id).toBe(true);
+    }
+    expect(g.cards[far.instanceId].statuses).toEqual([]);
+  });
+});
+
+describe("Polar King — Polar Shift shields the side", () => {
+  it("FREEZEs up to 3 opponents and gives every ally (itself included) +3 shields", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const king = place(s, "aqua_polarking", "P1", 3, 0);
+    const ally = place(s, "leaf_birch", "P1", 2, 2);
+    const foes = [[1, 0], [1, 1], [1, 2], [1, 3]].map(([r, c]) => place(s, "dusk_gool", "P2", r, c));
+    const kingSh = king.curShields, allySh = ally.curShields;
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [king.instanceId], index: 0, awaitingInput: king.instanceId };
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foes[0].instanceId });
+    expect(g.cards[king.instanceId].curShields).toBe(kingSh + 3);
+    expect(g.cards[ally.instanceId].curShields).toBe(allySh + 3);
+    const frozen = foes.filter((f) => g.cards[f.instanceId].statuses.some((x) => x.kind === "FREEZE")).length;
+    expect(frozen).toBe(3);
+  });
+});
