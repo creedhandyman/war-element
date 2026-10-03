@@ -220,6 +220,11 @@ function BoardView(props: {
   viewPlayer: PlayerId; // whose side you're looking from (the opponent is fogged)
   /** Each seat's foils, keyed by owner. Cosmetic, UI-only. */
   foils?: Partial<Record<PlayerId, ReadonlySet<string>>>;
+  /** Which ground the board is painted as — an element id, lowercase ("leaf").
+   *  A Story fight passes its region's element, so the forest is fought on
+   *  grass and the Burning South on cracked basalt; anything else leaves it
+   *  unset and keeps the stone. Purely a CSS hook (`data-ground`). */
+  ground?: string;
   onSlotClick: (row: number, col: number) => void;
   onSlotDragOver: (row: number, col: number) => void; // drag-to-summon: hover
   onSlotDrop: (row: number, col: number) => void; // drag-to-summon: drop
@@ -460,7 +465,7 @@ function BoardView(props: {
       {/* `tight` = a board with more than four columns, where every tile is
           smaller and the tokens have to shed furniture to keep the stat row on
           one line. Keyed on the size, not on a literal 5, so a 6x6 inherits it. */}
-      <div className={`board${game.boardSize > 4 ? " tight" : ""}`} ref={boardRef}>
+      <div className={`board${game.boardSize > 4 ? " tight" : ""}`} data-ground={props.ground} ref={boardRef}>
         {/* Fields (Cost-6 terrain) — a board-wide haze in the element colour,
             framed like a wall. pointer-events:none so slots stay clickable. */}
         {/* Standing terrain is ONE battlefield even though it is stored as an

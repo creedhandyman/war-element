@@ -613,7 +613,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     linear-gradient(135deg, rgba(255, 244, 222, 0.07) 0%, transparent 26%, transparent 66%, rgba(0, 0, 0, 0.3) 100%),
     linear-gradient(rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4)), rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4))),
     linear-gradient(rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08))),
-    url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
+    var(--ground, url("/tile-stone.webp")) var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
     radial-gradient(95% 95% at 50% 42%, rgba(70, 74, 92, 0.32), rgba(14, 16, 24, 0.6));
   /* CRISP EDGES: a one-pixel lit lip top-left and a dark one bottom-right —
      the hard edge of a cut block, which a blurred rim alone never reads as. */
@@ -638,8 +638,22 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .board { background:
     radial-gradient(120% 90% at 30% 20%, rgba(46, 52, 74, 0.3), rgba(6, 7, 11, 0.9)),
     linear-gradient(rgba(4, 5, 9, 0.62), rgba(4, 5, 9, 0.62)),
-    url("/tile-stone.webp") 0 0 / 300px auto repeat,
+    var(--ground, url("/tile-stone.webp")) 0 0 / 300px auto repeat,
     linear-gradient(180deg, #0d0e14, #07080c); }
+/* A GROUND PER ELEMENT (owner, 2026-10-03): a Story fight is fought on its
+   region's own ground, so where you are reads off the board itself — grass in
+   the forest, ember-cracked basalt in the south. Swaps only the TEXTURE: the
+   bevel, the key light, the home-row tints and the hill all stay, painted over
+   it. Opaque and kept dark (tools/make-grounds.py) so the cards still own the
+   tile. No `data-ground` (Arena, Tower, training…) keeps the stone. */
+.board[data-ground="leaf"] { --ground: url("/ground/leaf.webp"); }
+.board[data-ground="pyro"] { --ground: url("/ground/pyro.webp"); }
+.board[data-ground="aqua"] { --ground: url("/ground/aqua.webp"); }
+.board[data-ground="gale"] { --ground: url("/ground/gale.webp"); }
+.board[data-ground="bolt"] { --ground: url("/ground/bolt.webp"); }
+.board[data-ground="bore"] { --ground: url("/ground/bore.webp"); }
+.board[data-ground="dusk"] { --ground: url("/ground/dusk.webp"); }
+.board[data-ground="dawn"] { --ground: url("/ground/dawn.webp"); }
 /* THE HILL — the rows King of the Hill counts, drawn as a raised platform: a
    lighter stone, a bright lip along the top edge and a ledge shadow cast below,
    so "stand here for +1 DMG" is something the board shows, not only the rules. */
@@ -649,7 +663,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     linear-gradient(135deg, rgba(255, 244, 222, 0.07) 0%, transparent 26%, transparent 66%, rgba(0, 0, 0, 0.26) 100%),
     linear-gradient(rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34)), rgba(0, 0, 0, calc(0.36 - var(--lit, 0.5) * 0.34))),
     linear-gradient(rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(0.04 + var(--lit, 0.5) * 0.08))),
-    url("/tile-stone.webp") var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
+    var(--ground, url("/tile-stone.webp")) var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
     radial-gradient(95% 95% at 50% 42%, rgba(96, 100, 122, 0.4), rgba(24, 26, 36, 0.6));
   box-shadow:
     0 7px 8px -2px rgba(0, 0, 0, 0.85),

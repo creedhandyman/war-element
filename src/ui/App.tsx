@@ -4988,6 +4988,7 @@ export function App() {
                 : null
             }
             viewPlayer={view}
+            ground={storyNode ? regionOfNode(storyNode.id)?.element.toLowerCase() : undefined}
             onSlotClick={boardHandlers.click}
             onSlotDragOver={boardHandlers.over}
             onSlotDrop={boardHandlers.drop}
