@@ -2180,6 +2180,19 @@ export function basicAttack(
   // Morning Dew (Vernal): aimed at an ALLY, the basic is a heal for its DMG —
   // no hit roll, no statuses, no riders. Checked before anything else so none of
   // the combat machinery below ever sees a friendly target.
+  // Ice Armor (Glacius): aimed at an ALLY, the basic FREEZES it and plates it
+  // with shields — no hit roll, no damage, no riders.
+  if (aDef.basicShieldsAllies) {
+    const first = draft.cards[picks[0]];
+    if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
+      const ice = aDef.basicShieldsAllies;
+      applyStatus(draft, first, "FREEZE", ice.freezeRounds, 0, aDef.element);
+      first.curShields += ice.shields;
+      notePassive(draft, attacker, "basicShieldsAllies");
+      draft.log.push(`${label(draft, attacker)} encases ${label(draft, first)} in ice (+${ice.shields} shields, FROZEN).`);
+      return { landedHits: 0, dodgedHits: 0, totalToHp: 0, totalShielded: 0, targetDied: false, attackerDied: false };
+    }
+  }
   if (aDef.basicHealsAllies) {
     const first = draft.cards[picks[0]];
     if (first && first.owner === attacker.owner && first.instanceId !== attackerId) {
@@ -4750,6 +4763,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Self-riders (Timberer's brace, Volcanon's ramp) — barrage never applied
     // these, so any `self*` param on a barrage Special was silently inert.
     applySelfRiders(draft, attacker, params);
+    // Avalanche (owner, 2026-10-03): every ally TOUCHING the caster gains
+    // `nearAlliesShields` shields — the caster itself is not "nearby".
+    const nearSh = num(params, "nearAlliesShields");
+    if (nearSh > 0 && attacker.pos && attacker.curHp > 0) {
+      const near = boardCards(draft, attacker.owner).filter((a) =>
+        a.instanceId !== attacker.instanceId && a.curHp > 0 && a.pos && chebyshev(a.pos, attacker.pos!) === 1);
+      for (const a of near) a.curShields += nearSh;
+      if (near.length) draft.log.push(`${label(draft, attacker)} shores up ${near.length} ally(ies) nearby (+${nearSh} shields).`);
+    }
   },
 
   /** Apply a status to up to N valid enemy targets (unique — stacking a

@@ -2,7 +2,7 @@
 // to do a better job of telling the player the range of the attack".
 import { describe, expect, it } from "vitest";
 import { applyIntent } from "../phases";
-import { arrivalStrike } from "../rules";
+import { allyShieldTargets, arrivalStrike, validTargets } from "../rules";
 import { CARDS, getDef } from "../../data/cards";
 import { giveHand, place, prepState } from "./helpers";
 import type { Pos } from "../types";
@@ -148,5 +148,59 @@ describe("Polar King — Polar Shift shields the side", () => {
     expect(g.cards[ally.instanceId].curShields).toBe(allySh + 3);
     const frozen = foes.filter((f) => g.cards[f.instanceId].statuses.some((x) => x.kind === "FREEZE")).length;
     expect(frozen).toBe(3);
+  });
+});
+
+describe("Glacius — Ice Armor", () => {
+  function setup() {
+    const s = prepState();
+    const gl = place(s, "aqua_glacius", "P1", 2, 1);
+    const ally = place(s, "leaf_birch", "P1", 2, 2);
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30 });
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [gl.instanceId], index: 0, awaitingInput: gl.instanceId };
+    return { s, gl, ally, foe };
+  }
+
+  it("aimed at an ally, it FREEZEs it and gives +2 shields, with no damage", () => {
+    const { s, gl, ally } = setup();
+    const before = { hp: ally.curHp, sh: ally.curShields };
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [ally.instanceId] });
+    const a = g.cards[ally.instanceId];
+    expect(a.curHp).toBe(before.hp);
+    expect(a.curShields).toBe(before.sh + 2);
+    expect(a.statuses.some((x) => x.kind === "FREEZE")).toBe(true);
+    expect(g.cards[gl.instanceId]).toBeDefined();
+  });
+
+  it("allies are offered to the player only — never in validTargets, so the AI and Auto never pick them", () => {
+    const { s, gl, ally } = setup();
+    expect(validTargets(s, gl.instanceId).some((t) => t.instanceId === ally.instanceId)).toBe(false);
+    expect(allyShieldTargets(s, gl.instanceId).map((t) => t.instanceId)).toContain(ally.instanceId);
+    expect(allyShieldTargets(s, gl.instanceId).some((t) => t.instanceId === gl.instanceId)).toBe(false);
+  });
+
+  it("still attacks an enemy normally", () => {
+    const { s, foe } = setup();
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "basic", targetIds: [foe.instanceId] });
+    expect(g.cards[foe.instanceId].curHp).toBeLessThan(30);
+  });
+});
+
+describe("BlackIce — Avalanche shields allies nearby", () => {
+  it("strikes the row ahead and gives +3 shields to allies touching it, not to far ones or itself", () => {
+    const s = prepState();
+    s.players.P1.magicPool = 6;
+    const bi = place(s, "aqua_blackice", "P1", 2, 1);
+    const near = place(s, "leaf_birch", "P1", 3, 1);
+    const far = place(s, "leaf_birch", "P1", 3, 3);
+    const foe = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    const sh = { bi: bi.curShields, near: near.curShields, far: far.curShields };
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [bi.instanceId], index: 0, awaitingInput: bi.instanceId };
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "special", targetId: foe.instanceId });
+    expect(g.cards[foe.instanceId].curHp).toBeLessThan(30);
+    expect(g.cards[near.instanceId].curShields).toBe(sh.near + 3);
+    expect(g.cards[far.instanceId].curShields).toBe(sh.far);
   });
 });

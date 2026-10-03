@@ -61,6 +61,7 @@ import {
   bossTelegraphs, telegraphBlast,
   seatsOf, effectiveSummonCost,
 } from "../engine";
+import { allyShieldTargets } from "../engine/rules";
 import { spellCapForBoard } from "../engine/spells";
 import { OPENING_HAND } from "../engine/types";
 import {
@@ -3454,7 +3455,9 @@ export function App() {
       if (game.cards[awaitingId] && talentIsPicked(game, getDef(game.cards[awaitingId].defId).talent))
         return talentTargets(game, awaitingId).map((t) => t.instanceId);
     }
-    return validTargets(game, awaitingId).map((t) => t.instanceId);
+    // Ice Armor (Glacius): its allies in reach glow too — never part of
+    // `validTargets`, so only the player is ever offered them.
+    return [...validTargets(game, awaitingId), ...allyShieldTargets(game, awaitingId)].map((t) => t.instanceId);
   }, [game, awaitingId, pending, sel, view, armedPickSide, spellPicks]);
 
   // Enemy targets (basics / attack-specials / damage spells) glow RED; friendly
@@ -3872,6 +3875,12 @@ export function App() {
       if (pending === "special" && aimedArea && clicked && legalTargetIds.includes(clicked.instanceId)) {
         setPicks([clicked.instanceId]);
         setHint(`Aimed — the lit squares are what it covers. Press <b>Fire</b>, or tap another target to re-aim.`);
+        return;
+      }
+      // Ice Armor (Glacius): an ALLY is the whole attack — freeze it and plate
+      // it. One tap fires; there are no hits to spread.
+      if (pending === "basic" && clicked && allyShieldTargets(game, awaitingId).some((a) => a.instanceId === clicked.instanceId)) {
+        firePicks([clicked.instanceId]);
         return;
       }
       if (clicked && legalTargetIds.includes(clicked.instanceId)) {

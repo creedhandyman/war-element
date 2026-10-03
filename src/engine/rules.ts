@@ -1132,6 +1132,18 @@ export function validTargets(
   return [...enemies, ...hurtAllies];
 }
 
+/** Ice Armor (Glacius): the ALLIES its basic may be aimed at — any living ally
+ *  but itself, within its basic reach (king-step 1 for melee, `rangedReachFor`
+ *  for ranged). Kept out of `validTargets` on purpose — see `basicShieldsAllies`. */
+export function allyShieldTargets(state: GameState, attackerId: string): CardInstance[] {
+  const attacker = state.cards[attackerId];
+  if (!attacker?.pos || !getDef(attacker.defId).basicShieldsAllies) return [];
+  const reach = getDef(attacker.defId).attackType === "Melee" ? 1 : rangedReachFor(state, attacker);
+  return boardCards(state, attacker.owner).filter((a) =>
+    a.instanceId !== attackerId && a.curHp > 0 && a.pos
+    && Math.max(Math.abs(a.pos.row - attacker.pos!.row), Math.abs(a.pos.col - attacker.pos!.col)) <= reach);
+}
+
 /** Ally cards a friendly-targeted special may pick (any ally on board, incl. self). */
 export function validAllyTargets(state: GameState, attackerId: string): CardInstance[] {
   const attacker = state.cards[attackerId];

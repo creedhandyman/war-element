@@ -1561,6 +1561,12 @@ export interface CardDef {
   /** Morning Dew (Vernal): its basic attack may be aimed at an ALLY, healing
    *  them for its DMG instead of striking. Allies become legal basic targets. */
   basicHealsAllies?: boolean;
+  /** Ice Armor (Glacius, owner 2026-10-03): its basic attack may be aimed at an
+   *  ALLY in reach, FREEZING it for `freezeRounds` and granting `shields` —
+   *  once per attack, however many hits it prints. Offered to the player only
+   *  (`allyShieldTargets`): it is never in `validTargets`, so the AI, Auto and
+   *  hit-spreading never freeze their own side. */
+  basicShieldsAllies?: { shields: number; freezeRounds: number };
   /** Gate Keeper (Veil): grant this many shields to SELF on summon (a passive
    *  grant, not a base stat, so it stays off the cost curve). */
   /** Display names for this card's passives, keyed by the def field each one

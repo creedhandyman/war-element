@@ -67,6 +67,7 @@ import {
   onSummonTargets,
   effectiveSummonCost,
   specialIsZone,
+  allyShieldTargets,
 } from "./rules";
 import type {
   EnchantMode,
@@ -2212,6 +2213,14 @@ function performBattleAction(
   // basic attack — the assignable-hit ceiling includes on-kill / Flow / mid-row
   // hit bonuses, not just the printed count.
   const maxHits = effectiveBasicHits(card, draft);
+  // Ice Armor (Glacius): one ally may be named instead of enemies — the whole
+  // attack becomes the freeze-and-plate, so it is a single pick.
+  const iceAlly = picks?.length === 1 && allyShieldTargets(draft, instanceId).some((a) => a.instanceId === picks[0]);
+  if (iceAlly) {
+    basicAttack(draft, instanceId, picks![0]);
+    payAttackTrade(draft, card);
+    return;
+  }
   const valid = validTargets(draft, instanceId);
   const chosen =
     picks && picks.length > 0 ? picks : valid[0] ? [valid[0].instanceId] : [];

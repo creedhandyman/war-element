@@ -4406,6 +4406,10 @@ export const CARDS: CardDef[] = [
     keywords: {},
     // Freezer Burn: SCALD any FROZEN enemy for 2 each Cleanup (pairs with the Special).
     roundTick: { scaldFrozen: 2 },
+    // Ice Armor (owner, 2026-10-03): aim the basic at an ally to FREEZE it and
+    // plate it with 2 shields.
+    passiveNames: { basicShieldsAllies: "Ice Armor" },
+    basicShieldsAllies: { shields: 2, freezeRounds: 1 },
     special: {
       name: "Deep Freeze",
       cost: 4,
@@ -9153,14 +9157,15 @@ export const CARDS: CardDef[] = [
     passiveNames: { summonSelfShields: "Icicle Shields" },
     summonSelfShields: 3,
     weaponFromShields: true,
-    // Avalanche: 3 DMG to the enemy row ahead.
+    // Avalanche: 3 DMG to the enemy row ahead, and +3 shields to every ally
+    // touching it (owner, 2026-10-03).
     special: {
       name: "Avalanche",
       cost: 3,
       handler: "barrage",
-      params: { dmg: 3, rowAhead: 1, targets: 99 },
+      params: { dmg: 3, rowAhead: 1, targets: 99, nearAlliesShields: 3 },
       targetSide: "enemy",
-      text: "Deal 3 DMG to opponents in the row directly ahead.",
+      text: "Deal 3 DMG to opponents in the row directly ahead, and allies nearby gain 3 shields.",
     },
   },
   {
