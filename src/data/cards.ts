@@ -7480,8 +7480,10 @@ export const CARDS: CardDef[] = [
     cardClass: "Ranger",
     attackType: "Ranged",
     cost: 5,
-    dmg: 2,
-    hits: 4,
+    // 4 x 2, was 2 x 4 (owner, 2026-10-03): the same 8 a volley, in two
+    // heavier shots — each one gets through more armour.
+    dmg: 4,
+    hits: 2,
     hp: 13,
     sp: 12,
     shields: 1,
