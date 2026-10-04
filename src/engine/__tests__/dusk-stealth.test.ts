@@ -19,3 +19,12 @@ describe("the four DUSK stalkers", () => {
     });
   }
 });
+
+describe("Hoax", () => {
+  it("is Unpredictable instead of evasive (owner, 2026-10-04)", () => {
+    const d = getDef("dusk_hoax");
+    expect(d.keywords.EVASION).toBeFalsy();
+    expect(d.evadeVsSlower).toBe(true);
+    expect(d.passiveNames?.evadeVsSlower).toBe("Unpredictable");
+  });
+});

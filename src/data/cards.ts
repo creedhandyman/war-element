@@ -8753,11 +8753,15 @@ export const CARDS: CardDef[] = [
     hp: 22,
     sp: 15,
     shields: 0,
-    keywords: { CRIT: true, EVASION: true, STEALTH: true }, // STEALTH: owner, 2026-10-04
+    // STEALTH (owner, 2026-10-04), and Unpredictable in place of EVASION (same
+    // day): a SLOWER attacker only has a 50% chance to hit it — Ender's passive.
+    keywords: { CRIT: true, STEALTH: true },
+    evadeVsSlower: true,
+    passiveNames: { evadeVsSlower: "Unpredictable" },
     tribe: "ScareKrow",
-    // Blur: EVASION (keyword) + when a MARKED target dies, Hoax banks a one-time
-    // guaranteed dodge (next incoming attack auto-misses). Mark of Hoax brands a
-    // foe so every basic against it is a guaranteed CRIT.
+    // Blur: when a MARKED target dies, Hoax banks a one-time guaranteed dodge
+    // (next incoming attack auto-misses). Mark of Hoax brands a foe so every
+    // basic against it is a guaranteed CRIT.
     special: {
       name: "Mark of Hoax",
       cost: 4,
