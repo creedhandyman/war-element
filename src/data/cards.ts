@@ -6777,7 +6777,7 @@ export const CARDS: CardDef[] = [
     // another Spider.
     special: {
       name: "Silk Chase",
-      cost: 2,
+      cost: 3, // 2 -> 3 (owner, 2026-10-04)
       handler: "tribeSwarm",
       // frighten: 2 — see Last Waltz and Brood Summon. The swarm resolves in
       // BATTLE and Cleanup follows immediately, so a 1-round FRIGHTEN was gone
@@ -13098,9 +13098,13 @@ export const CARDS: CardDef[] = [
       name: "Sleight of Hand",
       cost: 2,
       handler: "statusNova",
-      params: { targets: 2, statusKind: "MUTED", statusDuration: 2, debuffStatus: "WEAKEN", debuffStatusRounds: 2 },
+      // ...and the magician vanishes after the trick (owner, 2026-10-04): a
+      // round of STEALTH on the caster, the same 1-round selfStatus Skyrend's
+      // dive leaves behind.
+      params: { targets: 2, statusKind: "MUTED", statusDuration: 2, debuffStatus: "WEAKEN", debuffStatusRounds: 2,
+        selfStatus: "STEALTH", selfStatusDuration: 1 },
       targetSide: "enemy",
-      text: "MUTE up to 2 opponents for 2 rounds and WEAKEN them.",
+      text: "MUTE up to 2 opponents for 2 rounds and WEAKEN them, then vanish into STEALTH until next round.",
     },
   },
   {
