@@ -356,6 +356,7 @@ export function Hand(props: {
               key={h.handId}
               className={`${cls} carded`}
               data-hid={h.handId}
+              data-def={h.defId}
               data-el={def.element}
               style={{
                 ["--rot" as string]: `${rot}deg`,

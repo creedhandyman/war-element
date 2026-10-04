@@ -2359,6 +2359,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .modal h1 { font-size: 22px; margin-bottom: 6px; }
 .modal p { color: var(--ink-dim); font-size: 13px; margin-bottom: 16px; line-height: 1.5; }
 .mull-cards { display: flex; gap: 8px; justify-content: center; margin-bottom: 18px; }
+.modal p.mull-lead { font-size: 17px; font-weight: 700; color: var(--ink); margin-bottom: 4px; }
 .mull-card { width: 96px; border-radius: 10px; background: var(--void-2); border: 2px solid var(--panel-line); padding: 8px; cursor: pointer; transition: 0.15s; }
 .mull-card.toss { border-color: var(--threat); opacity: 0.65; transform: translateY(4px); }
 .mull-card .hc-name { min-height: 26px; }
@@ -6557,6 +6558,12 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* ── training ground (owner, 2026-10-02) ──────────────────────────────────
    Achievements' rows and body, with the four cards each lesson opens with. */
 .trn-lead { margin: 0 2px 12px; font-size: 12px; line-height: 1.45; color: var(--ink-dim); }
+/* Basics (the step-by-step first battle) above the numbered lessons. */
+.trn-group {
+  margin: 14px 2px 6px; font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase;
+  color: var(--gold-lit);
+}
+.trn-group:first-of-type { margin-top: 0; }
 .trn-row .ach-medal { color: var(--ink-dim); }
 .trn-row.won .ach-medal { border-color: var(--gold-line); color: var(--gold-lit); }
 .trn-cards { display: flex; align-items: center; gap: 4px; margin-top: 6px; min-width: 0; }
@@ -7852,13 +7859,77 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-size: 10px; color: var(--ink-faint); text-decoration: underline;
 }
 .tut-skip:hover { color: var(--ink); }
-.tut-title { font-family: var(--head); font-size: 13px; font-weight: 700; color: #cfe0ff; margin-top: 2px; }
-.tut-body { margin: 3px 0 8px; font-size: 11.5px; line-height: 1.45; color: var(--ink-dim); }
+.tut-title { font-family: var(--head); font-size: 16px; font-weight: 700; color: #cfe0ff; margin-top: 2px; }
+.tut-body { margin: 4px 0 9px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 .tut-ok {
-  cursor: pointer; padding: 4px 14px; border-radius: 999px; font-size: 11px; font-weight: 700;
+  cursor: pointer; padding: 6px 16px; border-radius: 999px; font-size: 13px; font-weight: 700;
   color: #cfe0ff; background: rgba(120, 160, 255, .18); border: 1px solid rgba(120, 160, 255, .35);
 }
 .tut-ok:hover { background: rgba(120, 160, 255, .3); }
+
+/* ===== The first battle, step by step (TutorialRail.tsx, ui/tutorial.ts) =====
+   Everything but the one thing to tap is dimmed and swallows taps; the target
+   sits in a hole with a pulsing ring. The instruction is LARGE on purpose: a
+   new player read small text as optional story and skipped it. */
+.tut-rail { position: fixed; inset: 0; z-index: var(--z-guide); pointer-events: none; }
+.tut-dim { position: fixed; background: rgba(4, 4, 9, 0.66); pointer-events: auto; }
+.tut-hold { inset: 0; background: rgba(4, 4, 9, 0.38); }
+.tut-ring {
+  position: fixed; border-radius: 14px; pointer-events: none;
+  border: 3px solid var(--gold-lit);
+  box-shadow: 0 0 0 2px rgba(0, 0, 0, 0.6), 0 0 26px rgba(232, 200, 119, 0.55);
+}
+.tut-ring::after {
+  content: ""; position: absolute; inset: -6px; border-radius: 18px;
+  border: 3px solid var(--gold-lit); opacity: 0;
+  animation: tut-pulse 1.4s ease-out infinite;
+}
+@keyframes tut-pulse {
+  0% { opacity: 0.85; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.18); }
+}
+@media (prefers-reduced-motion: reduce) { .tut-ring::after { animation: none; } }
+.tut-say {
+  position: fixed; left: 50%; transform: translateX(-50%);
+  top: calc(env(safe-area-inset-top, 0px) + 56px);
+  width: min(560px, calc(100vw - 32px));
+  display: flex; flex-direction: column; gap: 6px; align-items: center; text-align: center;
+  padding: 14px 18px; border-radius: 14px;
+  background: linear-gradient(180deg, rgba(28, 24, 16, 0.97), rgba(16, 14, 10, 0.97));
+  border: 1px solid var(--gold-line); box-shadow: 0 12px 34px rgba(0, 0, 0, 0.7);
+  pointer-events: none;
+}
+.tut-say.low { top: auto; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); }
+.tut-say b { font-size: 22px; line-height: 1.25; color: var(--gold-hi); font-weight: 800; text-wrap: balance; }
+.tut-say span { font-size: 15px; line-height: 1.4; color: var(--ink); text-wrap: balance; }
+.tut-rail.hold .tut-say b { color: var(--ink); font-size: 19px; }
+.tut-rail-skip {
+  position: fixed; right: 12px; top: calc(env(safe-area-inset-top, 0px) + 10px);
+  display: flex; align-items: center; gap: 6px; pointer-events: auto;
+  font-size: 13px; color: var(--ink);
+  padding: 4px; border-radius: 10px; background: rgba(10, 10, 16, 0.85);
+}
+.tut-rail-skip .ghost.sm { font-size: 13px; padding: 6px 10px; }
+
+.tut-done { max-width: min(460px, 94vw); }
+/* `.modal p` sets a smaller size; the summary is read, so it keeps its own. */
+.tut-done .tut-done-lead { font-size: 16px; line-height: 1.4; color: var(--ink); margin: 6px 0 10px; }
+.tut-done-list { text-align: left; margin: 0 0 16px; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 15px; line-height: 1.4; color: var(--ink-dim); }
+.tut-done .lockin { font-size: 16px; padding: 12px 22px; }
+
+/* The first thing a new player sees: the title and one button. */
+.first-run {
+  position: fixed; inset: 0; z-index: var(--z-guide);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 28px;
+  padding-inline: 16px; background: var(--void, #050509);
+}
+.first-run-art { width: min(560px, 92vw); height: auto; display: block; }
+.first-run-go { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.first-run-play { font-size: 24px; padding: 16px 64px; letter-spacing: 0.1em; }
+.first-run-skip {
+  background: none; border: 0; padding: 8px; cursor: pointer;
+  font-size: 14px; color: var(--ink-dim); text-decoration: underline;
+}
 
 /* PARALYZE actually costing a card its turn. The status pip already says the
    card MIGHT be stopped; this says it WAS — otherwise the turn just produces no
@@ -8522,7 +8593,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: var(--gold-lit);
 }
 .gd-who i {
-  font-style: normal; font-size: 9px; letter-spacing: 0.04em; color: var(--ink-faint);
+  font-style: normal; font-size: 10.5px; letter-spacing: 0.04em; color: var(--ink-faint);
 }
 /* Pips, not "3 of 7": a filled pip says "done" in a way a numerator cannot, and
    it shows how much is left without making the player do the subtraction. */
@@ -8533,24 +8604,26 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .gd-pips i.done { background: var(--gold-lit); opacity: 0.55; }
 .gd-pips i.on { background: var(--gold-lit); width: 16px; border-radius: 3px; }
-.gd-title { margin-top: 6px; font-size: 15px; font-weight: 800; color: var(--ink); }
-.gd-body { margin: 4px 0 0; font-size: 11px; line-height: 1.5; color: var(--ink-dim); }
+/* READ AT A GLANCE (owner, 2026-10-04): a tester skipped this card because its
+   11px body read as fine print. One short line, large. */
+.gd-title { margin-top: 6px; font-size: 19px; line-height: 1.25; font-weight: 800; color: var(--ink); }
+.gd-body { margin: 5px 0 0; font-size: 14.5px; line-height: 1.45; color: var(--ink); }
 .gd-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .gd-go { flex: 1; }
 .gd-skip {
   background: none; border: none; padding: 2px 4px; cursor: pointer; font: inherit;
-  font-size: 10px; letter-spacing: 0.04em; color: var(--ink-faint); white-space: nowrap;
+  font-size: 12px; letter-spacing: 0.04em; color: var(--ink-faint); white-space: nowrap;
 }
 .gd-skip:hover { color: var(--ink-dim); }
 /* Stands where Skip will be, and says WHICH milestone is outstanding. A missing
    button with no explanation reads as a broken screen. */
 .gd-locked {
-  font-size: 9px; line-height: 1.35; color: var(--ink-faint); max-width: 132px;
+  font-size: 11.5px; line-height: 1.35; color: var(--ink-faint); max-width: 140px;
 }
 
 @media (max-width: 560px) {
   .gd-tip { width: 300px; padding: 11px 12px 12px; }
-  .gd-title { font-size: 14px; }
+  .gd-title { font-size: 18px; }
 }
 
 /* The two purses read as one idea, and the walkthrough rings them together.

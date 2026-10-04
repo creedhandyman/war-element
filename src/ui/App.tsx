@@ -65,7 +65,6 @@ import {
 } from "../engine";
 import { allyShieldTargets } from "../engine/rules";
 import { spellCapForBoard } from "../engine/spells";
-import { OPENING_HAND } from "../engine/types";
 import {
   boardOfRun, nextSeat, runComplete, runOver, runReward, runRewardOf, seatExtras, seatFoes, settleArena, startRun,
 } from "../data/gauntlet";
@@ -249,6 +248,8 @@ import { GuideOverlay } from "./GuideOverlay";
 import { TutorialCoach } from "./TutorialCoach";
 import { LessonCoach } from "./LessonCoach";
 import { TrainingGround } from "./TrainingGround";
+import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
+import { BEATS, COACH_COVERED, TUT_DONE, TUT_SKIP, beatIndex, createTutorialState, enemyStep, needsFirstRun, type TutUi } from "./tutorial";
 import { LESSON_BOARD, completeLesson, type Lesson } from "./training";
 import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -897,6 +898,9 @@ export function App() {
    *  Stated rather than derived: a lesson is not a deck in the Arena's chair,
    *  so nothing about the lobby can say that this match is one. */
   const [trainingRun, setTrainingRun] = useState<Lesson | null>(null);
+  /** The scripted first battle in progress (ui/tutorial.ts), and where it was
+   *  started from: the first-run screen, or the Training Ground's Basics. */
+  const [tutorialRun, setTutorialRun] = useState<"first" | "training" | null>(null);
   /** Bumped on every lesson deal, so the coach starts fresh on a refight. */
   const [trainingDeal, setTrainingDeal] = useState(0);
   /** Which Shop economy to open on, when Home sent you there for a reason. */
@@ -1088,6 +1092,7 @@ export function App() {
     const rec = recorderRef.current;
     rec.observe(game);
     if (online) rec.markUnreplayable();
+    if (tutorialRun) return; // a lesson on rails, not a match for the history
     if (game.phase !== "gameover" || !game.win || savedMatchRef.current === rec.matchNo) return;
     savedMatchRef.current = rec.matchNo;
     const me: PlayerId = online?.myId ?? "P1";
@@ -1566,7 +1571,7 @@ export function App() {
   const tableLabel = (id: string, extras: readonly string[]) =>
     extras.length ? `${deckLabel(id)} + ${extras.length} more` : deckLabel(id);
   const nextUp: NextUp | null = (() => {
-    if (storyNode || eventRun || twoPlayer || onlineMode || trainingRun) return null;
+    if (storyNode || eventRun || twoPlayer || onlineMode || trainingRun || tutorialRun) return null;
     if (game.phase !== "gameover") return null;
     const elements = [...new Set(resolveDeckCards(p2DeckId).map((id) => getDef(id).element))];
     const foes = 1 + ladderExtras.length;
@@ -1636,7 +1641,11 @@ export function App() {
   // don't flicker between turns; in vs-AI mode it's always P1.
   // Whose input the game needs; online, I only act on MY turn (else null).
   const actor = started ? needsInput(game) : null;
-  const me = online ? (actor === online.myId ? online.myId : null) : actor;
+  // In the tutorial both seats are "human" so the script can play the enemy;
+  // the screen still only ever acts, and looks, as P1.
+  const me = online ? (actor === online.myId ? online.myId : null)
+    : tutorialRun ? (actor === "P1" ? "P1" : null)
+    : actor;
   const [viewSide, setViewSide] = useState<PlayerId>("P1");
 
   /** TELL THE DIAL HOW THAT WENT — see `recordSkillMatch` in engine/skill.ts.
@@ -1727,6 +1736,13 @@ export function App() {
         if (next !== prev) saveStory(next);
         return next;
       });
+      return;
+    }
+    // THE TUTORIAL pays nothing and moves nothing: it is a lesson on rails.
+    // Winning it is recorded here, not on its Continue button, so closing the
+    // app on the victory screen still counts — from either door.
+    if (tutorialRun) {
+      if (game.win?.winner === "P1") markTaught(TUT_DONE, ...COACH_COVERED);
       return;
     }
     // ONLINE settles on its own short path and never touches the arena's.
@@ -1881,6 +1897,28 @@ export function App() {
   }, [me]);
   // Online: the board is always shown from MY side; local: follow the active human.
   const view: PlayerId = online ? online.myId : (me ?? viewSide);
+
+  // THE TUTORIAL (ui/tutorial.ts). Its enemy seat is "human", so the AI loop
+  // leaves it alone; the enemy's scripted turn is played here, after a pause
+  // long enough to see that it is the enemy's turn.
+  useEffect(() => {
+    if (!started || !tutorialRun || game.phase === "gameover" || needsInput(game) !== "P2") return;
+    const t = window.setTimeout(() => {
+      const next = enemyStep(game);
+      if (next) setGame((cur) => (cur === game ? next : cur));
+    }, 1100);
+    return () => window.clearTimeout(t);
+  }, [started, tutorialRun, game]);
+  // Which beat the player is on: read off the board and what is selected, from
+  // the first beat every time, so letting go of a card steps back to "tap it".
+  const tutUi: TutUi = {
+    handDef: sel?.kind === "hand" ? (game.players.P1?.hand.find((h) => h.handId === sel.handId)?.defId ?? null) : null,
+    cardId: sel?.kind === "card" ? sel.instanceId : null,
+    pending,
+  };
+  const tutBeat = tutorialRun ? beatIndex(game, tutUi) : 0;
+  /** A save that has done nothing yet opens on the title and one Play button. */
+  const showFirstRun = !started && !tutorialRun && needsFirstRun(story);
   // Spell effects on the WebGL effects layer, held while any flash covers the
   // board (see use-spell-impacts.ts). `view` decides whether a trap being
   // hidden may be drawn at all — only when it is this screen's own.
@@ -2586,6 +2624,49 @@ export function App() {
     setRematchMine(false); setRematchTheirs(false);
     setHint("Mulligan: click cards to send back, then confirm.");
     setStarted(true);
+  }
+
+  /** Add marks to the save's `taught` list (idempotent). */
+  const markTaught = (...ids: string[]) => setStory((prev) => {
+    const have = prev.taught ?? [];
+    if (ids.every((id) => have.includes(id))) return prev;
+    const next = { ...prev, taught: [...new Set([...have, ...ids])] };
+    saveStory(next);
+    return next;
+  });
+
+  /** Deal the scripted first battle (ui/tutorial.ts). */
+  function startTutorial(from: "first" | "training") {
+    setArenaMode("ai");
+    setTrainingRun(null);
+    setTutorialRun(from);
+    setGame(createTutorialState());
+    setIntroNames(null);
+    setMatchIntro(false);
+    setViewSide("P1");
+    setSel(null); setPending(null); setPicks([]); setMullToss([]); setStaged(null);
+    setRematchMine(false); setRematchTheirs(false);
+    setHint("");
+    setStarted(true);
+  }
+
+  /** Leave the tutorial: finished, or skipped from its corner button. From the
+   *  first-run screen a finish goes straight to the free pack; a skip goes Home,
+   *  where the ordinary walkthrough takes over. From the Training Ground, back
+   *  to the Training Ground. */
+  function endTutorial(skipped: boolean) {
+    const from = tutorialRun;
+    setTutorialRun(null);
+    setStarted(false);
+    setSel(null); setPending(null); setPicks([]); setStaged(null);
+    if (from === "first") {
+      // A win was already marked as it landed (the settle effect).
+      if (skipped) { markTaught(TUT_SKIP); goTab("home"); }
+      else goTab("shop"); // the Shop opens on Packs, the free pack ringed
+    } else {
+      goTab("home");
+      setHomeTraining(true);
+    }
   }
 
   /** The Rematch button. Offline it just re-deals; online it is a handshake. */
@@ -5432,7 +5513,17 @@ export function App() {
           never reflows and never moves it. `.controls` is none of those on a
           phone. */}
       {started && trainingRun && <LessonCoach key={trainingDeal} game={game} lesson={trainingRun} />}
-      {started && !online && !twoPlayer && !trainingRun && !(story.taught ?? []).includes("SKIP") && (
+      {started && tutorialRun && game.phase !== "gameover" && (
+        <TutorialRail
+          beat={BEATS[tutBeat] ?? null}
+          actionable={needsInput(game) === "P1"}
+          onSkip={() => endTutorial(true)}
+        />
+      )}
+      {started && tutorialRun && game.phase === "gameover" && (
+        <TutorialDone firstRun={tutorialRun === "first"} onContinue={() => endTutorial(false)} />
+      )}
+      {started && !online && !twoPlayer && !trainingRun && !tutorialRun && !(story.taught ?? []).includes("SKIP") && (
         <TutorialCoach
           game={game}
           me={me}
@@ -5451,19 +5542,20 @@ export function App() {
       {inMulligan && me && (
         <div className="overlay">
           <div className="modal">
-            <h1>{twoPlayer ? `${me} — Opening Hand` : "Opening Hand"}</h1>
+            <h1>{twoPlayer ? `${me}: your starting hand` : "Your starting hand"}</h1>
             {/* THE MULLIGAN LESSON LIVES HERE, not in a coach card floating over
                 this modal. The tutorial used to print "Your opening hand" on top
                 of this sheet, which made a new player's first two seconds of the
                 game two panels saying the same thing. A modal that owns the
                 screen should own the lesson too — so the WHY moved in here and
                 the coach step went away (see TutorialCoach.tsx). */}
-            <p>
-              {twoPlayer ? `Player ${me}: hand the device over. ` : ""}
-              Tap any card to send it back — you'll reshuffle and redraw to {OPENING_HAND}. Send back
-              anything you cannot afford yet: Gold arrives slowly, so a hand of expensive
-              cards is a hand of cards you watch instead of play.
-            </p>
+            {/* SAID AS WHAT THE PLAYER DOES (owner, 2026-10-04). "Send it back
+                and redraw to 4" described the engine's step, and a tester read
+                it as a rule they had to work out. The engine returns the tapped
+                cards, shuffles, and draws as many new ones (applyMulligan). */}
+            {twoPlayer && <p>Player {me}: hand the device over.</p>}
+            <p className="mull-lead">Tap a card to swap it for a new one.</p>
+            <p>Swap the expensive ones: Gold comes in slowly at the start.</p>
             <div className="mull-cards">
               {game.players[me].hand.map((h) => {
                 const def = getDef(h.defId);
@@ -5520,7 +5612,7 @@ export function App() {
                 setMullToss([]);
               }}
             >
-              {mullToss.length > 0 ? `Return ${mullToss.length} & Redraw` : "Keep Hand"}
+              {mullToss.length > 0 ? `Swap ${mullToss.length} card${mullToss.length === 1 ? "" : "s"}` : "Keep this hand"}
             </button>
           </div>
         </div>
@@ -5728,7 +5820,7 @@ export function App() {
 
       {/* Only during a match — New Match sets started=false, which hides this and
           reveals the deck picker (game.win stays set until Start Match resets it). */}
-      {started && !storyNode && (
+      {started && !storyNode && !tutorialRun && (
         <WinScreen
           game={game}
           // Viewer-relative: online the guest sits in P2 and was being shown
@@ -6749,6 +6841,7 @@ export function App() {
         <TrainingGround
           save={story}
           onStart={startLesson}
+          onBasics={() => startTutorial("training")}
           onClose={() => setHomeTraining(false)}
         />
       )}
@@ -6989,7 +7082,10 @@ export function App() {
           Suppressed during a match and behind the full-screen surfaces for the
           same reason the nav is — there is nothing to walk you through mid-fight,
           and a spotlight over a board covers the board. */}
-      {!started && !builderOpen && !rulesOpen && !galleryOpen && guideStep && (
+      {showFirstRun && (
+        <FirstRun onPlay={() => startTutorial("first")} onSkip={() => markTaught(TUT_SKIP)} />
+      )}
+      {!started && !showFirstRun && !packBusy && !levelUp && !builderOpen && !rulesOpen && !galleryOpen && guideStep && (
         <GuideOverlay
           anchor={guideOnTab ? guideStep.anchor : null}
           title={guideStep.title}

@@ -152,6 +152,7 @@ export function ActionWheel(props: {
       {chips.map((v) => (
         <button
           key={v.key}
+          data-verb={v.key}
           className={`wheel-verb seat-${v.seat} ${v.armed ? "armed" : ""} ${v.key === "cancel" ? "is-cancel" : ""}`}
           style={{ ["--tone" as string]: v.tone }}
           disabled={v.disabled}

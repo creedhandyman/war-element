@@ -94,8 +94,9 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "shop-pack",
     tab: "shop",
     title: "Open your free pack",
-    body: "You start with one card, and one pack waiting. Every pack holds an Epic or "
-      + "better, so this is the squad you are about to fight with — open it first.",
+    // SHORT, AND ONLY WHAT TO DO (owner, 2026-10-04). The first battle has
+    // already taught the rules; these cards say where to go next.
+    body: "Five new cards for your squad, at least one of them Epic or better.",
     cta: "Take me to it",
     core: true,
   },
@@ -104,8 +105,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "home-builder",
     tab: "home",
     title: "Put those cards in your squad",
-    body: "A pack fills your COLLECTION, not your squad — those are two different things, "
-      + "and only the squad walks into a fight. Add your new cards, then come back.",
+    body: "Only your squad goes into battle. Add your new cards to it, then come back.",
     cta: "Build the squad",
     core: true,
   },
@@ -119,9 +119,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     // "Lead with one card": the opening deployment is ONE free card
     // (OPENING_SLOTS, phases.ts). This used to promise "you place your whole
     // squad before it starts", which stopped being true when that cap landed.
-    body: "Your first battle, and the one the game is built to teach you on: you lead "
-      + "with one card, then summon the rest as your Gold comes in — and the enemy is "
-      + "sized to whatever you bring. The coach explains each idea as you meet it.",
+    body: "Your first story battle. Lead with one card, then buy the rest with Gold as it comes in.",
     cta: "Go to the map",
     core: true,
   },
@@ -132,9 +130,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "home-purse",
     tab: "home",
     title: "Shards and essence",
-    body: "Shards buy packs. Essence is per-element and crafts a specific card you want "
-      + "instead of hoping for it. Both come out of fights, so the campaign pays for "
-      + "the collection that fights it.",
+    body: "Shards buy packs. Essence crafts the exact card you want. Battles pay both.",
     cta: "Next",
     core: false,
   },
@@ -143,9 +139,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "nav-arena",
     tab: "arena",
     title: "The Arena",
-    body: "Duels against the AI or another player, with your own deck. There is a ladder "
-      + "behind it that raises the opponent as you win, and a Gauntlet run of four in a "
-      + "row when you want a real one.",
+    body: "Battle the AI or a friend with your own deck. Keep winning and the opponents get tougher.",
     cta: "Next",
     core: false,
   },
@@ -157,10 +151,8 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     // Beating a boss once does not tame it: clearing its whole FLOOR enrages
     // every boss on it, and only an enraged one comes over (`tamedSave` in App,
     // `bossEnraged` in void-tower.ts) — for TAME_USES battles, not for good.
-    body: "Five floors of boss puzzles, each one a stated problem rather than a bigger "
-      + "enemy — break the wall, survive the lock, reach the source. Clear a floor and "
-      + "its bosses turn enraged; beat one enraged and it fights for you in your next "
-      + `${TAME_USES} battles.`,
+    body: "Five floors of boss puzzles. Clear a floor, then beat one of its bosses again "
+      + `and it fights for you in your next ${TAME_USES} battles.`,
     cta: "Next",
     core: false,
   },
@@ -169,9 +161,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "nav-shop",
     tab: "shop",
     title: "That is the loop",
-    body: "Fight, earn, open, rebuild, fight something harder. The Shop is where the first "
-      + "and last of those meet. How to play is in the menu whenever you want the rules "
-      + "again.",
+    body: "Fight, earn, open packs, build a stronger squad. The rules are in the menu, under How to play.",
     cta: "Next",
     core: false,
   },
@@ -184,9 +174,7 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     anchor: "home-training",
     tab: "home",
     title: "Now train",
-    body: "The Training Ground has a short practice fight for each mechanic: melee and "
-      + "ranged reach, statuses, element auras, crits, trample and more. A few wins "
-      + "there and nothing in the campaign will surprise you.",
+    body: "A short practice fight for each idea: reach, statuses, element powers, crits and more.",
     cta: "Start training",
     core: false,
   },

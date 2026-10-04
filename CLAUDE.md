@@ -2834,6 +2834,53 @@ real pack open → step 2, squad built → step 3 → the map with L1 the only
 unlocked node, then `cleared:["L1"]` → the guide is gone and Home's first child
 is `home-logo` again.
 
+## The first battle on rails — `ui/tutorial.ts`, `ui/TutorialRail.tsx`
+
+Owner, 2026-10-04, from a tester: Home was overloaded on first open (a small-font
+guide card over it), "redraw to 4" read as a puzzle, and in the first match they
+did not know what to tap. Text shown before the player has done anything reads
+as optional, so the first battle now TEACHES BY FORCED PLAY.
+
+- **First run** (`needsFirstRun`: no `TUT_DONE`/`TUT_SKIP` in `taught`, nothing
+  ever cleared, free pack still owed) opens on `FirstRun`: the title art and one
+  Play button, plus "I've played before. Skip the tutorial." Everyone with
+  progress keeps their Home. Also replayable from the Training Ground's
+  **Basics** row (`onBasics`).
+- **The match**: seed 1, Birch + Cactus vs two Grills (no abilities), 4x4,
+  opening deploy `{P1:1,P2:1}`, mulligans pre-applied. BOTH seats are human so
+  the AI loop leaves P2 alone; an App effect plays `enemyStep` (scripted, 1.1s)
+  and `me` is pinned to P1. Each Grill's HP is set as it is placed (5, then 4)
+  so Birch (SP 4, faster) one-shots it before it acts: no enemy strike, so no
+  element aura (Burn, bark shield) ever fires. 19 beats: place (free), Pass,
+  move, Attack + a DIAGONAL hit (the 8 squares), buy Cactus with 3 Gold,
+  priority back-and-forth, step onto their back row, win on round 3.
+- **Beats are derived, never counted**: `beatIndex(game, tutUi)` from beat 0
+  every render, each `done` reading the board plus what is selected/armed, so
+  letting go of a card steps back to "tap it". `TutorialRail` dims everything
+  but a hole over the target (found by `data-def` on hand cards, `data-pos` on
+  squares, `.pass-btn`, `data-verb` on ring verbs), re-measured every frame;
+  while P1 cannot act the whole screen is held and the beat's `wait` line shows.
+- **`tutorial-script.test.ts` plays it end to end** with `scriptedIntent`: every
+  beat in order, win on round 3, (0,1) captured, no status or grown shield, no
+  Grill hit, 3 Gold for a 2-cost Cactus, exactly two Birch hits. A stat or rule
+  change that breaks the lesson fails there.
+- **After it**: winning marks `TUT_DONE` plus `COACH_COVERED` (the coach's
+  "goal" and "move", already taught) in the settle effect; Continue goes to the
+  Shop with the free pack ringed. The tutorial writes no history entry, no
+  WinScreen, no skill-dial result.
+- **Same pass**: the guide hides during the pack reveal and the level-up modal
+  (one popup at a time); guide text 19/14.5px and every body one short line;
+  coach text 16/14px and shorter; mulligan copy "Tap a card to swap it for a new
+  one." / "Swap N cards" / "Keep this hand". **L1 stops at its roster**
+  (`buildFormation`, `firstFight`): with the pack opened first, one-for-one met
+  six cards with six (the roster twice) and a Learning-AI seat won 76% in 17.6
+  rounds; the roster once is 99% in 12.2 (80 fresh saves). The squad step is
+  already rare: `foldIntoSquad` puts the first pack straight in when it fits.
+- **CSS**: the rail lives beside `.tut-coach` (before `.draft-screen`/`.lvl-up`,
+  whose tests scan to EOF for `infinite`). The coach owns `.tut-skip`; the
+  rail's is `.tut-rail-skip`.
+- **Later (owner)**: a second scripted match for spells, Specials and shields.
+
 ## The boss panel's ✕ was under the mute button, and three bugs deep
 
 Reported as "the mute button is bigger than the x button in the boss menu".

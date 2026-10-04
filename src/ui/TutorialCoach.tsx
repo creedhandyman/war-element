@@ -55,41 +55,37 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
   {
     id: "goal",
     title: "How you win",
-    body: "Two ways: hold the squares on the enemy's Home row — the far line — or kill "
-      + "everything they have. Most matches end on that row. But it is a march, not a "
-      + "sprint: read the next card before you run at it.",
+    // One or two short sentences each (owner, 2026-10-04): a tester skipped
+    // these as fine print. The rule, then what to do about it.
+    body: "Capture every square on their Home row, the far line, or defeat all their cards. "
+      + "Go steady: read the next card before you charge.",
     place: "bottom",
   },
   {
     id: "summon",
     title: "Cards arrive at Home",
-    body: "Your cards enter on YOUR Home row, and only there — so a full Home row means "
-      + "you cannot summon again until something moves forward. That row is your door, "
-      + "and it is also your wallet.",
+    body: "New cards enter only on your Home row. When it is full, move a card forward to make room.",
     place: "top",
   },
   {
     id: "income",
     title: "Your back line pays you",
-    body: "Every Home square you are STANDING on is one extra Gold a round, on top of the "
-      + "base. So a card that walks forward stops paying for the next one, and an empty "
-      + "Home row earns you almost nothing. Keep bodies home early, bank the Gold, and "
-      + "push when you can afford to stop earning.",
+    body: "Each Home square you stand on pays 1 extra Gold a round. A card that walks forward "
+      + "stops paying, so hold home early and push when you can afford it.",
     place: "top",
   },
   {
     id: "move",
     title: "One move a turn",
-    body: "You may summon as much as you can afford, but you may move only ONE card each "
-      + "turn. That single move is the whole tempo of the game — spend it on the card "
-      + "that is closest to arriving.",
+    body: "Buy as many cards as you can afford, but move only one card each turn. "
+      + "Spend that move on the card closest to arriving.",
     place: "bottom",
   },
   {
     id: "battle",
     title: "Speed decides the order",
-    body: "When Prep ends, every card acts once, fastest first. That is what SP buys: not "
-      + "just distance, but going before the card that was about to kill you.",
+    body: "When both sides pass, every card acts once, fastest first. More SP means you "
+      + "strike before they do.",
     place: "bottom",
   },
 ];

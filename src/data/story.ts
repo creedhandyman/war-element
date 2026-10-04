@@ -3048,7 +3048,15 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   // with a packed squad of fourteen still gets fourteen, so the welcome mat does
   // not become a walkover later in the campaign — the fight simply tracks the
   // force you actually brought.
-  const target = opening ? Math.min(cap, openingTarget(save, region))
+  //
+  // THE CAMPAIGN'S FIRST FIGHT stops at its own roster (owner, 2026-10-04). The
+  // free pack now opens before it, so one-for-one met a six-card squad with six
+  // — the roster twice over — and a seat on the Learning AI won 76% across 17.6
+  // rounds (80 fresh saves, pack opened, against the Learning rung a new save
+  // starts on). Its three cards once each: 99% across 12.2 rounds, the opener's
+  // own brief — you cannot lose it, but you have to play it.
+  const firstFight = opening && isFirstBattle(region, node);
+  const target = opening ? Math.min(cap, openingTarget(save, region), firstFight ? out.length : Infinity)
     : hard ? hardFormationSize(cap)
     : formationSize(cap);
   const byCost = (a: string, b: string) => getDef(a).cost - getDef(b).cost;

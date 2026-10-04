@@ -212,6 +212,11 @@ describe("story: the deck cap ladder", () => {
     // with the same one card must not turn the tutorial into a 30-card fight.
     const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
     expect(buildFormation(late, leaf, l1)).toHaveLength(2);
+    // A full squad (the free pack opens first now) meets the roster ONCE, not
+    // padded to six with second copies: 76% -> 99% for a Learning-AI seat.
+    const packed = { ...newSave(), collection: leaf.nodes.flatMap((n) => n.roster).slice(0, 6) };
+    packed.deck = [...packed.collection];
+    expect(buildFormation(packed, leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds", "leaf_greegon"]);
     // The node after it is an ordinary fight again — but on the ladder's first
     // rung, not its third. This line asserting 12 was the bug: the second fight
     // of the campaign was the region's full size, straight after a 1-v-2.
