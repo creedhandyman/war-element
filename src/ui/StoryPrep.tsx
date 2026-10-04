@@ -26,7 +26,7 @@ import {
 import { CardView } from "./CardView";
 import { cardThumbSrc } from "./shared";
 import { broodOf } from "./void-seat";
-import { TAME_SCALE, tameScaleFor, tamedRoster } from "../data/void-tower";
+import { tameScaleFor, tamedRoster } from "../data/void-tower";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -714,7 +714,9 @@ export function StoryPrep(props: {
               <div className="sr-label sp-row">
                 <span>Bring a tamed boss</span>
                 <span className="sp-meta">
-                  {Math.round(TAME_SCALE * 100)}% strength · uses a battle, win or lose
+                  {/* The picked boss's own strength: most fight at 70%, Thunderfangs
+                      at full, and one shared figure would be wrong for someone. */}
+                  {ally ? `${Math.round(tameScaleFor(ally) * 100)}% strength · uses a battle` : "Uses a battle, win or lose"}
                 </span>
               </div>
               <div className="bd-stable-row">
@@ -730,7 +732,7 @@ export function StoryPrep(props: {
                       type="button"
                       className={`bd-tame ${ally === t.cardId ? "on" : ""}`}
                       onClick={() => setAlly(ally === t.cardId ? null : t.cardId)}
-                      title={`${tDef.name} — ${uses} battle(s) left${k !== TAME_SCALE ? ` · ${Math.round(k * 100)}% strength` : ""}`}
+                      title={`${tDef.name} — ${uses} battle(s) left · ${Math.round(k * 100)}% strength`}
                     >
                       <img src={cardThumbSrc(tDef)} alt="" />
                       <span className="bd-tame-name">{tDef.name}</span>
