@@ -68,6 +68,7 @@ import {
   effectiveSummonCost,
   specialIsZone,
   allyShieldTargets,
+  noActionReason,
 } from "./rules";
 import type {
   EnchantMode,
@@ -2326,7 +2327,7 @@ function stepBattle(draft: GameState): boolean {
   // out of validTargets), so for them nothing changes.
   const canShield = draft.humans.includes(card.owner) && allyShieldTargets(draft, id).length > 0;
   if (!canBasic && !canSpec && !canTal && !canShield) {
-    draft.log.push(`${label(draft, card)} has no valid action.`);
+    draft.log.push(`${label(draft, card)} can't act: ${noActionReason(draft, id)}.`);
     battle.index++;
     return true;
   }

@@ -1481,7 +1481,7 @@ describe("medium-tier passives (audit batch)", () => {
     const next = advance(s);
     // It never awaits input — the queue steps straight past it.
     expect(next.battle?.awaitingInput ?? null).toBeNull();
-    expect(next.log.some((l) => /UFO.*no valid action/.test(l))).toBe(true);
+    expect(next.log.some((l) => /UFO.*can't act: its attack would do nothing here/.test(l))).toBe(true);
   });
 
   it("Smog gains speed from its Black Smoke kills, which nothing else could grant it", () => {

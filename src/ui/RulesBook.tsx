@@ -192,7 +192,7 @@ export function RulesBook(props: { onClose: () => void }) {
                 <b>The Home rule</b> — while you are standing on your <i>own</i> Home
                 row you cannot attack anything standing on <i>theirs</i>, basic or
                 Special. Step off your line and it lifts. This is why a back-line shooter
-                can read "no valid action" with enemies plainly in front of it.
+                can read "can't act: the Home rule" with enemies plainly in front of it.
               </li>
               <li>
                 <b>Specials recharge</b> — firing one puts it on cooldown, usually 2

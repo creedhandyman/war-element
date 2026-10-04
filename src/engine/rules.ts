@@ -2280,6 +2280,32 @@ export function paralyzedThisTurn(state: GameState, instanceId: string): boolean
   return !!r && r.fizzle && r.id === instanceId && r.at === state.battle!.index;
 }
 
+/** WHY a card that is being skipped has nothing to do, in the player's words.
+ *
+ *  The log used to say only "has no valid action", which a new player reads as
+ *  a bug: a tester in Melee training saw it after their first move and only
+ *  worked out the cause (nothing adjacent) when stepping closer fixed it. The
+ *  reason names the rule that bit, so the log teaches it (player feedback,
+ *  2026-10-03). Only the BASIC is explained: a Special on cooldown or unpaid is
+ *  shown on the card already, and the basic is what a new player expects. */
+export function noActionReason(state: GameState, instanceId: string): string {
+  const card = state.cards[instanceId];
+  if (!card?.pos) return "no valid action";
+  const def = getDef(card.defId);
+  if (paralyzedThisTurn(state, instanceId)) return "paralyzed — no attack this turn";
+  if (basicIsInert(state, card)) return "its attack would do nothing here";
+  if (def.attackEveryOtherRound && card.lastBasicRound === state.round - 1) return "reloading — it fires every other round";
+  const foes = enemyCards(state, card.owner).filter((e) => e.curHp > 0 && e.pos);
+  if (foes.length === 0) return "no enemy on the board";
+  // Blocked ONLY by the Home rule: something would be in reach without it.
+  const homeRuleOnly = foes.some((e) => canTarget(state, card, e, false, true, 0, true))
+    && !foes.some((e) => canTarget(state, card, e, false, true));
+  if (homeRuleOnly) return "the Home rule — it can't hit their Home row from its own; step off it first";
+  return def.attackType === "Melee"
+    ? "no enemy in melee range — it has to stand next to one"
+    : "no enemy in range or in clear sight";
+}
+
 export function canBasicAttack(state: GameState, instanceId: string): boolean {
   const card = state.cards[instanceId];
   if (!card) return false;
