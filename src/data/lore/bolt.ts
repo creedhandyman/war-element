@@ -19,21 +19,27 @@
  *   6. ONE crack in the confidence, used twice and no more: nobody has explained
  *      the Core. BOLT admits that quietly, and only around the Core itself.
  *
- * Coverage: 39 cards + 3 tokens + 10 spells = 52 entries, which is all of BOLT.
+ * Coverage: 46 cards (bosses included) + 5 tokens + 10 spells = 61 entries, which is all of BOLT.
  */
 
 export const BOLT_LORE: Record<string, string> = {
+
+  // ---------------------------------------------------------------- MYTHIC
+
   bolt_velvolt_knight:
     "A knight in live plate. It electrifies every enemy for good, and whoever first breaks its armour gets paralyzed.",
   bolt_elecdroid:
     "ARC itself: one 15-damage strike, a four-hit combo that chains on a kill, and sparks that hit everyone in reach each round.",
+
+  // ------------------------------------------------------------- LEGENDARY
+
   bolt_keeper:
     "Keeper of the hive. It raises a Beebot every round, and the bots soak half the damage aimed at him.",
-  bolt_shock:
+  bolt_shock: // Blackout
     "Blackout shuts down every enemy at 4 HP or less each round, and its Fryer hits them all and mutes them.",
   bolt_jack_arc:
     "Arc's field engineer. One enemy is paralyzed every round as routine, and StunGun holds three more at once.",
-  bolt_zoez:
+  bolt_zoez: // Voltedge
     "Voltedge hits back: melee attackers take 3, half of ranged shots are deflected, and its bladerang hits for 7 plus 7 over time.",
   bolt_stormcaller:
     "Stormcaller calls the storm down on the held: Chain Paralysis freezes up to three enemies, and every paralyzed one takes 2 each round.",
@@ -41,7 +47,10 @@ export const BOLT_LORE: Record<string, string> = {
     "A 35-HP wall with no weapon at first. Turret Mode zaps every enemy for 3 rounds, and it gains +1 DMG each round.",
   bolt_voltogon:
     "The dragon. It flies over melee, Gigavolt Strike hits for 11 and heals 11, and each kill burns every charged enemy for 5.",
-  bolt_zagphu:
+
+  // ------------------------------------------------------------------ EPIC
+
+  bolt_zagphu: // Ricochet
     "Ricochet bounces off a status: Static Toss hits for 8 and paralyzes, and its basics crit and heal 4 against anything afflicted.",
   bolt_static:
     "Static spreads: Discharge paralyzes every enemy in range, and each kill adds a round to everyone still frozen.",
@@ -55,13 +64,13 @@ export const BOLT_LORE: Record<string, string> = {
     "A sentry gun that fires only at paralyzed enemies: 5 damage at the end of every round, and 5 to all of them with its Special.",
   bolt_thundercat:
     "ThunderCat pounces: Claw Surge leaps up to 2 spaces onto its target for 8, and its claws leave a stinging damage-over-time.",
-  bolt_shoksa:
+  bolt_shoksa: // Dynamo
     "Dynamo keeps the current running. On arrival it extends every paralysis and electrifies the rest, which then take 2 each round.",
   bolt_surge:
     "Surge arms itself: while charged it ignores status, and the first hit on it paralyzes the attacker for 3 rounds.",
   bolt_voltcher:
     "A thunderbird. It flies over melee, Thunderbird hits a whole row for 3, and it fires once more for free on its first hit and when it dies.",
-  bolt_striik:
+  bolt_striik: // Highroller
     "Highroller gambles on crits: each crit fires Purple Strikes for free, and three crits in one round grant +7 HP and +2 DMG.",
   bolt_thunder:
     "Thunder arcs: Arcing Strike hits one target for 7 and its neighbours for 4, and it arrives with 3 damage to everything in range.",
@@ -71,9 +80,12 @@ export const BOLT_LORE: Record<string, string> = {
     "General swaps weapons: each time he moves he cycles through four guns, and Spraying Thunder fires the current one at the 3 closest enemies.",
   bolt_volta:
     "Volta builds Rodds: one on arrival, another with Grid Deployment, and its shots pierce armour while a Rodd stands.",
-  bolt_zap:
+
+  // ------------------------------------------------------------------ RARE
+
+  bolt_zap: // the CARD — the cost-1 spell keys itself below
     "Zap hits first. The moment it lands, 5 damage goes to the nearest enemy.",
-  bolt_twotales:
+  bolt_twotales: // Twintail
     "Twintail swings twice, and each hit has a 50% chance to paralyze.",
   bolt_stingray:
     "Stingray's sting pierces armour on any enemy that is already electrified.",
@@ -91,9 +103,9 @@ export const BOLT_LORE: Record<string, string> = {
     "Jolt is a live wire: it electrifies every enemy in range when battle begins, and anything that hits it is electrified back.",
   bolt_scrapper:
     "Scrapper hits and salvages: a 50% chance to paralyze, and every kill adds 2 shields.",
-  bolt_ning:
+  bolt_ning: // Twinbolt
     "Twinbolt strikes twice: a crit chains a second 2-damage crit at the same target, once a round.",
-  bolt_staticcloud:
+  bolt_staticcloud: // Static Cloud
     "Static Cloud drifts one slot forward each round, zapping a random enemy for 4 and paralyzing a random enemy for 2 rounds.",
   bolt_buzz:
     "Buzz starts armed: immune to status, and the first hit on it paralyzes the attacker for 3 rounds. Once per game it re-arms.",
@@ -101,12 +113,18 @@ export const BOLT_LORE: Record<string, string> = {
     "Jellyfish stings back: when hit and it survives, it shocks the attacker and the enemies beside it for 2.",
   bolt_buzzard:
     "Buzzard circles new arrivals: whenever an enemy is summoned, it answers with a Drone and 1 damage.",
-  bolt_static_wisp_tok:
+
+  // ---------------------------------------------------------------- TOKENS
+
+  bolt_static_wisp_tok: // Static Wisp
     "A leftover of Kore's core. It drifts forward each round, zapping a random enemy for 2 and paralyzing another for a round.",
-  bolt_drone_tok:
+  bolt_drone_tok: // Drone
     "Arc issues them by the crate: a 1-HP flyer that melee cannot reach.",
-  bolt_beebot:
+  bolt_beebot: // Beebot
     "Beebot stings once: its hit keeps damaging for 2 rounds, and then it dies at the end of that round.",
+
+  // ---------------------------------------------------------------- SPELLS
+
   "spell:bolt_zap":
     "Three damage and two rounds of standing still, for the price of 1.",
   bolt_recon_ping:

@@ -21,7 +21,7 @@
  *   5. 1-2 sentences. Under ~150 chars where possible — card frames are small.
  *   6. Never eager. AQUA grants and withholds; it permits rather than attacks.
  *
- * Coverage: 39 cards + 1 token + 10 spells = 50 entries, which is all of AQUA.
+ * Coverage: 48 cards (bosses included) + 2 tokens + 10 spells = 60 entries, which is all of AQUA.
  */
 
 export const AQUA_LORE: Record<string, string> = {

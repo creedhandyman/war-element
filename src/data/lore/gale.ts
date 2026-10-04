@@ -18,7 +18,7 @@
  *   6. No ceremony and no boasting. GALE thanks things; it does not worship them,
  *      and it never mentions being fast. It simply got there first.
  *
- * Coverage: 39 cards + 3 tokens + 10 spells = 52 entries, which is all of GALE.
+ * Coverage: 49 cards (bosses included) + 6 tokens + 10 spells = 65 entries, which is all of GALE.
  */
 
 export const GALE_LORE: Record<string, string> = {

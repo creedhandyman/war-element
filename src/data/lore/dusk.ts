@@ -18,7 +18,7 @@
  *   6. Courteous and quiet. DUSK is the polite element: it never gloats and never
  *      raises its voice, which is most of what makes it read as worse.
  *
- * Coverage: 39 cards + 6 tokens + 10 spells = 55 entries, which is all of DUSK.
+ * Coverage: 48 cards (bosses included) + 7 tokens + 10 spells = 65 entries, which is all of DUSK.
  */
 
 export const DUSK_LORE: Record<string, string> = {

@@ -21,7 +21,7 @@
  *   7. ONE crack, used twice at most: nobody in the Fortress will say more about
  *      the Titans than "not yet disturbed", and nobody has explained the hum.
  *
- * Coverage: 39 cards + 0 tokens + 10 spells = 49 entries, which is all of BORE.
+ * Coverage: 50 cards (bosses included) + 2 tokens + 10 spells = 62 entries, which is all of BORE.
  */
 
 export const BORE_LORE: Record<string, string> = {

@@ -20,7 +20,7 @@
  *   6. ONE crack, used sparingly and only around the crown: nobody in the Kingdom
  *      is quite certain what happens if the Vigil ever stops.
  *
- * Coverage: 39 cards + 2 tokens + 10 spells = 51 entries, which is all of DAWN.
+ * Coverage: 46 cards (bosses included) + 3 tokens + 10 spells = 59 entries, which is all of DAWN.
  */
 
 export const DAWN_LORE: Record<string, string> = {

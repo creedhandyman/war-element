@@ -13,7 +13,7 @@
  *   4. Season attribution (Spring / Summer / Autumn / Winter) only where the kit leans one.
  *   5. 1-2 sentences. Under ~150 chars where possible — card frames are small.
  *
- * Coverage: 39 cards + 2 tokens + 10 spells = 51 entries, which is all of LEAF.
+ * Coverage: 48 cards (bosses included) + 3 tokens + 10 spells = 61 entries, which is all of LEAF.
  */
 
 export const LEAF_LORE: Record<string, string> = {

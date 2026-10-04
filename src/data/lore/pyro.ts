@@ -16,7 +16,7 @@
  *   5. 1-2 sentences. Under ~150 chars where possible — card frames are small.
  *   6. Cost is never mourned. PYRO spends its own HP and calls the price fair.
  *
- * Coverage: 39 cards + 0 tokens + 10 spells = 49 entries, which is all of PYRO.
+ * Coverage: 47 cards (bosses included) + 2 tokens + 10 spells = 59 entries, which is all of PYRO.
  */
 
 export const PYRO_LORE: Record<string, string> = {
