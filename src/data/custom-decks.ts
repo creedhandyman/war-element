@@ -79,6 +79,12 @@ export function sanitizeSpells(ids: string[] | undefined, boardSize = 5): string
  *  picker alongside the Cores and any custom decks, and can't be edited/deleted
  *  (they live in code, not localStorage). `premade: true` marks them so the UI
  *  can label them and the delete-cleanup never drops their selection. */
+/** SPELLBOOKS FOLLOW THE RUNG (owner, 2026-10-04). Every tiered premade's book
+ *  is cut from its own elements on a cost ladder by difficulty — easy 1-5,
+ *  mid 2-7, hard 3-9, elite 4-10 on the 4x4 (the 5x5 the same over 8 slots) —
+ *  with the biggest spell from the deck's main element. Before this, Prism
+ *  and Four Winds carried books of 1-costs indistinguishable from the auto
+ *  default. The six untiered originals keep their hand-picked books. */
 /** Matchmaker rungs. See `PremadeDeck.tier`. */
 export type DeckTier = "easy" | "mid" | "hard" | "elite";
 export const DECK_TIERS: readonly DeckTier[] = ["easy", "mid", "hard", "elite"];
@@ -493,7 +499,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // A cheap SPELL matters as much as a cheap body. The first cut of this book
     // opened at cost 4; every other list here carries a 1-cost spell, and that
     // difference was most of the 0% below.
-    spells: ["pyro_spark", "pyro_ember_trap", "bolt_overload_field", "pyro_firewall", "bolt_power_grid"],
+    spells: ["bolt_zap", "pyro_ember_trap", "bolt_rewire", "pyro_firewall", "bolt_power_rebate"],
   },
   {
     id: "pre_deeproot_ambush",
@@ -512,7 +518,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_thorny_ripper", "bore_old_timer", "bore_ankylosaur", "bore_rock", "bore_krysteel",
       "bore_bolder", "bore_kobra", "bore_sling",
     ],
-    spells: ["leaf_snare", "leaf_thorn_patch", "bore_sand_trap", "leaf_withering_grasp", "bore_tremor"],
+    spells: ["leaf_snare", "bore_stone_wall", "leaf_lushfield", "bore_shatterpoint", "leaf_bloodroot_surge"],
   },
   {
     id: "pre_skydream",
@@ -531,7 +537,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dawn_shine", "dawn_stbern", "dawn_star", "dawn_oxin", "dawn_solstice",
       "dawn_raya", "dawn_lassos", "dawn_aurelion",
     ],
-    spells: ["gale_gust", "dawn_sunbeam", "gale_tailwind", "dawn_radiant_barrier", "gale_cyclone"],
+    spells: ["gale_squall_line", "dawn_blazing_sun", "gale_vortex_strike", "dawn_dawns_judgment", "gale_tempest"],
   },
   {
     id: "pre_drowned_web",
@@ -549,7 +555,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dusk_harve", "dusk_jackl", "dusk_widowbite", "dusk_zhunk", "dusk_sarachnid",
       "dusk_violet", "dusk_aranea", "dusk_destro",
     ],
-    spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom"],
+    spells: ["aqua_frost_patch", "dusk_shadow_step", "aqua_ice_wall", "dusk_nightfall", "aqua_pressure_crush"],
   },
   // ── All four new decks are ON the ladder, one per rung, nothing displaced ──
   // Scrapyard -> easy · Drowned Web -> mid · Deeproot -> hard · Skydream -> elite.
@@ -600,7 +606,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "aqua_rain", "aqua_siren", "aqua_blub", "aqua_bulletshrimp", "aqua_krakler",
       "aqua_tide", "aqua_sapphire", "aqua_magalogoon",
     ],
-    spells: ["leaf_thorn_patch", "leaf_bramble_wall", "leaf_lushfield", "leaf_withering_grasp", "aqua_maelstrom"],
+    spells: ["leaf_sprout", "aqua_frost_patch", "leaf_snare", "aqua_ice_wall", "leaf_groves_blessing"],
   },
   {
     id: "pre_dust_patrol",
@@ -615,7 +621,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "gale_kloud", "gale_gastly", "gale_tumbleweed", "gale_luna", "gale_wailverine",
       "gale_omega", "gale_eagon", "gale_klipso",
     ],
-    spells: ["gale_downdraft", "gale_squall_line", "gale_jetstream", "gale_vortex_strike", "bore_tremor"],
+    spells: ["bore_pebble_toss", "gale_downdraft", "bore_bulwark", "gale_squall_line", "bore_fortify"],
   },
   {
     id: "pre_ember_wake",
@@ -630,7 +636,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dusk_ravven", "dusk_crow", "dusk_vamp", "dusk_silkstalker", "dusk_reaper",
       "dusk_brute", "dusk_hoax", "dusk_skelider",
     ],
-    spells: ["pyro_ember_trap", "pyro_firewall", "pyro_heatwave", "dusk_phantom_spikes", "pyro_cataclysm"],
+    spells: ["pyro_spark", "dusk_bone_snare", "pyro_flare_push", "dusk_veil_of_shadows", "pyro_ashfall"],
   },
   {
     id: "pre_static_shallows",
@@ -645,7 +651,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dawn_kosmos", "dawn_flash", "dawn_glime", "dawn_golde", "dawn_musk_ox",
       "dawn_radiance", "dawn_drakonbane", "dawn_leo",
     ],
-    spells: ["dawn_cleansing_light", "bolt_overload_field", "bolt_power_grid", "dawn_judgment", "dawn_dawns_judgment"],
+    spells: ["bolt_zap", "dawn_cleansing_light", "bolt_rewire", "dawn_radiant_barrier", "bolt_power_rebate"],
   },
   {
     id: "pre_tidal_gate",
@@ -660,7 +666,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dawn_commander", "dawn_sphere", "dawn_flash", "dawn_glime", "dawn_lazor",
       "dawn_musk_ox", "dawn_drakonbane", "dawn_equestrian",
     ],
-    spells: ["dawn_sunbeam", "aqua_steam_vent", "aqua_ice_wall", "aqua_downpour", "dawn_solar_flare"],
+    spells: ["aqua_frost_patch", "dawn_grace", "aqua_ice_wall", "dawn_blazing_sun", "aqua_pressure_crush"],
   },
   {
     id: "pre_emberforge",
@@ -675,7 +681,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_armadillo", "bore_monger", "bore_the_coreborer", "bore_gemaga", "bore_crock",
       "bore_thorny_ripper", "bore_rollo", "bore_sheish",
     ],
-    spells: ["pyro_spark", "bore_bulwark", "pyro_firewall", "pyro_heatwave", "pyro_inferno_pit"],
+    spells: ["pyro_ember_trap", "bore_bulwark", "pyro_firewall", "bore_bedrock", "pyro_meltdown"],
   },
   {
     id: "pre_thornwind",
@@ -690,7 +696,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "gale_vvulture", "gale_gastly", "gale_tumbleweed", "gale_buf", "gale_wailverine",
       "gale_eagon", "gale_tempest", "gale_stormfang",
     ],
-    spells: ["leaf_sprout", "gale_tailwind", "leaf_bramble_wall", "leaf_lushfield", "leaf_overgrowth"],
+    spells: ["leaf_thorn_patch", "gale_tailwind", "leaf_bramble_wall", "gale_jetstream", "leaf_withering_grasp"],
   },
   {
     id: "pre_nightcircuit",
@@ -705,7 +711,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bolt_kore", "bolt_keeper", "bolt_twotales", "bolt_scrapper", "bolt_zagphu",
       "bolt_voltcher", "bolt_voltogon", "bolt_jolt",
     ],
-    spells: ["dusk_chill_touch", "dusk_shadow_step", "bolt_overload_field", "bolt_power_grid", "dusk_grave_pit"],
+    spells: ["dusk_bone_snare", "bolt_rewire", "dusk_veil_of_shadows", "bolt_power_grid", "dusk_phantom_spikes"],
   },
   {
     id: "pre_solar_crown",
@@ -720,7 +726,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "pyro_canister", "pyro_florence", "pyro_scully", "pyro_sparky", "pyro_ember_scorpion",
       "pyro_woof", "pyro_fenrir", "pyro_infernus_rex",
     ],
-    spells: ["pyro_spark", "pyro_ember_trap", "pyro_firewall", "pyro_ashfall", "pyro_heatwave"],
+    spells: ["dawn_grace", "pyro_firewall", "dawn_blazing_sun", "pyro_meltdown", "dawn_dawns_judgment"],
   },
   {
     id: "pre_titanfall",
@@ -735,7 +741,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bolt_surge", "bolt_gigavolt", "bolt_rodd", "bolt_stingray", "bolt_webster",
       "bolt_zap", "bolt_elecdroid", "bolt_jolt",
     ],
-    spells: ["bore_sand_trap", "bore_landslide", "bore_pebble_toss", "bolt_zap", "bolt_recon_ping"],
+    spells: ["bore_bulwark", "bolt_overload_field", "bore_bedrock", "bolt_lightning_storm", "bore_tremor"],
   },
   {
     id: "pre_black_tide",
@@ -750,7 +756,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "leaf_weeds", "leaf_nettle", "leaf_leaf", "leaf_citra", "leaf_fallow",
       "leaf_stickers", "leaf_gecko", "leaf_trinezer",
     ],
-    spells: ["leaf_thorn_patch", "leaf_snare", "leaf_lushfield", "leaf_withering_grasp", "leaf_overgrowth"],
+    spells: ["dusk_shadow_step", "leaf_bramble_wall", "dusk_nightfall", "leaf_withering_grasp", "dusk_harvest"],
   },
   {
     id: "pre_maelstrom",
@@ -765,7 +771,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "aqua_polarbear", "aqua_polarking", "aqua_harp", "aqua_anglerfish", "aqua_cryo",
       "aqua_bootlegger", "aqua_icynin", "aqua_kraken",
     ],
-    spells: ["aqua_chill", "aqua_frost_patch", "aqua_ice_wall", "aqua_glacial_wave", "aqua_maelstrom"],
+    spells: ["gale_tailwind", "aqua_ice_wall", "gale_jetstream", "aqua_pressure_crush", "gale_cyclone"],
   },
   // ───────────────────────── ELITE (standard board) ───────────────────────
   //
@@ -796,7 +802,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_cavedweller", "bore_cosmic", "bore_rockgoblin", "bore_sling", "bore_ufo",
       "bore_rollo", "bore_bolder", "bore_deepest",
     ],
-    spells: ["dusk_chill_touch", "dusk_bone_snare", "bore_stone_wall", "dusk_veil_of_shadows", "bore_bedrock"],
+    spells: ["dusk_veil_of_shadows", "bore_bedrock", "dusk_phantom_spikes", "bore_tremor", "dusk_endless_night"],
   },
   {
     id: "pre_chlorophyll",
@@ -812,7 +818,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dawn_glime", "dawn_shine", "dawn_reflection", "dawn_musk_ox", "dawn_amble",
       "dawn_golde", "dawn_drakonbane", "dawn_equestrian",
     ],
-    spells: ["dawn_sunbeam", "leaf_snare", "leaf_bramble_wall", "dawn_radiant_barrier", "leaf_lushfield"],
+    spells: ["leaf_bramble_wall", "dawn_blazing_sun", "leaf_withering_grasp", "dawn_dawns_judgment", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_blazing_cyclone",
@@ -828,7 +834,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "gale_hawko", "gale_swillow", "gale_duster", "gale_tumbleweed", "gale_whirlwolf",
       "gale_masala", "gale_omega", "gale_stormfang",
     ],
-    spells: ["pyro_spark", "pyro_flare_push", "pyro_firewall", "gale_squall_line", "pyro_heatwave"],
+    spells: ["pyro_firewall", "gale_jetstream", "pyro_meltdown", "gale_cyclone", "pyro_volcanic_eruption"],
   },
   {
     id: "pre_thunderstorm",
@@ -844,7 +850,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bolt_rodd", "bolt_zipp", "bolt_staticcloud", "bolt_scrapper", "bolt_buzz",
       "bolt_striik", "bolt_general", "bolt_velvolt_knight",
     ],
-    spells: ["aqua_chill", "aqua_steam_vent", "aqua_ice_wall", "bolt_power_rebate", "aqua_downpour"],
+    spells: ["aqua_ice_wall", "bolt_power_grid", "aqua_pressure_crush", "bolt_system_override", "aqua_tsunami"],
   },
   // ── THREE-ELEMENT LADDER DECKS ──────────────────────────────────────────
   // One per rung, each built to its rung's PLAN rather than merely labelled
@@ -879,7 +885,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "aqua_bootlegger", "aqua_liquark", "dawn_beam", "dawn_star", "dawn_raya",
       "dawn_roy", "dawn_lazor", "dawn_ariel",
     ],
-    spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch"],
+    spells: ["aqua_chill", "leaf_thorn_patch", "dawn_grace", "aqua_ice_wall", "leaf_groves_blessing"],
   },
   {
     id: "pre_stormfront",
@@ -897,7 +903,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bolt_electricel", "bolt_thundercat", "gale_skyforce", "gale_duster", "gale_whirlwolf",
       "gale_wista", "gale_stormhide_bison", "gale_guan",
     ],
-    spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping"],
+    spells: ["bolt_recon_ping", "pyro_flare_push", "gale_squall_line", "bolt_power_grid", "pyro_meltdown"],
   },
   {
     id: "pre_eclipse_guard",
@@ -916,7 +922,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dusk_violet", "dusk_skulldrake", "bolt_zipp", "bolt_drshock", "bolt_ning",
       "bolt_static", "bolt_kore", "bolt_jellyfish",
     ],
-    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare"],
+    spells: ["dusk_shadow_step", "dawn_radiant_barrier", "bolt_power_grid", "dusk_phantom_spikes", "dawn_dawns_judgment"],
   },
   {
     id: "pre_deep_shade",
@@ -936,7 +942,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_stone", "bore_lithara", "aqua_subcool", "aqua_icyninza", "aqua_coralgolem",
       "aqua_vaporem", "aqua_piranha", "aqua_blackice",
     ],
-    spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap"],
+    spells: ["bore_stone_wall", "dusk_nightfall", "aqua_pressure_crush", "bore_tremor", "dusk_endless_night"],
   },
   // ── FIVE MORE ELITE DECKS (owner's call, 2026-09-28) ─────────────────────
   // Wildfire, Dead Current and Undertow are two-element builds; Four Winds runs
@@ -964,7 +970,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "pyro_sparky", "pyro_staph", "pyro_scorch", "pyro_scully", "pyro_sseerr",
       "pyro_dynomight", "pyro_infernus_rex", "pyro_nitro",
     ],
-    spells: ["pyro_spark", "leaf_sprout", "leaf_thorn_patch", "pyro_ember_trap", "leaf_snare"],
+    spells: ["leaf_bramble_wall", "pyro_heatwave", "leaf_withering_grasp", "pyro_cataclysm", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_dead_current",
@@ -981,7 +987,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dusk_spider", "dusk_vamp", "dusk_harve", "dusk_jackl", "dusk_skrow",
       "dusk_aranea", "dusk_nightfang", "dusk_shadowhorsemen",
     ],
-    spells: ["bolt_zap", "dusk_chill_touch", "bolt_recon_ping", "dusk_bone_snare", "dusk_shadow_step"],
+    spells: ["bolt_overload_field", "dusk_nightfall", "bolt_lightning_storm", "dusk_harvest", "bolt_total_network_control"],
   },
   {
     id: "pre_undertow",
@@ -997,7 +1003,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "aqua_subcool", "aqua_arctik", "aqua_icyninza", "aqua_sonarping", "aqua_bahari",
       "aqua_divebill", "aqua_phrost", "aqua_kraken",
     ],
-    spells: ["bore_pebble_toss", "aqua_chill", "bore_sand_trap", "aqua_frost_patch", "aqua_steam_vent"],
+    spells: ["bore_stone_wall", "aqua_downpour", "bore_shatterpoint", "aqua_maelstrom", "bore_mountains_fall"],
   },
   {
     id: "pre_four_winds",
@@ -1015,7 +1021,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "dawn_flash", "dawn_ballista", "dawn_riflemen", "dawn_supernova", "bolt_electricel",
       "bolt_hacker", "bolt_thunder", "bolt_voltogon",
     ],
-    spells: ["dawn_sunbeam", "gale_gust", "leaf_sprout", "bolt_zap", "leaf_thorn_patch"],
+    spells: ["leaf_bramble_wall", "bolt_power_grid", "dawn_judgment", "gale_cyclone", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_prism",
@@ -1035,7 +1041,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
       "bore_rohojohn", "bore_steel", "dusk_destro", "dusk_prestige", "dawn_sparkle",
       "dawn_meridian", "bolt_zap", "bolt_rodd",
     ],
-    spells: ["leaf_sprout", "pyro_spark", "aqua_chill", "gale_gust", "bore_pebble_toss"],
+    spells: ["bore_stone_wall", "aqua_downpour", "leaf_withering_grasp", "gale_cyclone", "pyro_volcanic_eruption"],
   },
 ];
 
@@ -1173,16 +1179,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "pyro_ash_boar", "pyro_wick", "pyro_firebird", "pyro_fenix", "pyro_sarra",
       "pyro_scully", "pyro_firefly", "pyro_magmaw", "pyro_burnout", "pyro_spitfire",
     ],
-    spells: [
-      "bolt_overload_field",
-      "pyro_firewall",
-      "pyro_heatwave",
-      "bolt_lightning_storm",
-      "pyro_inferno_pit",
-      "pyro_spark",
-      "bolt_system_override",
-      "pyro_ember_trap",
-    ],
+    spells: ["pyro_spark", "bolt_zap", "pyro_ember_trap", "bolt_recon_ping", "pyro_flare_push", "bolt_rewire", "pyro_firewall", "bolt_power_rebate"],
   },
   {
     id: "pre_deeproot_ambush_5",
@@ -1201,16 +1198,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bore_ankylosaur", "bore_rock", "bore_stone", "bore_krysteel", "bore_rhe",
       "bore_bolder", "bore_shift", "bore_diam", "bore_kobra", "bore_bastion",
     ],
-    spells: [
-      "leaf_snare",
-      "leaf_thorn_patch",
-      "bore_sand_trap",
-      "leaf_withering_grasp",
-      "bore_tremor",
-      "leaf_overgrowth",
-      "bore_bulwark",
-      "leaf_heart_of_the_forest",
-    ],
+    spells: ["bore_sand_trap", "leaf_snare", "bore_stone_wall", "leaf_groves_blessing", "bore_bedrock", "leaf_withering_grasp", "bore_landslide", "leaf_bloodroot_surge"],
   },
   {
     id: "pre_skydream_5",
@@ -1230,7 +1218,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dawn_star", "dawn_oxin", "dawn_goldeneagle", "dawn_solstice", "dawn_raya",
       "dawn_ty", "dawn_halo", "dawn_warphant", "dawn_lassos", "dawn_aurelion",
     ],
-    spells: ["gale_gust", "dawn_sunbeam", "gale_tailwind", "dawn_radiant_barrier", "gale_cyclone", "dawn_solar_flare", "gale_jetstream", "dawn_dawns_grace"],
+    spells: ["dawn_grace", "gale_squall_line", "dawn_dawns_grace", "gale_jetstream", "dawn_judgment", "gale_gale_force", "dawn_dawns_judgment", "gale_tempest"],
   },
   {
     id: "pre_drowned_web_5",
@@ -1249,7 +1237,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_widowbite", "dusk_zhunk", "dusk_hix", "dusk_sarachnid", "dusk_ghastly",
       "dusk_violet", "dusk_ender", "dusk_aranea", "dusk_destro", "dusk_nightfang",
     ],
-    spells: ["aqua_chill", "dusk_chill_touch", "aqua_ice_wall", "dusk_phantom_spikes", "aqua_maelstrom", "dusk_veil_of_shadows", "aqua_downpour", "dusk_grave_pit"],
+    spells: ["dusk_chill_touch", "aqua_frost_patch", "dusk_shadow_step", "aqua_ice_wall", "dusk_veil_of_shadows", "aqua_dense_fog", "dusk_nightfall", "aqua_pressure_crush"],
   },
   {
     id: "pre_sapling_creek_5",
@@ -1266,16 +1254,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "leaf_alpha", "leaf_gecko", "leaf_sumerose", "leaf_efy", "aqua_blackbeard",
       "aqua_glacius", "aqua_bootlegger", "aqua_icynin", "aqua_liquark", "aqua_driftwraith",
     ],
-    spells: [
-      "leaf_thorn_patch",
-      "leaf_bramble_wall",
-      "leaf_lushfield",
-      "leaf_withering_grasp",
-      "aqua_maelstrom",
-      "aqua_ice_wall",
-      "aqua_dense_fog",
-      "leaf_overgrowth",
-    ],
+    spells: ["aqua_chill", "leaf_sprout", "aqua_frost_patch", "leaf_thorn_patch", "aqua_steam_vent", "leaf_snare", "aqua_ice_wall", "leaf_groves_blessing"],
   },
   {
     id: "pre_dust_patrol_5",
@@ -1292,16 +1271,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bore_rock", "bore_rollo", "bore_bolder", "bore_prism", "gale_bluejay",
       "gale_duster", "gale_buf", "gale_vaga", "gale_wolfbane", "gale_tempest",
     ],
-    spells: [
-      "gale_downdraft",
-      "gale_squall_line",
-      "gale_jetstream",
-      "gale_vortex_strike",
-      "bore_tremor",
-      "bore_stone_wall",
-      "bore_fortify",
-      "gale_gale_force",
-    ],
+    spells: ["gale_gust", "bore_pebble_toss", "gale_downdraft", "bore_sand_trap", "gale_tailwind", "bore_bulwark", "gale_squall_line", "bore_fortify"],
   },
   {
     id: "pre_ember_wake_5",
@@ -1318,16 +1288,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "pyro_sol", "pyro_ember_scorpion", "pyro_woof", "pyro_magmaw", "dusk_ender",
       "dusk_wedded_wraith", "dusk_spider", "dusk_widowbite", "dusk_sarachnid", "dusk_nightfang",
     ],
-    spells: [
-      "pyro_ember_trap",
-      "pyro_firewall",
-      "pyro_heatwave",
-      "dusk_phantom_spikes",
-      "pyro_cataclysm",
-      "dusk_veil_of_shadows",
-      "dusk_wake_of_the_dead",
-      "pyro_inferno_pit",
-    ],
+    spells: ["dusk_chill_touch", "pyro_spark", "dusk_bone_snare", "pyro_ember_trap", "dusk_shadow_step", "pyro_flare_push", "dusk_veil_of_shadows", "pyro_ashfall"],
   },
   {
     id: "pre_static_shallows_5",
@@ -1344,16 +1305,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bolt_thunder", "bolt_shock", "bolt_zagphu", "bolt_zoez", "dawn_sircrest",
       "dawn_aurora", "dawn_roy", "dawn_lazor", "dawn_ariel", "dawn_heir_tok",
     ],
-    spells: [
-      "dawn_cleansing_light",
-      "bolt_overload_field",
-      "bolt_power_grid",
-      "dawn_judgment",
-      "dawn_dawns_judgment",
-      "dawn_radiant_barrier",
-      "dawn_dawns_grace",
-      "dawn_solar_flare",
-    ],
+    spells: ["dawn_sunbeam", "bolt_zap", "dawn_cleansing_light", "bolt_recon_ping", "dawn_grace", "bolt_rewire", "dawn_radiant_barrier", "bolt_power_rebate"],
   },
   {
     id: "pre_tidal_gate_5",
@@ -1370,7 +1322,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "aqua_harp", "aqua_subcool", "aqua_cryo", "aqua_driftwraith", "dawn_veil",
       "dawn_warphant", "dawn_roy", "dawn_golde", "dawn_radiance", "dawn_heir_tok",
     ],
-    spells: ["dawn_sunbeam", "aqua_steam_vent", "aqua_ice_wall", "aqua_downpour", "dawn_solar_flare", "dawn_grace", "dawn_dawns_grace", "dawn_judgment"],
+    spells: ["dawn_sunbeam", "aqua_frost_patch", "dawn_grace", "aqua_ice_wall", "dawn_radiant_barrier", "aqua_dense_fog", "dawn_blazing_sun", "aqua_pressure_crush"],
   },
   {
     id: "pre_emberforge_5",
@@ -1387,7 +1339,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "pyro_smog_card", "pyro_scorch", "pyro_scully", "pyro_sarra", "bore_rockgoblin",
       "bore_bearocks", "bore_clubber", "bore_warthog", "bore_obsidi", "bore_prism",
     ],
-    spells: ["pyro_spark", "bore_bulwark", "pyro_firewall", "pyro_heatwave", "pyro_inferno_pit", "pyro_flare_push", "bore_fortify", "bore_shatterpoint"],
+    spells: ["bore_pebble_toss", "pyro_ember_trap", "bore_bulwark", "pyro_firewall", "bore_stone_wall", "pyro_ashfall", "bore_bedrock", "pyro_meltdown"],
   },
   {
     id: "pre_thornwind_5",
@@ -1404,7 +1356,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "leaf_stickviper", "leaf_bark_bushmen", "leaf_efy", "leaf_thorn", "gale_stormhide_bison",
       "gale_guan", "gale_duster", "gale_luna", "gale_wolfbane", "gale_klipso",
     ],
-    spells: ["leaf_sprout", "gale_tailwind", "leaf_bramble_wall", "leaf_lushfield", "leaf_overgrowth", "leaf_snare", "leaf_groves_blessing", "gale_vortex_strike"],
+    spells: ["gale_gust", "leaf_thorn_patch", "gale_tailwind", "leaf_bramble_wall", "gale_squall_line", "leaf_groves_blessing", "gale_jetstream", "leaf_withering_grasp"],
   },
   {
     id: "pre_nightcircuit_5",
@@ -1421,7 +1373,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_gool", "dusk_jackl", "dusk_ender", "dusk_skelider", "bolt_buzz",
       "bolt_stormcaller", "bolt_electricel", "bolt_storm", "bolt_thundercat", "bolt_zoez",
     ],
-    spells: ["dusk_chill_touch", "dusk_shadow_step", "bolt_overload_field", "bolt_power_grid", "dusk_grave_pit", "bolt_rewire", "bolt_power_rebate", "dusk_phantom_spikes"],
+    spells: ["bolt_zap", "dusk_bone_snare", "bolt_rewire", "dusk_veil_of_shadows", "bolt_overload_field", "dusk_wake_of_the_dead", "bolt_power_grid", "dusk_phantom_spikes"],
   },
   {
     id: "pre_solar_crown_5",
@@ -1438,7 +1390,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dawn_stbern", "dawn_solara", "dawn_sparkle", "dawn_sphere", "pyro_tiki",
       "pyro_smog_card", "pyro_taper", "pyro_ash_boar", "pyro_firebird", "pyro_magmaw",
     ],
-    spells: ["pyro_spark", "dawn_sunbeam", "dawn_cleansing_light", "pyro_flare_push", "dawn_dawns_grace", "pyro_ember_trap", "dawn_grace", "pyro_firewall"],
+    spells: ["pyro_ember_trap", "dawn_grace", "pyro_firewall", "dawn_dawns_grace", "pyro_heatwave", "dawn_judgment", "pyro_inferno_pit", "dawn_dawns_judgment"],
   },
   {
     id: "pre_titanfall_5",
@@ -1455,7 +1407,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bore_smith", "bore_lithara", "bore_old_timer", "bore_sling", "bolt_buzz",
       "bolt_surge", "bolt_zipp", "bolt_electricel", "bolt_thundercat", "bolt_voltogon",
     ],
-    spells: ["bore_pebble_toss", "bolt_zap", "bore_sand_trap", "bore_bulwark", "bore_fortify", "bolt_recon_ping", "bolt_rewire", "bolt_overload_field"],
+    spells: ["bolt_recon_ping", "bore_bulwark", "bolt_overload_field", "bore_fortify", "bolt_power_grid", "bore_shatterpoint", "bolt_full_reroute", "bore_tremor"],
   },
   {
     id: "pre_black_tide_5",
@@ -1472,7 +1424,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_gool", "dusk_soul_wisp", "dusk_harve", "dusk_jackl", "leaf_python",
       "leaf_warden", "leaf_stickviper", "leaf_bark_bushmen", "leaf_guardian", "leaf_rubyo",
     ],
-    spells: ["leaf_sprout", "dusk_chill_touch", "leaf_thorn_patch", "dusk_shadow_step", "leaf_groves_blessing", "dusk_bone_snare", "leaf_snare", "leaf_bramble_wall"],
+    spells: ["leaf_thorn_patch", "dusk_shadow_step", "leaf_bramble_wall", "dusk_wake_of_the_dead", "leaf_lushfield", "dusk_phantom_spikes", "leaf_overgrowth", "dusk_harvest"],
   },
   {
     id: "pre_maelstrom_5",
@@ -1489,7 +1441,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "gale_breeze", "gale_wista", "gale_swillow", "gale_toxhawk", "aqua_polarbear",
       "aqua_harp", "aqua_buccaneers", "aqua_bulletshrimp", "aqua_liquark", "aqua_hydrogon",
     ],
-    spells: ["gale_gust", "aqua_chill", "aqua_frost_patch", "gale_tailwind", "aqua_dense_fog", "gale_downdraft", "aqua_steam_vent", "aqua_ice_wall"],
+    spells: ["aqua_frost_patch", "gale_tailwind", "aqua_ice_wall", "gale_storm_front", "aqua_downpour", "gale_vortex_strike", "aqua_glacial_wave", "gale_cyclone"],
   },
   // ───────────────────────── ELITE (large board only) ─────────────────────
   //
@@ -1514,16 +1466,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bore_bolder", "bore_sheish", "bore_ufo", "dusk_vamp", "dusk_skeleton_knight",
       "dusk_jackl", "dusk_gool", "dusk_zombination", "dusk_skullking", "dusk_brute",
     ],
-    spells: [
-      "dusk_chill_touch",
-      "bore_stone_wall",
-      "dusk_veil_of_shadows",
-      "bore_bedrock",
-      "dusk_bone_snare",
-      "bore_shatterpoint",
-      "bore_mountains_fall",
-      "dusk_harvest",
-    ],
+    spells: ["bore_bulwark", "dusk_veil_of_shadows", "bore_fortify", "dusk_nightfall", "bore_shatterpoint", "dusk_grave_pit", "bore_tremor", "dusk_endless_night"],
   },
   {
     id: "pre_chlorophyll_5",
@@ -1541,7 +1484,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "leaf_thorn", "leaf_darth", "leaf_dartfrog", "leaf_sticks", "leaf_nettle",
       "dawn_veil", "dawn_warphant", "dawn_ty", "leaf_sprinu", "dawn_reflection",
     ],
-    spells: ["dawn_sunbeam", "leaf_lushfield", "dawn_eternal_dawn", "leaf_bramble_wall", "leaf_snare", "leaf_bloodroot_surge", "dawn_radiant_barrier", "leaf_withering_grasp"],
+    spells: ["dawn_grace", "leaf_bramble_wall", "dawn_dawns_grace", "leaf_lushfield", "dawn_judgment", "leaf_overgrowth", "dawn_dawns_judgment", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_blazing_cyclone_5",
@@ -1559,16 +1502,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "gale_tumbleweed", "gale_luna", "gale_wailverine", "gale_guan", "gale_masala",
       "gale_vvulture", "gale_omega", "gale_stormfang", "gale_whirlwolf", "gale_totem",
     ],
-    spells: [
-      "pyro_cataclysm",
-      "pyro_heatwave",
-      "pyro_spark",
-      "pyro_firewall",
-      "pyro_flare_push",
-      "gale_tempest",
-      "gale_vortex_strike",
-      "gale_squall_line",
-    ],
+    spells: ["gale_tailwind", "pyro_firewall", "gale_storm_front", "pyro_heatwave", "gale_vortex_strike", "pyro_inferno_pit", "gale_cyclone", "pyro_volcanic_eruption"],
   },
   {
     id: "pre_thunderstorm_5",
@@ -1586,16 +1520,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bolt_ning", "bolt_buzzard", "bolt_striik", "bolt_surge", "bolt_general",
       "bolt_volta", "bolt_velvolt_knight", "bolt_shock", "bolt_voltcher", "bolt_buzz",
     ],
-    spells: [
-      "aqua_chill",
-      "aqua_steam_vent",
-      "aqua_ice_wall",
-      "aqua_downpour",
-      "bolt_lightning_storm",
-      "bolt_power_rebate",
-      "aqua_tsunami",
-      "bolt_system_override",
-    ],
+    spells: ["bolt_rewire", "aqua_ice_wall", "bolt_power_rebate", "aqua_downpour", "bolt_lightning_storm", "aqua_glacial_wave", "bolt_system_override", "aqua_tsunami"],
   },
   // ── THREE-ELEMENT LADDER DECKS ──────────────────────────────────────────
   // One per rung, each built to its rung's PLAN rather than merely labelled
@@ -1632,7 +1557,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dawn_beam", "dawn_sparkle", "dawn_star", "dawn_goldeneagle", "dawn_ty",
       "dawn_raya", "dawn_flash", "dawn_roy", "dawn_glime", "dawn_musk_ox",
     ],
-    spells: ["leaf_sprout", "aqua_chill", "dawn_sunbeam", "leaf_thorn_patch", "aqua_frost_patch", "dawn_cleansing_light", "leaf_snare", "aqua_steam_vent"],
+    spells: ["aqua_chill", "leaf_sprout", "dawn_cleansing_light", "aqua_frost_patch", "leaf_snare", "dawn_grace", "aqua_ice_wall", "leaf_groves_blessing"],
   },
   {
     id: "pre_stormfront_5",
@@ -1652,7 +1577,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "gale_skyforce", "gale_hawko", "gale_swillow", "gale_megair", "gale_whirlwolf",
       "gale_fano", "gale_totem", "gale_windsor", "gale_vaga", "gale_omega",
     ],
-    spells: ["pyro_spark", "bolt_zap", "gale_gust", "pyro_ember_trap", "bolt_recon_ping", "gale_downdraft", "pyro_flare_push", "bolt_rewire"],
+    spells: ["bolt_zap", "pyro_ember_trap", "gale_tailwind", "bolt_overload_field", "pyro_firewall", "gale_storm_front", "bolt_power_grid", "pyro_meltdown"],
   },
   {
     id: "pre_eclipse_guard_5",
@@ -1673,7 +1598,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "bolt_drshock", "bolt_staticcloud", "bolt_twotales", "bolt_junker", "bolt_scrapper",
       "bolt_static", "bolt_webster", "bolt_buzzard", "bolt_striik", "bolt_general",
     ],
-    spells: ["dawn_sunbeam", "dusk_chill_touch", "bolt_zap", "dawn_cleansing_light", "dusk_bone_snare", "bolt_recon_ping", "dawn_grace", "dusk_shadow_step"],
+    spells: ["dusk_bone_snare", "dawn_grace", "bolt_overload_field", "dusk_wake_of_the_dead", "dawn_blazing_sun", "bolt_lightning_storm", "dusk_grave_pit", "dawn_dawns_judgment"],
   },
   {
     id: "pre_deep_shade_5",
@@ -1695,7 +1620,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "aqua_subcool", "aqua_anglerfish", "aqua_bootlegger", "aqua_coralgolem", "aqua_polarbear",
       "aqua_icewall", "aqua_octoirate", "aqua_piranha", "aqua_tide", "aqua_polarking",
     ],
-    spells: ["dusk_chill_touch", "bore_pebble_toss", "aqua_chill", "dusk_bone_snare", "bore_sand_trap", "aqua_frost_patch", "dusk_shadow_step", "bore_bulwark"],
+    spells: ["bore_bulwark", "dusk_veil_of_shadows", "aqua_dense_fog", "bore_bedrock", "dusk_phantom_spikes", "aqua_glacial_wave", "bore_tremor", "dusk_endless_night"],
   },
   // ── FIVE MORE ELITE DECKS (large board) — see the standard-board banner. ──
   {
@@ -1714,7 +1639,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "pyro_ash_boar", "pyro_komodo", "pyro_spitfire", "pyro_slag_tortoise", "pyro_scorch",
       "pyro_scully", "pyro_sseerr", "pyro_dynomight", "pyro_infernus_rex", "pyro_nitro",
     ],
-    spells: ["pyro_spark", "leaf_sprout", "leaf_thorn_patch", "pyro_ember_trap", "leaf_snare", "pyro_flare_push", "leaf_bramble_wall", "pyro_heatwave"],
+    spells: ["pyro_flare_push", "leaf_bramble_wall", "pyro_ashfall", "leaf_lushfield", "pyro_meltdown", "leaf_overgrowth", "pyro_cataclysm", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_dead_current_5",
@@ -1732,7 +1657,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_jackl", "dusk_duet", "dusk_soul_wisp", "dusk_ghastly", "dusk_silkstalker",
       "dusk_ender", "dusk_skrow", "dusk_aranea", "dusk_nightfang", "dusk_shadowhorsemen",
     ],
-    spells: ["bolt_zap", "dusk_chill_touch", "bolt_recon_ping", "dusk_bone_snare", "dusk_shadow_step", "bolt_rewire", "bolt_overload_field", "bolt_lightning_storm"],
+    spells: ["dusk_shadow_step", "bolt_overload_field", "dusk_wake_of_the_dead", "bolt_power_grid", "dusk_phantom_spikes", "bolt_full_reroute", "dusk_harvest", "bolt_total_network_control"],
   },
   {
     id: "pre_undertow_5",
@@ -1750,7 +1675,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "aqua_divebill", "aqua_bahari", "aqua_icynin", "aqua_krakler", "aqua_cryo",
       "aqua_anos", "aqua_owlette", "aqua_vaporem", "aqua_phrost", "aqua_kraken",
     ],
-    spells: ["bore_pebble_toss", "aqua_chill", "bore_sand_trap", "aqua_frost_patch", "aqua_steam_vent", "bore_bulwark", "aqua_ice_wall", "bore_stone_wall"],
+    spells: ["aqua_steam_vent", "bore_stone_wall", "aqua_dense_fog", "bore_bedrock", "aqua_pressure_crush", "bore_landslide", "aqua_maelstrom", "bore_mountains_fall"],
   },
   {
     id: "pre_four_winds_5",
@@ -1768,7 +1693,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dawn_clipsey", "dawn_riflemen", "dawn_supernova", "bolt_electricel", "bolt_hacker",
       "bolt_jellyfish", "bolt_sentry", "bolt_shoksa", "bolt_thunder", "bolt_voltogon",
     ],
-    spells: ["dawn_sunbeam", "gale_gust", "leaf_sprout", "bolt_zap", "leaf_thorn_patch", "bolt_recon_ping", "gale_tailwind", "dawn_cleansing_light"],
+    spells: ["bolt_rewire", "dawn_radiant_barrier", "gale_storm_front", "leaf_lushfield", "bolt_lightning_storm", "dawn_solar_flare", "gale_cyclone", "leaf_heart_of_the_forest"],
   },
   {
     id: "pre_prism_5",
@@ -1786,7 +1711,7 @@ const LARGE_DECKS: PremadeDeck[] = [
       "dusk_sarachnid", "dusk_prestige", "dusk_scar", "dusk_destro", "dawn_sparkle",
       "dawn_sunspot", "dawn_meridian", "bolt_zap", "bolt_handyman", "bolt_rodd",
     ],
-    spells: ["leaf_sprout", "pyro_spark", "aqua_chill", "gale_gust", "bore_pebble_toss", "dusk_chill_touch", "dawn_sunbeam", "bolt_zap"],
+    spells: ["bolt_rewire", "dawn_radiant_barrier", "dusk_wake_of_the_dead", "bore_bedrock", "gale_vortex_strike", "aqua_glacial_wave", "pyro_cataclysm", "leaf_heart_of_the_forest"],
   },
 ];
 
