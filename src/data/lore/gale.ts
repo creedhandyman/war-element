@@ -25,206 +25,206 @@ export const GALE_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   gale_stormfang:
-    "Stormfang is in your row before the call is finished: 14 to one foe, 7 to those beside it. Every wolf near him hits harder.",
+    "Stormfang is in your row before the call is finished, and the foes beside his target feel it too. Every wolf in the pack hits harder for it.",
 
   gale_griffith: // Skyrend
-    "Skyrend drops out of the sky onto one target for 24, then vanishes into the cloud. Every bird beside him flies harder.",
+    "Skyrend comes down out of the sky on one foe, takes a little of it back, and vanishes into the cloud. Every bird in the sky flies harder for him.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   gale_tempest: // the CARD — the cost-10 spell keys itself below
-    "Charges three slots and strikes through armour for 8. Half the blows at it find only the place it was.",
+    "Three slots of open ground mean nothing to it, and armour less. Half your swings find only the place it was.",
 
   gale_eagon:
-    "Dragon-blooded and winged: half the time a blow to Eagon goes back at whoever threw it. His Dark Wind Wave shoves the far row toward you.",
+    "Strike Eagon and the wind may hand half the blow back to you. His Dark Wind Wave drags the far row in toward your side.",
 
   gale_totem:
-    "Its spirit watches over the band: allied shots cannot miss, see through stealth, and reach the back row. It plants a Totem Pole when it lands.",
+    "Nothing the band shoots misses under its eye: not the hidden, not the far. It plants a Totem Pole where it lands.",
 
   gale_galeon:
-    "A galleon of wind. Every round its sails push the whole enemy line back a slot, and Mighty Winds shoves it two more.",
+    "It never needs to reach you. Every round the whole field stands a step further back than it chose, and Mighty Winds adds two.",
 
   gale_klipso:
-    "Opens with a feather blade: 10 through armour and a stun. Half of what you swing at it misses.",
+    "The first meeting is the expensive one: a feather blade through armour, then a stun. Half of what you swing back finds nothing.",
 
   gale_bluejay:
-    "Bluejay shoots anything that lands in her range, and every kill makes her a little stronger for good.",
+    "Whatever lands in her range takes an arrow before it has unpacked, and every kill leaves her a little stronger for good.",
 
   gale_kloud:
-    "Kloud calls a Thundering Hurricane onto the board, and every Mage and Ranger beside it hits harder.",
+    "It raises a Thundering Hurricane over your foes, and every Mage and Ranger on your side shoots a little harder under it.",
 
   // ------------------------------------------------------------------ EPIC
 
   gale_vaga: // Squall
-    "Squall hides in the gale: only a foe standing next to it can strike back. It finishes anyone under 9 HP.",
+    "Come close and it is a fight; shoot from range and there was never anything there. It finishes whatever is already going.",
 
   gale_buf: // Hornrush
-    "Hornrush tramples smaller foes out of their square, and Horn Toss stuns two at once. Thick hide, and it mends itself.",
+    "A highland animal, bred behind the windbreaks. It walks over anything smaller, mends as it goes, and Horn Toss lays two foes flat.",
 
   gale_angale:
-    "Angale's wind surge weakens everything in range and shoves it back. Anyone who strikes her is weakened for it.",
+    "Her wind surge leaves everything in range weaker and a step back, and anyone who lays a hand on her walks away weaker too.",
 
   gale_sway:
-    "Sway lands with an Ollie, and each little bird fires at whatever the ally behind it shoots at. Birds of Prey sends three more.",
+    "She never lands alone: the little Ollies shoot wherever the ally behind them does. Birds of Prey sends three more.",
 
   gale_guan: // Dreadgaze
-    "Dreadgaze stands in front, and its stare weakens the foes ahead the moment it lands. Vision of Fear does it again, anywhere on the board.",
+    "It holds the front line, and the foes ahead are weaker the moment they see it. Vision of Fear lets the whole board see it again.",
 
   gale_rayfen:
-    "Rayfen can step to any open slot on the board, and Ambush hits three foes anywhere for 7 through armour.",
+    "There is no distance in this sky, only open slots. It moves to any of them, and Ambush reaches three foes anywhere, through armour.",
 
   gale_fano: // Fanwing
-    "Feather Fan lends Fanwing's SP to every slower teammate for a round, so they act sooner. Its hits can weaken.",
+    "The fan is not for striking. Slower teammates act as early as she does for a round, and her hits sometimes weaken.",
 
   gale_vvulture: // Vulture
-    "Vulture grows from every death on the field, and Roosting Wing Shield wraps it in 5 shields and heals 5.",
+    "It does not hunt so much as wait. Every death on the field leaves it sturdier, and Roosting Wing Shield mends what is left.",
 
   gale_masala: // Mesala
-    "Mesala hatches a Toxhawk each round, but never a second while the first still flies. Razor Wind Talon leaves the back row hurting.",
+    "One Toxhawk at a time, never a new one while the last still flies. The nurseries are strict, and Razor Wind Talon leaves the back row hurting.",
 
   gale_wolfbane:
-    "WolfBane hits every foe for 5 with Whirlwind Slasher, and crits any foe slower than it, healing 3 each time.",
+    "Whirlwind Slasher cuts every foe on the board and sends each back a step. Against anything it beats to the move, a crit also heals it.",
 
   gale_wista: // Zephyra
-    "Zephyra's Blue Wind Spiral ricochets between foes standing close together, and every hit shoves its target back a slot.",
+    "She throws once and the wind decides how many it lands on, so long as they stand close. Every hit shoves its target out of formation.",
 
   gale_omega:
-    "Omega enters play stronger, with +3 DMG and +8 HP. Search and Destroy carries it three slots into your side for a 10-damage hit.",
+    "It arrives bigger than its papers say, and Search and Destroy walks it deep into your side for one heavy hit. It does not plan on walking back.",
 
   // ------------------------------------------------------------------ RARE
 
   gale_skyforce:
-    "The moment Skyforce lands it clips every foe in range for 1, and then it stays up out of melee reach.",
+    "A thin cut for every foe in range on the way in, then it stays up where melee cannot reach.",
 
   gale_hawko:
-    "Hawko pecks any enemy that lands in its range for 1, and stays out of melee reach.",
+    "A permanent opinion about whatever just landed in range, delivered from a perch no melee can reach.",
 
   gale_sirocco:
-    "Sirocco fetches a GALE card costing 4 or more from your deck when it lands. Every blow it lands sends the target back to its home row.",
+    "It does not kill anything: every blow it lands blows the target back to its own home row. On arrival it calls a bigger GALE card down from your deck.",
 
   gale_syt_bird: // Sightwing
-    "Sightwing flies into a middle row and spots targets: your allies' basic attacks hit one extra neighbour that round.",
+    "It flies into the middle rows and calls the targets, so for a round every ally's basic attack also catches a neighbour.",
 
   gale_gastly:
-    "Gastly lands unseen, stealthed for its first round, then stands in front as a warrior.",
+    "It steps into the wind on arrival and the wind agrees not to mention it. One round of that, then it holds the front line.",
 
   gale_swillow:
-    "Swillow dives on the nearest enemy for 4 as it lands, then flies on out of melee reach.",
+    "It does its whole job on the way in, a dive on the nearest foe, then spends the battle as a very small bird out of melee's reach.",
 
   gale_duster:
-    "Duster blows in with a tailwind: nearby allies get +2 SP when it lands.",
+    "It brings nothing but a tailwind, and the tailwind is why the others got there first.",
 
   gale_toxhawk:
-    "Toxhawk's talons poison: each basic hit leaves 1 damage a round for 2 rounds.",
+    "The talons are the smaller problem: every hit leaves a poison that keeps working after it has flown on.",
 
   gale_tumbleweed:
-    "Tumbleweed rolls through for 5 damage once a game, two spaces on toward your home row. Half the blows at it miss.",
+    "Nothing out here is anchored, including this. Once a game it rolls straight through a foe and out the far side; half of what's thrown at it misses.",
 
   gale_stormhide_bison:
-    "Stormhide Bison stands in front, shrugs 1 off every hit, cannot be pushed, and tramples smaller foes.",
+    "Hide thick enough to take something off every gust. The wind has tried to move it for years, and it walks over anything smaller.",
 
   gale_megair:
-    "Megair's last stand: once a game, the first hit it lands below 3 HP also hits everyone for 3 and shoves them back 2.",
+    "It is at its worst nearly dead: once a game, a hit from the edge of death sends the whole enemy line reeling back.",
 
   gale_breeze: // Nightwing — the id predates the card; see cards.ts
-    "Nightwing drains 1 max HP from every adjacent foe each round, and heals itself from the bite.",
+    "It hunts the long way round, downwind and patient. Every round it takes a little of every foe beside it, for good, and keeps it.",
 
   gale_luna: // Wolf
-    "Luna is a young wolf: each kill heals her 4 and adds 2 max HP.",
+    "The pack's youngest hunter. Every kill patches her up and leaves her a little bigger for the next.",
 
   gale_hawk: // Stormquill
-    "Stormquill's shots gain +1 damage for every SP above 10, and Glide Rush adds 2 SP and evasion once a game.",
+    "The quills are the least of it. Past a certain pace she hits like something much heavier, and Glide Rush finds her that pace once a game.",
 
   gale_whirlwolf:
-    "Whirlwolf gives nearby allies +5 SP as it lands, and once a game pounces for 2 damage and a weaken on every foe.",
+    "Half wolf, half weather: the pack beside it gets a tailwind as it lands, and once a game Wave Pounce leaves every foe scratched and weaker.",
 
   gale_windsor:
-    "Windsor weakens whoever hits him, and 30% of the time he takes half the damage and throws it back at the attacker.",
+    "Hitting him costs you something at any range: you leave weaker, and now and then half the blow is handed back.",
 
   gale_wailverine:
-    "Wailverine gores the enemy directly ahead for 3 every round, and steps into its square if it dies.",
+    "Whatever stands directly ahead gets gored every round, and if it drops, the ground changes hands.",
 
   gale_klouy: // Spindrift
-    "Spindrift's second hit stuns, and once a game its Spiraling Windrow bounces 5 damage between close foes.",
+    "The first hit is spray; the second stops you where you stand. Once a game Spiraling Windrow bounces between foes standing close.",
 
   // ---------------------------------------------------------------- TOKENS
 
   gale_ollie:
-    "Ollie fires at whatever the ally directly behind it shoots at.",
+    "It has no plan of its own: it shoots at whatever the ally behind it shoots at.",
 
   gale_totem_pole:
-    "The Totem Pole never moves: each round it hits the row ahead for 2, and Spirit Ward gives it and its neighbours +3 shields.",
+    "Planted where the Totem set it, facing forward: it strikes the row ahead each round and wards its neighbours.",
 
   gale_toxhawk_tok: // Raptor
-    "A Raptor from Mesala's nest. Its talons poison: 1 damage a round for 2 rounds.",
+    "A Raptor from Mesala's nest. Small, high, and whatever its talons touch keeps hurting.",
 
   // ---------------------------------------------------------------- SPELLS
 
   gale_gust:
-    "A single gust: 3 damage, and the target is shoved back a space.",
+    "Barely a spell: a small hit and a shove, mostly about where you would rather they were standing.",
 
   gale_downdraft:
-    "The air drops out from over a whole row, and everything in it is weakened for 2 rounds.",
+    "The air drops out from over a whole row, and everything in it swings softer for a while.",
 
   gale_tailwind:
-    "A tailwind behind every GALE ally: +3 SP, so they go ahead of the rest. Nobody here calls that a favour.",
+    "GALE's oldest courtesy: every ally of ours goes ahead of the rest. Nobody in this nation considers that a favour.",
 
   gale_squall_line:
-    "A wall of wind across a row for 3 rounds. Anything that moves in takes 2 and is pushed back, flyers included. Shots pass over.",
+    "Three rounds of wind across a row: whatever moves in gets hurt and pushed back, flyers too. Shots pass over.",
 
   gale_storm_front:
-    "The front hits every foe for 3 and saps 3 SP from each for the round.",
+    "It hurts a little and leaves everything a step behind for the round, which in this nation is the same as hurting a lot.",
 
   gale_jetstream:
-    "A current for 3 rounds: your GALE allies gain +3 SP, and every push you cause goes a space further.",
+    "For three rounds, stand in the right current: your wings act sooner and every shove carries a space further.",
 
   gale_vortex_strike:
-    "10 damage straight through armour, and the target is stunned for a round.",
+    "Straight through the plate, and then a round of standing very still.",
 
   gale_gale_force:
-    "Weakens every foe across two rows for 2 rounds and shoves each back a space.",
+    "Two rows at once. Everything weaker, everything one pace back, nothing where it wanted to be.",
 
   gale_cyclone:
-    "8 damage to every foe, and each is dropped to 0 SP for the round, so they act last.",
+    "Heavy damage across the whole side, and then, for one round, nothing over there acts until you have.",
 
   "spell:gale_tempest":
-    "15 damage to every foe and 0 SP for the round. Afterwards your GALE allies keep +2 SP for the rest of the game.",
+    "The full storm, once: the far side takes a great deal and stops dead for the round, and every wing on your side acts sooner for the rest of the game.",
 
   gale_dreamcatcher:
-    "Soul Snare puts every foe in range to sleep for a round and weakens them. Each round it also weakens the hardest hitter.",
+    "It takes the loudest thing in the room first, every round. Soul Snare puts the rest to sleep.",
 
   // ── Void Tower bosses ──
   boss_nightshrike:
-    "Every third round Nightshrike dives on two of you for 9 each. Between dives it feeds on the weakest foe beside it.",
+    "Every third round it dives on two of you, and one wingbeat is the only warning. Between dives it feeds on the weakest beside it.",
 
   // ── Void Tower bosses ──
   boss_thunderfangs:
-    "Thunderfangs runs with a pack: every third round Thunder Run shocks everyone within 2 spaces, and each living wolf adds to its bite.",
+    "It never hunts alone. Every third round Thunder Run shocks everyone close, and each wolf at its side adds to the bite.",
 
   boss_thunderfangs_2:
-    "Thunderfangs, risen as Stormform: Thunder Run now hits for 11 and still electrifies, and the pack keeps growing.",
+    "Five kills, and the storm stopped following it around. Thunder Run hits harder now, and the pack keeps growing.",
 
   gale_sparkwolf_tok:
-    "A Spark Wind Wolf: every bite leaves its target electrified for 2 rounds.",
+    "You hear the pack before the weather turns, and every bite leaves its target electrified.",
 
   gale_whirlwind_warrior_tok:
-    "A warrior of leaves and wind. It stands in front, and every hit shoves its target back a slot.",
+    "Every leaf in it was somebody's cover. It holds the front line, and every hit shoves its target back a step.",
 
   boss_skybreaker:
-    "Skybreaker keeps a Thundering Hurricane on the field and every third round trades places with it, paralyzing everyone near the landing.",
+    "Every third round it trades places with its own Thundering Hurricane, and whoever is near the landing is paralyzed.",
 
   gale_thundering_hurricane_tok:
-    "A storm on the board. It lands for 15 and paralyzes, shoves every foe back a slot every 2 rounds, and splashes 10 beside its target.",
+    "A storm on the board: it lands hard and paralyzes, pushes the whole line back every other round, and splashes beside its target.",
 
   // -- the forty-card pass --
   gale_goldspur:
-    "Goldspur fires both barrels at the two nearest foes for 7 each, with a chance to crit, and lands with a Falcon beside it.",
+    "A Falcon lands beside it, and both barrels go at the two nearest foes before the challenge is finished, each shot free to crit.",
   gale_leeward:
-    "Leeward shelters its neighbours: Windbreak gives itself and adjacent allies +3 shields, and a hard hit throws back the foes beside it.",
+    "Windbreak shelters it and the allies beside it. Hit it hard and it answers with a gust: the foes around it are weaker and a step back.",
   gale_aerostat:
-    "Aerostat drops sandbags: 6 damage and a stun on up to three foes. Brought down, it bursts and stuns those beside it.",
+    "Sandbags overboard: three foes in range are hit, stunned and shoved back. Bring it down and it bursts, stunning whoever is beside it.",
   gale_gyre:
-    "Gyre's whirl saps 3 SP from the nearest foe each round, and once a game drags up to three foes 2 spaces toward it and stuns them.",
+    "Its whirl holds the nearest foe back every round, and once a game the eye opens and drags up to three in, stunned.",
   gale_falcon:
-    "Falcon drops on any adjacent foe whose HP is below its damage, destroying it and taking its square. Once a game it hits for 10 through armour.",
+    "It was above you a moment ago. Any adjacent foe too hurt to survive its blow is taken, square and all; once a game it punches through armour.",
 };
