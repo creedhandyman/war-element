@@ -13653,6 +13653,7 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
+    tribe: "Grove", // owner, 2026-10-04
     passiveNames: { evadeVsSlower: "Startle" },
     evadeVsSlower: true,
   },
@@ -13673,6 +13674,7 @@ export const CARDS: CardDef[] = [
     sp: 3,
     shields: 1,
     keywords: {},
+    tribe: "Grove", // owner, 2026-10-04
     passiveNames: { falseHead: "Fake Out", onSummon: "Stashed Away" },
     falseHead: true,
     // STASHED AWAY — its lore is already a card about knowing where something
@@ -13724,6 +13726,7 @@ export const CARDS: CardDef[] = [
     sp: 6,
     shields: 1,
     keywords: {},
+    tribe: "Grove", // owner, 2026-10-04
     passiveNames: { onHitPush: "Timber Toss" },
     onHitPush: 1,
     special: {
