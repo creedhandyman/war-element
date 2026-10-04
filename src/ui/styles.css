@@ -2396,6 +2396,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Post-match report (WinScreen) — MVP + per-side damage/heal/kills/captures. */
 .mr { margin: 6px 0 16px; text-align: left; border-top: 1px solid var(--panel-line); padding-top: 12px; }
 .mr-h { font-family: var(--head); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; text-align: center; }
+/* The match's pay, above the MVP: the one number that outlives the screen. */
+.mr-shards { display: flex; align-items: center; justify-content: center; gap: 7px; margin-bottom: 10px; padding: 7px 12px; border-radius: 999px;
+  background: rgba(232,200,119,0.10); border: 1px solid var(--gold-line); color: var(--gold-lit); font-variant-numeric: tabular-nums; }
+.mr-shards b { font-size: 17px; font-weight: 900; }
+.mr-shards span { font-size: 11px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-dim); }
 .mr-mvp { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; margin-bottom: 10px;
   background: radial-gradient(120% 160% at 0% 0%, rgba(232,200,119,0.26), rgba(232,200,119,0.05) 60%), rgba(0,0,0,0.25);
   border: 1px solid var(--gold-line); box-shadow: 0 0 22px rgba(232,200,119,0.10); }

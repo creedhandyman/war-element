@@ -34,6 +34,8 @@ export function StoryResult(props: {
    *  the same way a pack does — and this screen was the one place that could
    *  hand you your first foil without ever saying so. */
   foils?: ReadonlySet<string>;
+  /** Shards this win paid. Shown inside the match report. */
+  shards?: number;
   /** HARD MODE: the Void Tower boss that held this border, when one did. */
   boss?: string | null;
   /** The region this win opened. Done takes you to its map, so the button says
@@ -129,7 +131,7 @@ export function StoryResult(props: {
               <span className="sr-toggle-sub">· {game.round} rounds</span>
             </button>
             {showReport && (
-              <MatchReport game={game} heading={lost ? "What happened" : "Match Report"} />
+              <MatchReport game={game} heading={lost ? "What happened" : "Match Report"} shards={props.shards} />
             )}
           </>
         )}

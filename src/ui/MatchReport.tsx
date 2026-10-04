@@ -56,7 +56,7 @@ export const hasMatchReport = (game: GameState): boolean =>
   Object.values(game.stats.byCard).some((c) => mvpScore(c) > 0);
 
 /** Returns null when nothing measurable happened. */
-export function MatchReport({ game, heading, me = "P1" }: { game: GameState; heading?: string; me?: PlayerId }) {
+export function MatchReport({ game, heading, me = "P1", shards }: { game: GameState; heading?: string; me?: PlayerId; shards?: number }) {
   const s = game.stats;
   const cards = Object.values(s.byCard);
   const ranked = cards.slice().sort((a, b) => mvpScore(b) - mvpScore(a));
@@ -110,6 +110,13 @@ export function MatchReport({ game, heading, me = "P1" }: { game: GameState; hea
       <div className="mr-h">
         {heading ?? "Match Report"} <span className="mr-h-sub">· {game.round} rounds</span>
       </div>
+      {!!shards && (
+        <div className="mr-shards">
+          <i className="shard" aria-hidden="true" />
+          <b>+{shards}</b>
+          <span>shards won</span>
+        </div>
+      )}
       <div className="mr-mvp">
         <span className="mr-mvp-badge">MVP</span>
         <div className="mr-mvp-body">

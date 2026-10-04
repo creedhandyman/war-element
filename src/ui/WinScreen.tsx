@@ -1,6 +1,6 @@
 import { seatsOf } from "../engine";
 import type { Element, GameState, PlayerId } from "../engine";
-import { MatchReport } from "./MatchReport";
+import { MatchReport, hasMatchReport } from "./MatchReport";
 import { EL_COLOR, EL_ICON } from "./shared";
 
 /** The fight already lined up behind this one.
@@ -128,14 +128,16 @@ export function WinScreen(props: {
           )}
         </p>
 
-        {!!props.earned && (
+        {/* With a report the shards ride in it; this stands alone only when a
+            match ended too early to have one. */}
+        {!!props.earned && !hasMatchReport(game) && (
           <div className="win-earned">
             +{props.earned}<i className="shard" aria-hidden="true" />
             <span>{youWon ? "for the win" : "for the match"}</span>
           </div>
         )}
 
-        <MatchReport game={game} me={me} />
+        <MatchReport game={game} me={me} shards={props.earned} />
         {props.onReplay && (
           <button className="ghost sm win-replay" onClick={props.onReplay}>Watch replay</button>
         )}

@@ -1677,6 +1677,7 @@ export function App() {
     // handicap was built for on the gentlest opponent forever, because they
     // have no reason to walk into the Arena at all.
     reportSkillMatch(true);
+    setShardMark({ game, before: story.hero?.shards ?? 0 });
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
     const result = rollRecruits(story, storyNode, captured);
     // Read off the save BEFORE the clear lands: what this border opens is what
@@ -1702,11 +1703,19 @@ export function App() {
   // A LOSS is recorded, not just a win — and before anything else — because a
   // run you can close the tab on is a run you cannot lose.
   const settledMatch = useRef<GameState | null>(null);
+  // The shard balance the moment a match settled. The result screen shows what
+  // the match PAID, and the payers are many (arena, online, events, the ladder,
+  // a run clear, a story win) - so rather than re-derive each rate it reads the
+  // balance before and after. Keyed by the game so a mark left by the last match
+  // can never be subtracted from this one.
+  const [shardMark, setShardMark] = useState<{ game: GameState; before: number } | null>(null);
+  const shardsWon = shardMark?.game === game ? Math.max(0, (story.hero?.shards ?? 0) - shardMark.before) : 0;
   useEffect(() => {
     if (!started || storyNode) return;                 // story pays on its own path
     if (game.phase !== "gameover") return;
     if (settledMatch.current === game) return;         // one settlement per match
     settledMatch.current = game;
+    setShardMark({ game, before: story.hero?.shards ?? 0 });
     // A LESSON settles on its own: a first win pays (completeLesson), a loss or
     // a refight records nothing. Before everything below, because a lesson is
     // not an Arena match — it must not move the skill dial, a run, the ladder
@@ -5749,14 +5758,7 @@ export function App() {
           onReplay={lastMatchId && hasReplay(lastMatchId) ? () => watchMatch(lastMatchId) : undefined}
           // Online is the only mode that pays on the result screen's own terms
           // — every other one banks quietly into the shop's counter.
-          earned={
-            online && game.win
-              ? onlineMatchShards({
-                  won: game.win.winner === online.myId,
-                  surrendered: game.win.by === "surrender" && game.win.winner !== online.myId,
-                })
-              : undefined
-          }
+          earned={shardsWon}
           onNewGame={() => {
             if (online) leaveOnline(); // tear down the room before returning
             setStarted(false); // back to the deck picker
@@ -5787,6 +5789,7 @@ export function App() {
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           foils={foilIds}
           opened={storyResult.opened}
+          shards={shardsWon}
           onDone={finishStoryResult}
         />
       )}
