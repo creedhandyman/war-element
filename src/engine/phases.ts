@@ -2850,6 +2850,13 @@ function doRoundTicks(draft: GameState): void {
 
     const rt = getDef(card.defId).roundTick;
     if (!rt) continue;
+    // A CARD THAT CANNOT MOVE DOES NOT WALK. These gaits (Elephlora's Moving
+    // Forest, a boulder's roll, a kite, a prowl) are movement by another name,
+    // and they ran straight through ROOT, FREEZE, STUN and the rest - so a rooted
+    // tree marched on. Same list the Prep move refuses (canMove), plus PARALYZE,
+    // which slows a hand-moved card but stops a self-walking one outright.
+    const pinned = hasStatus(card, "ROOT") || hasStatus(card, "FREEZE") || hasStatus(card, "STUN")
+      || hasStatus(card, "PARALYZE") || hasStatus(card, "SLEEP") || hasStatus(card, "FRIGHTEN");
     // firstRoundOnly: fires on the card's first Cleanup after landing, then
     // never again. Can't lean on summonedThisRound — step 4 clears it just
     // before this runs — so the spent state lives on the instance.
@@ -2875,7 +2882,7 @@ function doRoundTicks(draft: GameState): void {
     // before its round, and not while the enemy still has a wall up.
     const wallsUp = rt.advanceWhenWallsDown === true && enemyWallsStanding(draft, card.owner);
     const tooEarly = rt.advanceFromRound != null && draft.round < rt.advanceFromRound;
-    const held = wallsUp || tooEarly;
+    const held = wallsUp || tooEarly || pinned;
     // `rollHeld`: a boulder loosed during THIS Cleanup must not also roll
     // during it, or it lands in the row in front of the giant and is already
     // past it before the player ever sees it there — which would make the
@@ -2883,14 +2890,14 @@ function doRoundTicks(draft: GameState): void {
     // `summonedThisRound` just before these ticks run; see `roundTickFired`.
     if (rt.advanceTrample && card.rollHeld) card.rollHeld = false;
     else if (rt.advanceTrample && card.pos && !held
-        && !bossHeldHome(draft, card, getDef(card.defId))) {
+        && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       // THROUGH, not up to. `chargeForward` shoves a TRAMPLE card past a
       // blocker and `applyShove` deals its CRUSH damage — the same pair the
       // Prep move and Hoarfell's gait use, so a boulder cannot roll by a
       // different rule than everything else that rolls.
       chargeForward(draft, card, rt.advanceTrample);
     }
-    if (rt.advance && card.pos && !held && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.advance && card.pos && !held && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const dir = card.owner === "P1" ? -1 : 1;
       let rolled = 0;
       while (rolled < rt.advance && card.pos) {
@@ -2953,7 +2960,7 @@ function doRoundTicks(draft: GameState): void {
     // the player watches the lane being chosen and has the rounds it spends
     // walking to answer. One step a round, deliberately: a gun that snapped to
     // its target would be the same effect with none of the reading.
-    if (rt.aimLateral && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.aimLateral && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const home = homeRow(card.owner, draft.boardSize);
       if (card.pos.row === home) {
         // TWO QUESTIONS, one gait. "count" looks for the crowd (Helion,
@@ -3004,7 +3011,7 @@ function doRoundTicks(draft: GameState): void {
     // PACK HUNTER (escortAdvance): step forward only with the pack up. Counts
     // allies LEVEL WITH OR AHEAD of it, so escorts trailing behind do not give
     // permission — the boss waits for them rather than the other way round.
-    if (rt.escortAdvance && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.escortAdvance && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const dir = card.owner === "P1" ? -1 : 1;
       const up = boardCards(draft, card.owner).filter(
         (a) => a.curHp > 0 && a !== card && a.pos
@@ -3024,7 +3031,7 @@ function doRoundTicks(draft: GameState): void {
     }
 
     // SKITTISH (kite): hurt, it gives ground rather than trading.
-    if (rt.kite && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.kite && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const maxHp = effectiveMaxHp(draft, card) || 1;
       if ((100 * card.curHp) / maxHp < rt.kite.belowPct) {
         const back = card.pos.row + (card.owner === "P1" ? 1 : -1);
@@ -3040,7 +3047,7 @@ function doRoundTicks(draft: GameState): void {
     // column instead of the busiest. Same tie rule (lowest column wins), same
     // home-row-only restriction, for the same reason: a telegraph broken at
     // random is a lie.
-    if (rt.avoidLateral && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.avoidLateral && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const home = homeRow(card.owner, draft.boardSize);
       if (card.pos.row === home) {
         const counts = new Array<number>(draft.boardSize).fill(0);
@@ -3062,7 +3069,7 @@ function doRoundTicks(draft: GameState): void {
     // JUGGERNAUT: it advances, and the run builds. Stopped is stopped — the
     // bonus goes back to nothing rather than decaying, because "block it once"
     // has to be worth doing.
-    if (rt.momentum && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.momentum && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const from = card.pos.row;
       chargeForward(draft, card, 1);
       const rolled = card.pos != null && card.pos.row !== from;
@@ -3089,7 +3096,7 @@ function doRoundTicks(draft: GameState): void {
     // Held by BOSS_HOLD_ROUNDS like every other boss movement, so the opening
     // is still yours. Blocked squares simply cost it that beat — it does not
     // get a second attempt, because a pattern with retries is not a pattern.
-    if (rt.prowl && card.pos && !bossHeldHome(draft, card, getDef(card.defId))) {
+    if (rt.prowl && card.pos && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       const beat = (card.prowlStep ?? 0) % 4;
       card.prowlStep = (card.prowlStep ?? 0) + 1;
       const dir = card.owner === "P1" ? -1 : 1;
@@ -3109,7 +3116,7 @@ function doRoundTicks(draft: GameState): void {
 
     // Shamble: the slow half of `advance` — one slot every few rounds.
     if (rt.advanceEveryN && card.pos && draft.round % rt.advanceEveryN === 0
-        && !bossHeldHome(draft, card, getDef(card.defId))) {
+        && !pinned && !bossHeldHome(draft, card, getDef(card.defId))) {
       chargeForward(draft, card, 1);
     }
 
@@ -3117,7 +3124,7 @@ function doRoundTicks(draft: GameState): void {
     // the next OPEN slot. Only while actually standing in the home row — a
     // card dragged off its rail stops sliding, which is itself an answer the
     // player can force. Deterministic: the kill-column telegraphs itself.
-    if (rt.shiftLateral && card.pos) {
+    if (rt.shiftLateral && card.pos && !pinned) {
       const home = homeRow(card.owner, draft.boardSize);
       if (card.pos.row === home) {
         for (let step = 1; step < draft.boardSize; step++) {
