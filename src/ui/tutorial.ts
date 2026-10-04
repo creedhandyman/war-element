@@ -303,8 +303,8 @@ export const BASICS: TutorialDef = {
   result: {
     lead: "You captured a square and defeated every enemy card.",
     bullets: [
-      "Capture all 4 squares on their back row, or defeat every enemy card, to win.",
-      "Place cards on your back row, and earn Gold every round to buy more.",
+      "Capture all 4 squares on their home row, or defeat every enemy card, to win.",
+      "Cards are placed on your back row, and you earn Gold every round to buy more.",
       "Move one card a turn. Melee cards hit the 8 squares around them.",
     ],
   },
