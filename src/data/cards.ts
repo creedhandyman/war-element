@@ -10269,7 +10269,8 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     tribe: "Forged Tech",
-    // KaBoooom (On Death): 3 DMG to every non-PYRO card within one square.
+    // KaBoooom (On Death): 5 DMG to every non-PYRO card within one square.
+    // 3 -> 5 (owner, 2026-10-03), back where it was before the cut below.
     // 5 -> 3 (owner's call): the second ledger reading had Canister tier S
     // (+10.0 on fresh seeds).
     // Was 6 to the ENTIRE board, which is why a 1-cost body was one of the
@@ -10278,7 +10279,7 @@ export const CARDS: CardDef[] = [
     // corner and forgot about it. A radius makes the placement the play — which
     // is what Rollout below was always for.
     passiveNames: { onDeath: "KaBoooom" },
-    onDeath: { dmg: 0, boardBlast: { dmg: 3, exceptElement: "PYRO", radius: 1 } },
+    onDeath: { dmg: 0, boardBlast: { dmg: 5, exceptElement: "PYRO", radius: 1 } },
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     // Rollout: the canister rolls off the back line, striking then phasing PAST
     // bodies to the first open slot toward the enemy home — parking the bomb in
@@ -10290,7 +10291,7 @@ export const CARDS: CardDef[] = [
       // in the enemy line so KaBoooom lands where it hurts — and now that the
       // blast only reaches one square, the trip is the whole card.
       params: { dmg: 2, rollThrough: 1 },
-      text: "Once per game: deal 2 DMG, then roll through to the first open slot toward the enemy home.",
+      text: "Once per game: deal 2 DMG, then roll through to the first open slot toward the enemy home — it rolls even with nothing in range.",
     },
   },
   {

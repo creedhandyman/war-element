@@ -1441,7 +1441,7 @@ describe("medium-tier passives (audit batch)", () => {
     const pyroAlly = place(s, "pyro_tiki", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // PYRO — spared
     const enemy = place(s, "dusk_gool", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // adjacent — hit
     defeatCard(s, s.cards[canister.instanceId], "test");
-    expect(s.cards[enemy.instanceId].curHp).toBe(17); // 20 - 3 (KaBoooom 5 -> 3)
+    expect(s.cards[enemy.instanceId].curHp).toBe(15); // 20 - 5 (KaBoooom 3 -> 5, owner 2026-10-03)
     expect(s.cards[pyroAlly.instanceId].curHp).toBe(20); // PYRO spared
   });
 
@@ -1454,8 +1454,21 @@ describe("medium-tier passives (audit batch)", () => {
     const beside = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // diagonal
     const across = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // far corner
     defeatCard(s, s.cards[canister.instanceId], "test");
-    expect(s.cards[beside.instanceId].curHp).toBe(17); // diagonals are adjacent
+    expect(s.cards[beside.instanceId].curHp).toBe(15); // diagonals are adjacent
     expect(s.cards[across.instanceId].curHp).toBe(20); // untouched
+  });
+
+  it("Canister's Rollout rolls with nothing in range (owner, 2026-10-03)", () => {
+    const s = prepState();
+    s.boardSize = 4;
+    const canister = place(s, "pyro_canister", "P1", 3, 0, { autoMode: "manual" });
+    place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20 }); // far out of reach
+    s.phase = "battle"; s.prep = null;
+    s.battle = { queue: [canister.instanceId], index: 0, awaitingInput: canister.instanceId };
+    expect(canFireTalent(s, canister.instanceId).ok, "offered with nothing in range").toBe(true);
+    const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "talent" });
+    expect(g.cards[canister.instanceId].pos!.row, "it rolled forward").toBeLessThan(3);
+    expect(g.cards[canister.instanceId].talentUsed).toBe(true);
   });
 
   it("Equestrian's Solar aura makes allies immune to WEAKEN", () => {

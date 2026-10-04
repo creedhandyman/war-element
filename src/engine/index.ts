@@ -60,6 +60,7 @@ export {
   talentAllyChoices,
   talentTargets,
   talentIsPicked,
+  talentNeedsTarget,
   talentShotsStack,
   talentPickCap,
   canPlummet,

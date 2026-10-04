@@ -9,6 +9,7 @@ import {
   talentAllyChoices,
   talentTargets,
   talentIsPicked,
+  talentNeedsTarget,
   talentShotsStack,
   talentPickCap,
   canPlummet,
@@ -4492,7 +4493,13 @@ export function App() {
     const picksAlly = talentAllyChoices(game, activeCard.instanceId).length > 0;
     // A picked Talent is aimed by the player — without a pick the engine would
     // take the first opponent it lists.
-    const picksFoe = !picksAlly && talentIsPicked(game, activeDef.talent);
+    // ...but only when there IS one to pick. A Talent that works on an empty
+    // board (Canister's Rollout, Tumbleweed's Roll Through: `talentNeedsTarget`
+    // false) waited for a tap on a glowing opponent that did not exist, so it
+    // could never fire with nothing in range (owner, 2026-10-03). With no
+    // opponent to aim at, Confirm fires it unaimed and it simply rolls.
+    const picksFoe = !picksAlly && talentIsPicked(game, activeDef.talent)
+      && (talentNeedsTarget(activeDef) || talentTargets(game, activeCard.instanceId).length > 0);
     if (pending === "talent") {
       if (picksAlly && picks.length === 0) {
         setHint("Tap a <b>glowing ally</b> first: the one to trade places with. Then press <b>Confirm</b>.");
