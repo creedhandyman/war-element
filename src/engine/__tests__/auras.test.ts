@@ -576,19 +576,26 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
     expect(tailwindDmg(per * (cap + 5)), "flat once capped").toBe(cap);
   });
 
-  it("converts SP into dodge, on a curve with a ceiling", () => {
-    // Ceiling went 20 -> 15 on 2026-10-01 (GALE_SLIPSTREAM_CAP).
-    expect([0, 6, 8, 9, 12, 15, 18, 40].map(slipstreamPct))
-      .toEqual([0, 0, 0, 5, 10, 15, 20, 20].map((n) => Math.min(n, GALE_SLIPSTREAM_CAP)));
+  it("converts SP GAINED into dodge: 5% per 4, with a ceiling", () => {
+    // Ceiling went 20 -> 15 on 2026-10-01 (GALE_SLIPSTREAM_CAP). Read off SP
+    // GAINED since 2026-10-03 (owner), 5% per 4.
+    expect([0, 3, 4, 7, 8, 12, 16, 40].map(slipstreamPct))
+      .toEqual([0, 0, 5, 5, 10, 15, 20, 20].map((n) => Math.min(n, GALE_SLIPSTREAM_CAP)));
   });
 
-  it("a GALE card's printed damage is raised by its own speed", () => {
+  it("pays on SP GAINED, not printed: a fresh card has earned nothing yet", () => {
+    // Owner, 2026-10-03: the bonus is earned. Klipso prints SP 13, which under
+    // the old rule paid its +1 DMG and 10% dodge the moment it landed.
     const s = prepState();
-    // Derived too — this said "floor(13/6) = +2" in a comment and +2 in the
-    // assertion, both of which are the old step written out by hand.
     const k = place(s, "gale_klipso", "P1", 3, 0);
     const def = getDef("gale_klipso");
-    expect(effectiveDmg(s, s.cards[k.instanceId])).toBe(def.dmg + tailwindDmg(def.sp));
+    expect(effectiveDmg(s, s.cards[k.instanceId]), "no damage bonus yet").toBe(def.dmg);
+    expect(slipstreamDodgePct(s, s.cards[k.instanceId]), "no dodge yet").toBe(0);
+    s.cards[k.instanceId].spBonus = 4;   // two rounds of Zephyr
+    expect(effectiveDmg(s, s.cards[k.instanceId]), "4 gained: still short of 5").toBe(def.dmg);
+    expect(slipstreamDodgePct(s, s.cards[k.instanceId]), "4 gained: first dodge step").toBe(5);
+    s.cards[k.instanceId].spBonus = 6;   // three rounds
+    expect(effectiveDmg(s, s.cards[k.instanceId]), "5+ gained: +1 DMG").toBe(def.dmg + 1);
   });
 
   it("does NOT stack on the two cards that already convert SP to damage", () => {
@@ -619,9 +626,9 @@ describe("GALE — Zephyr's Tailwind and Slipstream", () => {
     }
   });
 
-  it("a fast GALE card carries a real dodge chance", () => {
+  it("a GALE card that has gained 8 SP carries a real dodge chance", () => {
     const s = prepState();
-    const k = place(s, "gale_klipso", "P1", 3, 0); // SP 13 -> floor((13-6)/3)=2 -> 10%
+    const k = place(s, "gale_klipso", "P1", 3, 0, { spBonus: 8 }); // 8 gained -> 2 steps -> 10%
     expect(slipstreamDodgePct(s, s.cards[k.instanceId])).toBe(10);
   });
 });

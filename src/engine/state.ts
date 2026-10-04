@@ -902,6 +902,13 @@ export function hasTotemSpirit(state: GameState, card: CardInstance): boolean {
   return boardCards(state, card.owner).some((c) => c.curHp > 0 && getDef(c.defId).totemSpiritAura);
 }
 
+/** The SP a card has GAINED in play over its printed SP — Zephyr's per-round
+ *  ramp, auras, haste — never below 0 (a slowed card has gained nothing). What
+ *  GALE's Zephyr pays out on (owner, 2026-10-03): see `auras.ts`. */
+export function spGained(state: GameState, card: CardInstance): number {
+  return Math.max(0, effectiveSp(state, card) - getDef(card.defId).sp);
+}
+
 export function effectiveSp(state: GameState, card: CardInstance): number {
   const def = getDef(card.defId);
   if (hasStatus(card, "ROOT") || hasStatus(card, "FREEZE")) return 0;
@@ -1013,7 +1020,7 @@ function dmgBeforeIntimidation(state: GameState, card: CardInstance): number {
   // the pair that never needed it — one of which has already been capped once
   // for being too strong.
   if (hasElementAura(def, "GALE") && !def.highSpeedImpact) {
-    dmg += tailwindDmg(effectiveSp(state, card));
+    dmg += tailwindDmg(spGained(state, card));
   }
   // Apex Predator (Stormfang): +1 DMG per `per` SP above `above`.
   if (def.speedDmgTiered)

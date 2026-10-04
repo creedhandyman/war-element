@@ -2232,11 +2232,11 @@ describe("medium-tier passives (audit batch)", () => {
     const wolf = place(s, "gale_wolfbane", "P1", 3, 0, { curHp: 10, maxHp: 17 }); // SP 9
     const slow = place(s, "bore_hillbilly", "P2", 3, 1, { curHp: 40, maxHp: 40, curShields: 0 }); // SP 2 < 9
     s.rngState = seedForCoins(true); // crit coin succeeds
-    // 9 printed + 1 Tailwind (GALE aura, +1 DMG per 6 SP — floor(9/6) = 1),
-    // then doubled by the CRIT.
-    expect(effectiveDmg(s, s.cards[wolf.instanceId])).toBe(10);
+    // 9 printed, no Tailwind yet (Zephyr pays on SP GAINED since 2026-10-03,
+    // and a fresh card has gained none), then doubled by the CRIT.
+    expect(effectiveDmg(s, s.cards[wolf.instanceId])).toBe(9);
     basicAttack(s, wolf.instanceId, slow.instanceId);
-    expect(s.cards[slow.instanceId].curHp).toBe(40 - 20);
+    expect(s.cards[slow.instanceId].curHp).toBe(40 - 18);
     expect(s.cards[wolf.instanceId].curHp).toBe(13); // 10 + 3 heal per crit
   });
 });
@@ -2680,7 +2680,7 @@ describe("Klipso's Harsh Winds", () => {
     // rather than written out), plus the 4 first-strike bonus on the opener.
     const klipso = place(s, "gale_klipso", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 3, 1, { curHp: 60 });
-    const base = getDef("gale_klipso").dmg + tailwindDmg(getDef("gale_klipso").sp);
+    const base = getDef("gale_klipso").dmg + tailwindDmg(0); // fresh: no SP gained yet
     expect(effectiveDmg(s, s.cards[klipso.instanceId])).toBe(base);
     basicAttack(s, klipso.instanceId, foe.instanceId);
     expect(s.cards[foe.instanceId].curHp).toBe(60 - (base + 4));
@@ -2867,6 +2867,15 @@ describe("the two Dark Wind auras", () => {
     place(s, "gale_dreamcatcher", "P1", 3, 2);  // Ill Wind:  +1 DMG
     expect(effectiveSp(s, s.cards[bird.instanceId]), "Galeon's wind").toBe(bareSp + 3);
     expect(effectiveDmg(s, s.cards[bird.instanceId]), "Dreamcatcher's").toBe(bareDmg + 1);
+  });
+
+  it("reach Luna, who runs with the wolves AND flies with the flock (owner, 2026-10-03)", () => {
+    const s = prepState();
+    const luna = place(s, "gale_luna", "P1", 3, 0);
+    const bare = effectiveSp(s, s.cards[luna.instanceId]);
+    place(s, "gale_galeon", "P1", 3, 1);        // Dark Wind: +3 SP
+    expect(effectiveSp(s, s.cards[luna.instanceId])).toBe(bare + 3);
+    expect(getDef("gale_luna").tribe, "still a Wolf").toContain("Wolf");
   });
 
   it("reach nothing outside the flock", () => {

@@ -1990,7 +1990,9 @@ export const CARDS: CardDef[] = [
     sp: 13,
     shields: 0,
     keywords: {},
-    tribe: "Wolf",
+    // Dark Wind too (owner, 2026-10-03): she flies with Galeon's flock as well
+    // as running with the wolves, so Dark Wind's +3 SP reaches her.
+    tribe: ["Wolf", "Dark Wind"],
     // Omega Restore (On Kill): +2 max HP and heal 4 per opponent killed — the
     // same restore Omega carries, so the pair share their signature.
     passiveNames: { onKill: "Omega Restore" },
@@ -2228,10 +2230,9 @@ export const CARDS: CardDef[] = [
     // Dark Wind: +3 SP to every card in the flock while Galeon flies.
     //
     // ON GALE THIS IS NOT JUST SPEED, and the card should be read that way.
-    // Zephyr converts SP twice over — +1 DMG per 6 SP, and 5% dodge per 3 SP
-    // above 6 — so +3 buys all eleven of them a dodge step, and pushes five
-    // (Angale, Fanwing, Mesala, Skyrend, Eagon) up a tailwind damage step as
-    // well. It also crosses SP_MID_MAX (10) for Duster, Fanwing and Mesala,
+    // Zephyr converts SP GAINED twice over (since 2026-10-03) — +1 DMG once
+    // 5 SP are gained, 5% dodge per 4 gained — and this +3 counts as gained, so
+    // the flock reaches each step a round or more ahead of a lone GALE card. It also crosses SP_MID_MAX (10) for Duster, Fanwing and Mesala,
     // which is the king-move tier: they start cutting corners.
     aura: { scope: "tribe", match: "Dark Wind", sp: 3 },
     // Wind Guardian (End of Round): blow opponents in range back 1 slot.

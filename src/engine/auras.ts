@@ -192,29 +192,31 @@ export const GALE_SP_CAP = 21;
  *  better; the opponent got better at playing it. So the lift it needed at 43.8
  *  is a lift it no longer needs, and this is the cheapest way to hand it back —
  *  a lever whose price has already been measured once. */
-export const GALE_TAILWIND_PER = 6;
+//
+// EARNED, NOT PRINTED (owner, 2026-10-03). Both halves now read the SP a card
+// has GAINED in play — Zephyr's +2 a round, Galeon's Dark Wind, Tailwind, any
+// haste — over its printed SP, not its total. On total, every fast GALE card
+// arrived with the bonus already paid, so the ramp that IS the aura bought
+// nothing; now a card earns its damage and its dodge by staying alive.
+// `spGained` (state.ts) is the one reading of "gained".
+export const GALE_TAILWIND_PER = 5;
 /** ...to here, so a multi-hit body cannot turn it into a blowout. */
 export const GALE_TAILWIND_CAP = 1; // +1 since 2026-10-01 (owner), was +3
 
-/** SLIPSTREAM: dodge starts once a card is faster than this. */
-export const GALE_SLIPSTREAM_BASE = 6;
-/** Each this-many SP above the base is worth `GALE_SLIPSTREAM_PCT`. */
-export const GALE_SLIPSTREAM_PER = 3;
+/** SLIPSTREAM: `GALE_SLIPSTREAM_PCT` dodge per this-many SP gained. */
+export const GALE_SLIPSTREAM_PER = 4;
 export const GALE_SLIPSTREAM_PCT = 5;
 /** And no further — a card that dodges most of what is thrown at it stops
  *  being fragile-and-fast and starts being unkillable. */
 export const GALE_SLIPSTREAM_CAP = 15; // 15% since 2026-10-01 (owner), was 20
 
-/** Tailwind's bonus damage, per hit, for a card at `sp`. */
-export const tailwindDmg = (sp: number): number =>
-  Math.min(GALE_TAILWIND_CAP, Math.floor(Math.max(0, sp) / GALE_TAILWIND_PER));
+/** Tailwind's bonus damage, per hit, for a card that has GAINED `gained` SP. */
+export const tailwindDmg = (gained: number): number =>
+  Math.min(GALE_TAILWIND_CAP, Math.floor(Math.max(0, gained) / GALE_TAILWIND_PER));
 
-/** Slipstream's dodge chance, as a percentage, for a card at `sp`. */
-export const slipstreamPct = (sp: number): number =>
-  Math.min(
-    GALE_SLIPSTREAM_CAP,
-    Math.max(0, Math.floor((sp - GALE_SLIPSTREAM_BASE) / GALE_SLIPSTREAM_PER)) * GALE_SLIPSTREAM_PCT,
-  );
+/** Slipstream's dodge chance, as a percentage, for a card that has GAINED `gained` SP. */
+export const slipstreamPct = (gained: number): number =>
+  Math.min(GALE_SLIPSTREAM_CAP, Math.floor(Math.max(0, gained) / GALE_SLIPSTREAM_PER) * GALE_SLIPSTREAM_PCT);
 
 /** AWAKENING'S STRIKE — what a DAWN card hits for as it lands, as a fraction of
  *  its own DMG. Was a half; it is the whole thing now.
@@ -358,7 +360,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%).`; } },
   AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (up to +${DAWN_SP_GROWTH} over its printed speed).` },
-  GALE: { name: "Zephyr", get desc() { return `Its speed is a weapon: +1 DMG per ${GALE_TAILWIND_PER} SP (max +${GALE_TAILWIND_CAP}), and a dodge chance of ${GALE_SLIPSTREAM_PCT}% per ${GALE_SLIPSTREAM_PER} SP above ${GALE_SLIPSTREAM_BASE} (max ${GALE_SLIPSTREAM_CAP}%). End of round, +2 SP (caps at SP ${GALE_SP_CAP}).`; } },
+  GALE: { name: "Zephyr", get desc() { return `Gains +2 SP at the end of every round (up to SP ${GALE_SP_CAP}), and the speed it gains pays off. Once it has gained ${GALE_TAILWIND_PER} SP it deals +${GALE_TAILWIND_CAP} DMG, and every ${GALE_SLIPSTREAM_PER} SP gained adds ${GALE_SLIPSTREAM_PCT}% dodge (up to ${GALE_SLIPSTREAM_CAP}%).`; } },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
   VOID: { name: "One Eyes", desc: `Takes what it hits: each basic attack that lands steals ${VOID_STEAL_PER_ATTACK} DMG from its target and keeps it — once per attack, however many hits land (up to +${VOID_STEAL_CAP}; nothing is robbed below ${VOID_STEAL_FLOOR} DMG). And it watches — the first hit it takes is deflected, then every ${ordinal(VOID_DEFLECT_EVERY)} after that (${[0, 1, 2].map((k) => ordinal(1 + k * VOID_DEFLECT_EVERY)).join(", ")}…), taking half and returning half to the attacker.` },
 };

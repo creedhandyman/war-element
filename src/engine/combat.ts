@@ -21,7 +21,7 @@ import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_AT
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
-import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, groundClosed, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
+import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, spGained, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, groundClosed, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
   CardDef,
   CardInstance,
@@ -67,13 +67,13 @@ export function shadeDodgePct(draft: GameState, card: CardInstance): number {
   return shadeStacksLive(draft, card.owner) * DUSK_SHADE_PCT;
 }
 
-/** Slipstream (GALE): a card's dodge chance from its own speed. Single source
- *  of truth so the roll and the card inspector cannot disagree, matching
- *  `shadeDodgePct` above. Reads EFFECTIVE SP, so Zephyr's per-round ramp and
- *  every haste effect feed it. */
+/** Slipstream (GALE): a card's dodge chance from the speed it has GAINED.
+ *  Single source of truth so the roll and the card inspector cannot disagree,
+ *  matching `shadeDodgePct` above. Reads `spGained`, so Zephyr's per-round ramp
+ *  and every haste effect feed it, and the printed SP does not. */
 export function slipstreamDodgePct(draft: GameState, card: CardInstance): number {
   if (!hasElementAura(getDef(card.defId), "GALE")) return 0;
-  return slipstreamPct(effectiveSp(draft, card));
+  return slipstreamPct(spGained(draft, card));
 }
 
 /** FLYING — the innate keyword OR a granted temporary flight (FireFly's BlastOff). */
