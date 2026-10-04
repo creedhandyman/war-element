@@ -2334,6 +2334,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   animation-duration: 1.9s;
 }
 .bp-text { font-size: 10.5px; color: var(--ink-dim); }
+/* The active card's Special / Talent, in place of the button row the action
+   wheel hides — so only where that row is hidden. Its own "unavailable" note
+   rides inside it, so the separate line stands down there. */
+.bp-verbs { display: none; flex-direction: column; gap: 4px; }
+.wrap.wheel-up .bottom.acting .bp-verbs { display: flex; }
+.wrap.wheel-up .bottom.acting:has(.bp-verbs) .bp-unavail { display: none; }
+.bp-verb { color: var(--ink); line-height: 1.35; }
+.bp-verb b { color: var(--accent); }
+.bp-verb.tal b { color: #b9a2ff; }
+.bp-verb em { font-style: normal; color: var(--ink-dim); }
+.bp-verb.off { opacity: .72; }
 /* Armed-special description — accent the name in the Special's purple. */
 .spec-desc { color: var(--ink); line-height: 1.35; }
 .spec-desc b { color: var(--accent); }
@@ -9695,13 +9706,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      stands down whenever that copy is up, so the pair still never both show. */
   .bottom.acting .bp-hint { display: block; }
   .bottom.acting:has(.bp-hint) .controls .hint { display: none; }
-  .wrap.wheel-up .bottom.acting .bprompt:has(.bp-hint) {
+  .wrap.wheel-up .bottom.acting .bprompt:is(:has(.bp-hint), :has(.bp-verbs)) {
     visibility: visible; align-self: end; justify-content: center; gap: 3px;
     padding: 9px 16px; border-radius: 12px;
     background: color-mix(in srgb, var(--panel) 94%, transparent);
     border: 1px solid var(--gold-line); box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
   }
-  .wrap.wheel-up .bottom.acting .bprompt:has(.bp-hint) .bp-text { font-size: 12.5px; line-height: 1.4; }
+  .wrap.wheel-up .bottom.acting .bprompt:is(:has(.bp-hint), :has(.bp-verbs)) .bp-text { font-size: 12.5px; line-height: 1.4; }
   /* The secondary row (Move · Auto · Clear · Surrender · How to play) is ~380px
      of buttons in a 238px column; it used to spill LEFT into the empty middle
      of the bar, which is where the hand lives now. It goes behind a ⋯ beside

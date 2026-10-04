@@ -5251,8 +5251,39 @@ export function App() {
                 </div>
               )}
               {pending !== "special" && !specialCheck.ok && activeDef.special && (
-                <div className="bp-text">
+                <div className="bp-text bp-unavail">
                   Special unavailable: {"reason" in specialCheck ? specialCheck.reason : ""}
+                </div>
+              )}
+              {/* WHAT THE VERBS DO, the moment the card is up (owner, 2026-10-04:
+                  "show the description as soon as the card is up replacing the
+                  battle buttons in battle phase"). The wheel carries the verbs,
+                  so the button row it hides (`.wrap.wheel-up ... .bp-actions`)
+                  gives its place to this — shown by the same class, so it can
+                  never stand in for buttons that are still there. Once a verb is
+                  armed, `.spec-desc` / `.bp-hint` say the rest, so it steps out. */}
+              {pending === null && (activeDef.special || activeDef.talent) && (
+                <div className="bp-verbs">
+                  {activeDef.special && (
+                    <div className={`bp-text bp-verb${specialCheck.ok ? "" : " off"}`}>
+                      <b>{activeDef.special.talent ? "★" : "✦"} {activeDef.special.name}</b>
+                      {activeDef.special.talent
+                        ? <span className="spec-cost"> · Talent · once per game</span>
+                        : <span className="spec-cost magic"> · {specCost} Magic</span>} — {activeDef.special.text}
+                      {!specialCheck.ok && "reason" in specialCheck && specialCheck.reason && (
+                        <em> Unavailable: {specialCheck.reason}</em>
+                      )}
+                    </div>
+                  )}
+                  {activeDef.talent && (
+                    <div className={`bp-text bp-verb tal${talentCheck.ok ? "" : " off"}`}>
+                      <b>★ {activeDef.talent.name}</b>
+                      <span className="spec-cost"> · Talent · once per game</span> — {talentEffect(activeDef.talent.text)}
+                      {!talentCheck.ok && "reason" in talentCheck && talentCheck.reason && (
+                        <em> Unavailable: {talentCheck.reason}</em>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
               {/* THE HINT, WHERE A PHONE CAN ACTUALLY READ IT.
