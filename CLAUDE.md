@@ -2846,14 +2846,18 @@ as optional, so the first battle now TEACHES BY FORCED PLAY.
   Play button, plus "I've played before. Skip the tutorial." Everyone with
   progress keeps their Home. Also replayable from the Training Ground's
   **Basics** row (`onBasics`).
-- **The match**: seed 1, Birch + Cactus vs two Grills (no abilities), 4x4,
+- **The match**: seed 1, Birch + Forest Deer vs two Grills (no abilities), 4x4,
   opening deploy `{P1:1,P2:1}`, mulligans pre-applied. BOTH seats are human so
   the AI loop leaves P2 alone; an App effect plays `enemyStep` (scripted, 1.1s)
-  and `me` is pinned to P1. Each Grill's HP is set as it is placed (5, then 4)
-  so Birch (SP 4, faster) one-shots it before it acts: no enemy strike, so no
-  element aura (Burn, bark shield) ever fires. 19 beats: place (free), Pass,
-  move, Attack + a DIAGONAL hit (the 8 squares), buy Cactus with 3 Gold,
-  priority back-and-forth, step onto their back row, win on round 3.
+  and `me` is pinned to P1. Each Grill's HP is set as it is placed (5, then 3)
+  so each dies to one hit before it acts: no enemy strike, so no element aura
+  (Burn, bark shield) ever fires. 19 beats: place (free), Pass, move, Attack +
+  a DIAGONAL hit (the 8 squares), buy Forest Deer (RANGED, cost 2) with 3 Gold
+  onto (3,3), priority back-and-forth, step onto their red home row, then the
+  last Grill steps to (1,3) and the Deer shoots it 2 squares up its column —
+  win on round 3. The ranged card (owner, 2026-10-04) replaced Cactus, which
+  was bought and never acted: one line of range only ("up to 2 squares away,
+  unless an enemy is in the way"); the rest is the Melee and Ranged lesson's.
 - **Beats are derived, never counted**: `beatIndex(game, tutUi)` from beat 0
   every render, each `done` reading the board plus what is selected/armed, so
   letting go of a card steps back to "tap it". `TutorialRail` dims everything
@@ -2862,7 +2866,8 @@ as optional, so the first battle now TEACHES BY FORCED PLAY.
   while P1 cannot act the whole screen is held and the beat's `wait` line shows.
 - **`tutorial-script.test.ts` plays it end to end** with `scriptedIntent`: every
   beat in order, win on round 3, (0,1) captured, no status or grown shield, no
-  Grill hit, 3 Gold for a 2-cost Cactus, exactly two Birch hits. A stat or rule
+  Grill hit, 3 Gold for a 2-cost ranged Forest Deer, one Birch hit and one Deer
+  shot (from (3,3)). A stat or rule
   change that breaks the lesson fails there.
 - **After it**: winning marks `TUT_DONE` in the settle effect; Continue goes to
   the Shop with the free pack ringed. The tutorial writes no history entry, no

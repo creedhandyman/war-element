@@ -69,17 +69,28 @@ describe("the first battle's script", () => {
     expect(s.log.some((l) => /Grill \(P2\) hits/.test(l)), "an enemy struck").toBe(false);
   });
 
-  it("the beats' Gold line is true: 3 Gold when Cactus is bought", () => {
+  it("the beats' Gold line is true: 3 Gold when Forest Deer is bought, for 2", () => {
     const { states } = playThrough();
     const before = states.find((st) => st.round === 2 && st.phase === "prep" && st.prep?.priority === "P1")!;
     expect(before.players.P1.gold).toBe(3);
-    expect(getDef("leaf_cactus").cost).toBe(2);
+    expect(getDef("leaf_forestdeer").cost).toBe(2);
   });
 
-  it("every enemy falls to one hit", () => {
+  it("the card bought is ranged, and the last enemy falls to its shot from 2 squares away", () => {
+    // "It's a ranged card" and "up to 2 squares away" are said to the player;
+    // both have to stay true of the card and the board.
+    expect(getDef("leaf_forestdeer").attackType).toBe("Ranged");
+    const { s, states } = playThrough();
+    const shot = states.find((st) => st.phase === "battle" && st.round === 3)!;
+    const deer = Object.values(shot.cards).find((c) => c.defId === "leaf_forestdeer")!;
+    expect(deer.pos).toEqual({ row: 3, col: 3 });
+    expect(s.log.some((l) => /^Forest Deer \(P1\) hits Grill/.test(l))).toBe(true);
+  });
+
+  it("every enemy falls to one hit: Birch's up close, then Forest Deer's shot", () => {
     const { s } = playThrough();
-    const hits = s.log.filter((l) => /^Birch \(P1\) hits Grill/.test(l)).length;
-    expect(hits).toBe(2);
+    expect(s.log.filter((l) => /^Birch \(P1\) hits Grill/.test(l))).toHaveLength(1);
+    expect(s.log.filter((l) => /^Forest Deer \(P1\) hits Grill/.test(l))).toHaveLength(1);
   });
 });
 

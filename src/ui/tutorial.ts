@@ -9,7 +9,12 @@
 // The beat sheet (owner-approved, 2026-10-04) teaches, in order: placing a card,
 // Pass, moving, a melee attack (the first one diagonal, so "all 8 squares
 // around it" lands when it matters), buying a card with Gold, the back-and-forth
-// of priority, and capture. Shields, statuses, spells and Specials stay out.
+// of priority, capture, and a ranged shot to finish. The card bought is Forest
+// Deer, a RANGED card (owner, 2026-10-04): the free pack usually brings
+// shooters, and "why can't it attack?" was the likely first confusion. One
+// line of range only — 2 squares, blocked by an enemy in the way; the rest
+// (reach off the home row, the Home rule) is the Melee and Ranged lesson's.
+// Shields, statuses, spells and Specials stay out (the second battle's).
 //
 // BOTH SEATS ARE SCRIPTED. The match has two human seats; the player is P1 and
 // this module plays P2 (`enemyStep`). An enemy run by the AI would make the
@@ -19,9 +24,10 @@
 // breaks a beat fails the build instead of a new player's first minute.
 //
 // The enemy is two Grills (the plainest card in the set: no abilities) set to
-// 5 and 4 HP as they are placed, so each falls to Birch's single hit. Birch is
-// faster, so neither ever strikes back, and so no element power (a Burn, a
-// grown shield) ever fires during the lesson.
+// 5 and 3 HP as they are placed, so the first falls to Birch's single hit and
+// the second to Forest Deer's single shot. Both of ours are faster, so neither
+// Grill ever strikes back, and so no element power (a Burn, a grown shield)
+// ever fires during the lesson.
 import { applyIntent, cardAt, createInitialState, needsInput, advance } from "../engine";
 import type { CardInstance, GameState, Intent, PlayerId, Pos } from "../engine";
 import type { StorySave } from "../data/story";
@@ -34,13 +40,13 @@ export const TUT_SKIP = "TUT_SKIP";
 /** The seed whose coin flip lets the enemy place its card first, so the player
  *  places theirs and presses Pass ONCE to start the round. */
 export const TUTORIAL_SEED = 1;
-export const TUTORIAL_YOU = ["leaf_birch", "leaf_cactus"] as const;
+export const TUTORIAL_YOU = ["leaf_birch", "leaf_forestdeer"] as const;
 export const TUTORIAL_FOE = ["pyro_bbq", "pyro_bbq"] as const;
 /** HP each Grill is placed at: the first in the opening, the second in round 2. */
-const FOE_HP = { first: 5, second: 4 } as const;
+const FOE_HP = { first: 5, second: 3 } as const;
 
 const BIRCH = "leaf_birch";
-const CACTUS = "leaf_cactus";
+const DEER = "leaf_forestdeer";
 
 /** Should a player see the first-run screen (Play / the tutorial)? Only a save
  *  that has done nothing yet: no fight won, the free pack still unopened, and
@@ -95,7 +101,8 @@ export function enemyStep(s: GameState): GameState | null {
       intent = { type: "SUMMON", player: P2, handId: hand[0].handId, col: 3 };
       hp = FOE_HP.second;
     } else if (s.round === 3 && !moved && at(g, 0, 3)) {
-      intent = { type: "MOVE", player: P2, instanceId: g!.instanceId, to: { row: 0, col: 2 } as Pos };
+      // Forward, into Forest Deer's line: two squares straight up its column.
+      intent = { type: "MOVE", player: P2, instanceId: g!.instanceId, to: { row: 1, col: 3 } as Pos };
     }
   }
   const next = applyIntent(s, intent);
@@ -188,13 +195,14 @@ export const BEATS: Beat[] = [
     target: { kind: "slot", row: 1, col: 2 },
     done: (s) => roundPast(s, 1) || foes(s).length === 0 },
   // ── round 2: Gold buys a card ───────────────────────────────────────────
-  { id: "hand-cactus", big: "You have 3 Gold. Buy Cactus for 2.", small: "You earn Gold every round.",
+  { id: "hand-deer", big: "You have 3 Gold. Buy Forest Deer for 2.", small: "You earn Gold every round.",
     wait: "One down!",
-    target: { kind: "hand", defId: CACTUS },
-    done: (s, ui) => ui.handDef === CACTUS || !!mine(s, CACTUS) },
-  { id: "place-cactus", big: "Place Cactus on your blue home row.",
-    target: { kind: "slot", row: 3, col: 2 },
-    done: (s) => !!mine(s, CACTUS) },
+    target: { kind: "hand", defId: DEER },
+    done: (s, ui) => ui.handDef === DEER || !!mine(s, DEER) },
+  { id: "place-deer", big: "Place Forest Deer on your blue home row.",
+    small: "It's a ranged card: it shoots from a distance.",
+    target: { kind: "slot", row: 3, col: 3 },
+    done: (s) => !!mine(s, DEER) },
   { id: "pick-birch-2", big: "Now tap Birch.",
     target: { kind: "slot", row: 2, col: 1 },
     done: (s, ui) => ui.cardId === mine(s, BIRCH)?.instanceId || !at(mine(s, BIRCH), 2, 1) },
@@ -220,11 +228,13 @@ export const BEATS: Beat[] = [
   { id: "pass-3", big: "Tap Pass.", wait: "The enemy passes.",
     target: { kind: "pass" },
     done: (s) => prepOver(s, 3) },
-  { id: "attack-3", big: "Tap Attack.", wait: "Battle!",
+  { id: "attack-3", big: "Forest Deer's turn. Tap Attack.",
+    small: "Ranged cards shoot up to 2 squares away, unless an enemy is in the way.",
+    wait: "Battle!",
     target: { kind: "verb", verb: "basic" },
     done: (s, ui) => ui.pending === "basic" || s.phase === "gameover" || foes(s).length === 0 },
-  { id: "hit-3", big: "Finish it!",
-    target: { kind: "slot", row: 0, col: 2 },
+  { id: "hit-3", big: "Shoot the enemy!",
+    target: { kind: "slot", row: 1, col: 3 },
     done: (s) => s.phase === "gameover" || foes(s).length === 0 },
 ];
 
@@ -242,8 +252,8 @@ export function beatIndex(s: GameState, ui: TutUi, from = 0, beats: Beat[] = BEA
 export function scriptedIntent(s: GameState, b: Beat): Intent | null {
   const P1: PlayerId = "P1";
   switch (b.id) {
-    case "place-birch": case "place-cactus": {
-      const def = b.id === "place-birch" ? BIRCH : CACTUS;
+    case "place-birch": case "place-deer": {
+      const def = b.id === "place-birch" ? BIRCH : DEER;
       const h = s.players.P1.hand.find((x) => x.defId === def);
       return h && b.target.kind === "slot" ? { type: "SUMMON", player: P1, handId: h.handId, col: b.target.col } : null;
     }
@@ -294,7 +304,7 @@ export const BASICS: TutorialDef = {
   id: "basics",
   mark: TUT_DONE,
   title: "Your first battle",
-  blurb: "Every move, one tap at a time: place a card, move, attack, buy a card with Gold, and capture.",
+  blurb: "Every move, one tap at a time: place a card, move, attack up close and from range, buy a card with Gold, and capture.",
   youCards: TUTORIAL_YOU,
   foeName: "Grills",
   create: createTutorialState,
@@ -306,7 +316,7 @@ export const BASICS: TutorialDef = {
     bullets: [
       "Capture all 4 squares on their red home row, or defeat every enemy card, to win.",
       "Cards are placed on your blue home row, and you earn Gold every round to buy more.",
-      "Move one card a turn. Melee cards hit the 8 squares around them.",
+      "Move one card a turn. Melee cards hit the 8 squares around them. Ranged cards shoot up to 2 away.",
     ],
   },
 };
