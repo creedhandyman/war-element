@@ -6146,9 +6146,10 @@ export const CARDS: CardDef[] = [
     shields: 0,
     keywords: {},
     // Burning Bark: when an opponent is summoned, Sparky hops to the closest
-    // empty adjacent slot and sears it with BURN 1.
+    // empty adjacent slot and bites it for 2 DMG with BURN 1 (owner, 2026-10-03:
+    // the hop used to land only the BURN).
     passiveNames: { onOppSummon: "Burning Bark" },
-    onOppSummon: { chase: true, status: { kind: "BURN", duration: 1, power: 1 } },
+    onOppSummon: { chase: true, dmg: 2, status: { kind: "BURN", duration: 1, power: 1 } },
   },
   {
     id: "gale_syt_bird",
