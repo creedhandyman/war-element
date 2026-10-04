@@ -5540,13 +5540,18 @@ export const CARDS: CardDef[] = [
       name: "Sabor Pounce",
       cost: 3,
       handler: "strike",
+      // THE POUNCE MOVES (owner, 2026-10-03): it leaps up to 2 squares toward
+      // the opponent it picked — sideways and diagonally too — and THEN strikes,
+      // the same charge-first, aimed-at-the-target movement Tempest and Rumbler
+      // use. A pounce that stood still was a shot with a cat's name on it.
       params: {
         dmg: 10,
         statusKind: "BLEED", statusPower: 3, statusDuration: 2,
         debuffStatus: "STUN", debuffStatusRounds: 2,
+        charge: 2, chargeFirst: 1, chargeLateral: 1, chargeDiagonal: 1,
       },
       targetSide: "enemy",
-      text: "Deal 10 DMG to an opponent in range, STUN them for 2 rounds and BLEED 3 for 2 rounds.",
+      text: "Pounce up to 2 spaces toward an opponent in range, then deal 10 DMG, STUN them for 2 rounds and BLEED 3 for 2 rounds.",
     },
   },
   {
