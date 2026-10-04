@@ -151,7 +151,7 @@ export const VOID_BOSSES: VoidBoss[] = [
     // list also carried Gastly, which is a tribeless GALE card; GALE's
     // contribution is Skeleeze's mobility, not its board.)
     summons: ["dusk_brute", "dusk_ender", "dusk_skeleton_tok"],
-    puzzle: "Positional: read the telegraph, clear the kill-column.",
+    puzzle: "The sniper: it hunts your fullest column, so spread out; its crit arrow pierces shields.",
   },
   {
     cardId: "boss_xilty",
@@ -165,7 +165,7 @@ export const VOID_BOSSES: VoidBoss[] = [
     // short: a brood is the right way for a Spider boss to spend a spare gold,
     // and it is a body already in the formation rather than a new face.
     summons: ["dusk_sarachnid", "dusk_silkstalker", "dusk_widowbite", "dusk_spider", "dusk_spider"],
-    puzzle: "The status lock: bring cleanse or immunity.",
+    puzzle: "The status lock: bring cleanse or ROOT immunity; a rooted target takes +20 a hit.",
   },
   {
     cardId: "boss_permafrost",
@@ -202,7 +202,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "bolt_static_wisp_tok", "bolt_static_wisp_tok", "bolt_static_wisp_tok",
       "bolt_sentry", "bolt_shoksa",
     ],
-    puzzle: "The swarm: AoE it, or choke the approach.",
+    puzzle: "The swarm: Drones fly, burn and explode when they fall; AoE them and keep pushing to Overclock.",
   },
   {
     cardId: "boss_nightshrike",
@@ -213,7 +213,7 @@ export const VOID_BOSSES: VoidBoss[] = [
     // 6 + 2×3 = 12 — and the one dual-element pool on the floor: Ravven is the
     // DUSK Avian, so the sky tribe genuinely crosses into shadow.
     summons: ["dusk_ravven", "gale_toxhawk", "gale_toxhawk", "gale_toxhawk"],
-    puzzle: "The glass cannon: kill it first, or survive one round.",
+    puzzle: "The glass cannon: it flies, so bring ranged or ROOT/FREEZE/STUN to ground it, then one hit kills.",
   },
   {
     cardId: "boss_basilisk",
@@ -260,7 +260,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "dawn_glime", "dawn_glime",
       "dawn_able",
     ],
-    puzzle: "The siege: read the lane, and pay to leave it.",
+    puzzle: "The siege: it shells the lane it walks into, so spread out; BLOCK 3 eats chip damage, bring big hits.",
   },
   {
     cardId: "boss_hoarfell",
@@ -318,7 +318,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "gale_luna", "gale_luna", "gale_luna",
       "gale_whirlwolf",
     ],
-    puzzle: "The pack: for once, kill the escorts first.",
+    puzzle: "The pack: kill the escorts first, since its damage is borrowed from them and every kill raises another wolf.",
   },
   {
     cardId: "boss_vulcanyx",
@@ -442,7 +442,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "bore_deepest", "bore_the_coreborer", "bore_score",
       "bore_obsidi", "bore_obsidi", "bolt_zipp",
     ],
-    puzzle: "The thing that won't stay dead: kill it three times, differently each time.",
+    puzzle: "The thing that won't stay dead: a machine, then a cat that dodges your first swing, then a flier; save ranged.",
   },
   {
     cardId: "boss_smolder",
@@ -515,7 +515,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "void_lidless_tok", "void_lidless_tok",
       "void_watcher_tok", "void_watcher_tok",
     ],
-    puzzle: "Attrition inverted: every swing you take feeds them. Kill the brood, not the eye.",
+    puzzle: "The brood of eyes: they steal damage and deflect the first hit, so use fewer, bigger blows and cleanse the Gaze.",
   },
   {
     cardId: "boss_skybreaker",
@@ -607,7 +607,7 @@ export const VOID_BOSSES: VoidBoss[] = [
       "pyro_fire_giant_tok", "pyro_fire_giant_tok",
       "pyro_magmadon", "pyro_volcanon", "pyro_magmaw", "pyro_aftermath",
     ],
-    puzzle: "The queen behind the wall: she never comes to you, so bring the wall down or go over it.",
+    puzzle: "The queen behind the wall: she never comes and her fire hits the whole board, so breach the gate fast.",
   },
 ];
 

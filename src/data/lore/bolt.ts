@@ -84,7 +84,7 @@ export const BOLT_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ RARE
 
   bolt_zap: // the CARD — the cost-1 spell keys itself below
-    "A fuse with legs. It hits the nearest enemy the moment it lands, and the rest of it is not important.",
+    "A hooded runner with a live blade. It lands knife-first on the nearest enemy, and the rest of it is not important.",
   bolt_twotales: // Twintail
     "Two swings, and each one is a coin flip between a bruise and a paralysis.",
   bolt_stingray:
