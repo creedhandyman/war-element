@@ -6570,6 +6570,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: var(--gold-lit);
 }
 .trn-group:first-of-type { margin-top: 0; }
+/* On a loss screen: one line, a link, never a popup. */
+.train-nudge { margin: 4px 0 14px; font-size: 14px; line-height: 1.4; color: var(--ink-dim); }
+.train-nudge-go {
+  padding: 0; background: none; border: none; cursor: pointer; font: inherit;
+  color: var(--gold-lit); text-decoration: underline; text-underline-offset: 3px;
+}
+.train-nudge-go:hover { color: var(--gold-hi); }
 .trn-row .ach-medal { color: var(--ink-dim); }
 .trn-row.won .ach-medal { border-color: var(--gold-line); color: var(--gold-lit); }
 .trn-cards { display: flex; align-items: center; gap: 4px; margin-top: 6px; min-width: 0; }
@@ -7860,11 +7867,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-family: var(--head); font-size: 9.5px; letter-spacing: .12em;
   text-transform: uppercase; color: #9fb8e8;
 }
-.tut-skip {
-  cursor: pointer; background: none; border: none; padding: 0;
-  font-size: 10px; color: var(--ink-faint); text-decoration: underline;
-}
-.tut-skip:hover { color: var(--ink); }
 .tut-title { font-family: var(--head); font-size: 16px; font-weight: 700; color: #cfe0ff; margin-top: 2px; }
 .tut-body { margin: 4px 0 9px; font-size: 14px; line-height: 1.45; color: var(--ink); }
 .tut-ok {
@@ -7872,6 +7874,40 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   color: #cfe0ff; background: rgba(120, 160, 255, .18); border: 1px solid rgba(120, 160, 255, .35);
 }
 .tut-ok:hover { background: rgba(120, 160, 255, .3); }
+
+/* ── struggle tips (StruggleTip.tsx, owner 2026-10-04) ─────────────────────
+   One line, only when the player is stuck; docked under the phase ribbon, clear
+   of the player's own Home row. Small on purpose: it must never read as a popup
+   to dismiss before playing on. */
+.struggle-tip {
+  position: fixed; z-index: var(--z-hud);
+  left: 50%; transform: translateX(-50%);
+  top: max(8px, env(safe-area-inset-top));
+  width: min(440px, calc(100vw - 20px));
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 9px 8px 9px 10px; border-radius: 12px; text-align: left;
+  border: 1px solid color-mix(in srgb, var(--gold-lit) 40%, transparent);
+  background: linear-gradient(180deg, rgba(26, 24, 18, .97), rgba(10, 10, 14, .97));
+  box-shadow: 0 10px 28px rgba(0, 0, 0, .55);
+  animation: tut-slide 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) { .struggle-tip { animation: none; } }
+.struggle-face {
+  width: 30px; height: 30px; flex: none; border-radius: 50%; object-fit: cover;
+  object-position: 50% 22%; border: 1px solid color-mix(in srgb, var(--gold-lit) 55%, transparent);
+}
+.struggle-say { flex: 1; min-width: 0; }
+.struggle-say p { margin: 0; font-size: 14.5px; line-height: 1.4; color: var(--ink); text-wrap: pretty; }
+.struggle-off {
+  margin-top: 4px; padding: 0; background: none; border: none; cursor: pointer;
+  font-size: 12px; color: var(--ink-faint); text-decoration: underline;
+}
+.struggle-off:hover { color: var(--ink-dim); }
+.struggle-x {
+  flex: none; width: 30px; height: 30px; border-radius: 8px; cursor: pointer;
+  background: none; border: 1px solid rgba(233, 226, 210, .18); color: var(--ink-dim); font-size: 14px;
+}
+.struggle-x:hover { color: var(--ink); background: rgba(233, 226, 210, .08); }
 
 /* ===== The first battle, step by step (TutorialRail.tsx, ui/tutorial.ts) =====
    Everything but the one thing to tap is dimmed and swallows taps; the target
@@ -8528,8 +8564,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 
    NOTHING HERE EATS A TAP. Every dim panel is pointer-events:none and so is
    the ring; only the bubble takes input. The guide directs attention and never
-   takes the controls, which is the same posture TutorialCoach documents: this
-   game's first node is a designed teaching fight, not a rail. */
+   takes the controls: these are menus. (The one rail is the scripted first
+   battle, TutorialRail.tsx.) */
 .gd-wrap { position: fixed; inset: 0; z-index: var(--z-guide); pointer-events: none; }
 .gd-dim {
   position: fixed; pointer-events: none;
@@ -8616,16 +8652,6 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .gd-body { margin: 5px 0 0; font-size: 14.5px; line-height: 1.45; color: var(--ink); }
 .gd-actions { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
 .gd-go { flex: 1; }
-.gd-skip {
-  background: none; border: none; padding: 2px 4px; cursor: pointer; font: inherit;
-  font-size: 12px; letter-spacing: 0.04em; color: var(--ink-faint); white-space: nowrap;
-}
-.gd-skip:hover { color: var(--ink-dim); }
-/* Stands where Skip will be, and says WHICH milestone is outstanding. A missing
-   button with no explanation reads as a broken screen. */
-.gd-locked {
-  font-size: 11.5px; line-height: 1.35; color: var(--ink-faint); max-width: 140px;
-}
 
 @media (max-width: 560px) {
   .gd-tip { width: 300px; padding: 11px 12px 12px; }

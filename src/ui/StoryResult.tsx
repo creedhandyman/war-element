@@ -14,6 +14,7 @@ import type { GameState } from "../engine";
 import { getDef } from "../data/cards";
 import { isGate, type StoryNode } from "../data/story";
 import { MatchReport, hasMatchReport } from "./MatchReport";
+import { TrainingNudge } from "./TrainingGround";
 
 export function StoryResult(props: {
   node: StoryNode;
@@ -38,6 +39,9 @@ export function StoryResult(props: {
   shards?: number;
   /** HARD MODE: the Void Tower boss that held this border, when one did. */
   boss?: string | null;
+  /** A loss's way to the Training Ground; absent when there is no lesson left
+   *  to win, or this was not a loss. */
+  onTrain?: () => void;
   /** The region this win opened. Done takes you to its map, so the button says
    *  where it is going rather than "back". */
   opened?: string;
@@ -136,6 +140,7 @@ export function StoryResult(props: {
           </>
         )}
 
+        {lost && props.onTrain && <TrainingNudge onTrain={props.onTrain} />}
         <button className="lockin" onClick={props.onDone}>
           {props.opened ? `On to ${props.opened.toUpperCase()}` : "Back to the map"}
         </button>

@@ -1,72 +1,44 @@
-/** FIRST RUN — the walkthrough, and what it is allowed to skip.
+/** FIRST RUN — the guide from the free pack to the first story fight.
  *
- *  The game had a tutorial already, and it was the wrong half of one.
- *  `TutorialCoach` explains the RULES beautifully — why you summon, what the
- *  Home row is, why speed decides the order — but it only ever speaks once a
- *  match has started. Nothing anywhere told a new player how to REACH that
- *  match, and the path is genuinely not guessable:
+ *  The scripted first battle (ui/tutorial.ts) teaches the rules by playing
+ *  them. What it cannot do is show the way from there to a real match, and the
+ *  path is not guessable:
  *
- *    · A fresh save owns exactly ONE card (`STARTER_DECK` — `story.ts`) and is
- *      owed one free pack.
- *    · Opening that pack adds its cards to `collection` and **not** to `deck`
- *      (`applyPack` — `story.ts`). So you open your one free pack, watch five
- *      cards fly out, and the Home tile still reads "1 CARD · CAP 6". Nothing
- *      on screen connects the pack you just opened to the squad you are about
- *      to fight with.
- *    · The first battle is L1, Spring Village Outskirts — already designed as
- *      a teaching fight (`isFirstBattle`: free deployment, formation sized
- *      one-for-one against what you can field) and labelled "The tutorial" in
- *      its own node data since the day it was written. It was just never
- *      pointed at.
+ *    · A fresh save owns ONE card (`STARTER_DECK` — `story.ts`) and is owed one
+ *      free pack.
+ *    · The first battle is L1, Spring Village Outskirts (`isFirstBattle`: free
+ *      deployment, formation sized against what you can field).
  *
- *  This file is the CURRICULUM. `GuideOverlay.tsx` is how it is shown — a
- *  spotlight on the real control rather than a card at the top of Home, which
- *  was the previous shape and the reason for this rewrite: "open your free
- *  pack" is only useful next to the pack.
+ *  So the guide is two steps — open the pack, fight L1 — with a third, "put
+ *  them in your squad", only when a pack leaves cards benched (`foldIntoSquad`
+ *  in story.ts puts the first pack straight in whenever it fits, so that is
+ *  rare). `GuideOverlay.tsx` shows each as a spotlight on the real control.
  *
- *  TWO ARCS, and the difference between them is the whole skip rule.
+ *  AND THEN IT STOPS (owner, 2026-10-04). After L1 there used to be a five-card
+ *  tour of the tabs (shards, Arena, Tower, the loop, "now train"), and an
+ *  in-match coach explaining each idea as it came up. Playing it, the owner:
+ *  "a pop-up for every single thing you do, making it hard to focus on
+ *  battling." The first node lets the player fight; help comes as one line
+ *  when they are stuck (StruggleTip.tsx), and the teaching is the Training
+ *  Ground's, which loss screens point at.
  *
- *    THE CORE LOOP (pack -> squad -> first fight) cannot be skipped. It is not
- *    a lecture; it is the three actions without which the game does not start,
- *    and a player who dismisses it is left on a Home screen owning one card
- *    with no idea why. Each step still completes by DOING the deed, from
- *    anywhere, so "cannot skip" costs nothing to a player who already knows —
- *    they open the pack their own way and the step is simply already done.
+ *  DERIVED, NEVER STORED. Each step is computed from the save every render, so
+ *  it cannot desync, doing a step early skips it, and a save made before this
+ *  existed satisfies all three and never sees them.
  *
- *    THE TOUR (what the other tabs are for) can be skipped from its first step,
- *    because by then the player has played the game and has standing to say
- *    "I have got this". That is the line the owner drew: mandatory through the
- *    first pack opening and the first story fight, free after it.
- *
- *  DERIVED WHERE IT CAN BE. Core-loop steps are computed from the save every
- *  render rather than kept as a cursor, so they cannot desync from reality, and
- *  a save made before this existed satisfies all three and never sees them. The
- *  tour steps have no deed to test — "looked at the Arena" is not a thing the
- *  save records — so those advance by acknowledgement, into the same `taught`
- *  list `TutorialCoach` has always used.
- *
- *  IT DOES NOT BLOCK ANYTHING. See `GuideOverlay` — every dim panel is
- *  pointer-events:none. The posture is the coach's: this game's first node is a
- *  designed teaching fight, not a rail, and a tutorial that seizes the controls
- *  would be teaching a different game than the one being played.
+ *  NO SKIP. Every step is the one action without which the game does not
+ *  start, its button goes straight there, and it clears by doing the deed —
+ *  so there is nothing to skip and no "Skip unlocks after…" to explain.
  */
 import type { StorySave } from "../data/story";
 import { deckCapFor, everCleared, freePacks } from "../data/story";
-import { TAME_USES } from "../data/void-tower";
-
-/** The sentinel written into `save.taught` when the player skips. Distinct
- *  from the coach's own "SKIP" — silencing the walkthrough and silencing the
- *  in-match lessons are two different decisions, and sharing one flag would
- *  make either choice turn off both. */
-export const ONBOARDING_SKIP = "ONB_SKIP";
 
 /** The first battle, by id. The node itself is found through the region data
- *  (`isFirstBattle` identifies it structurally), but the guide has to NAME it,
- *  and this is the id that owns the "The tutorial" note in `story.ts`. */
+ *  (`isFirstBattle` identifies it structurally), but the guide has to NAME it. */
 export const FIRST_NODE = "L1";
 
 /** Where a step sends you, which is also where its anchor lives. */
-export type GuideTab = "home" | "shop" | "story" | "arena" | "tower";
+export type GuideTab = "home" | "shop" | "story";
 
 export interface OnboardStep {
   id: string;
@@ -78,17 +50,13 @@ export interface OnboardStep {
   tab: GuideTab;
   /** The imperative. */
   title: string;
-  /** WHY it is worth doing — the half a checklist leaves out. */
+  /** One short line: what it is for. */
   body: string;
-  /** The button. */
+  /** The button, which goes there. */
   cta: string;
-  /** Core loop = cannot be skipped, and completes by doing the deed.
-   *  Tour = skippable, and completes by acknowledgement. */
-  core: boolean;
 }
 
 export const ONBOARDING_STEPS: OnboardStep[] = [
-  // ── the core loop ──────────────────────────────────────────────────────
   {
     id: "pack",
     anchor: "shop-pack",
@@ -98,7 +66,6 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     // already taught the rules; these cards say where to go next.
     body: "Five new cards for your squad, at least one of them Epic or better.",
     cta: "Take me to it",
-    core: true,
   },
   {
     id: "squad",
@@ -107,7 +74,6 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     title: "Put those cards in your squad",
     body: "Only your squad goes into battle. Add your new cards to it, then come back.",
     cta: "Build the squad",
-    core: true,
   },
   {
     id: "fight",
@@ -121,66 +87,8 @@ export const ONBOARDING_STEPS: OnboardStep[] = [
     // squad before it starts", which stopped being true when that cap landed.
     body: "Your first story battle. Lead with one card, then buy the rest with Gold as it comes in.",
     cta: "Go to the map",
-    core: true,
-  },
-
-  // ── the tour, unlocked and skippable once the above is done ────────────
-  {
-    id: "purse",
-    anchor: "home-purse",
-    tab: "home",
-    title: "Shards and essence",
-    body: "Shards buy packs. Essence crafts the exact card you want. Battles pay both.",
-    cta: "Next",
-    core: false,
-  },
-  {
-    id: "arena",
-    anchor: "nav-arena",
-    tab: "arena",
-    title: "The Arena",
-    body: "Battle the AI or a friend with your own deck. Keep winning and the opponents get tougher.",
-    cta: "Next",
-    core: false,
-  },
-  {
-    id: "tower",
-    anchor: "nav-tower",
-    tab: "tower",
-    title: "The Void Tower",
-    // Beating a boss once does not tame it: clearing its whole FLOOR enrages
-    // every boss on it, and only an enraged one comes over (`tamedSave` in App,
-    // `bossEnraged` in void-tower.ts) — for TAME_USES battles, not for good.
-    body: "Five floors of boss puzzles. Clear a floor, then beat one of its bosses again "
-      + `and it fights for you in your next ${TAME_USES} battles.`,
-    cta: "Next",
-    core: false,
-  },
-  {
-    id: "shop",
-    anchor: "nav-shop",
-    tab: "shop",
-    title: "That is the loop",
-    body: "Fight, earn, open packs, build a stronger squad. The rules are in the menu, under How to play.",
-    cta: "Next",
-    core: false,
-  },
-  {
-    // THE LAST WORD IS WHERE TO GO NEXT (owner's call, 2026-10-02). The first
-    // battle teaches the basics; the Training Ground is where every other
-    // mechanic gets a fight of its own, and a player who has just finished the
-    // tour is exactly the one who has not found it yet. Its button opens it.
-    id: "training",
-    anchor: "home-training",
-    tab: "home",
-    title: "Now train",
-    body: "A short practice fight for each idea: reach, statuses, element powers, crits and more.",
-    cta: "Start training",
-    core: false,
   },
 ];
-
-const CORE_STEPS = ONBOARDING_STEPS.filter((s) => s.core);
 
 const step = (id: string) => ONBOARDING_STEPS.find((s) => s.id === id)!;
 
@@ -188,116 +96,32 @@ const step = (id: string) => ONBOARDING_STEPS.find((s) => s.id === id)!;
  *  count falling to zero IS the deed. */
 export const packOpened = (save: StorySave): boolean => freePacks(save) <= 0;
 
-/** Has the teaching fight been won? */
-/** EVER won: a veteran starting Hard mode has an empty map and a first fight
- *  far behind them, and must not be walked through it again. */
+/** Has the teaching fight been won? EVER won: a veteran starting Hard mode has
+ *  an empty map and a first fight far behind them, and must not be walked
+ *  through it again. */
 export const firstFightWon = (save: StorySave): boolean => everCleared(save).includes(FIRST_NODE);
 
-/** MAY the player dismiss the walkthrough yet?
+/** Which step is due, or null when there is nothing left to show.
  *
- *  Only once both milestones are behind them — the owner's rule, and the reason
- *  the core arc has no Skip button at all rather than a disabled one. Before
- *  this, the way past a step is to do it, which is never more than one tap away
- *  because the step's own button goes there. */
-export const canSkipGuide = (save: StorySave): boolean =>
-  packOpened(save) && firstFightWon(save);
-
-/** Which step is due, or null when there is nothing left to teach. */
+ *  THE FIRST FIGHT CLOSES IT FOR GOOD, and that gate comes first: the
+ *  conditions below describe a fresh save, and two of them are also true of a
+ *  healthy established one. A veteran keeps cards in the collection that are
+ *  not in the deck — that is what a collection IS — so asking "is anything
+ *  benched?" of a thirty-node save would send them to build a squad they built
+ *  long ago. Each condition asks the SAVE whether the deed is done, never
+ *  whether the card was shown, so every step clears by simply doing it. */
 export function onboardingStep(save: StorySave): OnboardStep | null {
-  const taught = save.taught ?? [];
-  // THE GATE IS IN THE MODEL, not only in the missing button. `GuideOverlay`
-  // is handed no `onSkip` during the core arc, so there is nothing to press —
-  // but "cannot be skipped" that is enforced by a hidden control is a rule any
-  // stale sentinel walks straight through, and this save field is written by
-  // three different places. Honoured only once it may be honoured.
-  if (taught.includes(ONBOARDING_SKIP) && canSkipGuide(save)) return null;
-
-  // ── core loop. THE FIRST FIGHT CLOSES IT FOR GOOD, and that gate comes
-  // FIRST rather than last: the conditions below describe a fresh save, and two
-  // of them are also true of a perfectly healthy established one. A veteran
-  // keeps cards in the collection that are not in the deck — that is what a
-  // collection IS — so asking "is anything benched?" of a thirty-node save
-  // answers yes and tells them to go and build a squad they built long ago.
-  //
-  // Each condition asks the SAVE whether the deed is done, never whether the
-  // card was shown, so every step clears by simply doing it.
-  if (!firstFightWon(save)) {
-    if (!packOpened(save)) return step("pack");
-    // "Has a squad worth fighting with" rather than "deck.length > 1": the
-    // honest test is whether the player has cards sitting in the collection
-    // that are not in the deck, which is exactly the state a pack leaves.
-    const benched = save.collection.filter((id) => !save.deck.includes(id)).length;
-    if (benched > 0 && save.deck.length < deckCapFor(save.cleared)) return step("squad");
-    return step("fight");
-  }
-
-  // ── the tour: no deed to test, so these advance on acknowledgement.
-  //
-  // ONLY IN THE WINDOW RIGHT AFTER THE TUTORIAL. Without this the tour would
-  // ambush every established player the day it shipped — a save with thirty
-  // nodes cleared has `taught` empty for these ids and would be walked through
-  // "this is the Arena" as though it were new. The core arc never had that
-  // problem because all three of its conditions are already satisfied on an old
-  // save; the tour has no deed to satisfy, so it needs the window stated.
-  //
-  // Clearing anything BEYOND the first battle closes it, which is also the
-  // right rule for a new player: someone who has gone off and won a second node
-  // has demonstrated they can find their way around, and finishing the tour at
-  // them is answering a question they stopped asking.
-  if (everCleared(save).some((id) => id !== FIRST_NODE)) return null;
-  return ONBOARDING_STEPS.find((s) => !s.core && !taught.includes(s.id)) ?? null;
+  if (firstFightWon(save)) return null;
+  if (!packOpened(save)) return step("pack");
+  // "Has cards sitting in the collection that are not in the deck", rather
+  // than "deck.length > 1": exactly the state a pack can leave.
+  const benched = save.collection.filter((id) => !save.deck.includes(id)).length;
+  if (benched > 0 && save.deck.length < deckCapFor(save.cleared)) return step("squad");
+  return step("fight");
 }
 
-/** A tour tip's button while the player is NOT on the tab it describes. */
-export const TOUR_SHOW_CTA = "Show me";
-
-/** What a TOUR tip's button does, from where the player is standing.
- *
- *  A tour tip describes a tab, so it has to be read ON that tab. The button used
- *  to go to the tip's own tab and mark it taught in the same tap — and marking
- *  it taught brings the next tip up on the same render, so every tip arrived one
- *  page early: "The Arena" was read on Home, "The Void Tower" on the Arena, and
- *  the player reached each place just as its card moved on.
- *
- *  So the tab changes when a tip ARRIVES, not when it is dismissed:
- *    · away from its tab (the tour opens wherever the first battle left the
- *      player, and nothing stops them wandering off mid-tour) the button is
- *      "Show me": go there, teach nothing;
- *    · on its tab it is the tip's own "Next": mark it taught and go to the NEXT
- *      tip's tab, so that one is read where it points too. The last goes
- *      nowhere — the tour ends on the page its final tip was about. */
-export function tourPress(
-  save: StorySave,
-  step: OnboardStep,
-  onTab: boolean,
-): { teach: string | null; goTo: GuideTab | null } {
-  if (!onTab) return { teach: null, goTo: step.tab };
-  const taught = [...new Set([...(save.taught ?? []), step.id])];
-  const next = onboardingStep({ ...save, taught });
-  return { teach: step.id, goTo: next && !next.core ? next.tab : null };
-}
-
-/** The words on `step`'s button. The core arc keeps its own: those already go
- *  where they point ("Take me to it") and complete by doing the deed. */
-export const guideCta = (step: OnboardStep, onTab: boolean): string =>
-  step.core || onTab ? step.cta : TOUR_SHOW_CTA;
-
-/** How far along, for the pips. Returns -1 when nothing is due.
- *
- *  Counted over the WHOLE curriculum rather than per-arc: the pips are a "how
- *  much of this is left" and splitting them at the skip line would restart the
- *  count at the exact moment the player earned the right to stop. */
+/** How far along, for the pips. Returns -1 when nothing is due. */
 export const onboardingIndex = (s: OnboardStep | null): number =>
   s ? ONBOARDING_STEPS.findIndex((x) => x.id === s.id) : -1;
 
 export const ONBOARDING_COUNT = ONBOARDING_STEPS.length;
-export const ONBOARDING_CORE_COUNT = CORE_STEPS.length;
-
-/** What stands where the Skip button will be, while it is still locked. Says
- *  which of the two milestones is outstanding, because "you cannot skip yet" on
- *  its own is a rule without a way to satisfy it. */
-export function skipLockedNote(save: StorySave): string {
-  if (!packOpened(save)) return "Skip unlocks after your first pack and first battle";
-  if (!firstFightWon(save)) return "Skip unlocks after your first battle";
-  return "";
-}

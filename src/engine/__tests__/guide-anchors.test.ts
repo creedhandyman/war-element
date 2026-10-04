@@ -11,6 +11,7 @@
 import { describe, expect, it } from "vitest";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { ONBOARDING_STEPS } from "../../ui/Onboarding";
 
 const UI = join(__dirname, "..", "..", "ui");
 const read = (f: string) => readFileSync(join(UI, f), "utf8");
@@ -21,7 +22,8 @@ const NAV = /data-guide=\{`nav-\$\{id\}`\}/.test(read("BottomNav.tsx"));
 
 describe("the walkthrough's anchors", () => {
   it("found the steps (the scanner is not broken)", () => {
-    expect(ANCHORS.length).toBeGreaterThanOrEqual(5);
+    // Every step's anchor, read off the source the same way as below.
+    expect(ANCHORS).toEqual(ONBOARDING_STEPS.map((st) => st.anchor));
     expect(NAV, "BottomNav's nav-<tab> stamp moved").toBe(true);
   });
 

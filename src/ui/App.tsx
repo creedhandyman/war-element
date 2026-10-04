@@ -240,17 +240,15 @@ import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../dat
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
 import { seatVoidBoss } from "./void-seat";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
-import {
-  FIRST_NODE, ONBOARDING_COUNT, ONBOARDING_SKIP,
-  canSkipGuide, guideCta, onboardingIndex, onboardingStep, skipLockedNote, tourPress,
-} from "./Onboarding";
+import { FIRST_NODE, ONBOARDING_COUNT, onboardingIndex, onboardingStep } from "./Onboarding";
 import { GuideOverlay } from "./GuideOverlay";
-import { TutorialCoach } from "./TutorialCoach";
+import { StruggleTip } from "./StruggleTip";
+import { tipMark } from "./struggle";
 import { LessonCoach } from "./LessonCoach";
 import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
-import { BEATS, COACH_COVERED, TUT_DONE, TUT_SKIP, beatIndex, createTutorialState, enemyStep, needsFirstRun, type TutUi } from "./tutorial";
-import { LESSON_BOARD, completeLesson, type Lesson } from "./training";
+import { BEATS, TUT_DONE, TUT_SKIP, beatIndex, createTutorialState, enemyStep, needsFirstRun, type TutUi } from "./tutorial";
+import { LESSONS, LESSON_BOARD, completeLesson, lessonDone, type Lesson } from "./training";
 import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
@@ -1252,6 +1250,10 @@ export function App() {
    *  same question — you can stand in the shop for a minute after the cards are
    *  turned, and the level-up should not wait for you to leave. */
   const [packBusy, setPackBusy] = useState(false);
+  /** ONE POPUP AT A TIME (owner, 2026-10-04): the level-up waits for the pack
+   *  reveal, and for the match and its result screen to be closed. It used to
+   *  land on top of the story result the moment a fight was won. */
+  const showLevelUp = Boolean(levelUp && !packBusy && !started && !storyResult);
 
   /** ACHIEVEMENTS EARNED WHILE PLAYING, queued for the toast.
    *
@@ -1742,7 +1744,7 @@ export function App() {
     // Winning it is recorded here, not on its Continue button, so closing the
     // app on the victory screen still counts — from either door.
     if (tutorialRun) {
-      if (game.win?.winner === "P1") markTaught(TUT_DONE, ...COACH_COVERED);
+      if (game.win?.winner === "P1") markTaught(TUT_DONE);
       return;
     }
     // ONLINE settles on its own short path and never touches the arena's.
@@ -4803,6 +4805,8 @@ export function App() {
   // cursor here to fall out of sync — doing a step's deed by any route simply
   // makes the next one due on the following render.
   const guideStep = onboardingStep(story);
+  /** Is there a lesson still to win? Then a loss points at the Training Ground. */
+  const trainLeft = LESSONS.some((l) => !lessonDone(story, l.id));
   /** Is the step's anchor on the surface that is currently up? A spotlight is
    *  only honest when the thing it rings is visible, and the guide's CTA is what
    *  changes tabs — so until it is pressed the card shows centred with no ring
@@ -4810,13 +4814,6 @@ export function App() {
   const guideOnTab = guideStep
     ? guideStep.tab === (storyOpen ? "story" : tab) && !homeCollection && !homeAchievements && !homeTraining
     : false;
-
-  /** Acknowledge a tour step, into the same `taught` list the coach uses. */
-  const teach = (id: string) => {
-    const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
-    setStory(next); saveStory(next);
-  };
-  const skipGuide = () => teach(ONBOARDING_SKIP);
 
   /** The step's button. It GOES there rather than merely pointing: the whole
    *  complaint about the old guide was that it named a control on another
@@ -4838,26 +4835,6 @@ export function App() {
         navDo({ t: "goToNode", nodeId: FIRST_NODE, regionId: regionOfNode(FIRST_NODE)?.id });
         navDo({ t: "open" });
         break;
-      default: {
-        // Tour steps: a tip is read ON the tab it describes (`tourPress`).
-        // Away from it the button is "Show me" and only goes there; on it,
-        // "Next" teaches the tip and goes to the NEXT tip's tab. It used to
-        // go to the tip's own tab and teach it in one tap, which brought the
-        // next tip up just as the player arrived — every tip a page early.
-        const press = tourPress(story, guideStep, guideOnTab);
-        if (press.teach) teach(press.teach);
-        // The tour's last tip sends the player on: its button opens the
-        // Training Ground it is pointing at.
-        if (press.teach === "training") setHomeTraining(true);
-        if (press.goTo) {
-          setHomeCollection(false);
-          setHomeAchievements(false);
-          setHomeTraining(false);
-          navDo({ t: press.goTo === "story" ? "open" : "close" });
-          setTab(press.goTo as Tab);
-        }
-        break;
-      }
     }
   };
 
@@ -4970,7 +4947,7 @@ export function App() {
   useBackLayer(Boolean(draftRun && !draftComplete(draftRun)), () => {}, true);
   // Story's result screen only ever moves on: what it pays was settled before it showed.
   useBackLayer(Boolean(storyResult), finishStoryResult);
-  useBackLayer(Boolean(levelUp && !packBusy), claimLevel);
+  useBackLayer(showLevelUp, claimLevel);
   // In a match, what is drawn over the board.
   useBackLayer(barMenu, () => { setBarMenu(false); setSurrenderArmed(false); });
   useBackLayer(mobilePanel !== null, () => setMobilePanel(null));
@@ -5503,14 +5480,10 @@ export function App() {
         </div>
       )}
 
-      {/* The coach answers a different question from the hint row: the hint says
-          what to DO, this says why. First fight only, and each idea once ever —
-          see TutorialCoach.
-
-          MOUNTED HERE, with the overlays, and not in `.controls` where it used
-          to live. It floats (`position: fixed`) and it measures its own
-          clearance, so its DOM parent should be something that never hides,
-          never reflows and never moves it. `.controls` is none of those on a
+      {/* The floating coaches. MOUNTED HERE, with the overlays, and not in
+          `.controls`: they float (`position: fixed`) and measure their own
+          clearance, so their DOM parent should be something that never hides,
+          never reflows and never moves them. `.controls` is none of those on a
           phone. */}
       {started && trainingRun && <LessonCoach key={trainingDeal} game={game} lesson={trainingRun} />}
       {started && tutorialRun && game.phase !== "gameover" && (
@@ -5523,19 +5496,23 @@ export function App() {
       {started && tutorialRun && game.phase === "gameover" && (
         <TutorialDone firstRun={tutorialRun === "first"} onContinue={() => endTutorial(false)} />
       )}
-      {started && !online && !twoPlayer && !trainingRun && !tutorialRun && !(story.taught ?? []).includes("SKIP") && (
-        <TutorialCoach
+      {/* NO LECTURES IN A MATCH (owner, 2026-10-04): one small line, only when
+          the board shows the player is stuck (ui/struggle.ts). The teaching is
+          the Training Ground's. "SKIP" is the old coach's Skip all, kept as the
+          off switch. */}
+      {started && !online && !twoPlayer && !trainingRun && !tutorialRun && game.humans.length === 1
+        && !(story.taught ?? []).includes("SKIP") && (
+        <StruggleTip
           game={game}
-          me={me}
+          seat={game.humans[0]}
           taught={story.taught ?? []}
-          onTaught={(id) => {
-            const next = { ...story, taught: [...new Set([...(story.taught ?? []), id])] };
-            setStory(next); saveStory(next);
-          }}
-          onSkipAll={() => {
-            const next = { ...story, taught: [...new Set([...(story.taught ?? []), "SKIP"])] };
-            setStory(next); saveStory(next);
-          }}
+          midAction={sel !== null || pending !== null || staged !== null}
+          onShown={(id) => setStory((prev) => {
+            const next = { ...prev, taught: [...(prev.taught ?? []), tipMark(prev.taught ?? [], id)] };
+            saveStory(next);
+            return next;
+          })}
+          onOff={() => markTaught("SKIP")}
         />
       )}
 
@@ -5548,7 +5525,7 @@ export function App() {
                 of this sheet, which made a new player's first two seconds of the
                 game two panels saying the same thing. A modal that owns the
                 screen should own the lesson too — so the WHY moved in here and
-                the coach step went away (see TutorialCoach.tsx). */}
+                the coach step went away. */}
             {/* SAID AS WHAT THE PLAYER DOES (owner, 2026-10-04). "Send it back
                 and redraw to 4" described the engine's step, and a tester read
                 it as a rule they had to work out. The engine returns the tapped
@@ -5865,6 +5842,10 @@ export function App() {
             // ...and a lesson goes back to the lesson list, ticked.
             if (trainingRun) { setTrainingRun(null); setTab("home"); setHomeTraining(true); }
           }}
+          onTrain={trainLeft && !online && !twoPlayer && !trainingRun ? () => {
+            setStarted(false); setSel(null); setPending(null); setMullToss([]);
+            goTab("home"); setHomeTraining(true);
+          } : undefined}
         />
       )}
 
@@ -5883,6 +5864,7 @@ export function App() {
           opened={storyResult.opened}
           shards={shardsWon}
           onDone={finishStoryResult}
+          onTrain={trainLeft ? () => { finishStoryResult(); goTab("home"); setHomeTraining(true); } : undefined}
         />
       )}
 
@@ -6825,10 +6807,6 @@ export function App() {
             navDo({ t: "goToNode", nodeId: FIRST_NODE, regionId: regionOfNode(FIRST_NODE)?.id });
             navDo({ t: "open" });
           }}
-          onSkipOnboarding={() => {
-            const next = { ...story, taught: [...new Set([...(story.taught ?? []), ONBOARDING_SKIP])] };
-            setStory(next); saveStory(next);
-          }}
           onAccount={() => setAccountOpen(true)}
           onRules={() => setRulesOpen(true)}
           onAchievements={() => setHomeAchievements(true)}
@@ -6933,7 +6911,7 @@ export function App() {
           celebrating. It waits for the pack to finish and then says its piece.
           Nothing is lost by waiting: the levels are owed on the save, not held
           in this component. */}
-      {levelUp && !packBusy && (
+      {showLevelUp && levelUp && (
         <LevelUpModal
           reward={levelUp}
           onClose={claimLevel}
@@ -7090,11 +7068,9 @@ export function App() {
           anchor={guideOnTab ? guideStep.anchor : null}
           title={guideStep.title}
           body={guideStep.body}
-          cta={guideCta(guideStep, guideOnTab)}
+          cta={guideStep.cta}
           onCta={runGuideStep}
-          ctaOffTargetOnly={guideStep.core}
-          onSkip={canSkipGuide(story) ? skipGuide : undefined}
-          skipLockedNote={skipLockedNote(story)}
+          ctaOffTargetOnly
           stepIndex={onboardingIndex(guideStep)}
           stepCount={ONBOARDING_COUNT}
         />

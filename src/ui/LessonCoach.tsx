@@ -1,5 +1,5 @@
-// The Training Ground's coach: the same floating card as the first-fight
-// tutorial (TutorialCoach), fed by a lesson instead of the phase.
+// The Training Ground's coach: a floating card (`.tut-coach`, docked by
+// coach-dock.ts), fed by a lesson.
 //
 // Each tip in a lesson names the board state it is about (`LessonTip.when`).
 // The first time that state appears, the tip joins a queue for the rest of the
@@ -8,7 +8,7 @@
 // once are explained one at a time. Nothing persists: a refight teaches again.
 import { useEffect, useState } from "react";
 import { TEACHER_ART, TEACHER_NAME } from "./shared";
-import { useCoachDock } from "./TutorialCoach";
+import { useCoachDock } from "./coach-dock";
 import type { GameState } from "../engine";
 import type { Lesson } from "./training";
 

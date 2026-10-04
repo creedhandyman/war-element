@@ -211,7 +211,7 @@ const LEAF: StoryRegion = {
     // Both converge on the Heart of Nature in the centre.
     { id: "L1", name: "Spring Village Outskirts", kind: "skirmish", at: { x: 13, y: 37 },
       requires: [], tribe: "Grove", roster: ["leaf_nettle", "leaf_weeds", "leaf_greegon"], adds: [],
-      note: "The tutorial. Greegon is a REGEN tank you cannot out-race — capture the slot.",
+      note: "Greegon heals 2 HP at the end of every round. Hit it with more than one card.",
       lore: "Nobody planted the verge. Nettle and weed took it themselves, and the village long ago stopped pulling them: an edge that grows back on its own is cheaper than a wall that does not."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
@@ -3213,7 +3213,8 @@ export interface StorySave {
    *  CURRENT level so a save that predates the feature is not owed hundreds of
    *  shards for levels it earned before there was anything to pay them. */
   levelSeen?: number;
-  /** Tutorial steps already taught. See `ui/TutorialCoach.tsx`.
+  /** Things already taught or said: the tutorial's marks (ui/tutorial.ts),
+   *  struggle tips shown (`tip:<id>`, ui/struggle.ts), "SKIP" for no tips.
    *
    *  In the save because a tutorial that repeats is a nag: these fire once per
    *  PLAYER, not once per fight. "SKIP" is the sentinel for "teach me nothing

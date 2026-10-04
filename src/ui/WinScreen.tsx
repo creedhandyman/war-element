@@ -2,6 +2,7 @@ import { seatsOf } from "../engine";
 import type { Element, GameState, PlayerId } from "../engine";
 import { MatchReport, hasMatchReport } from "./MatchReport";
 import { EL_COLOR, EL_ICON } from "./shared";
+import { TrainingNudge } from "./TrainingGround";
 
 /** The fight already lined up behind this one.
  *
@@ -48,6 +49,9 @@ export function WinScreen(props: {
   earned?: number;
   /** Watch the match just played (ReplayViewer). Absent when it has no replay. */
   onReplay?: () => void;
+  /** A loss's way to the Training Ground (`TrainingNudge`). Absent where it
+   *  does not apply: online, hot seat, a lesson, nothing left to learn. */
+  onTrain?: () => void;
 }) {
   const { game, me } = props;
   const win = game.win;
@@ -167,6 +171,7 @@ export function WinScreen(props: {
           </div>
         )}
 
+        {!youWon && props.onTrain && <TrainingNudge onTrain={props.onTrain} />}
         <div className="win-acts">
           {props.next && (
             <button className="lockin glow" onClick={props.next.onGo}>

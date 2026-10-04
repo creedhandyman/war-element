@@ -7,13 +7,10 @@
 // The component is React and belongs to the browser pass (this repo runs
 // `environment: "node"` and has no component tests); the machine underneath it
 // is where a regression would hide.
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
-  FIRST_NODE, ONBOARDING_CORE_COUNT, ONBOARDING_SKIP, ONBOARDING_STEPS, TOUR_SHOW_CTA,
-  canSkipGuide, firstFightWon, guideCta, onboardingIndex, onboardingStep,
-  packOpened as packIsOpened, skipLockedNote, tourPress, type GuideTab,
+  FIRST_NODE, ONBOARDING_STEPS, firstFightWon, onboardingIndex, onboardingStep,
+  packOpened as packIsOpened,
 } from "../../ui/Onboarding";
 import { CARDS } from "../../data/cards";
 import { REGIONS, STARTER_DECK, deckCapFor, isFirstBattle, newSave, type StorySave } from "../../data/story";
@@ -49,71 +46,26 @@ describe("the three steps, in the order a fresh save meets them", () => {
     expect(onboardingStep(built)?.id).toBe("fight");
   });
 
-  it("clearing the first battle ends the CORE arc and opens the tour", () => {
-    // It used to end the guide outright. The tour is what makes "skippable
-    // after the first fight" mean anything — there has to be something left to
-    // skip — so the first battle now hands over rather than closing up.
+  it("clearing the first battle ends the guide, with nothing after it", () => {
+    // There used to be a five-card tour of the tabs here. The owner, playing
+    // it (2026-10-04): "a pop-up for every single thing you do". After L1 the
+    // player is left to play; help is a one-line tip when they are stuck.
     const s = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
-    const next = onboardingStep(s);
-    expect(next?.core, "the core arc is done").toBe(false);
-    expect(next?.id).toBe("purse");
+    expect(onboardingStep(s)).toBeNull();
+    // Even with cards benched and every tab unvisited.
+    expect(onboardingStep(withBench(s, 4))).toBeNull();
   });
 
-  it("Skip does NOT silence the core arc — that is the point of it", () => {
-    // The owner's rule: mandatory through the first pack and the first fight.
-    // Enforced HERE and not only by withholding the button, because a rule kept
-    // by a hidden control is one that any stale sentinel walks through, and
-    // `taught` is written from three places.
-    for (const base of [newSave(), packOpened(newSave()), withBench(packOpened(newSave()), 3)]) {
-      const skipped = { ...base, taught: [ONBOARDING_SKIP] };
-      expect(onboardingStep(skipped)?.core, "still on the core arc").toBe(true);
-    }
-  });
-
-  it("...and silences the tour, which is what it is for", () => {
-    const done = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
-    expect(onboardingStep(done)?.core).toBe(false);
-    expect(onboardingStep({ ...done, taught: [ONBOARDING_SKIP] })).toBeNull();
-  });
-
-  it("the coach's SKIP and the guide's are DIFFERENT decisions", () => {
-    // Sharing one flag would make silencing the in-match lessons also silence
-    // the screen that gets you to a match — two unrelated choices collapsed
-    // into one tap.
-    expect(ONBOARDING_SKIP).not.toBe("SKIP");
+  it("the in-match tips' off switch does not touch the guide", () => {
     expect(onboardingStep({ ...newSave(), taught: ["SKIP"] })?.id).toBe("pack");
-  });
-});
-
-// THE SKIP GATE, which is the rule this rewrite was asked for: the walkthrough
-// is mandatory through the first pack opening and the first story fight, and
-// free afterwards. Both milestones, not either.
-describe("when the player is allowed to dismiss it", () => {
-  const fresh = newSave();
-  const packed = packOpened(fresh);
-  const fought = { ...fresh, cleared: [FIRST_NODE] };
-  const both = { ...packed, cleared: [FIRST_NODE] };
-
-  it("needs BOTH milestones, not one", () => {
-    expect(canSkipGuide(fresh), "fresh save").toBe(false);
-    expect(canSkipGuide(packed), "pack opened, never fought").toBe(false);
-    expect(canSkipGuide(fought), "fought, but the pack is still owed").toBe(false);
-    expect(canSkipGuide(both), "both done").toBe(true);
   });
 
   it("the two milestones read the save, not a flag", () => {
+    const fresh = newSave();
     expect(packIsOpened(fresh)).toBe(false);
-    expect(packIsOpened(packed)).toBe(true);
+    expect(packIsOpened(packOpened(fresh))).toBe(true);
     expect(firstFightWon(fresh)).toBe(false);
-    expect(firstFightWon(fought)).toBe(true);
-  });
-
-  it("says which milestone is outstanding while Skip is missing", () => {
-    // A button that is simply absent, with nothing in its place, reads as a
-    // broken screen rather than as a rule.
-    expect(skipLockedNote(fresh)).toMatch(/pack/i);
-    expect(skipLockedNote(packed)).toMatch(/battle/i);
-    expect(skipLockedNote(both), "nothing to say once it is unlocked").toBe("");
+    expect(firstFightWon({ ...fresh, cleared: [FIRST_NODE] })).toBe(true);
   });
 });
 
@@ -125,7 +77,7 @@ describe("every step points somewhere", () => {
   it("names an anchor and a tab", () => {
     for (const s of ONBOARDING_STEPS) {
       expect(s.anchor, `${s.id} has no anchor`).toBeTruthy();
-      expect(["home", "shop", "story", "arena", "tower"]).toContain(s.tab);
+      expect(["home", "shop", "story"]).toContain(s.tab);
     }
   });
 
@@ -137,26 +89,14 @@ describe("every step points somewhere", () => {
 
 describe("it never nags an established player", () => {
   it("a mid-campaign save made before this existed sees nothing", () => {
-    // No stored cursor means no migration for the CORE arc: every condition is
-    // already satisfied, so it is silent on an old save without being told.
-    //
-    // The TOUR needed the rule stated, because it has no deed to satisfy — its
-    // ids are simply absent from `taught` on every save that predates it, so
-    // without a window it would have walked thirty-node veterans through "this
-    // is the Arena" the day it shipped. Clearing anything beyond the first
-    // battle closes it.
+    // No stored cursor means no migration: every condition is already
+    // satisfied, so it is silent on an old save without being told.
     const s: StorySave = {
       ...packOpened(newSave()),
       cleared: [FIRST_NODE, "L2", "L3"],
       collection: CARDS.slice(0, 20).map((c) => c.id),
     };
     expect(onboardingStep(s)).toBeNull();
-  });
-
-  it("...and the tour closes the moment a second node falls", () => {
-    const justWon = { ...packOpened(newSave()), cleared: [FIRST_NODE] };
-    expect(onboardingStep(justWon), "the window is open right after the tutorial").toBeTruthy();
-    expect(onboardingStep({ ...justWon, cleared: [FIRST_NODE, "L2"] })).toBeNull();
   });
 
   it("a player who opened the pack unprompted simply skips that step", () => {
@@ -173,15 +113,8 @@ describe("it never nags an established player", () => {
 });
 
 describe("the curriculum is coherent", () => {
-  it("is a core arc plus a tour, with unique ids, each saying something", () => {
-    expect(ONBOARDING_CORE_COUNT, "pack, squad, fight").toBe(3);
-    expect(ONBOARDING_STEPS.filter((s) => s.core).length).toBe(ONBOARDING_CORE_COUNT);
-    expect(ONBOARDING_STEPS.length, "and a tour after them").toBeGreaterThan(ONBOARDING_CORE_COUNT);
-    // The core arc comes FIRST in the list, so the pips count up rather than
-    // jumping about when the guide crosses from one arc to the other.
-    const firstTour = ONBOARDING_STEPS.findIndex((s) => !s.core);
-    expect(ONBOARDING_STEPS.slice(0, firstTour).every((s) => s.core)).toBe(true);
-    expect(ONBOARDING_STEPS.slice(firstTour).every((s) => !s.core)).toBe(true);
+  it("is pack, squad, fight, with unique ids, each saying something", () => {
+    expect(ONBOARDING_STEPS.map((s) => s.id)).toEqual(["pack", "squad", "fight"]);
     const ids = ONBOARDING_STEPS.map((s) => s.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const s of ONBOARDING_STEPS) {
@@ -214,92 +147,5 @@ describe("it points at a node that really is the tutorial", () => {
     const node = REGIONS.flatMap((r) => r.nodes).find((n) => n.id === FIRST_NODE);
     expect(node, `${FIRST_NODE} is missing from the world`).toBeTruthy();
     expect(node!.requires, "the first battle cannot have a gate").toEqual([]);
-  });
-});
-
-// THE TOUR IS READ WHERE IT POINTS. Its button used to go to the tip's own tab
-// and mark it taught in one tap, and marking it taught brings the next tip up on
-// the same render — so every tip arrived one page early: "The Arena" was read on
-// Home, "The Void Tower" on the Arena. `tourPress` is the decision App runs on
-// the button; these press it until the tour ends.
-describe("each tour tip is shown on the tab it describes", () => {
-  const justWon = (): StorySave => ({ ...packOpened(newSave()), cleared: [FIRST_NODE] });
-  const TOUR = ONBOARDING_STEPS.filter((s) => !s.core);
-
-  /** Press the guide's button from `at` until the tour ends, recording where
-   *  each tip was READ — shown on its own tab, with its own button. */
-  function walk(save: StorySave, at: GuideTab) {
-    const read: { id: string; on: GuideTab }[] = [];
-    for (let guard = 0; guard < 20; guard++) {
-      const step = onboardingStep(save);
-      if (!step) return { read, at };
-      const onTab = step.tab === at;
-      if (onTab) read.push({ id: step.id, on: at });
-      const press = tourPress(save, step, onTab);
-      if (press.teach) save = { ...save, taught: [...(save.taught ?? []), press.teach] };
-      if (press.goTo) at = press.goTo;
-    }
-    throw new Error("the tour never ended");
-  }
-
-  it("from the map after the first battle, every tip is read on its own tab", () => {
-    const { read } = walk(justWon(), "story");
-    expect(read.map((r) => r.id), "every tip, in order, none skipped").toEqual(TOUR.map((s) => s.id));
-    for (const r of read) expect(r.on, r.id).toBe(TOUR.find((s) => s.id === r.id)!.tab);
-  });
-
-  it("...and from every other tab it could open on", () => {
-    for (const from of ["home", "shop", "arena", "tower"] as GuideTab[]) {
-      expect(walk(justWon(), from).read.map((r) => `${r.id}@${r.on}`), from)
-        .toEqual(TOUR.map((s) => `${s.id}@${s.tab}`));
-    }
-  });
-
-  it("away from its tab it says Show me, goes there, and teaches nothing", () => {
-    const save = justWon();
-    const step = onboardingStep(save)!;
-    expect(step.core).toBe(false);
-    expect(guideCta(step, false)).toBe(TOUR_SHOW_CTA);
-    expect(tourPress(save, step, false)).toEqual({ teach: null, goTo: step.tab });
-  });
-
-  it("Next goes on to the NEXT tip's tab, never back to its own", () => {
-    // The bug, stated: the tab a tip describes is the page it is already being
-    // read on, so Next landing there shows the following tip one page early.
-    let save = justWon();
-    for (let step = onboardingStep(save); step; step = onboardingStep(save)) {
-      expect(guideCta(step, true), step.id).toBe(step.cta);
-      const press = tourPress(save, step, true);
-      expect(press.teach).toBe(step.id);
-      save = { ...save, taught: [...(save.taught ?? []), step.id] };
-      const next = onboardingStep(save);
-      expect(press.goTo, `${step.id} -> ${next?.id ?? "the end"}`).toBe(next ? next.tab : null);
-    }
-  });
-
-  it("the tour ends on the page its last tip was about", () => {
-    expect(walk(justWon(), "story").at).toBe(TOUR[TOUR.length - 1].tab);
-  });
-
-  it("the core arc keeps its own buttons, which already go where they point", () => {
-    for (const s of ONBOARDING_STEPS.filter((x) => x.core)) {
-      expect(guideCta(s, false), s.id).toBe(s.cta);
-      expect(guideCta(s, true), s.id).toBe(s.cta);
-    }
-  });
-
-  it("App runs the tour's button through tourPress, and words it with guideCta", () => {
-    // Normalised: on a CRLF checkout the "\n  };\n" slice finds nothing, runs
-    // to the end of the file, and would pass against the whole of App.tsx.
-    const APP = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8").replace(/\r\n/g, "\n");
-    const at = APP.indexOf("const runGuideStep = ");
-    const end = APP.indexOf("\n  };\n", at);
-    expect(at).toBeGreaterThan(-1);
-    expect(end).toBeGreaterThan(at);
-    const body = APP.slice(at, end);
-    expect(body).toContain("tourPress(story, guideStep, guideOnTab)");
-    // The old shape: straight to the tip's OWN tab, taught in the same tap.
-    expect(body).not.toMatch(/setTab\(guideStep\.tab/);
-    expect(APP).toContain("cta={guideCta(guideStep, guideOnTab)}");
   });
 });

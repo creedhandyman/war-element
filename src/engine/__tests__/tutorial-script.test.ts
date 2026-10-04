@@ -9,8 +9,7 @@ import { describe, expect, it } from "vitest";
 import { advance, applyIntent, needsInput } from "../phases";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
-import { BEATS, COACH_COVERED, beatIndex, createTutorialState, enemyStep, scriptedIntent, type TutUi } from "../../ui/tutorial";
-import { TUTORIAL_STEPS } from "../../ui/TutorialCoach";
+import { BEATS, beatIndex, createTutorialState, enemyStep, scriptedIntent, type TutUi } from "../../ui/tutorial";
 
 function playThrough() {
   let s: GameState = createTutorialState();
@@ -73,13 +72,6 @@ describe("the first battle's script", () => {
     const before = states.find((st) => st.round === 2 && st.phase === "prep" && st.prep?.priority === "P1")!;
     expect(before.players.P1.gold).toBe(3);
     expect(getDef("leaf_cactus").cost).toBe(2);
-  });
-
-  it("only marks off coach lessons that exist", () => {
-    // A renamed coach step would otherwise be silently re-taught after the
-    // battle that already covered it.
-    const ids = TUTORIAL_STEPS.map((s) => s.id);
-    for (const id of COACH_COVERED) expect(ids, id).toContain(id);
   });
 
   it("every enemy falls to one hit", () => {

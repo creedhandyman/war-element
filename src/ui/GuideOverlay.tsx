@@ -13,10 +13,9 @@
  *
  *  IT DOES NOT BLOCK INPUT. Every dim panel is `pointer-events: none`, so the
  *  player can tap anything on the screen at any time, including things the guide
- *  is not pointing at. That is deliberate and it is the same stance
- *  `TutorialCoach` takes: this game's first node is a designed teaching fight
- *  rather than a rail, and a tutorial that seizes the controls is teaching a
- *  different game than the one being played. What changes here is only that the
+ *  is not pointing at. That is deliberate: these are menus, where taking the
+ *  controls would teach a different app than the one being used. (The one rail
+ *  is the scripted first battle, TutorialRail.tsx.) What changes here is only that the
  *  instruction now has an address.
  *
  *  THE HOLE IS MEASURED, NOT GUESSED. Targets are marked with `data-guide="id"`
@@ -148,12 +147,6 @@ export function GuideOverlay(props: {
    *  once you are there the ringed control is the thing to press, and a second
    *  button beside it that does nothing reads as the one to tap. */
   ctaOffTargetOnly?: boolean;
-  /** Absent = this step cannot be skipped yet. The guide is mandatory through
-   *  the first pack and the first fight; after that this is a function. */
-  onSkip?: () => void;
-  /** Why Skip is not there yet, shown in its place. A missing button with no
-   *  explanation reads as a broken screen. */
-  skipLockedNote?: string;
   stepIndex: number;
   stepCount: number;
 }) {
@@ -308,15 +301,6 @@ export function GuideOverlay(props: {
           {!(props.ctaOffTargetOnly && ring) && (
             <button className="lockin gd-go" onClick={props.onCta}>{props.cta}</button>
           )}
-          {props.onSkip
-            ? (
-              <button className="gd-skip" onClick={props.onSkip} title="Hide this — How to play is always in the menu">
-                Skip the rest
-              </button>
-            )
-            : props.skipLockedNote
-              ? <span className="gd-locked">{props.skipLockedNote}</span>
-              : null}
         </div>
       </div>
     </div>

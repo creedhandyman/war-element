@@ -96,8 +96,6 @@ export function HomeScreen(props: {
   /** Open the story map on the FIRST node. The first-run guide's last step
    *  needs to land on L1 specifically; `onStory` only opens a region. */
   onFightFirst: () => void;
-  /** Hide the first-run guide for good. */
-  onSkipOnboarding: () => void;
   /** Open the Achievements screen. */
   onAchievements: () => void;
   /** The Training Ground: practice fights, one mechanic each. */

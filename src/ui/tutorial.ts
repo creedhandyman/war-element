@@ -31,13 +31,6 @@ import { everCleared, freePacks } from "../data/story";
 export const TUT_DONE = "TUT_DONE";
 export const TUT_SKIP = "TUT_SKIP";
 
-/** The in-match coach's lessons (TutorialCoach.tsx) this battle already
- *  taught by doing: how you win (its victory screen says it) and one move a
- *  turn (a beat says it). Marked taught when it is won, so the first story
- *  fight's coach only brings up what is new. Speed order stays: here it only
- *  flashes past while the board resolves. */
-export const COACH_COVERED = ["goal", "move"] as const;
-
 /** The seed whose coin flip lets the enemy place its card first, so the player
  *  places theirs and presses Pass ONCE to start the round. */
 export const TUTORIAL_SEED = 1;

@@ -86,7 +86,7 @@ describe("the wiring", () => {
     expect(body).toContain("claimLevelUp(prev)");
     expect(body, "a claim that is not persisted").toContain("saveStory(next)");
     // Back dismisses it too, and has to pay through the very same claim.
-    expect(APP).toContain(`useBackLayer(Boolean(levelUp && !packBusy), ${handler})`);
+    expect(APP).toContain(`useBackLayer(showLevelUp, ${handler})`);
   });
 
   it("waits for a pack to finish opening", () => {
@@ -94,11 +94,19 @@ describe("the wiring", () => {
     // written the moment the pack is APPLIED — so without this the celebration
     // landed on top of the tear, over cards not yet turned over, and stole the
     // reveal it was celebrating.
-    expect(APP).toContain("{levelUp && !packBusy && (");
+    // One named condition drives both the modal and its back-button layer.
+    expect(APP).toContain("{showLevelUp && levelUp && (");
+    expect(APP).toMatch(/const showLevelUp = Boolean\(levelUp && !packBusy && /);
     expect(APP).toContain("onBusy={setPackBusy}");
     // Reported by the Shop, not inferred from "the shop is open" — you can
     // stand in there for a minute after the cards are turned.
     expect(SHOP).toContain("const packBusy = tearing || opened !== null;");
+  });
+
+  it("waits for the match and its result screen to close", () => {
+    // It used to land on top of the story result the moment a fight was won:
+    // two modals at once (owner, 2026-10-04: one popup at a time).
+    expect(APP).toMatch(/const showLevelUp = Boolean\([^)]*!started && !storyResult\)/);
   });
 
   it("cannot strand the gate closed by leaving mid-reveal", () => {

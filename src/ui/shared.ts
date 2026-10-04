@@ -48,8 +48,8 @@ export const BUILDABLE_ELEMENTS: Element[] =
  *
  *  `STARTER_DECK` is a single id and it is Sakuroot's, so on a brand-new save
  *  this is a portrait of the only card the player owns. Both tutorials use it —
- *  the first-run walkthrough on the menus (`GuideOverlay`) and the in-fight
- *  coach (`TutorialCoach`) — because they are one voice teaching one game, and
+ *  the first-run walkthrough on the menus (`GuideOverlay`), the Training
+ *  Ground's coach and the struggle tips — because they are one voice teaching one game, and
  *  a player who meets a face on the menus and a nameless blue box in the battle
  *  has met two tutorials.
  *

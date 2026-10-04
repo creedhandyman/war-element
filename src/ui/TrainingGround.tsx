@@ -11,6 +11,18 @@ import { cardArtSrc } from "./shared";
 import { GRADUATION_PACKS, LESSONS, LESSON_SHARDS, lessonDone, type Lesson } from "./training";
 import { TUT_DONE, TUTORIAL_YOU } from "./tutorial";
 
+/** ON A LOSS, the way to practice (owner, 2026-10-04): the first story fights
+ *  no longer teach as you play, so the player goes to train once they notice
+ *  they need it — and a loss is when they notice. One line, not a popup. */
+export function TrainingNudge(props: { onTrain: () => void }) {
+  return (
+    <p className="train-nudge">
+      Stuck on something?{" "}
+      <button className="train-nudge-go" onClick={props.onTrain}>Practice in the Training Ground</button>
+    </p>
+  );
+}
+
 export function TrainingGround(props: {
   save: StorySave;
   onStart: (lesson: Lesson) => void;

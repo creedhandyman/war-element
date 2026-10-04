@@ -2864,22 +2864,57 @@ as optional, so the first battle now TEACHES BY FORCED PLAY.
   beat in order, win on round 3, (0,1) captured, no status or grown shield, no
   Grill hit, 3 Gold for a 2-cost Cactus, exactly two Birch hits. A stat or rule
   change that breaks the lesson fails there.
-- **After it**: winning marks `TUT_DONE` plus `COACH_COVERED` (the coach's
-  "goal" and "move", already taught) in the settle effect; Continue goes to the
-  Shop with the free pack ringed. The tutorial writes no history entry, no
+- **After it**: winning marks `TUT_DONE` in the settle effect; Continue goes to
+  the Shop with the free pack ringed. The tutorial writes no history entry, no
   WinScreen, no skill-dial result.
 - **Same pass**: the guide hides during the pack reveal and the level-up modal
   (one popup at a time); guide text 19/14.5px and every body one short line;
-  coach text 16/14px and shorter; mulligan copy "Tap a card to swap it for a new
+  mulligan copy "Tap a card to swap it for a new
   one." / "Swap N cards" / "Keep this hand". **L1 stops at its roster**
   (`buildFormation`, `firstFight`): with the pack opened first, one-for-one met
   six cards with six (the roster twice) and a Learning-AI seat won 76% in 17.6
   rounds; the roster once is 99% in 12.2 (80 fresh saves). The squad step is
   already rare: `foldIntoSquad` puts the first pack straight in when it fits.
 - **CSS**: the rail lives beside `.tut-coach` (before `.draft-screen`/`.lvl-up`,
-  whose tests scan to EOF for `infinite`). The coach owns `.tut-skip`; the
-  rail's is `.tut-rail-skip`.
+  whose tests scan to EOF for `infinite`). The rail's skip is `.tut-rail-skip`.
 - **Later (owner)**: a second scripted match for spells, Specials and shields.
+
+## After the first battle: no lectures, one-line tips when stuck — `ui/struggle.ts`
+
+Owner, 2026-10-04, playing L1 after the scripted battle: "a pop-up for every
+single thing you do, making it hard to focus on battling." The first node lets
+the player fight; they train once they notice they need help.
+
+- **Gone**: `TutorialCoach` (goal/summon/income/move/speed cards, shown once
+  each up front) and the five-card post-L1 tour (shards, Arena, Tower, the loop,
+  "now train") with its skip machinery (`ONBOARDING_SKIP`, `canSkipGuide`,
+  `skipLockedNote`, `tourPress`). `Onboarding.tsx` is now pack → (squad, rare)
+  → fight L1, then nothing. `useCoachDock` moved to `ui/coach-dock.ts`
+  (LessonCoach still uses it and the `.tut-coach` card styles).
+- **`StruggleTip`** shows ONE small line under the phase ribbon (at the top: at
+  the bottom it covered the player's own Home row) only on a struggle sign, read
+  off the board by `boardStruggle(prev, next, seat, mem)`: an enemy took a Home
+  square; a faster enemy killed my card before it acted (queue position + higher
+  `effectiveSp`); the prep turn ended with my board empty and an affordable card;
+  my Home row all mine with an affordable card; two rounds in a row broke with
+  nobody home to earn. Plus idle tips (deploy / prep / battle) after 25 s with
+  no tap or 45 s with no game step on my own turn — never on the mulligan, under
+  a modal, or mid-action (`midAction` = something selected/armed/staged), and an
+  idle tip leaves the moment the player acts. Nothing at game over (a surrender
+  ends the prep turn too).
+- **Limits**: board tips at most `TIPS_PER_MATCH` (2) a match and once ever;
+  idle tips once per match per kind, 3 times ever. Counted in `taught` as
+  `tip:<id>`, `tip:<id>#2`… "No more tips" sets the old coach's `"SKIP"`. Not in
+  online, hot seat, a lesson or the tutorial; Domination gets idle tips only.
+- **Loss screens point at training**: `TrainingNudge` ("Stuck on something?
+  Practice in the Training Ground") on a story loss (StoryResult) and a vs-AI
+  loss (WinScreen), while a lesson is still unwon.
+- **One popup at a time**: the level-up waits for the match and its result
+  screen (`showLevelUp`), not only the pack reveal; it used to stack on the
+  story result. L1's node note no longer says "The tutorial."
+- `struggle.test.ts` fires every sign on an edited real state, checks the
+  silent cases, and plays the whole scripted first battle to show a well-played
+  match never trips one.
 
 ## The boss panel's ✕ was under the mute button, and three bugs deep
 
@@ -3904,8 +3939,8 @@ tile (it spans the row on a phone).
   Prep. LessonCoach queues each the first time it holds and shows them one at a
   time; nothing persists, so a refight teaches again. The rule text is QUOTED
   from STATUS_TEXT, `describeSharedPassives` and ELEMENT_AURA — never retype it.
-  The card shares TutorialCoach's look and docking (`useCoachDock`); the
-  first-fight tutorial is hidden during a lesson.
+  The card uses the `.tut-coach` look and `useCoachDock` (ui/coach-dock.ts);
+  struggle tips are off during a lesson.
 - **Pays once:** `completeLesson` adds the id to `StorySave.trainingDone` (in the
   loadStory whitelist) and pays LESSON_SHARDS in the same write; the last new
   lesson also pays GRADUATION_PACKS. It settles at the top of the Arena settle
