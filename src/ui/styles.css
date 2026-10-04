@@ -2396,20 +2396,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Post-match report (WinScreen) — MVP + per-side damage/heal/kills/captures. */
 .mr { margin: 6px 0 16px; text-align: left; border-top: 1px solid var(--panel-line); padding-top: 12px; }
 .mr-h { font-family: var(--head); font-size: 12px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--ink-dim); margin-bottom: 10px; text-align: center; }
-.mr-mvp { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border-radius: 12px; margin-bottom: 12px;
-  background: linear-gradient(100deg, rgba(232,200,119,0.16), rgba(232,200,119,0.04)); border: 1px solid var(--gold-line); }
-.mr-mvp-badge { flex: none; font-family: var(--head); font-size: 11px; font-weight: 900; letter-spacing: 0.06em; color: #1a140a; background: var(--gold-lit); padding: 5px 8px; border-radius: 8px; }
+.mr-mvp { position: relative; overflow: hidden; display: flex; align-items: center; gap: 12px; padding: 12px 14px; border-radius: 14px; margin-bottom: 10px;
+  background: radial-gradient(120% 160% at 0% 0%, rgba(232,200,119,0.26), rgba(232,200,119,0.05) 60%), rgba(0,0,0,0.25);
+  border: 1px solid var(--gold-line); box-shadow: 0 0 22px rgba(232,200,119,0.10); }
+.mr-mvp-badge { flex: none; display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%;
+  font-family: var(--head); font-size: 12px; font-weight: 900; letter-spacing: 0.04em; color: #1a140a;
+  background: linear-gradient(160deg, var(--gold-hi), var(--gold)); box-shadow: 0 0 0 3px rgba(232,200,119,0.18); }
 .mr-mvp-body { flex: 1; min-width: 0; }
-.mr-mvp-name { font-size: 15px; font-weight: 800; color: #f2ede0; }
+.mr-mvp-name { font-size: 17px; font-weight: 900; line-height: 1.15; color: #f2ede0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mr-mvp-side { font-size: 11px; font-weight: 600; color: var(--ink-dim); }
-.mr-mvp-line { display: flex; gap: 12px; margin-top: 3px; font-size: 12.5px; font-weight: 700; color: var(--gold-lit); font-variant-numeric: tabular-nums; }
+.mr-mvp-line { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 6px; font-size: 12px; font-weight: 800; color: var(--gold-lit); font-variant-numeric: tabular-nums; }
+.mr-mvp-line span { padding: 2px 8px; border-radius: 999px; background: rgba(232,200,119,0.12); border: 1px solid var(--gold-line); }
+/* Who did the damage, as one bar. The sides' tiles below say how much; this is
+   the only place the proportion is visible at a glance. */
+.mr-split { display: flex; gap: 2px; height: 20px; margin-bottom: 10px; border-radius: 999px; overflow: hidden; }
+.mr-split-seg { min-width: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; color: #0b0a10; }
+.mr-split-seg.me { background: var(--your-home-glow); }
+.mr-split-seg.foe { background: var(--threat); }
+.mr-split-seg b { font-weight: 900; font-variant-numeric: tabular-nums; }
 .mr-sides { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.mr-side { padding: 10px; border-radius: 10px; background: rgba(0,0,0,0.28); border: 1px solid var(--panel-line); }
-.mr-side.won { border-color: var(--legal); box-shadow: inset 0 0 18px rgba(78,203,143,0.08); }
-.mr-side-h { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--ink); margin-bottom: 7px; }
+.mr-side { min-width: 0; padding: 10px; border-radius: 12px; background: rgba(0,0,0,0.28); border: 1px solid var(--panel-line); }
+.mr-side.won { border-color: var(--legal); background: linear-gradient(180deg, rgba(78,203,143,0.10), rgba(0,0,0,0.28) 55%); }
+.mr-side-h { display: flex; align-items: center; justify-content: space-between; gap: 6px; font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--ink); margin-bottom: 8px; }
 .mr-side.won .mr-side-h { color: var(--legal); }
-.mr-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; padding: 2px 0; color: var(--ink-dim); }
-.mr-row b { color: var(--ink); font-size: 13px; font-variant-numeric: tabular-nums; }
+.mr-won { font-size: 9px; letter-spacing: 0.08em; padding: 2px 7px; border-radius: 999px; color: #07140d; background: var(--legal); }
+.mr-tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; margin-bottom: 7px; }
+.mr-tile { display: flex; flex-direction: column; align-items: center; padding: 6px 2px; border-radius: 8px; background: rgba(255,255,255,0.04); }
+.mr-tile b { font-size: 17px; font-weight: 900; line-height: 1.1; color: var(--ink); font-variant-numeric: tabular-nums; }
+.mr-tile span { font-size: 9px; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; color: var(--ink-faint); }
+.mr-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 11.5px; padding: 2px 0; color: var(--ink-dim); }
+.mr-row b { color: var(--ink); font-size: 12.5px; font-variant-numeric: tabular-nums; }
 .mr-top { display: flex; justify-content: space-between; gap: 6px; margin-top: 5px; font-size: 10.5px; color: var(--ink-faint); }
 .mr-top span { color: var(--ink-dim); font-weight: 700; font-variant-numeric: tabular-nums; }
 .mr-top:first-of-type { margin-top: 9px; border-top: 1px dashed var(--panel-line); padding-top: 7px; }
@@ -2419,7 +2435,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    itself rather than widening the modal on a phone. */
 .mr-roster { margin-top: 9px; border-top: 1px dashed var(--panel-line); padding-top: 7px; overflow-x: auto; }
 .mr-cr { display: grid; grid-template-columns: minmax(52px, 1fr) repeat(9, 21px); gap: 2px; align-items: baseline;
-  font-size: 11px; padding: 2px 0; color: var(--ink-dim); }
+  font-size: 11px; padding: 3px 0; border-radius: 4px; color: var(--ink-dim);
+  /* Damage relative to the side's hardest hitter, painted behind the row. */
+  background: linear-gradient(90deg, rgba(134,189,255,0.16) calc(var(--share, 0) * 100%), transparent 0); }
+.mr-cr.head { background: none; }
+.mr-cr.top { background: linear-gradient(90deg, rgba(232,200,119,0.22) calc(var(--share, 0) * 100%), transparent 0); }
 .mr-cr.head { color: var(--ink-faint); font-size: 10px; border-bottom: 1px solid var(--panel-line); padding-bottom: 3px; margin-bottom: 2px; }
 .mr-cr.top .mr-cr-name { color: var(--gold-lit); font-weight: 800; }
 .mr-cr-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 700; }

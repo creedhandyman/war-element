@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { seatsOf } from "../engine";
 import type { CardStat, GameState, PlayerId } from "../engine";
 
@@ -35,9 +36,9 @@ const COLS = [
 
 /** One card's line in the roster table. Zeroes render as a dim dash so the eye
  *  runs down the columns that actually have numbers in them. */
-function CardRow({ c, best }: { c: CardStat; best: boolean }) {
+function CardRow({ c, best, share }: { c: CardStat; best: boolean; share: number }) {
   return (
-    <div className={`mr-cr ${best ? "top" : ""}`}>
+    <div className={`mr-cr ${best ? "top" : ""}`} style={{ "--share": share } as CSSProperties}>
       <span className="mr-cr-name">{c.name}</span>
       {COLS.map(([k, , label]) => (
         <span key={k} className={`mr-cr-v ${c[k] ? "" : "nil"}`} title={label}>
@@ -61,19 +62,29 @@ export function MatchReport({ game, heading, me = "P1" }: { game: GameState; hea
   const ranked = cards.slice().sort((a, b) => mvpScore(b) - mvpScore(a));
   const mvp = ranked.length && mvpScore(ranked[0]) > 0 ? ranked[0] : null;
   if (!mvp) return null;
+  const seats = seatsOf(game);
+  const totalDmg = seats.reduce((n, p) => n + s.byPlayer[p].dmg, 0);
 
   const SideCol = ({ p }: { p: PlayerId }) => {
     const t = s.byPlayer[p];
     const roster = cards.filter((c) => c.owner === p).sort((a, b) => mvpScore(b) - mvpScore(a));
     const bestId = roster.length && mvpScore(roster[0]) > 0 ? roster[0] : null;
+    // The bar behind each row is damage relative to the side's hardest hitter.
+    const topDmg = Math.max(0, ...roster.map((c) => c.dmg));
     return (
       <div className={`mr-side ${game.win?.winner === p ? "won" : ""}`}>
-        <div className="mr-side-h">{sideName(p, me)}{game.win?.winner === p ? " · won" : ""}</div>
-        <div className="mr-row"><span>Damage dealt</span><b>{t.dmg}</b></div>
+        <div className="mr-side-h">
+          <span>{sideName(p, me)}</span>
+          {game.win?.winner === p && <span className="mr-won">Winner</span>}
+        </div>
+        <div className="mr-tiles">
+          <div className="mr-tile"><b>{t.dmg}</b><span>Damage</span></div>
+          <div className="mr-tile"><b>{t.kills}</b><span>Kills</span></div>
+          <div className="mr-tile"><b>{t.heal}</b><span>Healing</span></div>
+        </div>
         <div className="mr-row"><span>Damage taken</span><b>{t.taken}</b></div>
         <div className="mr-row"><span>Shields absorbed</span><b>{t.shielded}</b></div>
-        <div className="mr-row"><span>Healing done</span><b>{t.heal}</b></div>
-        <div className="mr-row"><span>Kills · losses</span><b>{t.kills} · {t.deaths}</b></div>
+        <div className="mr-row"><span>Cards lost</span><b>{t.deaths}</b></div>
         <div className="mr-row"><span>Statuses suffered</span><b>{t.debuffs}</b></div>
         <div className="mr-row"><span>Captures</span><b>{t.captures}</b></div>
         {roster.length > 0 && (
@@ -85,7 +96,8 @@ export function MatchReport({ game, heading, me = "P1" }: { game: GameState; hea
               ))}
             </div>
             {roster.map((c, i) => (
-              <CardRow key={`${c.name}-${i}`} c={c} best={c === bestId} />
+              <CardRow key={`${c.name}-${i}`} c={c} best={c === bestId}
+                share={topDmg ? c.dmg / topDmg : 0} />
             ))}
           </div>
         )}
@@ -114,12 +126,23 @@ export function MatchReport({ game, heading, me = "P1" }: { game: GameState; hea
           </div>
         </div>
       </div>
+      {seats.length > 1 && totalDmg > 0 && (
+        <div className="mr-split" role="img"
+          aria-label={seats.map((p) => `${sideName(p, me)} ${s.byPlayer[p].dmg} damage`).join(", ")}>
+          {seats.map((p) => (
+            <div key={p} className={`mr-split-seg ${p === me ? "me" : "foe"}`}
+              style={{ flexGrow: s.byPlayer[p].dmg }}>
+              {s.byPlayer[p].dmg > 0 && <b>{s.byPlayer[p].dmg}</b>}
+            </div>
+          ))}
+        </div>
+      )}
       <div className="mr-sides">
         {/* Every seat. Two literal columns meant a 3-4 player report dropped
             P3 and P4 entirely - and when one of them won, `win.winner === p`
             was false for both columns rendered, so the report showed two losers
             and marked no winner at all. */}
-        {seatsOf(game).map((p) => <SideCol key={p} p={p} />)}
+        {seats.map((p) => <SideCol key={p} p={p} />)}
       </div>
     </div>
   );
