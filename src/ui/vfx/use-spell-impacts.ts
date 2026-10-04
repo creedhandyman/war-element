@@ -185,6 +185,7 @@ export function playAttack(before: GameState, after: GameState, ms: number) {
     l.play({
       kind: "attack", from, targets: aimed.map((a) => a.r), power: aimed.map((a) => shotPower(a.dmg, act.special)), element: act.element,
       melee: act.melee, special: act.special, arriving: act.arriving, variant: act.variant, seconds: ms / 1000,
+      ...(act.arrow ? { arrow: true } : {}),
       soaked: aimed.map((a) => a.soaked),
       ...(act.signature ? { signature: act.signature, to: to ?? from, ahead: aheadOf(act.actor, act.dir), board: board ?? from } : {}),
     });

@@ -22,7 +22,7 @@
  *  something draws again (see `wake`). The module itself is a lazy chunk (see
  *  use-spell-impacts.ts): a player who never sees a spell hit never downloads
  *  Pixi. */
-import { Application, Container, Graphics, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
+import { Application, Container, Graphics, Matrix, Particle, ParticleContainer, Sprite, Texture } from "pixi.js";
 import type { Element, StatusKind } from "../../engine";
 import { LOOKS, lookFor } from "./looks";
 import { platePoint } from "./looks/base";
@@ -60,6 +60,10 @@ export type LayerFx =
   /** A card's attack being DELIVERED — the wind-up and the throw, or the
    *  swing — for exactly `seconds`, so it arrives as the turn lands. */
   | { kind: "attack"; from: Rect; targets: Rect[]; element: Element; melee: boolean; special: boolean; seconds: number;
+      /** A RANGER's shot: the element's own projectile, pressed long and thin
+       *  across its flight (`squished`) so it reads as an arrow, apart from a
+       *  Mage's. */
+      arrow?: boolean;
       /** Each target's shot size, aligned with `targets` — its damage as a
        *  scale (spell-fx.ts `shotPower`). */
       power?: number[];
@@ -203,7 +207,7 @@ interface Spark {
 /** A short-lived drawn thing: flash, shockwave, lightning, rays. `tick`
  *  returns false when it is finished, and the layer disposes of it. */
 interface Burst {
-  node?: Graphics | Sprite;
+  node?: Container;
   age: number;
   delay: number;
   tick(t: number, dt: number): boolean;
@@ -307,6 +311,17 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   });
   app.stage.addChild(shade, bursts, sparks);
 
+  // ── WHERE THE TOOLS DRAW ──────────────────────────────────────────────────
+  // Straight onto the two layers, except while a RANGER's shot is being drawn
+  // (`squished`): then into a pair of containers that press everything flat
+  // across its line of flight, and every spark born for it is squeezed the
+  // same way. Whatever the element throws comes out long and thin, an arrow of
+  // it, and still lands exactly where it was aimed: the line of flight itself
+  // does not move.
+  interface Frame { add: Container; dark: Container; m?: Matrix }
+  const FLAT: Frame = { add: bursts, dark: shade };
+  let into: Frame = FLAT;
+
   const live: Spark[] = [];
   const pool: Spark[] = [];
   const effects: Burst[] = [];
@@ -404,7 +419,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     sp.position.set(x, y);
     sp.tint = st.palette[1];
     sp.alpha = 0;
-    bursts.addChild(sp);
+    into.add.addChild(sp);
     const size = 260 * strength * (st.flash ?? 1);
     effects.push({
       node: sp, age: 0, delay, tick: wrap((t) => {
@@ -436,7 +451,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   function addArcs(x: number, y: number, st: Style, strength: number, n: number) {
     const g = new Graphics();
     g.position.set(x, y);
-    bursts.addChild(g);
+    into.add.addChild(g);
     let frame = 0;
     effects.push({
       node: g, age: 0, delay: 0, tick: wrap((t) => {
@@ -466,7 +481,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   function addRays(x: number, y: number, st: Style, strength: number, n: number) {
     const g = new Graphics();
     g.position.set(x, y);
-    bursts.addChild(g);
+    into.add.addChild(g);
     const base = rand(0, Math.PI * 2);
     effects.push({
       node: g, age: 0, delay: 0, tick: wrap((t) => {
@@ -527,8 +542,14 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     }
   }
 
-  function spawnRaw(x: number, y: number, vx: number, vy: number, life: number, st: Style, ox: number, oy: number) {
+  function spawnRaw(x: number, y: number, vx: number, vy: number, life: number, st: Style, ox: number, oy: number, f = into) {
     if (live.length >= cap) return;
+    const m = f.m;
+    if (m) {
+      [x, y] = [m.a * x + m.c * y + m.tx, m.b * x + m.d * y + m.ty];
+      [vx, vy] = [m.a * vx + m.c * vy, m.b * vx + m.d * vy];
+      [ox, oy] = [m.a * ox + m.c * oy + m.tx, m.b * ox + m.d * oy + m.ty];
+    }
     const s = pool.pop() ?? {
       p: new Particle({ texture: tex, anchorX: 0.5, anchorY: 0.5 }),
       vx: 0, vy: 0, ox: 0, oy: 0, age: 0, life: 1, s0: 1, s1: 1, style: st,
@@ -561,7 +582,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     sp.tint = color;
     sp.alpha = 0;
     sp.scale.set((Math.max(r.w, r.h) * scale) / TEX);
-    bursts.addChild(sp);
+    into.add.addChild(sp);
     effects.push({
       node: sp, age: 0, delay: 0, tick: wrap((t) => {
         sp.alpha = (t < 0.2 ? t / 0.2 : 1 - (t - 0.2) / 0.8) * peak;
@@ -574,7 +595,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   function ring(r: Rect, color: number, r0: number, r1: number, seconds: number, width = 4) {
     const g = new Graphics();
     g.position.set(r.x + r.w / 2, r.y + r.h / 2);
-    bursts.addChild(g);
+    into.add.addChild(g);
     const base = Math.min(r.w, r.h) / 2;
     effects.push({
       node: g, age: 0, delay: 0, tick: wrap((t) => {
@@ -589,7 +610,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   /** A band of light across a rect (a wall's footing, a pulse's line). */
   function band(r: Rect, color: number, seconds: number) {
     const g = new Graphics();
-    bursts.addChild(g);
+    into.add.addChild(g);
     effects.push({
       node: g, age: 0, delay: 0, tick: wrap((t) => {
         const k = t < 0.15 ? t / 0.15 : 1 - (t - 0.15) / 0.85;
@@ -682,11 +703,12 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   /** A projectile: a glowing head from `from` to `to` in exactly `seconds`,
    *  shedding a trail as it goes. */
   function shot(p: Shot) {
+    const f = into; // its trail is shed long after this call returns
     const head = new Sprite(tex);
     head.anchor.set(0.5);
     head.tint = p.head;
     head.alpha = 0;
-    bursts.addChild(head);
+    f.add.addChild(head);
     const trail: Style = {
       palette: p.trail.palette, sparks: 0, speed: [0, 0], gravity: p.trail.gravity ?? 0, drag: 0.3,
       life: p.trail.life, size: p.trail.size, streak: false,
@@ -713,7 +735,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
           acc -= 1;
           const a = rand(0, Math.PI * 2), d = rand(0, p.trail.drift);
           spawnRaw(x + rand(-3, 3), y + rand(-3, 3), Math.cos(a) * d - vx * 0.05, Math.sin(a) * d - vy * 0.05,
-            rand(p.trail.life[0], p.trail.life[1]), trail, x, y);
+            rand(p.trail.life[0], p.trail.life[1]), trail, x, y, f);
         }
         if (t >= 1) {
           p.onArrive?.();
@@ -727,7 +749,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   /** Forked lightning from `a` to `b`, re-rolled every other frame. */
   function bolt(a: Pt, b: Pt, core: number, halo: number, seconds: number) {
     const g = new Graphics();
-    bursts.addChild(g);
+    into.add.addChild(g);
     const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
     const nx = -(b.y - a.y) / len, ny = (b.x - a.x) / len;
     let frame = 0;
@@ -836,7 +858,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     sp.position.set(at.x, at.y);
     sp.tint = color;
     sp.alpha = 0;
-    bursts.addChild(sp);
+    into.add.addChild(sp);
     effects.push({
       node: sp, age: 0, delay: 0, tick: wrap((t) => {
         sp.alpha = peak * t;
@@ -1104,6 +1126,19 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
         });
         return;
       }
+      if (fx.arrow) {
+        // A RANGER'S SHOT: the element's own projectile, pressed long and thin
+        // across its flight, an arrow of it. Grown by 1/sqrt(k) first, so it
+        // keeps its area (its damage, `shotPower`) and only changes shape. A
+        // look that draws a LINE down the flight instead (BOLT's strike, DAWN's
+        // lance) sizes its width by `power`, which the press would thin to k:
+        // handed power / k, the line keeps its width and only its zigzag and
+        // flare are pressed straight.
+        const k = ARROW_SQUISH;
+        look.projectile(toolsIn(t, squished(from, stop, k, T)),
+          { from, to: stop, delay: wind, seconds: travel, special: fx.special, size: (size * power) / Math.sqrt(k), power: power / k });
+        return;
+      }
       look.projectile(t, { from, to: stop, delay: wind, seconds: travel, special: fx.special, size: size * power, power });
     });
   }
@@ -1112,7 +1147,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
    *  across `angle`, bulging to one side. */
   function arcCut(c: Pt, reach: number, angle: number, color: number, width: number, draw: number, hold: number, bulge = 0.35) {
     const g = new Graphics();
-    bursts.addChild(g);
+    into.add.addChild(g);
     const dx = Math.cos(angle) * reach, dy = Math.sin(angle) * reach;
     const p0 = { x: c.x - dx, y: c.y - dy }, p2 = { x: c.x + dx, y: c.y + dy };
     const ctrl = { x: c.x - dy * bulge * 2, y: c.y + dx * bulge * 2 };
@@ -1141,7 +1176,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   /** Straight rakes drawn quickly, then fading — claw marks. */
   function rakes(c: Pt, reach: number, angle: number, color: number, count: number, gap: number, width: number) {
     const g = new Graphics();
-    bursts.addChild(g);
+    into.add.addChild(g);
     const ux = Math.cos(angle), uy = Math.sin(angle);
     const nx = -uy, ny = ux;
     const draw = 0.09, hold = 0.3;
@@ -1223,7 +1258,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
   /** Something drawn by hand for `seconds`, cleared and redrawn each frame. */
   function draw(seconds: number, fn: (g: Graphics, t: number, dt: number) => void, opts?: { delay?: number; dark?: boolean }) {
     const g = new Graphics();
-    (opts?.dark ? shade : bursts).addChild(g);
+    (opts?.dark ? into.dark : into.add).addChild(g);
     effects.push({
       node: g, age: 0, delay: opts?.delay ?? 0, tick: (age, dt) => {
         const t = Math.min(1, age / seconds);
@@ -1254,6 +1289,66 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     };
     tools.set(element, t);
     return t;
+  }
+
+  /** The same tools, drawing into `frame` (see `into`). A look goes on calling
+   *  `t.*` from its own timers (`later`, a hand-drawn piece's frames), so each
+   *  call sets the frame for as long as it runs and then puts it back. */
+  function toolsIn(base: FxTools, frame: Frame): FxTools {
+    const within = <R,>(fn: () => R): R => {
+      const was = into;
+      into = frame;
+      try { return fn(); } finally { into = was; }
+    };
+    return {
+      element: base.element, style: base.style,
+      get quality() { return base.quality; },
+      emit: (e) => within(() => base.emit(e)),
+      spark: (x, y, vx, vy, life, style, origin) => within(() => base.spark(x, y, vx, vy, life, style, origin)),
+      shot: (p) => within(() => base.shot(p)),
+      glow: (r, color, peak, seconds, scale) => within(() => base.glow(r, color, peak, seconds, scale)),
+      ring: (r, color, r0, r1, seconds, width) => within(() => base.ring(r, color, r0, r1, seconds, width)),
+      band: (r, color, seconds) => within(() => base.band(r, color, seconds)),
+      charge: (at, size, color, peak, seconds) => within(() => base.charge(at, size, color, peak, seconds)),
+      flash: (at, color, strength, delay) => within(() => base.flash(at, color, strength, delay)),
+      later: (seconds, fn) => base.later(seconds, () => within(fn)),
+      arcCut: (c, reach, angle, color, width, draw, hold, bulge) =>
+        within(() => base.arcCut(c, reach, angle, color, width, draw, hold, bulge)),
+      rakes: (c, reach, angle, color, count, gap, width) => within(() => base.rakes(c, reach, angle, color, count, gap, width)),
+      bolt: (a, b, core, halo, seconds) => within(() => base.bolt(a, b, core, halo, seconds)),
+      arcs: (at, palette, strength, n) => within(() => base.arcs(at, palette, strength, n)),
+      rays: (at, palette, strength, n) => within(() => base.rays(at, palette, strength, n)),
+      draw: (seconds, fn, opts) => within(() => base.draw(seconds, fn, opts)),
+    };
+  }
+
+  /** How flat a Ranger's shot is pressed across its flight: 1 is untouched. */
+  const ARROW_SQUISH = 0.4;
+
+  /** A frame pressing everything flat across the line from `a` to `b` by `k`:
+   *  a point on the line stays where it is, one beside it is drawn `k` as far
+   *  out. Two containers (light and shade), kept for at least `span` seconds
+   *  and then for as long as anything drawn in them is still playing. */
+  function squished(a: Pt, b: Pt, k: number, span: number): Frame {
+    const len = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+    const ux = (b.x - a.x) / len, uy = (b.y - a.y) / len;
+    // Along the line x1, across it xk: u u^T + k n n^T, about `a`.
+    const m = new Matrix(ux * ux + k * uy * uy, ux * uy * (1 - k), ux * uy * (1 - k), uy * uy + k * ux * ux);
+    m.tx = a.x - (m.a * a.x + m.c * a.y);
+    m.ty = a.y - (m.b * a.x + m.d * a.y);
+    const add = new Container(), dark = new Container();
+    add.setFromMatrix(m);
+    dark.setFromMatrix(m);
+    bursts.addChild(add);
+    shade.addChild(dark);
+    effects.push({
+      node: add, age: 0, delay: 0, tick: (age) => {
+        if (age < span + 8 && (age < span || add.children.length > 0 || dark.children.length > 0)) return true;
+        dark.destroy();
+        return false;
+      },
+    });
+    return { add, dark, m };
   }
 
   function play(fx: LayerFx) {

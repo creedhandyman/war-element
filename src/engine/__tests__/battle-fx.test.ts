@@ -45,6 +45,22 @@ describe("a card's battle turn, read off what it did", () => {
     expect(act.targets).toEqual([{ row: 2, col: 1 }]);
   });
 
+  // Owner, 2026-10-03: "distinguish the rangers' attacks from mages' attacks
+  // ... squish the projectile, making it more arrow-like for each element".
+  it("a Ranger's shot is drawn as an arrow; a Mage's is not", () => {
+    for (const [id, arrow] of [["pyro_flamehound", true], ["pyro_sol", undefined]] as const) {
+      let s = prepState(3);
+      place(s, id, "P2", 1, 1);
+      place(s, "leaf_greegon", "P1", 2, 1, { curHp: 30, maxHp: 30, curShields: 0, autoMode: "full" });
+      s.players.P2.magicPool = 0;
+      s = atBattle(s);
+      s.players.P2.magicPool = 0;
+      const { act } = firstTurnOf(s, "P2");
+      expect(act.melee, id).toBe(false);
+      expect(act.arrow, id).toBe(arrow);
+    }
+  });
+
   it("a Special is a Special: Blackice's row sweep", () => {
     let s = prepState(3);
     place(s, "aqua_blackice", "P2", 1, 1);

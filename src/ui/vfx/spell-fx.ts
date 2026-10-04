@@ -261,6 +261,9 @@ export interface CardAttack {
   /** The way it faced (`facing`): where an aimed Special pointed, else
    *  forward for its seat. */
   dir: Dir;
+  /** A RANGER shooting: drawn as an arrow of its element, apart from a Mage's
+   *  shot (impact-layer `squished`). */
+  arrow?: boolean;
 }
 
 /** A MYTHIC's signature: its card id, when the step is its Special or the
@@ -405,6 +408,7 @@ export function cardAttack(before: GameState, after: GameState): CardAttack | nu
   return {
     seat: a.seat, actor: a.at, element: a.def.element,
     melee: a.def.attackType === "Melee", special: a.special, arriving: a.arriving, targets, variant: a.variant,
+    ...(a.def.cardClass === "Ranger" && a.def.attackType !== "Melee" ? { arrow: true } : {}),
     damage: targets.map((at) => damageAt(before, after, at)),
     soaked: targets.map((at) => {
       const card = cardAt(before, at);
