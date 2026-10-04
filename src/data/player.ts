@@ -86,32 +86,32 @@ export const avatarArt = (cardId: string): string =>
 export interface AvatarFocus { x: number; y: number; zoom: number }
 
 export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
-  boss_rotroot:      { x: 45, y: 13, zoom: 520 },
-  boss_skeleeze:     { x: 37, y: 31, zoom: 560 },
-  boss_xilty:        { x: 48, y: 30, zoom: 470 },
-  boss_permafrost:   { x: 32, y: 18, zoom: 430 },
-  boss_overclock:    { x: 44, y: 23, zoom: 520 },
-  boss_nightshrike:  { x: 48, y: 41, zoom: 520 },
-  boss_basilisk:     { x: 47, y: 56, zoom: 330 },
-  boss_helion:       { x: 44, y: 18, zoom: 520 },
-  boss_hoarfell:     { x: 50, y: 26, zoom: 400 },
-  boss_thunderfangs: { x: 26, y: 56, zoom: 360 },
-  boss_vulcanyx:     { x: 72, y: 17, zoom: 300 },
-  boss_umbranova:    { x: 48, y: 44, zoom: 380 },
-  boss_cryovex:      { x: 61, y: 30, zoom: 430 },
-  boss_kazehaya:     { x: 37, y: 22, zoom: 480 },
-  boss_kato:         { x: 32, y: 58, zoom: 260 },
-  boss_smolder:      { x: 38, y: 30, zoom: 480 },
-  boss_spindle:      { x: 52, y: 26, zoom: 380 },
-  boss_skybreaker:   { x: 47, y: 17, zoom: 560 },
-  boss_continental:  { x: 60, y: 19, zoom: 480 },
-  boss_kheiringer:   { x: 60, y: 18, zoom: 650 },
+  boss_rotroot:      { x: 45, y: 13, zoom: 440 },
+  boss_skeleeze:     { x: 37, y: 31, zoom: 480 },
+  boss_xilty:        { x: 48, y: 30, zoom: 400 },
+  boss_permafrost:   { x: 32, y: 18, zoom: 370 },
+  boss_overclock:    { x: 44, y: 23, zoom: 440 },
+  boss_nightshrike:  { x: 48, y: 41, zoom: 440 },
+  boss_basilisk:     { x: 47, y: 56, zoom: 280 },
+  boss_helion:       { x: 44, y: 18, zoom: 440 },
+  boss_hoarfell:     { x: 50, y: 26, zoom: 340 },
+  boss_thunderfangs: { x: 26, y: 56, zoom: 310 },
+  boss_vulcanyx:     { x: 72, y: 17, zoom: 260 },
+  boss_umbranova:    { x: 48, y: 44, zoom: 320 },
+  boss_cryovex:      { x: 61, y: 30, zoom: 370 },
+  boss_kazehaya:     { x: 37, y: 22, zoom: 410 },
+  boss_kato:         { x: 32, y: 58, zoom: 220 },
+  boss_smolder:      { x: 38, y: 30, zoom: 410 },
+  boss_spindle:      { x: 52, y: 26, zoom: 320 },
+  boss_skybreaker:   { x: 47, y: 17, zoom: 480 },
+  boss_continental:  { x: 60, y: 19, zoom: 410 },
+  boss_kheiringer:   { x: 60, y: 18, zoom: 550 },
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders
  *  as a portrait crop rather than as nothing. */
 export const avatarFocus = (cardId: string): AvatarFocus =>
-  AVATAR_FOCUS[cardId] ?? { x: 50, y: 22, zoom: 450 };
+  AVATAR_FOCUS[cardId] ?? { x: 50, y: 22, zoom: 380 };
 
 /** The inline style that frames a head. One place, so the home row, the picker
  *  and anywhere else this lands cannot crop it three different ways. */
