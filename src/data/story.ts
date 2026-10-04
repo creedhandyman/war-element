@@ -323,17 +323,18 @@ const PYRO: StoryRegion = {
   art: "/maps/pyro.webp",
   artRatio: 1536 / 1024,
   requires: ["GA", "GC2"], // Gate A from LEAF, or Gate C from AQUA
-  // The Veil Gate: the art paints DUSK's corruption already bleeding through it.
-  blightAt: { x: 80, y: 87 },
+  // The Veil Gate: the art paints DUSK's corruption already bleeding through it,
+  // and the Blight node stands at the portal's foot.
+  blightAt: { x: 88.5, y: 68.5 },
   nodes: [
     // Two arms out of Ashfall — the city road south-east and the forge road
     // west — converging on the Inner Keep and then the Dragon's Lair.
-    { id: "P1", name: "Ashfall Approach", kind: "skirmish", at: { x: 52, y: 17 },
+    { id: "P1", name: "Ashfall Approach", kind: "skirmish", at: { x: 51.5, y: 13.5 },
       requires: [], tribe: "Goblin", roster: ["pyro_staph", "pyro_sparky", "pyro_florence"], adds: ["pyro_firecrack"],
       note: "Where the forest dies. The road back to LEAF is right behind you.",
       lore: "Where other nations fear the volcano, PYRO built a city that agrees with it. The approach is not guarded so much as advertised — Staph and Sparky are what the city sends out to say hello."
     },
-    { id: "P3", name: "Cinder Road", kind: "skirmish", at: { x: 61, y: 27 },
+    { id: "P3", name: "Cinder Road", kind: "skirmish", at: { x: 62, y: 24.5 },
       requires: ["P1"], tribe: "Forged Tech", roster: ["pyro_ingit", "pyro_bbq", "pyro_taper", "pyro_heatsink_golem"], adds: ["pyro_canister"],
       note: "Nobody built this fight either — loose embers off the road. Cheap, and they add up if you dawdle.",
       lore: "No one laid the Cinder Road: ash banked against ash until there was a road, and PYRO counts that as having built it. Ingit and the Heatsink Golem keep it warm; the embers do the rest."
@@ -343,12 +344,12 @@ const PYRO: StoryRegion = {
       note: "Forged Tech works. Fight the tribe here before you meet its Mythic at the Forge Core.",
       lore: "The Forged are makers before they are soldiers, and the district fights the way it works. BaBoom and Canister go off exactly as designed, and Spitfire is already assembling the next one."
     },
-    { id: "P5", name: "The Slagfields", kind: "skirmish", at: { x: 84, y: 31 },
+    { id: "P5", name: "The Slagfields", kind: "skirmish", at: { x: 83, y: 19 },
       requires: ["P3"], tribe: "Volcanic", roster: ["pyro_ash_boar", "pyro_slag_tortoise", "pyro_ember_scorpion", "pyro_smog_card"], adds: [],
       note: "Cooled lava badlands. Four Rares and no champion — the heaviest Skirmish in the region.",
       lore: "Older than the forges that would have filled it — this is lava the mountain put down and never came back to collect. The Slag Tortoise has not moved since, and sees no reason to start."
      },
-    { id: "P6", name: "Pyro City Gates", kind: "warden", at: { x: 46, y: 48.5 },
+    { id: "P6", name: "Pyro City Gates", kind: "warden", at: { x: 48.5, y: 45 },
       requires: ["P3"], tribe: "Forged Tech", roster: ["pyro_liza", "pyro_sarra", "pyro_firefly"], adds: ["pyro_baboom", "pyro_spitfire"],
       note: "The gates never close, so the watch does the closing. Utility Epics — answer them or play around them all day.",
       lore: "The gates have hinges that have never been used: closing one would concede there is something out there worth closing against. Liza and Sarra do the closing instead, and do it faster."
@@ -363,7 +364,7 @@ const PYRO: StoryRegion = {
       note: "The Knights at drill: a wall, a second wall, and the Support keeping both standing. Bring a can opener.",
       lore: "The Pyro Knights garrison here. The Forged build the city's strength; the Knights make certain nothing gets close enough to test it — and Burnout would honestly rather something tried."
     },
-    { id: "P8", name: "Forgotten Ruins", kind: "warden", at: { x: 88, y: 57 },
+    { id: "P8", name: "Forgotten Ruins", kind: "warden", at: { x: 89, y: 32 },
       requires: ["P5"], tribe: "Dragon", roster: ["pyro_dyna", "pyro_sseerr", "pyro_fenix"], adds: ["pyro_pyrodactyl"],
       note: "A wyrm roost in the rubble. The dragons were under the city before there was a city — Emberclaw still is.",
       lore: "Pyro City was built, quite literally, on top of whatever came before it, and has never once apologised for building over the evidence. Fenix keeps coming back up through the floor."
@@ -371,7 +372,7 @@ const PYRO: StoryRegion = {
     // Gated off the city, not off P1: the painted road to the harbour runs
     // through Pyro City. Still only four nodes deep, which keeps the doc's
     // point that a player finding PYRO too punishing can sail out early.
-    { id: "P2", name: "Sunfall Coast", kind: "skirmish", at: { x: 34, y: 88 },
+    { id: "P2", name: "Sunfall Coast", kind: "skirmish", at: { x: 31.5, y: 78.5 },
       requires: ["P6"], tribe: "Pirate", roster: ["pyro_scully", "pyro_wick", "pyro_firecrack"], adds: ["aqua_buccaneers"],
       overflow: ["aqua_buccaneers"], // pirate haven — the sea road to AQUA
       note: "Pirate haven. Gate C opens the sea route to AQUA from here.",
@@ -394,7 +395,7 @@ const PYRO: StoryRegion = {
       note: "Required. Clearing it opens Gate D — the Veil Gate, and the DUSK reach.",
       lore: "Every child here is raised on the same understanding: the city's fire and the Dragon's fire are one fire. Pyrogon has simply been keeping more of it, longer, than anyone alive."
     },
-    { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 23, y: 66 },
+    { id: "P12", name: "The Forge Core", kind: "throne", at: { x: 24, y: 61 },
       requires: ["P13"], tribe: "Forged Tech", roster: ["pyro_nitro"],
       // Escorts: Forged Tech, the tribe Nitro tops — farmable at P4.
       adds: ["pyro_heatsink_golem", "pyro_dyna", "pyro_liza"],
@@ -403,7 +404,7 @@ const PYRO: StoryRegion = {
     },
     // Gate C, PYRO side. Its twin sits on AQUA's map, so switching routes never
     // means walking back through LEAF.
-    { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 53, y: 94 },
+    { id: "GC", name: "Gate C: Sunfall Harbor", kind: "gate", at: { x: 55.5, y: 91 },
       requires: ["P2"], tribe: "Pirate", roster: [], opens: ["aqua"],
       adds: ["pyro_flamehound", "pyro_canister", "aqua_buccaneers", "aqua_bootlegger", "aqua_piranha", "aqua_blub", "pyro_liza", "aqua_blackice"],
       demand: { kind: "class", value: "Tank", count: 3 },
