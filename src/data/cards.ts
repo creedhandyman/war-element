@@ -3370,8 +3370,10 @@ export const CARDS: CardDef[] = [
     cost: 2,
     dmg: 4, // 2->3
     hits: 1,
-    hp: 12,
-    sp: 6,
+    // Slower and tougher (owner, 2026-10-04): SP 6 -> 4, HP 12 -> 14. A
+    // thorn wall wants to be hit, not to get there first.
+    hp: 14,
+    sp: 4,
     shields: 0,
     keywords: {},
     tribe: "Grove",
