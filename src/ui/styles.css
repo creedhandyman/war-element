@@ -4131,7 +4131,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
        240px is five 46px slots plus gaps — the smallest board still tappable.
        Below that the page overflows and scrolls, which is recoverable; a 39px
        board is not. */
-    --board-size: max(240px, min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87)));
+    /* SVH, not DVH (owner, 2026-10-04: "the battlefield shrinks and grows when
+       the phone is scrolled"). A phone browser slides its address bar in and
+       out on any drag, and `dvh` follows the bar, so the board was being
+       re-sized on every touch. `svh` is the height with the bar SHOWN — it
+       never moves — so the board keeps one size. The wrap stays on `dvh` and
+       simply gains a little room at the foot when the bar is hidden. */
+    --board-size: max(240px, min(calc(100vw - 12px), calc((100svh - var(--hud-budget)) * 70 / 87)));
     --board-h: calc(var(--board-size) * 87 / 70);
   }
 
@@ -4761,7 +4767,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      of the budget moved it, because the thing overflowing was never the width. */
   :root {
     --hud-budget: 280px;
-    --board-size: max(150px, min(calc(100vw - 12px), calc((100dvh - var(--hud-budget)) * 70 / 87)));
+    --board-size: max(150px, min(calc(100vw - 12px), calc((100svh - var(--hud-budget)) * 70 / 87))); /* svh: see above */
     --board-h: calc(var(--board-size) * 87 / 70);
   }
   /* The opponent's fanned cards are decoration, and the first thing to go when
@@ -4826,7 +4832,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     /* Floored for the same reason as the portrait rule above — landscape is
        the tighter of the two on height, so it goes negative sooner. */
     --board-size: max(200px, min(
-      calc(100dvh - 186px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)),
+      calc(100svh - 186px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)), /* svh: the address bar must not resize the board */
       calc(100vw - var(--hreserve))
     ));
     padding: calc(5px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right))
