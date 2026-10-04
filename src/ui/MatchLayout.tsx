@@ -20,7 +20,45 @@
  *  board on a phone; `.edge-tab` and `.mobile-sheet` are display:none outside
  *  the compact query. Nothing here asks which tier it is on.
  */
-import type { ReactNode } from "react";
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from "react";
+
+/** The battle log's list, pinned to its NEWEST line.
+ *
+ *  The log reads top to bottom, oldest first, and the panel never scrolled —
+ *  so it showed the oldest of the lines it held and the fight carried on out
+ *  of sight below. Now each new line scrolls it to the bottom, UNLESS the
+ *  player has scrolled up to read: then it stays put, and scrolling back to
+ *  the bottom re-pins it. A size change (the phone drawer opening, a rotate)
+ *  re-pins too, because a list that was hidden has no scroll position yet. */
+function LogList(props: { children: ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const pinned = useRef(true);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (el && pinned.current) el.scrollTop = el.scrollHeight;
+  }, [props.children]);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver(() => {
+      if (pinned.current) el.scrollTop = el.scrollHeight;
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return (
+    <div
+      className="loglist"
+      ref={ref}
+      onScroll={(e) => {
+        const el = e.currentTarget;
+        pinned.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24;
+      }}
+    >
+      {props.children}
+    </div>
+  );
+}
 
 export type MobilePanel = "log" | "spells" | null;
 
@@ -122,7 +160,7 @@ export function MatchLayout(props: {
           Battle Log
           <button className="panel-close" onClick={() => setMobilePanel(null)} aria-label="Close">✕</button>
         </div>
-        <div className="loglist">{props.logEntries}</div>
+        <LogList>{props.logEntries}</LogList>
       </div>
 
       {/* Mobile-only edge tabs — open the Log (left) / Spells (right) overlays. */}

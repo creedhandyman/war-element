@@ -399,6 +399,8 @@ function bigArrival(before: GameState, next: GameState, whose: (seat: PlayerId) 
  *  is a card to spot. */
 const holdFor = (zone: StrikeZone) => (zone.kind === "target" ? TARGET_HOLD_MS : STRIKE_HOLD_MS);
 
+/** How many raw log lines the battle-log panel keeps — several whole rounds. */
+const LOG_KEEP = 400;
 const LOG_CHATTER = /\bpasses\b|priority|^Battle! Queue|preps first|Opening hands|draws \d|mulligans/i;
 
 /** Collapse CONSECUTIVE identical log lines into one row with a ×N counter, so a
@@ -4923,8 +4925,11 @@ export function App() {
     over: (row: number, col: number) => slotOverRef.current(row, col),
     drop: (row: number, col: number) => slotDropRef.current(row, col),
   }), []);
-  // The log panel's rows only change when the log does.
-  const logEntries = useMemo(() => condenseLog(game.log.slice(-60)).map((e, i) => (
+  // The log panel's rows only change when the log does. LOG_KEEP lines, not
+  // 60: a round on the bigger boards runs well past 60, so the panel could not
+  // hold one whole round (owner, 2026-10-03). The list sticks to its newest
+  // line as the fight runs (LogList in MatchLayout).
+  const logEntries = useMemo(() => condenseLog(game.log.slice(-LOG_KEEP)).map((e, i) => (
     <div
       key={i}
       className={[e.text.includes("(P1)") ? "me" : "", e.chatter ? "log-chatter" : "log-event"].filter(Boolean).join(" ")}
