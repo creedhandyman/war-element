@@ -534,8 +534,10 @@ export const SPELLS: SpellDef[] = [
     element: "GALE",
     cost: 6,
     kind: "field",
-    text: "Field (3 rounds): your GALE allies gain +3 SP, and every push you cause travels 1 space further.",
-    field: { rounds: 3, sp: 3, push: 1 },
+    // +3 SP PER TURN it runs (owner, 2026-10-04), not a flat +3: the cast and
+    // each round after while it holds — +3, +6, +9 — kept for good.
+    text: "Field (3 rounds): your GALE allies gain +3 SP every turn it runs (up to SP 21), and every push you cause travels 1 space further.",
+    field: { rounds: 3, spPerRound: 3, push: 1 },
   },
   {
     id: "bolt_power_grid",

@@ -847,6 +847,8 @@ function resolveSpell(
     // whose terrain already matched your element.
     draft.fields.unshift({ owner: player, spellId: spell.id, element: spell.element, roundsLeft: rounds, ...buff });
     draft.log.push(`${spell.name} blankets the battlefield for ${rounds} rounds.`);
+    // Jetstream's first helping lands with the cast; Cleanup pays the rest.
+    if (buff.spPerRound) fieldSpGain(draft, draft.fields[0]);
     return;
   }
 
@@ -2247,6 +2249,23 @@ function performBattleAction(
   }
   basicAttack(draft, instanceId, chosen.length === 1 ? chosen[0] : chosen);
   payAttackTrade(draft, card); // Ethereal Trade self-cost, once per basic attack
+}
+
+/** One helping of a field's per-round SP (Jetstream): every living ally of the
+ *  field's owner and element gains `spPerRound` SP for good, held to
+ *  GALE_SP_CAP the way Zephyr's own ramp is. */
+function fieldSpGain(draft: GameState, f: { owner: PlayerId; element: string; spPerRound?: number }): void {
+  const n = f.spPerRound ?? 0;
+  if (n <= 0) return;
+  let lifted = 0;
+  for (const c of Object.values(draft.cards)) {
+    if (c.owner !== f.owner || !c.pos || c.curHp <= 0 || getDef(c.defId).element !== f.element) continue;
+    const cur = effectiveSp(draft, c);
+    if (cur >= GALE_SP_CAP) continue;
+    c.spBonus += Math.min(n, GALE_SP_CAP - cur);
+    lifted++;
+  }
+  if (lifted) draft.log.push(`The jetstream lifts ${lifted} ${f.element} card(s) — +${n} SP.`);
 }
 
 /**
@@ -4122,6 +4141,8 @@ function doCleanupPhase(draft: GameState): void {
       draft.players[p].shadeUntil = left.length ? left : undefined;
     }
   }
+  // Jetstream: another +SP for every round the field will still be up for.
+  for (const f of draft.fields) if (f.spPerRound && (f.permanent || f.roundsLeft > 1)) fieldSpGain(draft, f);
   // Standing terrain never ticks down — it is the battlefield, not a spell.
   for (const f of draft.fields) if (!f.permanent) f.roundsLeft--;
   for (const f of draft.fields.filter((f) => f.roundsLeft <= 0))

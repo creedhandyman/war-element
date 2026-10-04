@@ -2357,6 +2357,11 @@ export interface FieldBuff {
   block?: number;
   reflect?: number;
   evasion?: boolean;      // element allies gain EVASION while up (Nightfall)
+  /** Jetstream (owner, 2026-10-04): every element ally GAINS this much SP for
+   *  good on the cast, and again at each Cleanup the field will still be up
+   *  for — +3, +6, +9 over a 3-round field. Real gains (spBonus), so GALE's
+   *  Zephyr counts them, held to GALE_SP_CAP like Zephyr's own ramp. */
+  spPerRound?: number;
   specialDiscount?: number; // BOLT Specials cost −N while up (Power Grid), floors at 1
   electrify?: number;       // +N extra Electrify DMG vs statused foes (Power Grid)
   /** Dense Fog (AQUA): the only field that debuffs the OPPONENT rather than
