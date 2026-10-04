@@ -25,155 +25,155 @@ export const DUSK_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   dusk_skullking:
-    "He does not command an army so much as keep a register. Every round it is longer, and every name on it stands a little straighter.",
+    "The Skull King raises two more Skeletons every round and keeps them armed. The register only ever gets longer.",
 
   dusk_shadowhorsemen:
-    "They ride the line the way a rumour travels — through everything in between. Armour was never part of the conversation.",
+    "The Horsemen ride straight through the line, cutting down everyone they pass, and then settle accounts with the one at the end.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   dusk_ravven:
-    "It is only hard to hit on your side of the field. That is where it prefers to be, and it grows bolder the longer it stays.",
+    "Ravven is only hard to hit once it has flown over to your side of the field. Night Stalk then adds three to every shot.",
 
   dusk_scar: // Vesper
-    "She keeps a count of the fallen, and the whole house is a little healthier for every one of them.",
+    "Vesper's Moon Frenzy bites every opponent and seals their healing. Whenever one of them falls, her whole side is healed a little.",
 
   dusk_zombination:
-    "It does not mind losing bodies. Each one that drops makes it heavier, and takes something with it on the way down.",
+    "Toxic Eruption poisons everyone in range, and whatever dies of it rises as a Zombie. Each Zombie that falls makes it larger.",
 
   dusk_hoax:
-    "It points, politely, and every blow at the marked one lands twice over. When that one falls, it walks away a little sharper.",
+    "Hoax marks one opponent, politely. It can no longer heal, and while unshielded every hit on it lands as a critical.",
 
   dusk_destro:
-    "Killing it is a formality it has already filed an objection to. It returns at eight, and the chains do not care either way.",
+    "Destro comes back once at eight HP when killed. Flaming Chains weaken every opponent and take two max HP from each.",
 
   dusk_skelider:
-    "The horse is bone as well, and it holds together right up until it doesn't. What is left still walks — slower, and without the lance.",
+    "Skelider rides up to four slots to put a lance through its target. Below 10 HP the horse gives out, and it walks on slower, without the charge.",
 
   dusk_nightfang:
-    "It arrives as the help. Put down the help and it stands up whole, and has a word with whoever did it.",
+    "Nightfang arrives disguised as the Butler. Kill the Butler and it stands up at full health and Soul Slashes whoever did it.",
 
   dusk_butler:
-    "He takes the coats, pours the wine, and stands where the light does not reach. Nobody in the household can say which year he was hired, and nobody has ever thought to ask.",
+    "The Butler tends the household, healing every ally nearby each round. When he is ready he drops the disguise, and Nightfang stands there instead.",
 
   // ------------------------------------------------------------------ EPIC
 
   dusk_silkstalker:
-    "It is only hard to hit on your side of the field, where it bites twice and mends itself on whatever it takes.",
+    "Silkstalker is only hard to hit once it is on your side of the field. Web Snare hits hard and blinds the target for two rounds.",
 
   dusk_spectra:
-    "It stands in front, and the one behind it becomes difficult to see as well. Striking it in person is discouraged.",
+    "Spectra stands in front and fogs itself and the ally behind it, so both are hard to hit. Hit it in melee and you come away weakened.",
 
   dusk_skrow: // Strawman
-    "Stuffed, silent, and never actually alone. Knock it down and the field it was watching fills with wings.",
+    "The Strawman calls a murder of three Crows on command, and when it is knocked down, two more come out of the straw.",
 
   dusk_ghastly: // Ghastly Groom
-    "He pays two of his own for every three he lands. He has been at this long enough that the arithmetic no longer troubles him.",
+    "The Groom hits three harder with every attack and pays two HP for it. Phantom Gouge also seals two foes against healing.",
 
   dusk_haunt:
-    "It takes five, and it keeps them. The first touch is only to make sure you are standing still for the rest.",
+    "Haunt's Jacked takes five max HP from the target for good and wraps Haunt in three shields. Its first touch frightens.",
 
   dusk_reaper:
-    "Distance is a clerical detail. Every collection makes the next one easier, and it keeps what it collects.",
+    "The Reaper hurls its scythe at any opponent on the board and seals it against healing. Each kill heals the Reaper seven and sharpens it.",
 
   dusk_sarachnid:
-    "One nest a round, and never more than four at a time. Anything the brood kills becomes somewhere to put the next one.",
+    "Sarachnid hatches a Spider every round, up to four at a time. Silk Chase sends the whole brood in to bite and frighten.",
 
   dusk_plaguecrow:
-    "It lands, and for one round nobody remembers how their own tricks worked. Kill it and something worse comes off the body.",
+    "Plaguecrow lands, and for one round no opponent can use a Special. Miasma Burst hits every foe in range, and a RedRaven rises when it dies.",
 
   dusk_wedded_wraith:
-    "The procession never shortens. When she finally stops, everyone still dancing is stronger for it.",
+    "She walks three Specters down the aisle at a time. When she falls, nearby foes are frightened and surviving Ghosts hit two harder.",
 
   dusk_rip: // RIP
-    "It has no attack at all. It tears pieces off itself on a schedule, and the pieces do the walking.",
+    "Rest in pieces. RIP cannot attack, so it tears off a Zombie Husk of itself every round and sends it in.",
 
   dusk_brute:
-    "Every clean hit takes something out of your swing. Armour is the one thing it cannot work around.",
+    "The Brute's Sweep hits everyone in range and armours it for each kill. Its crits sap the target's damage, but shields switch them off.",
 
   dusk_ender:
-    "Anything slower than it misses half the time. Anything unarmoured it hits for double, about as often.",
+    "Ender swaps places with any opponent and hits it for eight. Anything slower than Ender misses it half the time.",
 
   dusk_violet:
-    "She does not distinguish between sides at the table. Everyone present contributes, and she keeps the total.",
+    "She does not play favourites. Bloody Exchange drains two max HP from every other card, friend or foe, and she keeps the total.",
 
   // ------------------------------------------------------------------ RARE
 
   dusk_vamp:
-    "The first lesson, and the cheapest. It leaves with slightly more than it arrived with.",
+    "Vamp's bites steal max HP, so it grows as it feeds. A cheap card that leaves each fight bigger than it arrived.",
 
   dusk_pumpkin:
     "It lobs. The back row has never once been out of reach, which the back row keeps forgetting.",
 
   dusk_crow:
-    "Two points of almost anything. Whoever takes it usually regrets having stood so close.",
+    "A Crow flies over melee, and when it dies its Bird Bomb drops five damage on every opponent within reach.",
 
   dusk_spider:
-    "It chooses somebody to be afraid on arrival, and then gets to work.",
+    "A Spider frightens one enemy as it arrives, then bites, and the venom keeps working after.",
 
   dusk_zombie_husk:
-    "Putting it down is a step in the process, not the end of one.",
+    "Putting down a Husk is a step in the process: it leaves a Zombie behind.",
 
   dusk_skeleton_knight:
     "It arrives with the shield already up. Nobody in the cemeteries has ever seen it arrive otherwise.",
 
   dusk_harve: // Harrow
-    "It comes up the path with company, and the company is quieter than it is.",
+    "Harrow never turns up alone. A Specter comes onto the board with it, and the Specter is the quiet one.",
 
   dusk_doom:
-    "It is counting. Four rounds, and then it stops being a problem for everybody at once.",
+    "Doom is counting. In four rounds it goes off for eight damage to every enemy, and that is the end of it.",
 
   dusk_jackl:
-    "The arrow that finishes one is already leaving for the next.",
+    "Jackl never stops at one. Each kill sends a second arrow, for two damage, at the nearest opponent.",
 
   dusk_gravekeeper:
-    "He does not much care whose. Every burial makes the man doing the burying harder to bury.",
+    "The Gravekeeper digs up a costly DUSK card on arrival, then grows tougher at every death on the board, whoever's it is.",
 
   dusk_widowbite:
-    "Killing it is the opening of a three-round conversation.",
+    "Widowbite's bite poisons, and killing it is no escape: whoever kills it up close is left with five poison damage a round for three rounds.",
 
   dusk_gool:
-    "One touch, and whoever took it spends the next two rounds deciding not to move.",
+    "Gool's first touch frightens its target for two rounds, pushing it back a row and holding it off.",
 
   dusk_skulldrake:
-    "A dragon does not stop being a dragon once the meat is gone. What it breathes now settles, and stays.",
+    "A dragon that outlived its flesh. It flies over melee, and on arrival its breath leaves the enemies ahead poisoned for three rounds.",
 
   dusk_scarlett:
-    "She holds the swarm back until it is worth spending. Once.",
+    "Scarlett looses her bat swarm once per game: two damage and a max HP drain on every opponent. Her bites drain as well.",
 
   dusk_soul_wisp:
-    "It carries no grudge, and no weapon it insists on using. Point it at your own wounded and it will oblige.",
+    "Soul Wisp's light mends every DUSK ally two HP each round, and its basic attack can be aimed at a wounded friend instead.",
 
   dusk_zhunk:
-    "It grieves by getting larger. The horde loses one, and Zhunk is the one who benefits.",
+    "Zhunk grieves by getting larger. Every Zombie that dies, on either side, gives it +1 damage and +1 HP for good.",
 
   dusk_hix: // Hexvial
-    "It does not know which vial it threw either. Whatever it was, there is one more when it drops.",
+    "Hexvial throws a random potion with each hit: poison, damage or fright. When it breaks, the row ahead takes one last splash for three.",
 
   // ---------------------------------------------------------------- TOKENS
 
   dusk_redreven: // RedRaven
-    "It comes off the body already screaming, and for one round nobody's tricks answer.",
+    "RedRaven shrieks as it arrives, and for one round no opponent can use a Special.",
 
   dusk_zombie_tok: // Zombie
-    "It was somebody. The register no longer records which, and it has not asked.",
+    "It was somebody. It stands in front now, and the register no longer records who.",
 
   dusk_risen_tok: // Risen
-    "Raised by an act rather than a burial. It answers to whoever performed the act.",
+    "Raised by a spell rather than a burial. It stands in front for whoever raised it.",
 
   dusk_specter_tok: // Specter
-    "One point of substance and a great deal of intent. It only has to arrive once.",
+    "A Specter has one HP and three damage, and no plans beyond the first strike.",
 
   dusk_skeleton_tok: // Skeleton
     "The most common thing in the Dead Forest, and the most replaceable. The King counts them anyway.",
 
   dusk_skulldrake_tok: // Risen Drake
-    "The King keeps one back for occasions. Eleven points of bone that used to fly.",
+    "The King keeps one back for occasions. A drake of bone that flies over melee and hits for eleven.",
 
   // ---------------------------------------------------------------- SPELLS
 
   dusk_chill_touch:
-    "A small unkindness, and the warmth goes somewhere it is wanted more.",
+    "Three damage to a target, and the cold it takes warms a DUSK ally: one max HP changes hands.",
 
   dusk_bone_snare:
     "Nothing in the ground here is idle. Step wrong and it remembers you for two rounds.",
@@ -182,7 +182,7 @@ export const DUSK_LORE: Record<string, string> = {
     "One round of not quite being where you were aimed.",
 
   dusk_veil_of_shadows:
-    "Three rounds of dark laid across a row. Yours see perfectly well in it.",
+    "Three rounds of dark across a row. Yours slip about unseen in it, and anything that steps in is hurt and frightened.",
 
   dusk_wake_of_the_dead:
     "Whatever you finish this round has somewhere to be next round — on your side of it.",
@@ -194,32 +194,32 @@ export const DUSK_LORE: Record<string, string> = {
     "Straight through, and the three it takes are handed to somebody who will use them.",
 
   dusk_grave_pit:
-    "A deep one, unmarked. The neighbours only get the fright.",
+    "A deep pit, unmarked. Whoever steps in takes twelve straight through, and the neighbours only get the fright.",
 
   dusk_harvest:
     "Eight from everybody, and two apiece that never comes back.",
 
   dusk_endless_night:
-    "The door at Shadow Pass, opened all the way, once. Afterwards everything of yours feeds itself.",
+    "The night is let in all the way, once: fifteen to every opponent and a fright. From then on every DUSK attack feeds.",
 
   dusk_aranea:
-    "Killing the web is not the answer. The web is not the one deciding.",
+    "Aranea raises a Monstrous Spider and frightens everyone in range, and every Spider on her side hits two harder while she lives.",
 
   dusk_monstrous_spider_tok:
-    "Stepping on it does not end it. It ends the part of it you could see.",
+    "It webs everyone in range once, rooting them for two rounds. Stepping on it does not end it: it bursts into two Spiders.",
 
   // ── Void Tower bosses ──
-  boss_rotroot: "It does not raise the dead. It declines their resignation.",
-  boss_skeleeze: "Two slots along the row, every round, toward wherever you are standing thickest. You have been told.",
-  boss_xilty: "The first blow finds silk. The web decides about the second.",
+  boss_rotroot: "Rotroot roots everyone near it every third round, and any Zombie of its that falls gets back up once.",
+  boss_skeleeze: "Every round it slides two slots toward your thickest column, and every third round Piercing Arrow runs the whole column through.",
+  boss_xilty: "Xilty's first attacker each round hits only silk, and every third round Web Trap pins everything near it in place.",
 
   // -- the forty-card pass --
   dusk_grafft:
-    "The batch was labelled wrong. He wrote that down too, and used it anyway.",
+    "Grafft's bad batch weakens whatever it hits for two rounds. The label said otherwise, and he used it anyway.",
   dusk_duet:
-    "They have not missed a step since the hall burned down. Neither has stopped counting.",
+    "Still dancing after the hall burned down. Partner Dance gives one ally +3 shields and +3 damage for two rounds.",
   dusk_prestige:
-    "The trick is not the quicker hand. It is that the record says the card was never there.",
+    "Prestige mutes two opponents so they cannot use Specials, then hits them for double and stuns them. Now you don't.",
   dusk_tatterhand:
-    "Every string is accounted for. So is everyone who ever cut one.",
+    "The Scarecrow pulls the strings: allies move faster, and Curtain Call makes the four nearest allies with a shot fire on cue.",
 };

@@ -28,44 +28,44 @@ export const AQUA_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   aqua_hydrogon:
-    "The serpent does not end anywhere in particular. Every coil it closes finds the next weakest thing without being asked.",
+    "A serpent of steam, out of reach of melee. It picks one target for the beam and scalds everyone standing beside it.",
 
   aqua_kraken:
-    "Whether the Deep is a place or an animal, this is the part that surfaces. It is at its worst after you have hurt it.",
+    "The Deep decides to surface: a black wave blinds everything near it, at a cost in its own blood. Wound it badly and it hits harder.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   aqua_phrost:
-    "Ice first, and then the burning. Held still long enough, the cold stops being the part that hurts.",
+    "A frost dragon. It freezes you in place, then scalds whatever it has frozen, every round.",
 
   aqua_polarking: // Polar King
-    "Descendants of the frozen deep is not a poetic title in his court. It is a genealogy, and touching him proves it.",
+    "The Ice Kingdom's king. Strike him and you may freeze; his word freezes three foes anywhere and armours his own side.",
 
   aqua_rain: // Cloudburst
     "It does not aim at one. Rain falls on whatever stands near what it aimed at, and it teaches the whole crew to do the same.",
 
   aqua_driftwraith:
-    "The boneyard fog has never lifted for a living sailor. Whatever it takes in there, it goes back into the fog afterwards.",
+    "A drowned pirate in the boneyard fog. Unseen until it strikes, then fourteen straight through armour, and the fog covers its retreat.",
 
   aqua_magalogoon:
-    "It is only there when it decides to be. Whatever it reaches for does not walk properly again.",
+    "A swamp monster, untargetable while it sits still. It drags one foe out of its row, hits it for ten, and roots it in the bog.",
 
   aqua_glacius:
-    "It closes the water over you and waits, and the burning follows the cold. What it cannot spare you, it can lay over its own side as armour.",
+    "It freezes three foes under the ice and scalds them while they are held. Its shots can armour its own side instead.",
 
   aqua_siren:
-    "The song is the smaller half. What answers it can be killed — and then the singer is simply back, unhurt.",
+    "Strike the singer and you freeze. She can become a Krakler; kill that, and the Siren returns at full health.",
 
   // ------------------------------------------------------------------ EPIC
 
   aqua_owlette:
-    "Each round it picks the one least able to argue, and that one stops moving.",
+    "An owl on the wing. Each round it freezes the weakest foe, and Owl Hail freezes three at once.",
 
   aqua_octoirate:
-    "It does not close the distance. It takes hold of you and shortens it on your behalf.",
+    "A pirate octopus. Its tentacles reel struck foes in close, and Wave Crash hits the three ahead.",
 
   aqua_bahari:
-    "It does not pick a target. Six to everything across from it, and none of it moves quickly afterwards.",
+    "It does not pick a target. Tsunami hits every opponent for six and leaves them slow for the round.",
 
   aqua_icynin: // Coilblade
     "It freezes first, then strikes the ice. Whatever was standing beside you gets the pieces.",
@@ -74,7 +74,7 @@ export const AQUA_LORE: Record<string, string> = {
     "It fights with its own armour. Strip that away and there is nothing left to be hit with.",
 
   aqua_polarbear: // PolarBear
-    "It takes the square it wants and drives you out of it. Everything standing behind it was permitted to stay.",
+    "A polar bear that tramples into your square and drives you back, then claws you frozen.",
 
   aqua_anos: // Serenos
     "It is stronger for the rounds it chooses not to fight. Most nations have no word for that.",
@@ -86,16 +86,16 @@ export const AQUA_LORE: Record<string, string> = {
     "It is at its best unseen, so it surfaces only for the weakest thing on the board — and goes straight back down.",
 
   aqua_blackbeard: // BlackBeard
-    "No crown, no council, and a cannon that reaches the whole lane. Every prize taken makes the next shot heavier.",
+    "Captain of the pirate lanes. His cannon reaches anywhere on the board, scalding three foes; each kill makes him hit harder.",
 
   aqua_sapphire:
-    "It opens the vent and lets the pressure do the rest. It leaves a little quicker each time.",
+    "A sapphire dragon that opens a geyser under two foes, scalding them, and grows faster and fiercer with every kill.",
 
   aqua_vaporem:
     "Five small breaths, and armour is no use against any of them. Whoever is left cannot see well enough to answer.",
 
   aqua_icewall: // Ice Wall — the card; the Cost-4 spell is aqua_ice_wall
-    "A wall that shoots back. Everything that reaches it arrives two points lighter, and often stops there.",
+    "A wall of ice that shoots back. Every hit on it lands two points lighter, and its shots can freeze you where you stand.",
 
   // ------------------------------------------------------------------ RARE
 
@@ -109,10 +109,10 @@ export const AQUA_LORE: Record<string, string> = {
     "One is nothing. They do not arrive as one, and the water is already red.",
 
   aqua_anglerfish:
-    "The light is the invitation. Aim at it and you find your aim was the thing being played with.",
+    "The lamp is bait. The nearest foe is struck and frightened for a round.",
 
   aqua_buccaneers: // Saltjacks
-    "They come over the rail together, and everybody on deck gets something.",
+    "Pirates boarding as a pack: the moment they land, every enemy in their column takes 2.",
 
   aqua_blub: // Dewling
     "Six points of water. Take all six and it will simply be full again next round.",
@@ -121,7 +121,7 @@ export const AQUA_LORE: Record<string, string> = {
     "Eight points of pressure behind one point of shrimp. Where it lands, the water goes still for a round.",
 
   aqua_icyninza: // Frostveil
-    "It is already aiming when it arrives. Sometimes that is the whole engagement.",
+    "A ninja in frost. It strikes the moment it arrives, and its shots can crit for double against unarmoured foes.",
 
   aqua_kinguin:
     "It does not travel without its two. Nobody has asked the two whether they agreed to this.",
@@ -136,10 +136,10 @@ export const AQUA_LORE: Record<string, string> = {
     "The hook is the point. Where you were standing was never going to be where you stayed.",
 
   aqua_spinefin:
-    "The spines are not the injury. What they leave in the water is.",
+    "Steaming spines: every hit leaves a scald that keeps burning for two rounds.",
 
   aqua_coralgolem: // Coral Golem
-    "It grows all battle and never once moves. Taking hold of it is its own answer.",
+    "A living reef. It adds a shield every round, and anything that hits it in melee gets spurred for 2.",
 
   aqua_krakler:
     "A smaller piece of something much larger. It arrives cold and burning at the same time.",
@@ -148,7 +148,7 @@ export const AQUA_LORE: Record<string, string> = {
     "It comes in with the tide and the whole crew is better for it. When it tucks up, it stops pretending to aim.",
 
   aqua_siphon:
-    "It holds one turn of the water back until the entire crew needs washing clean at once.",
+    "It holds one turn of the tide back, then washes the whole crew clean at once. Once a game, it also hits the row beside it.",
 
   // ---------------------------------------------------------------- TOKENS
 
@@ -164,13 +164,13 @@ export const AQUA_LORE: Record<string, string> = {
     "One row, one round, standing still.",
 
   aqua_steam_vent:
-    "Four points on anything — and twice the trouble if the cold got there first.",
+    "Four damage to anything, and it scalds too if the cold got there first.",
 
   aqua_ice_wall:
     "Three rounds of ice across a row. Fly it or shoot over it; walking in costs you the round.",
 
   aqua_dense_fog:
-    "It does not favour you. It simply makes everything aimed your way less certain of itself.",
+    "A fog over the field for three rounds: a quarter of enemy attacks miss.",
 
   aqua_downpour:
     "Armour every round — and every round the water is asked again what shape it would like to be.",
@@ -188,27 +188,27 @@ export const AQUA_LORE: Record<string, string> = {
     "The Life Source, briefly reminded of what it is. Afterwards your side is armoured every round, for good.",
 
   aqua_killerwhale:
-    "The water goes still before it does. That is the part to notice.",
+    "A killer whale that breaches into play and freezes the row ahead, then hits what it froze harder.",
 
   // ── Void Tower bosses ──
-  boss_permafrost: "The wall was here before the war, and it has heard your plan to crack it.",
-  boss_hoarfell: "Every step is louder than the last. That is not a warning, it is a count.",
+  boss_permafrost: "A glacier older than the war. Hits barely scratch it, and every third round it freezes everyone nearly dead.",
+  boss_hoarfell: "It tramples into your square, and every third round an aurora blinds and batters everything within two spaces.",
 
   boss_cryovex:
-    "It does not hunt. It waits, and the cold does the walking.",
+    "A frost dragon whose bite freezes. The longer you are held the harder it hits, and every third round its cold reaches everyone near.",
 
   aqua_blackice_crystal_tok:
     "It grows where something stopped moving.",
 
   // -- the forty-card pass --
   aqua_bluewhale:
-    "It chose this depth. Nothing that arrives here changes that.",
+    "Immovable and thick-skinned: nothing pushes it, and every hit lands two lighter. Its Breach surfaces under any foe and shoves it back.",
   aqua_divebill:
     "It picked the spot from four hundred feet and did not adjust.",
   aqua_firefighter:
-    "The fire had terms. She declined them.",
+    "She puts the fire out: heals every ally and strips their burns and other ailments, and her hose shoves foes back.",
   aqua_surferdude:
-    "He read the set before it formed. Everything after that was paddling.",
+    "Kauai sends a wave down the row ahead, shoving foes back 2 and lifting his crew, then rides forward on it.",
   aqua_sonarping:
     "One ping out, one back. Whatever is hiding is now a number on a page.",
 };

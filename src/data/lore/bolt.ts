@@ -23,192 +23,126 @@
  */
 
 export const BOLT_LORE: Record<string, string> = {
-  // ---------------------------------------------------------------- MYTHIC
-
   bolt_velvolt_knight:
-    "Plate that reports its own faults. Break the first layer and the current goes back up your arm for two rounds.",
-
+    "A knight in live plate. It electrifies every enemy for good, and whoever first breaks its armour gets paralyzed.",
   bolt_elecdroid:
-    "One strike of fifteen, a quarter of it leaking to everyone in reach each round. On a kill it speeds up and does not stop.",
-
-  // ------------------------------------------------------------- LEGENDARY
-
+    "ARC itself: one 15-damage strike, a four-hit combo that chains on a kill, and sparks that hit everyone in reach each round.",
   bolt_keeper:
-    "The hive is the armour. Aim at him and half the current goes into the bots instead, which is what the bots are for.",
-
-  bolt_shock: // Blackout
-    "It does not need the whole grid down. It needs the ones already failing, and they stay down.",
-
+    "Keeper of the hive. It raises a Beebot every round, and the bots soak half the damage aimed at him.",
+  bolt_shock:
+    "Blackout shuts down every enemy at 4 HP or less each round, and its Fryer hits them all and mutes them.",
   bolt_jack_arc:
-    "Arc's field engineer. Every round somebody on the other side stops working, and he files it as routine.",
-
-  bolt_zoez: // Voltedge
-    "Half of what you shoot at it goes elsewhere. Reaching it in person costs three.",
-
+    "Arc's field engineer. One enemy is paralyzed every round as routine, and StunGun holds three more at once.",
+  bolt_zoez:
+    "Voltedge hits back: melee attackers take 3, half of ranged shots are deflected, and its bladerang hits for 7 plus 7 over time.",
   bolt_stormcaller:
-    "It does not hold anyone. It bills whoever is already held, two a round, for standing there.",
-
+    "Stormcaller calls the storm down on the held: Chain Paralysis freezes up to three enemies, and every paralyzed one takes 2 each round.",
   bolt_gigavolt:
-    "It arrives with no weapon and no legs, and gets measurably worse every round it is left standing.",
-
+    "A 35-HP wall with no weapon at first. Turret Mode zaps every enemy for 3 rounds, and it gains +1 DMG each round.",
   bolt_voltogon:
-    "The only dragon on the payroll. Every kill grows it, and everyone still carrying a charge pays five.",
-
-  // ------------------------------------------------------------------ EPIC
-
-  bolt_zagphu: // Ricochet
-    "It does not open the wound. It waits for something else to leave a charge on you, and hits exactly there.",
-
+    "The dragon. It flies over melee, Gigavolt Strike hits for 11 and heals 11, and each kill burns every charged enemy for 5.",
+  bolt_zagphu:
+    "Ricochet bounces off a status: Static Toss hits for 8 and paralyzes, and its basics crit and heal 4 against anything afflicted.",
   bolt_static:
-    "Every one it finishes buys the rest of the field another round of standing still.",
-
+    "Static spreads: Discharge paralyzes every enemy in range, and each kill adds a round to everyone still frozen.",
   bolt_webster:
-    "The first hit is the wire. The second is where the wire goes, and then you have nothing to say.",
-
+    "Webster spins a web: Web Shock paralyzes up to three enemies, and its second hit on a target mutes it.",
   bolt_lytning:
-    "It does not do the stopping. It reads the meter on whatever has stopped, and bills two a round.",
-
+    "Lytning cracks a whip: Whip Strike paralyzes everything in range, then each paralyzed enemy takes 2 more every round.",
   bolt_storm:
-    "Cheap, and it leaves a charge on everything it touches. A couple of rounds in, it has outgrown its price.",
-
+    "Storm marks whatever it hits, then Thunder Strike deals 5 to every marked enemy anywhere. It grows stronger each round.",
   bolt_sentry:
-    "It does not aim at people. It aims at whatever has stopped moving, which is a far simpler specification.",
-
+    "A sentry gun that fires only at paralyzed enemies: 5 damage at the end of every round, and 5 to all of them with its Special.",
   bolt_thundercat:
-    "It lands on the target rather than approaching it, and what the claws leave behind keeps ticking.",
-
-  bolt_shoksa: // Dynamo
-    "It arrives already working. Whoever was held stays held, and everyone else is now on the list.",
-
+    "ThunderCat pounces: Claw Surge leaps up to 2 spaces onto its target for 8, and its claws leave a stinging damage-over-time.",
+  bolt_shoksa:
+    "Dynamo keeps the current running. On arrival it extends every paralysis and electrifies the rest, which then take 2 each round.",
   bolt_surge:
-    "Armed on arrival: nothing sticks to it, and the first thing to touch it spends three rounds regretting the contact.",
-
+    "Surge arms itself: while charged it ignores status, and the first hit on it paralyzes the attacker for 3 rounds.",
   bolt_voltcher:
-    "It discharges on first contact, and again on the way out. Arc files that under redundancy.",
-
-  bolt_striik: // Highroller
-    "A gambler with an engineer's odds. Three good rolls in one round and it stops being a fair fight.",
-
+    "A thunderbird. It flies over melee, Thunderbird hits a whole row for 3, and it fires once more for free on its first hit and when it dies.",
+  bolt_striik:
+    "Highroller gambles on crits: each crit fires Purple Strikes for free, and three crits in one round grant +7 HP and +2 DMG.",
   bolt_thunder:
-    "Nothing complicated. It arrives loud, and the noise carries to whoever was standing next to the target.",
-
+    "Thunder arcs: Arcing Strike hits one target for 7 and its neighbours for 4, and it arrives with 3 damage to everything in range.",
   bolt_kore:
-    "Named for the Core, and the only thing in the city that behaves like it. Break it and something is still discharging afterwards.",
-
+    "Kore is the reactor. Its shield grows every round, Core Overload paralyzes everything in range, and a Static Wisp is left when it dies.",
   bolt_general:
-    "Four weapons on one rack, and a new one selected every time he moves. Arc built the rack; the choosing is his.",
-
+    "General swaps weapons: each time he moves he cycles through four guns, and Spraying Thunder fires the current one at the 3 closest enemies.",
   bolt_volta:
-    "It does not fight so much as install. With a rod on the grid, its own current goes through anything.",
-
-  // ------------------------------------------------------------------ RARE
-
-  bolt_zap: // the CARD — the cost-1 spell keys itself below
-    "Four points of health and one job: five damage to the nearest enemy, discharged on arrival.",
-
-  bolt_twotales: // Twintail
-    "Two tails, one contact each, and even odds you do not move afterwards.",
-
+    "Volta builds Rodds: one on arrival, another with Grid Deployment, and its shots pierce armour while a Rodd stands.",
+  bolt_zap:
+    "Zap hits first. The moment it lands, 5 damage goes to the nearest enemy.",
+  bolt_twotales:
+    "Twintail swings twice, and each hit has a 50% chance to paralyze.",
   bolt_stingray:
-    "Against anything already carrying a charge, armour stops being part of the calculation.",
-
+    "Stingray's sting pierces armour on any enemy that is already electrified.",
   bolt_junker:
-    "Scrap welded into a shape that objects to being touched.",
-
+    "A scrap wall that stands in front. Anything that hits it in melee takes 2 back.",
   bolt_rodd:
-    "A rod in the ground. It does not move and it does not aim, and everything wired beside it hits harder.",
-
+    "A lightning rod. It pings the closest enemy for 1 each round, and adjacent BOLT allies gain +1 DMG.",
   bolt_zipp:
-    "It brings its own drone. Arc stopped issuing engineers without one.",
-
+    "Zipp zips in with a Drone: summoning it puts a free Drone on the board.",
   bolt_drshock:
-    "He meets everything at the door and puts a charge on it before it has taken a step.",
-
+    "Dr. Shock zaps new arrivals: any enemy summoned in his range is electrified at once.",
   bolt_electricel:
-    "One touch on arrival, and somebody spends two rounds working out what happened.",
-
+    "Electricel shocks on contact. On arrival it paralyzes the nearest enemy for 2 rounds.",
   bolt_jolt:
-    "It charges the whole room before the first round, and anything that hits it gets topped up.",
-
+    "Jolt is a live wire: it electrifies every enemy in range when battle begins, and anything that hits it is electrified back.",
   bolt_scrapper:
-    "It builds its own armour out of whatever it has put down.",
-
-  bolt_ning: // Twinbolt
-    "One good hit is specified to produce a second. Once a round and no more — Arc is strict about duty cycles.",
-
-  bolt_staticcloud: // Static Cloud
-    "Nobody steers it. It rolls one slot forward each round and discharges into whoever it happens to be near.",
-
+    "Scrapper hits and salvages: a 50% chance to paralyze, and every kill adds 2 shields.",
+  bolt_ning:
+    "Twinbolt strikes twice: a crit chains a second 2-damage crit at the same target, once a round.",
+  bolt_staticcloud:
+    "Static Cloud drifts one slot forward each round, zapping a random enemy for 4 and paralyzing a random enemy for 2 rounds.",
   bolt_buzz:
-    "Armed once at the factory, and once more by hand when it matters.",
-
+    "Buzz starts armed: immune to status, and the first hit on it paralyzes the attacker for 3 rounds. Once per game it re-arms.",
   bolt_jellyfish:
-    "Hitting it discharges into you and into everyone near you. It does not have to survive well — only survive.",
-
+    "Jellyfish stings back: when hit and it survives, it shocks the attacker and the enemies beside it for 2.",
   bolt_buzzard:
-    "Every arrival is logged, tagged with one point of damage, and assigned a drone.",
-
-  // ---------------------------------------------------------------- TOKENS
-
-  bolt_static_wisp_tok: // Static Wisp
-    "What is left over when a Core body fails. It drifts forward and keeps discharging until it doesn't.",
-
-  bolt_drone_tok: // Drone
-    "Arc issues them by the crate. One point of everything, and entirely replaceable.",
-
-  bolt_beebot: // Beebot
-    "It stings once and the shift is over. The hive was built expecting that.",
-
-  // ---------------------------------------------------------------- SPELLS
-
+    "Buzzard circles new arrivals: whenever an enemy is summoned, it answers with a Drone and 1 damage.",
+  bolt_static_wisp_tok:
+    "A leftover of Kore's core. It drifts forward each round, zapping a random enemy for 2 and paralyzing another for a round.",
+  bolt_drone_tok:
+    "Arc issues them by the crate: a 1-HP flyer that melee cannot reach.",
+  bolt_beebot:
+    "Beebot stings once: its hit keeps damaging for 2 rounds, and then it dies at the end of that round.",
   "spell:bolt_zap":
-    "Three points and two rounds of standing still. The cheapest line item in the catalogue.",
-
+    "Three damage and two rounds of standing still, for the price of 1.",
   bolt_recon_ping:
-    "You cannot wire what you have not surveyed. For one round, the whole hand is on the table.",
-
+    "Look at their whole hand this round, and your Specials cost 1 less while you plan around it.",
   bolt_rewire:
     "Two of yours, swapped where they stand. Not a spell so much as a correction.",
-
   bolt_overload_field:
-    "A live row for three rounds. Fly it or shoot across it — walking in earns two rounds of nothing.",
-
+    "A row of live current for 3 rounds. Anything that walks in takes 2 and is paralyzed; fliers and ranged shots pass over.",
   bolt_power_rebate:
     "Magic in, gold out. BOLT is the only nation that files the two as the same substance.",
-
   bolt_power_grid:
-    "On the grid everything of yours costs less and hits harder. That is the entire argument for the grid.",
-
+    "For 3 rounds your BOLT Specials cost 1 less, and electrified foes take +3 instead of +2.",
   bolt_lightning_storm:
     "Eight to everybody and a round of nobody moving. Not subtle, and not meant to be.",
-
   bolt_full_reroute:
-    "Two of your cards, anywhere, at once. Their speed was never the limiting factor — the routing was.",
-
+    "Reroute any two of your cards to open slots anywhere on the board, however slow they are.",
   bolt_system_override:
-    "Every cooldown cleared and every price cut, for one round. Somebody in Voltis Plaza signed off on this.",
-
+    "For one round your Specials cost 3 less, and every ally's Special comes off cooldown. Voltis Plaza signed off on this.",
   bolt_total_network_control:
-    "Three rounds of silence on their side, and your grid never pays full price again.",
-
+    "Their whole side is muted for 3 rounds, and from now on your BOLT Specials cost 1 less.",
   bolt_havoc:
-    "The current has somewhere to be. Standing in the way is not a plan.",
-
-  // ── Void Tower bosses ──
-  bolt_firebolt_tok: "Shipped with a warranty. The warranty is the explosion.",
-  boss_overclock: "The line does not stop for losses. Losses are a scheduled output.",
-
-  // -- the forty-card pass --
+    "Havoc fires wild: ThunderShot hits any target for 7 and paralyzes it, and mutes it too if it already had a status.",
+  bolt_firebolt_tok:
+    "A flying drone whose hits set the target burning, and which explodes for 4 on everything in reach when it dies.",
+  boss_overclock:
+    "A production line with a gun. Every 3 rounds it stamps out Firebolt Drones, and the line does not stop for losses.",
   bolt_hacker:
-    "Their Specials are still listed. They just do not resolve.",
+    "Hacker hides in stealth, and once per game Kill Switch locks every enemy out of their Specials for 2 rounds.",
   bolt_handyman:
-    "Fault found, part replaced, twelve seconds. Next.",
+    "Handyman fixes things: once per game Patch Job gives allies in range +2 shields and 4 HP, and ARC allies always carry +1 shield.",
   bolt_kingpin:
-    "The contract names one card and one outcome. Both are already filed.",
+    "Kingpin puts out a contract: it marks any enemy and paralyzes it, every basic on the mark is a crit, and you collect gold when it dies.",
   bolt_airship:
-    "Rotor wash for the line, plating for the neighbours, and a spotlight that leaves nothing on the other side hidden.",
+    "The helicopter flies over melee, airlifts an ally into its place, and its spotlight means nothing on the other side can hide.",
   bolt_policecar:
-    "Unit responding. Units responding. The count is not a boast, it is a dispatch log.",
+    "Police Car calls for backup: its Special and the first hit on it each round put Officers beside it, up to 3 at a time.",
   bolt_police_tok:
-    "Badge, taser, twelve weeks of training. Sufficient.",
+    "Officer tasers its target: half its hits paralyze for 2 rounds.",
 };

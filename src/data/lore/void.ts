@@ -16,26 +16,18 @@
  */
 export const VOID_LORE: Record<string, string> = {
   boss_spindle:
-    "It is not a spider and there is no web. Those are the words that fit closest, "
-    + "which is not the same as fitting. The legs came later, grown to hold the eye "
-    + "at a height where nothing is out of sight, and the eye came first, and before "
-    + "the eye there is no record of anything at all.",
+    "An eye held high on legs. It reaches the whole board, and every third round its gaze mutes, blinds and wears down three targets.",
   void_mote_tok:
-    "The smallest piece that can still look. It takes almost nothing from what it "
-    + "touches — a single point, once — and it is never once.",
+    "The smallest eye. It splits itself into another, and every other Watcher alive adds to its damage.",
   void_watcher_tok:
-    "It does not follow. It arrives where you were going to be, and waits the "
-    + "difference out.",
+    "A winged eye. It stoops on two targets at once for 7 each, from any slot on the board.",
   void_lidless_tok:
     "There was never a lid. Nothing on the far side is hidden from it, and what it "
     + "looks at stops seeing.",
   void_scryer_tok:
-    "It reads the brood the way the brood reads you, and what it learns travels "
-    + "outward faster than anything crosses the ground between them.",
+    "It sees what is coming and tells the rest. Foresight shields an ally and its neighbours for 4 and adds damage, and every Watcher hits harder for it.",
   void_sentinel_tok:
-    "Set down at the edge of the light and left there. Everything since has walked "
-    + "around it, which was the entire instruction.",
+    "A watchpost that does not move. Nothing can target the square behind it until it falls, and Bulwark plates an ally and its neighbours for 5.",
   void_occulith_tok:
-    "The eye that grew a body instead of the other way round. Every fourth blow "
-    + "comes back — not returned, exactly. Copied.",
+    "The eye that grew a body. Reap sweeps the whole row ahead for 9, straight through shields.",
 };

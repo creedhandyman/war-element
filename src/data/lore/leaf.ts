@@ -20,127 +20,127 @@ export const LEAF_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   leaf_trinezer:
-    "The Cycle asked him to keep the balance. It never asked him to enjoy it less. He arrives with the brood already fed.",
+    "He arrives with three Reptilians already at your throat, and culls the weakest from across the board. Every kill sharpens the whole pack.",
 
   leaf_oakgre:
-    "Older than the tribes sheltering beneath him. He has torn free of the soil three times in a thousand years, and never once put a root back.",
+    "He starts rooted in place. Tearing loose costs him blood, up to three times, and each time he hits harder and walks over anything smaller.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   leaf_elderroot:
-    "The outer roots reach every grave beneath the Spirit Tree. What they draw up, he gives back to the living.",
+    "Elderroot's roots pin whatever he strikes, then his Embrace heals the whole line and cleanses what ails it.",
 
   leaf_season: // Evera
-    "Spring's mercy, Summer's patience, Autumn's ending, Winter's stillness. She does not choose between them — she is the sentence they finish.",
+    "Every round Evera heals her grove and roots the fastest enemy. Her Coil pins a whole row, then the row behind it.",
 
   leaf_efy: // Sylvane
-    "Bark closes over the wound before the blade has finished leaving it. She teaches this to anyone standing in her shade.",
+    "Her bark refills to two shields every round, and her Emergence raises a walking tree that heals the line as it marches.",
 
   leaf_thorn:
-    "Autumn's honest lesson: the ending feeds the beginning. She simply insists on being the one to open it.",
+    "Every thorn she lands deepens the bleed, and every drop her enemies lose heals her. Her petals sweep two at once.",
 
   leaf_fallow:
-    "Blindfold him. Salt the trail. Wait in the dark. The Winter Tribe has a word for people who try this: found.",
+    "In Fallow's hunting season every crit pins its target, and pinned enemies take 1 damage each round. Every kill makes him stronger.",
 
   leaf_warden: // Hartwood
-    "Nothing falls in the Mega Forest without being counted. He keeps the count, and he collects from the one who opened it.",
+    "Hartwood shields his Grove, and when an ally falls he answers the killer with 7 damage.",
 
   leaf_nightshade:
-    "The Rot Line grows what the other three seasons agreed not to name. She tends it anyway, and the Autumn Tribe looks elsewhere.",
+    "Nightshade's bloom poisons every enemy on the board, and anything rooted is poisoned again each round.",
 
   // ------------------------------------------------------------------ EPIC
 
   leaf_alpha:
-    "The pack waits until the prey is pinned to the ground. After that, every bite is bookkeeping, and every bite feeds him.",
+    "Alpha tackles his prey and roots it to the ground. Against a pinned target, every bite heals him.",
 
   leaf_fallona: // Autumnal
-    "She does not need this round. She has been counting since the first one.",
+    "Every three rounds Autumnal grows stronger for good, and her Leaf Storm hits everything in range three times over.",
 
   leaf_bark_bushmen: // Bark
-    "Every round he stands still, the forest adds another layer. Wait long enough and you are shooting at a tree.",
+    "Bark Bushmen grows a new layer of bark every round, up to five shields. His Night Spear pins and silences a target from anywhere.",
 
   leaf_citra:
-    "The rot is not an accident of the bloom. The bloom was always the delivery.",
+    "Citra's acidic bloom leaves up to four enemies bleeding for four rounds, and her shots pierce armour.",
 
   leaf_dande: // Dandelion
-    "Cut it down and it comes back taller. Spring Tribe children are taught to weed carefully; this is why.",
+    "Dandelion heals 3 HP every round, grows tougher with each one, and pricks whoever hits it. You cannot weed it out fast enough.",
 
   leaf_whintey: // Hibernal
-    "Winter does not kill what it holds. It simply keeps holding, and lets the season do the rest.",
+    "Hibernal's Winter's Bundle roots every enemy on the board, and anyone already pinned stays pinned two rounds longer.",
 
   leaf_lumberjack:
-    "He does not fell trees toward himself. The gap opens away from him, all the way to whatever was standing behind them.",
+    "Lumberjack fells a tree down his own column: it hits everything in the three slots ahead, roots it, and shields him.",
 
   leaf_sakuroot:
-    "The cherry grove does not retreat and cannot be pushed. Petals fall on the wounded whether or not anyone asked.",
+    "Sakuroot cannot be pushed. Its Petal Storm roots the three squares ahead, and falling petals heal the home row each round.",
 
   leaf_splint:
-    "The underbrush closes behind him a little more slowly each time. He has decided that is a fair price.",
+    "Splint stabs on arrival, then pulls the leaves around himself: hidden and healing for three rounds. A kill hides him again.",
 
   leaf_sprinu: // Vernal
-    "The same water that drowns a root can raise one. Spring Tribe doctrine, delivered at range.",
+    "Vernal's basic attack can heal a wounded ally instead of striking, and her Root Spring pins an enemy while mending the grove.",
 
   leaf_sumerose: // Estival
-    "The Autumn Tribe calls it pruning. The pruned have rarely agreed.",
+    "Estival's summer thorns bleed what they cut, and every hit heals her. Her Siphoning Slash steals even more.",
 
   leaf_darth: // Nightbriar
-    "He does not aim at where you are. He aims at the ground you will be standing on after he is finished.",
+    "Nightbriar hides until he shoots, roots his target with Dark Hunting, and leaves a trap where each victim falls.",
 
   leaf_rubyo: // Rubyscale
-    "Small, red, and never arriving alone. The old lizard behind him is the part you should have been watching.",
+    "Rubyscale arrives with a Greegon at his side. His Dragon's Dance hits up to three targets, and hits one for 8 more while Greegon lives.",
 
   leaf_squanch:
-    "Hit it and it thickens. Hit it twice and you have spent two rounds making it harder to hit.",
+    "Squanch grows a shield for every hit it takes, up to five. Its Bushwhacker clubs and roots everything standing next to it.",
 
   // ------------------------------------------------------------------ RARE
 
   leaf_birch:
-    "One clean fall opens the canopy. Four more strikes come through the gap.",
+    "Fell something with Birch and it keeps chopping: four more hits of 1 at the closest enemy.",
 
   leaf_nettle:
-    "A child's injury, repeated at range. It finds the ones already bleeding and burning, and finishes the errand.",
+    "Nettle stings from range and leaves a bleed. Against anything already bleeding and burning, it hits harder and heals itself.",
 
   leaf_stickers:
-    "It picks one target and simply refuses to be anywhere else.",
+    "Stickers dodges half the hits aimed at it and clings to one target, each hit deepening the bleed up to four.",
 
   leaf_stickviper:
-    "You will not notice the branch that bit you until the branch has stopped mattering.",
+    "StickViper looks like a stick until it bites from range, and each bite leaves a deep bleed.",
 
   leaf_weeds:
-    "Pull it, burn it, salt the ground it grew in. Next season, ask the ground how that went.",
+    "Weeds spread: a landed hit may sprout another Weeds beside it, up to two copies. Pulling one rarely ends it.",
 
   leaf_cactus:
     "It asks nothing of you — only that you not touch it. It asks with needles.",
 
   leaf_leaf: // Frond
-    "A single leaf, edge-on, at speed. The Mega Forest has more of these than it has anything else.",
+    "Frond flings razor leaves, two a turn, and each cut bleeds. The Mega Forest has more of these than anything else.",
 
   leaf_oak:
-    "It cannot hurt you and it will not move — except once, when it decides the forest needs it further forward.",
+    "Oak roots whatever it hits and drops an Acorn the first time it is struck each round. Once a game it can pull up and advance two slots.",
 
   leaf_python:
-    "It does not strike. It arrives beside you, and then there is simply less of you each round.",
+    "Python coils around whatever it hits, pinning it, and drains 2 HP from an adjacent enemy every round.",
 
   leaf_sticks:
-    "Three grams of dry wood, moving very fast, at exactly the wrong moment.",
+    "Sticks comes in fast: the moment it lands it stabs the nearest enemy for 7 and weakens their next attack.",
 
   leaf_dartfrog:
-    "Bright colors are not decoration in the Mega Forest. They are a courtesy.",
+    "Dart Frog's bright colours are a warning. Once a game it loads up, and its next shot fires three bleeding darts.",
 
   leaf_walking_tree: // Elephlora
-    "It was not there yesterday. It will be closer tomorrow, and the wounded behind it will be standing.",
+    "Elephlora walks one slot toward the enemy every round, healing its most wounded ally and prodding a random foe.",
 
   leaf_gecko:
-    "It leaves the tail. It has never once needed the tail.",
+    "The first killing blow only takes Gecko's tail: it survives at 1 HP, hidden and healing. Once a game.",
 
   leaf_greegon:
-    "The canopy closes over its wounds every evening, whether anyone asked it to or not.",
+    "Greegon stands in front and heals 2 HP every round. Its thorny hits bleed, and each kill sharpens it.",
 
   leaf_guardian:
     "It arrives already swinging, and every kill teaches it to swing harder.",
 
   leaf_hunter:
-    "He sets a trap on arrival, another when he lands a hit, and one last one on his way down. Autumn Tribe thoroughness.",
+    "Hunter's traps bite on arrival for 4, sometimes pin whatever he shoots, and snap once more for 4 at his killer when he falls.",
 
   // ---------------------------------------------------------------- TOKENS
 
@@ -148,63 +148,63 @@ export const LEAF_LORE: Record<string, string> = {
     "Dropped, not planted. It rolls toward the enemy because nothing in the grove told it to stop.",
 
   leaf_reptilian_tok:
-    "One is a nuisance. A dozen is a plan. Trinezer never sends just one.",
+    "Trinezer's Reptilians come in threes, and each kill leaves the one that got it faster, stronger and tougher.",
 
   // ---------------------------------------------------------------- SPELLS
 
   leaf_sprout:
-    "Nothing here will kill you. It only makes certain the round after this one costs you something.",
+    "A patch of thorns scratches one enemy and everything packed beside it, and each keeps bleeding for two rounds.",
 
   leaf_thorn_patch:
-    "The smallest possible amount of growth, applied exactly where the wound is. It is usually enough.",
+    "A little new growth across a chosen row heals each LEAF ally in it for 3 HP.",
 
   leaf_snare:
-    "The forest does not chase. It waits on the ground you were always going to walk across.",
+    "A hidden trap in an empty slot: the first enemy to step on it is rooted for three rounds and bleeds.",
 
   leaf_bramble_wall:
     "Three rounds of thorn. Fly over it, shoot across it — but do not try to walk it.",
 
   leaf_groves_blessing:
-    "Whatever the enemy spent this round undoing, the grove quietly puts back.",
+    "The grove thickens: every LEAF ally gains +4 max HP, heals 5, and sheds a bad status.",
 
   leaf_lushfield:
-    "Everything grows longer here — the healing, the bleeding, and the roots holding you still for both.",
+    "In Lushfield your LEAF allies regrow every round, and every bleed and root you apply lasts a round longer.",
 
   leaf_withering_grasp:
-    "Nothing the forest takes is wasted. It is simply moved to whoever needed it more.",
+    "A grasping root pierces for 8, leaves the target bleeding, and gives what it takes to a LEAF ally.",
 
   leaf_overgrowth:
     "One wrong step, and the whole patch closes — on you and on whoever was standing beside you.",
 
   leaf_bloodroot_surge:
-    "Every drop the field is about to spill has already been promised to something with roots.",
+    "Every enemy starts bleeding, and the blood it will cost them is paid out up front as healing to your whole grove.",
 
   leaf_heart_of_the_forest:
-    "The Spirit Tree does not intervene often. When it does, the Cycle simply resumes from the beginning — for one side only.",
+    "The Spirit Tree wakes: LEAF allies are healed to full and made sturdier for good, while every enemy is rooted in place.",
 
   leaf_snapmaw:
-    "It does not chase. It waits for the roots to finish the argument.",
+    "Snapmaw feeds on the rooted: it devours every pinned enemy on the board, and grows stronger for each one that dies.",
 
   // ── Void Tower bosses ──
-  boss_basilisk: "It is not winning the fight. It is winning the wait.",
+  boss_basilisk: "Basilisk heals every round and bites back what it takes. Every three rounds its Wither Coil withers up to three enemies' max HP.",
 
   // ── Void Tower bosses ──
-  boss_smolder: "The forest did not burn down. It stood up.",
+  boss_smolder: "Smolder burns where it roots: every three rounds it sets everything near it alight and pins it in the flames.",
 
-  boss_kazehaya: "It has never taken the first swing. It has never needed to.",
+  boss_kazehaya: "Every three rounds Kazehaya's Cutting Wind slashes everything near it and drags it close. Hit it too hard and the gale throws you back.",
 
   leaf_leafwind_guardian_tok:
-    "It does not catch you. It decides where you will be standing.",
+    "A vine hook on every strike drags the enemy one slot toward the Guardian, whether it wanted to come or not.",
 
   // -- the forty-card pass --
   leaf_forestdeer:
-    "It heard you decide. That was several minutes ago.",
+    "Forest Deer bolts before you can strike: a slower attacker only has a 50% chance to hit it.",
   leaf_monkey:
-    "It watched which way you looked, and left something there for you.",
+    "Rookey's decoy head soaks the first basic attack, and on arrival it digs a LEAF card costing 4 or more out of your deck.",
   leaf_gorilla:
-    "It has not stood up yet. There has not been a reason to.",
+    "Growrilla's Canopy Crash pounds the three nearest enemies and pins them, and every hit it lands shoves the target back a slot.",
   leaf_wintermoose:
-    "The herd keeps its own weather. It can stand in this until spring.",
+    "The herd keeps its own weather: the Winter Moose heals nearby allies 3 HP every round, and its Winter Coat shields them all.",
   leaf_grizzly:
-    "It has been in this thicket the whole time. You will know when that stops being true.",
+    "Grizzly hides in the thicket until it moves. Then it closes two spaces and mauls for 14, and a kill heals it.",
 };

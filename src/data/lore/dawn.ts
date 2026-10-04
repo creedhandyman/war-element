@@ -27,18 +27,18 @@ export const DAWN_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   dawn_supernova:
-    "It scorches everything in range on arrival, and while it hangs there, every enemy shot is a little likelier to go wide.",
+    "A dying star hangs overhead. It scorches everything in range on arrival, and its glare makes enemy shots miss more often.",
 
   dawn_equestrian:
-    "The order does not permit its people to be diminished. Nothing on the field can make them less than they arrived.",
+    "A Knight of the Sun on horseback: it charges up a column and tramples what it meets, and no ally beside it can be weakened.",
 
   dawn_imperator:
-    "Keeper of the Eternal Vigil. He arrives larger for every ally already standing, and the line behind him is cleansed each round.",
+    "Imperator, keeper of the Eternal Vigil. He crowns an Heir and sends the whole line in at once; the ranks behind him are cleansed each round.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   dawn_kosmos:
-    "It is not trying to kill the front rank. Every round, whoever stands nearest simply stops being able to see.",
+    "Kosmos, the whole sky at once. Every round it blinds the nearest foe, and its Flashing Barrage blinds everyone in range.",
 
   dawn_heir_tok: // Heir — a draftable Legendary, despite the id
     "Named, not born. Three coronations are permitted, and every throat it closes makes the next one cheaper.",
@@ -47,66 +47,66 @@ export const DAWN_LORE: Record<string, string> = {
     "Three lights, each taking a blow meant for her and handing it back. Every death out there kindles another.",
 
   dawn_aurelion: // Reveille
-    "The morning call. Each round the line wakes up wearing one more thing that cannot be taken off it.",
+    "Reveille sounds and the line wakes healed, faster and hitting harder; each round a ward turns aside the next curse on every ally.",
 
   dawn_leo:
-    "He answers arrivals. Every new banner on the field leaves the old lion a little harder to move.",
+    "The old lion, king of the wild. Every foe that arrives makes him tougher and sharper, and Golden Guardian mends him every round.",
 
   dawn_commander: // Sunbanner
-    "The banner does not strike. It stands in front, and every card behind it carries one plate more for it.",
+    "The Sunbanner stands at the front, every ally beneath it carries an extra plate, and its order sends the nearby rows in to strike together.",
 
   dawn_dawn: // Empyrean
-    "It holds no post. It lands already swinging, then walks the line each round, and everyone behind it is three points better off.",
+    "Empyrean descends from above already sounding Golden Courage, then mends every ally 3 HP each round.",
 
   // ------------------------------------------------------------------ EPIC
 
   dawn_star:
-    "It arrives and the whole field looks away at once. Every shot it lands afterwards is worth a point to somebody.",
+    "A star falls and the whole field looks away; each shot it lands afterwards heals every ally a point.",
 
   dawn_amble:
-    "She walks the line each round and finds whoever is worst off. She has never once needed telling who.",
+    "She ambles the line each round and heals whoever is worst off, and has never once needed telling who.",
 
   dawn_lazor:
-    "It burns brighter with each one it takes, and it does not go out quietly.",
+    "A laser: each kill sharpens it, its Flash Ray reaches anywhere on the board, and whoever finally drops it takes 7 back.",
 
   dawn_golde: // Gilden
-    "He stands in front of the archers, and anyone who reaches him in person is answered with two points, without comment.",
+    "Gilden stands gilded in front of the archers; strike him in melee and he hits back for 2, and his War Cry sharpens the whole team.",
 
   dawn_solstice:
-    "The longest day. Every round it hands out one more thing the dark has to get through first.",
+    "Solstice, the longest day: Daybreak heals the line and quickens it, and each round a ward turns aside the next curse on every ally.",
 
   dawn_veil:
     "Eight plates on arrival, and it is better off once they are gone. Breaking it is not the same as stopping it.",
 
   dawn_radiance:
-    "It measures itself against the largest thing on the field, and arrives sized accordingly.",
+    "Radiance grows to match the toughest foe on the field, and its SunSword strikes any target on the board for 11.",
 
   dawn_ty: // Tether
-    "It ties two hands every round, then bills whoever is still tied.",
+    "Tether ropes two foes each round so they cannot cast, then its Lacing Knots hit every one still bound for 9.",
 
   dawn_raya: // Zenith
     "It fires straight up and tells you where. The waiting is the part nobody manages well.",
 
   dawn_solara:
-    "Sunrise arrives with a guard already posted. Nobody quite sees it happen.",
+    "Solara's sunrise blinds the enemy line and posts a Radiant Guardian in front of hers; she mends every ally 1 HP each round.",
 
   dawn_ariel:
-    "It does not wind up so much as reach temperature. Whatever it touches next is not standing afterwards.",
+    "Ariel heats to 100,000 degrees, and its next shot fires from range for 11 more damage, straight through shields.",
 
   dawn_clipsey: // Eclipse
     "High noon, and seven shots that do not miss. Cover has never once been the answer to her.",
 
   dawn_drakonbane:
-    "Commissioned for one job. Anything large enough to need doing counts as a dragon.",
+    "Drakonbane, the dragon-slayer. Anything as big as a dragon takes extra, and its Special can strike flyers that melee cannot.",
 
   dawn_warphant: // WarPhant
     "It does not go around. Anything smaller in the way is moved — and when it finally falls, somebody rides out of it.",
 
   dawn_sircrest:
-    "A DAWN mage carrying another two nations' fire and water at once. The harbour where they meet is where he is most at home.",
+    "SirCrest burns and drowns at once: his basic hits set foes alight, and Burning Waterfall scalds and burns the whole line.",
 
   dawn_halo:
-    "Under its light nothing of DAWN's can be blinded, and nothing can slip a DAWN blade. Light that hides has already lost.",
+    "Halo circles overhead: its horn heals and cleanses the line, and in its light DAWN cannot be blinded and no foe can dodge them.",
 
   // ------------------------------------------------------------------ RARE
 
@@ -114,10 +114,10 @@ export const DAWN_LORE: Record<string, string> = {
     "It opens with a light in somebody's eyes, and holds it there for two rounds.",
 
   dawn_flash:
-    "Four points of health and no intention of being looked at directly. Whoever it strikes is left unable to look back.",
+    "A flash, then it is gone: fast and fragile, and whoever it hits is blinded for a round.",
 
   dawn_sparkle:
-    "A quarter of the time it works. The Kingdom issues them regardless.",
+    "A cheap wand: one hit in four dazzles its target blind. The Kingdom issues them regardless.",
 
   dawn_roy: // Outrider
     "A pawn, and most of DAWN is pawns. It sends back for something larger, and grows braver the further forward it goes.",
@@ -126,25 +126,25 @@ export const DAWN_LORE: Record<string, string> = {
     "It keeps the watch nobody writes down: whoever is nearly gone, every round, without being asked.",
 
   dawn_sphere:
-    "It arrives already plated, and what it fires does not stop for plate.",
+    "A sphere ringed in two plates on arrival, and what it fires pierces plate.",
 
   dawn_glime: // Glimmer
-    "Two plates, and it is quicker once they are off. It has never minded losing them.",
+    "A halo of two plates; when they break it hits harder and moves faster. It has never minded losing them.",
 
   dawn_shine:
     "It watches the line. The first time somebody takes one of its own, it answers — once, and it remembers the face.",
 
   dawn_reflection:
-    "It gives armour away every round and keeps only what comes back off its own skin.",
+    "A mirror held up: each blow that lands sends a point back, and every round it lends a plate to the allies in range.",
 
   dawn_stbern: // St. Bernard
-    "It goes out for the ones already down. Four points, and it never asks how they got there.",
+    "A rescue dog: each round it reaches anyone nearly dead and restores 4 HP, and asks no questions.",
 
   dawn_musk_ox: // Musk Ox
-    "It does not move quickly and does not need to. Everything that reaches it arrives a point lighter.",
+    "A musk ox: slow, and it does not need speed. Every hit on it is reduced by a point, and smaller foes are trampled underfoot.",
 
   dawn_goldeneagle: // GoldenEagle
-    "It circles. Every third round it comes back a little worse, and it keeps one trick in reserve.",
+    "The golden eagle circles overhead, hitting harder every third round, and once per game rains feathers on three foes and slips from sight.",
 
   dawn_oxin:
     "Planted, patient, and it takes the speed out of whatever touches it.",
@@ -169,7 +169,7 @@ export const DAWN_LORE: Record<string, string> = {
     "The two nearest the enemy do not wait for the signal. They strike first.",
 
   dawn_radiant_barrier:
-    "A row of standing light. Yours take less inside it; walking into it costs the rest.",
+    "A wall of light across one row: DAWN inside it take less damage, and any foe that steps in is burned and blinded.",
 
   dawn_dawns_grace:
     "The whole line healed, plated twice over, and one thing lifted off each of them.",
@@ -187,7 +187,7 @@ export const DAWN_LORE: Record<string, string> = {
     "Eight to everyone. Sixteen to whoever was already looking away.",
 
   dawn_eternal_dawn:
-    "The Vigil, held all at once. Afterwards the line mends a little more every round, for good.",
+    "The sun held at noon: fifteen to every foe and blinded, and for the rest of the game the line mends faster.",
 
   dawn_lassos:
     "Every shot lands. The rope is only there to decide where you are standing when it does.",
@@ -201,11 +201,11 @@ export const DAWN_LORE: Record<string, string> = {
   dawn_riflemen:
     "Every rifle is already laid on a man. The word to fire is a formality.",
   dawn_sunspot:
-    "Look at the sun long enough and there is a place you cannot see. It waits there.",
+    "Sunspot hides in the glare: it strikes two foes straight through their shields, and any blinded foe takes a crit.",
   dawn_quasar:
-    "It arrives ahead of the light that announced it. Nothing slower was ever going to be quick enough.",
+    "A quasar outshines everything: its hits blind for two rounds, and once per game Starfall strikes any foe on the board for 7.",
   dawn_meridian:
-    "It has gone down once. The post was still held when it got back up.",
+    "Sunstalker pounces twice in one leap, and the first blow that should kill it leaves it standing at 1 HP, once.",
   dawn_ballista:
     "It fires once, and then it is wound back. Both halves are the drill.",
 };

@@ -23,38 +23,38 @@ export const PYRO_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   pyro_nitro:
-    "The Forge Core's finest formula and its least stable. Kill him and the experiment simply completes without him.",
+    "Forged chemistry, tested on everyone at once: 13 damage to the whole board, sometimes double. Kill him and a last 10 goes off anyway.",
 
   pyro_pyrogon:
-    "Every forge-fire in the city was lit from him, however many generations removed. He arrives already burning, and grows on what he kills.",
+    "A dragon of living flame. He lands burning everything ahead, Flame Engulf breathes on two rows at once, and every kill makes him bigger.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   pyro_sol:
-    "The first hit is a courtesy. Every one after it is an argument, and the argument gets louder.",
+    "The sun does not stop at one. Four hits on a single target, each one hotter than the last.",
 
   pyro_aftermath:
-    "He arrives with the blast still settling, and what settles is cover. The Knights learned to advance behind him.",
+    "The blast first, the smoke after. He hits the row ahead for 5, then hangs a cloud over your side so a quarter of their attacks miss.",
 
   pyro_dynomight:
     "The Forged built him to open armour. Plate, shields, or a Tank's ribs — he was told those are the same problem.",
 
   pyro_volcanon:
-    "It pays two of its own HP for every eruption and has never once counted the cost. It only counts what it has learned to hit harder.",
+    "A flying volcano. Each Eruption costs it 2 HP and lands five hits on one target, and every blow leaves it angrier than before.",
 
   pyro_magmaw:
-    "It does not stop when the target drops. The swing is already moving, and there is always something else standing.",
+    "Four bites at one target, and if it drops the rest carry on into the next enemy, harder each time.",
 
   pyro_magmadon:
-    "It burns its own body for the heat, and asks the whole district to do the same. Only ice or roots have ever made it stop.",
+    "Meltdown scorches everyone in range, then repeats every round for 2 of its own HP. Only freezing it, or running out of HP, stops it.",
 
   pyro_infernus_rex:
-    "It does not hold a line. It picks a direction, and the ground it crossed is still burning behind it.",
+    "The king of the volcano charges up to three spaces and hits the first enemy for 12. Every kill erupts for 3 on all of them.",
 
   // ------------------------------------------------------------------ EPIC
 
   pyro_firebird:
-    "Eight damage in one clean strike, and a death that blasts the row ahead for four. It has never cared which of them lands first.",
+    "Flame Charge hits for 10 and leaves the target burning and bleeding, at 3 HP of its own. If it dies anyway, it blasts the row ahead for 4.",
 
   pyro_scorch:
     "It does not fight the front line. It sets fire to the ground the reinforcements have to stand on.",
@@ -63,34 +63,34 @@ export const PYRO_LORE: Record<string, string> = {
     "It only eats what is already cooking. So it makes very sure that everything is.",
 
   pyro_scully: // Scallywag
-    "The pirate lanes pay by the head, and he charges extra for showing off. Use a Special near him and it costs you.",
+    "Powder kegs on every open slot ahead: 6 damage and a burn for whoever steps on one. Any enemy that fires a Special catches fire for it.",
 
   pyro_liza:
-    "She never lights anything herself. When an ally finishes a kill she tells it to hit harder, and her Special finds any slot.",
+    "She doubles whatever is already burning, anywhere on the board, and talks any ally that scores a kill into hitting harder for 2 rounds.",
 
   pyro_tiki:
     "Planted, spinning, and permanently too close. Everyone in range is alight before the first blow, and its Special reaches anywhere.",
 
   pyro_sarra:
-    "Blue flame burns cleaner. Swing at her in melee and the answer comes back at once, with the fire attached.",
+    "Blue flame. Bluflame Slashing burns the row ahead and seals it from healing, and anyone who hits her in melee gets burned back.",
 
   pyro_fenix:
-    "Kill it and it stands up with one point left and nothing else to lose. The second life is the dangerous one.",
+    "A phoenix. Kill it once and it stands back up at 1 HP behind 4 shields. Its Blast hits for 10 and burns the target and its neighbours.",
 
   boss_kheiringer: // Princess Kheiringer
-    "She has never once walked to a fight. The fights are brought to her, and what is left of them is swept out in the morning.",
+    "She never leaves her row. Every third round Rain of Fire burns the whole board for 12, and every round she raises another Fire Giant.",
   pyro_fire_giant_tok:
-    "It was a mountain until she asked it to stand up. It has not been told it may sit down.",
+    "A mountain Kheiringer told to stand. It tramples smaller foes underfoot, and Magma Fist hammers one enemy for 18 and burns it.",
   pyro_lava_gate_tok:
-    "Poured, not built. The masons were told to hurry and the gate has been cooling ever since.",
+    "A wall of poured lava. Nothing can target the square behind it until it falls, and anyone who hits it in melee takes 3 damage and a burn.",
   pyro_sseerr: // Emberclaw
-    "Plated like a wyrm and edged like one — the blades are its own claws, kept longer than anything needs them. The fire it opens with is only ever the distraction.",
+    "Dragon claws. Flaming Slasher cuts every enemy in range for 5 and burns them, while it dodges half of what comes back and sharpens every two rounds.",
 
   pyro_fenrir:
-    "Three bloodlines, one appetite. Every throat it closes teaches it to open two at once.",
+    "A flying fire wolf. Inferno Pounce hits for 8 and burns the target and its neighbours, and every kill earns it an extra hit.",
 
   pyro_twins:
-    "Two tempers, one body, and a shared limit: hurt them enough and they start arguing instead of swinging.",
+    "Twice the temper, one body. Double Trouble swells them 8 HP and every hit makes them angrier, but below 12 HP they fight at half strength.",
 
   pyro_firefly:
     "It does not aim. It scatters — and a kill only convinces it to do the whole thing again, from the air.",
@@ -98,7 +98,7 @@ export const PYRO_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ RARE
 
   pyro_smog_card: // Smog
-    "It carries no weapon at all. Everything near it simply breathes a little less each round.",
+    "A drifting cloud. Every round it mends your side for 1 and chokes every enemy in range for 1.",
 
   pyro_bbq: // Grill
     "Left alone it only gets hotter. Pyro City has never understood why anyone leaves it alone.",
@@ -122,16 +122,16 @@ export const PYRO_LORE: Record<string, string> = {
     "It arrives at a run, already lit, and touches everything on the way past.",
 
   pyro_baboom:
-    "The Forged's opening argument: everybody takes one step back, whether or not they agreed to it.",
+    "A Forged firework. It lands, hits the nearest enemy for 2 and knocks it back a step.",
 
   pyro_heatsink_golem:
-    "It runs so hot its edges cut before they burn. What it opens keeps opening.",
+    "Forged plating run so hot it cuts instead of burns. It stands in front, and every hit it lands leaves a bleeding wound.",
 
   pyro_firecrack:
     "It is looking for one specific thing — something already bleeding and already burning. Then it doubles.",
 
   pyro_taper:
-    "A wick burns to the end and then does the only thing left to do. The back line is what it reaches.",
+    "A candle that passes the flame on. It calls a PYRO card costing 4 or more from your deck at 1 less, and singes the enemy back row when it dies.",
 
   pyro_ember_scorpion:
     "Nine points of damage and a sting that keeps working long after the tail has moved on.",
@@ -140,7 +140,7 @@ export const PYRO_LORE: Record<string, string> = {
     "The Forged do not build one barrel where three will fit.",
 
   pyro_ash_boar:
-    "It does not enter a battlefield so much as land in the middle of one.",
+    "It does not enter the battlefield, it lands on it: 4 damage to up to eight enemies the moment it arrives.",
 
   pyro_slag_tortoise:
     "Cooled slag over a fire that never went out. It will not move, and it takes something off every blow.",
@@ -157,7 +157,7 @@ export const PYRO_LORE: Record<string, string> = {
     "Every fire in the city's history started at about this size.",
 
   pyro_ember_trap:
-    "Left in a doorway and banked low. It is patient in a way nothing else in PYRO is.",
+    "Hidden on an empty slot. The first enemy to step on it takes 5 damage and burns.",
 
   pyro_flare_push:
     "The flare is not the point. The step backward is.",
@@ -184,20 +184,20 @@ export const PYRO_LORE: Record<string, string> = {
     "The Flame Spire answers once a battle. Every forge on your side runs hotter afterwards — permanently.",
 
   pyro_burnout:
-    "It does not stop at the target. Stopping is a separate system it was not given.",
+    "Crash Out charges up to three slots for 10 and spreads the burn to everything touching the target. A kill leaves Burnout standing in its place.",
 
   // ── Void Tower bosses ──
-  boss_umbranova: "It is not aiming. There is nowhere it is not aiming.",
+  boss_umbranova: "Every third round the sky falls. Meteor Fall hits every enemy for 12 through shields, and each fall makes the next worse.",
 
   // -- the forty-card pass --
   pyro_komodo:
-    "One bite. The rest is just a matter of following you.",
+    "Its bite leaves a bleed, and it hits anything bleeding for 4 more. Death Roll opens a target for 8, once a game.",
   pyro_chopper:
-    "It lays the line at sixty. Everything inside it is already burning.",
+    "A motorcycle on fire. It burns everything in range at the start, rolls forward after each attack, and Peel Out scorches the two spaces ahead.",
   pyro_warkiln:
-    "It does not stop for the rank in front. That is what the rank in front is for.",
+    "A kiln on tracks. Breakthrough rolls forward and grinds the lane, 10 to the first enemy and 5 to each one behind. It takes 2 off every blow.",
   pyro_mortar:
-    "One shell every other round, and it carries further than any other. What it hits stops moving, and what has stopped takes more.",
+    "Forged artillery. Airburst Shell stuns a 4x4 burst and drops fliers for 10. It only fires its basic shot every other round.",
   pyro_pyrodactyl:
-    "It comes down the line once. There is no second pass, and there does not need to be.",
+    "A flying fire-lizard. Firestorm Pass sweeps the line for 5 damage and a burn on the 3 nearest enemies.",
 };
