@@ -51,7 +51,7 @@ export const LEAF_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ EPIC
 
   leaf_alpha:
-    "Once per hunt the pack picks a throat and puts it on the ground. Everything after that is bookkeeping.",
+    "The pack waits until the prey is pinned to the ground. After that, every bite is bookkeeping, and every bite feeds him.",
 
   leaf_fallona: // Autumnal
     "She does not need this round. She has been counting since the first one.",
@@ -153,10 +153,10 @@ export const LEAF_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- SPELLS
 
   leaf_sprout:
-    "The smallest possible amount of growth, applied exactly where the wound is. It is usually enough.",
+    "Nothing here will kill you. It only makes certain the round after this one costs you something.",
 
   leaf_thorn_patch:
-    "Nothing here will kill you. It only makes certain the round after this one costs you something.",
+    "The smallest possible amount of growth, applied exactly where the wound is. It is usually enough.",
 
   leaf_snare:
     "The forest does not chase. It waits on the ground you were always going to walk across.",

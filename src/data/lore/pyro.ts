@@ -54,7 +54,7 @@ export const PYRO_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ EPIC
 
   pyro_firebird:
-    "Eight points of health and a full tank. It spends three to hit harder, and the last of them on the way down.",
+    "Eight damage in one clean strike, and a death that blasts the row ahead for four. It has never cared which of them lands first.",
 
   pyro_scorch:
     "It does not fight the front line. It sets fire to the ground the reinforcements have to stand on.",
@@ -66,13 +66,13 @@ export const PYRO_LORE: Record<string, string> = {
     "The pirate lanes pay by the head, and he charges extra for showing off. Use a Special near him and it costs you.",
 
   pyro_liza:
-    "She never lights anything herself. She finds what is already burning and tells it to take its time.",
+    "She never lights anything herself. When an ally finishes a kill she tells it to hit harder, and her Special finds any slot.",
 
   pyro_tiki:
-    "Planted, spinning, and permanently too close. Standing in front of it costs a point a round, indefinitely.",
+    "Planted, spinning, and permanently too close. Everyone in range is alight before the first blow, and its Special reaches anywhere.",
 
   pyro_sarra:
-    "Blue flame burns cleaner and closes nothing. Whatever her fire opens, nobody is putting back.",
+    "Blue flame burns cleaner. Swing at her in melee and the answer comes back at once, with the fire attached.",
 
   pyro_fenix:
     "Kill it and it stands up with one point left and nothing else to lose. The second life is the dangerous one.",
@@ -197,7 +197,7 @@ export const PYRO_LORE: Record<string, string> = {
   pyro_warkiln:
     "It does not stop for the rank in front. That is what the rank in front is for.",
   pyro_mortar:
-    "It does not aim at the flier. It aims at where the flier stops being one.",
+    "One shell every other round, and it carries further than any other. What it hits stops moving, and what has stopped takes more.",
   pyro_pyrodactyl:
     "It comes down the line once. There is no second pass, and there does not need to be.",
 };

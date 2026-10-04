@@ -42,7 +42,7 @@ export const DUSK_LORE: Record<string, string> = {
     "It does not mind losing bodies. Each one that drops makes it heavier, and takes something with it on the way down.",
 
   dusk_hoax:
-    "It points, politely, and everyone understands the matter is settled. When the marked one falls, the crow collects.",
+    "It points, politely, and every blow at the marked one lands twice over. When that one falls, it walks away a little sharper.",
 
   dusk_destro:
     "Killing it is a formality it has already filed an objection to. It returns at eight, and the chains do not care either way.",
@@ -51,7 +51,7 @@ export const DUSK_LORE: Record<string, string> = {
     "The horse is bone as well, and it holds together right up until it doesn't. What is left still walks — slower, and without the lance.",
 
   dusk_nightfang:
-    "It does not kill so much as subtract. What it takes does not come back, and it is not there to be asked about it.",
+    "It arrives as the help. Put down the help and it stands up whole, and has a word with whoever did it.",
 
   dusk_butler:
     "He takes the coats, pours the wine, and stands where the light does not reach. Nobody in the household can say which year he was hired, and nobody has ever thought to ask.",
@@ -59,7 +59,7 @@ export const DUSK_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ EPIC
 
   dusk_silkstalker:
-    "It only spins on your side of the field. Whatever it catches spends two rounds unsure where anything is.",
+    "It is only hard to hit on your side of the field, where it bites twice and mends itself on whatever it takes.",
 
   dusk_spectra:
     "It stands in front, and the one behind it becomes difficult to see as well. Striking it in person is discouraged.",
@@ -89,10 +89,10 @@ export const DUSK_LORE: Record<string, string> = {
     "It has no attack at all. It tears pieces off itself on a schedule, and the pieces do the walking.",
 
   dusk_brute:
-    "Every clean hit takes something out of your swing. It collects armour off the ones that stop swinging entirely.",
+    "Every clean hit takes something out of your swing. Armour is the one thing it cannot work around.",
 
   dusk_ender:
-    "Anything slower than it struggles to be certain where it is. It will happily trade places with you to prove the point.",
+    "Anything slower than it misses half the time. Anything unarmoured it hits for double, about as often.",
 
   dusk_violet:
     "She does not distinguish between sides at the table. Everyone present contributes, and she keeps the total.",
@@ -188,7 +188,7 @@ export const DUSK_LORE: Record<string, string> = {
     "Whatever you finish this round has somewhere to be next round — on your side of it.",
 
   dusk_nightfall:
-    "In this dark the first blow always misses, and everything you take, you keep.",
+    "In this dark the first blow tends to miss, and everything you take, you keep.",
 
   dusk_phantom_spikes:
     "Straight through, and the three it takes are handed to somebody who will use them.",
@@ -210,7 +210,7 @@ export const DUSK_LORE: Record<string, string> = {
 
   // ── Void Tower bosses ──
   boss_rotroot: "It does not raise the dead. It declines their resignation.",
-  boss_skeleeze: "One slot to the right, every round, forever. You have been told.",
+  boss_skeleeze: "Two slots along the row, every round, toward wherever you are standing thickest. You have been told.",
   boss_xilty: "The first blow finds silk. The web decides about the second.",
 
   // -- the forty-card pass --

@@ -29,7 +29,7 @@ export const BOLT_LORE: Record<string, string> = {
     "Plate that reports its own faults. Break the first layer and the current goes back up your arm for two rounds.",
 
   bolt_elecdroid:
-    "Four strikes, each one measured against the last. On a kill it does not stop — it continues the sequence on whatever is next.",
+    "One strike of fifteen, a quarter of it leaking to everyone in reach each round. On a kill it speeds up and does not stop.",
 
   // ------------------------------------------------------------- LEGENDARY
 
@@ -43,16 +43,16 @@ export const BOLT_LORE: Record<string, string> = {
     "Arc's field engineer. Every round somebody on the other side stops working, and he files it as routine.",
 
   bolt_zoez: // Voltedge
-    "Shooting at it is a category error — nothing ranged connects. Reaching it in person costs three.",
+    "Half of what you shoot at it goes elsewhere. Reaching it in person costs three.",
 
   bolt_stormcaller:
-    "It holds them still, then bills them by the round for standing there.",
+    "It does not hold anyone. It bills whoever is already held, two a round, for standing there.",
 
   bolt_gigavolt:
     "It arrives with no weapon and no legs, and gets measurably worse every round it is left standing.",
 
   bolt_voltogon:
-    "The only dragon on the payroll. Whatever it takes out of you goes straight back into itself.",
+    "The only dragon on the payroll. Every kill grows it, and everyone still carrying a charge pays five.",
 
   // ------------------------------------------------------------------ EPIC
 
@@ -66,10 +66,10 @@ export const BOLT_LORE: Record<string, string> = {
     "The first hit is the wire. The second is where the wire goes, and then you have nothing to say.",
 
   bolt_lytning:
-    "It cracks once to stop everything moving, and after that it simply reads the meter each round.",
+    "It does not do the stopping. It reads the meter on whatever has stopped, and bills two a round.",
 
   bolt_storm:
-    "The cheapest thing on the board in round one. By round six nobody has agreed on what it is.",
+    "Cheap, and it leaves a charge on everything it touches. A couple of rounds in, it has outgrown its price.",
 
   bolt_sentry:
     "It does not aim at people. It aims at whatever has stopped moving, which is a far simpler specification.",
@@ -104,7 +104,7 @@ export const BOLT_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ RARE
 
   bolt_zap: // the CARD — the cost-1 spell keys itself below
-    "Two points of health and one job, discharged on arrival.",
+    "Four points of health and one job: five damage to the nearest enemy, discharged on arrival.",
 
   bolt_twotales: // Twintail
     "Two tails, one contact each, and even odds you do not move afterwards.",
@@ -180,7 +180,7 @@ export const BOLT_LORE: Record<string, string> = {
     "On the grid everything of yours costs less and hits harder. That is the entire argument for the grid.",
 
   bolt_lightning_storm:
-    "Eight to everybody and two rounds of nobody moving. Not subtle, and not meant to be.",
+    "Eight to everybody and a round of nobody moving. Not subtle, and not meant to be.",
 
   bolt_full_reroute:
     "Two of your cards, anywhere, at once. Their speed was never the limiting factor — the routing was.",
@@ -189,7 +189,7 @@ export const BOLT_LORE: Record<string, string> = {
     "Every cooldown cleared and every price cut, for one round. Somebody in Voltis Plaza signed off on this.",
 
   bolt_total_network_control:
-    "Two rounds of silence on their side, and your grid never pays full price again.",
+    "Three rounds of silence on their side, and your grid never pays full price again.",
 
   bolt_havoc:
     "The current has somewhere to be. Standing in the way is not a plan.",
@@ -206,7 +206,7 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_kingpin:
     "The contract names one card and one outcome. Both are already filed.",
   bolt_airship:
-    "Lift capacity: one ally, anywhere on the board. Measured, not estimated.",
+    "Rotor wash for the line, plating for the neighbours, and a spotlight that leaves nothing on the other side hidden.",
   bolt_policecar:
     "Unit responding. Units responding. The count is not a boast, it is a dispatch log.",
   bolt_police_tok:

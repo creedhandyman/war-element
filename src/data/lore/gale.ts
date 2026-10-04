@@ -28,12 +28,12 @@ export const GALE_LORE: Record<string, string> = {
     "The pack runs at his speed, which is the only rank GALE recognises. The faster he gets, the harder it lands.",
 
   gale_griffith: // Skyrend
-    "He comes down out of his own sky, takes the recoil without comment, and is gone before the dust decides which way to fall.",
+    "Every bird in the sky flies harder for him, and each kill leaves him further ahead of the dust.",
 
   // ------------------------------------------------------------- LEGENDARY
 
   gale_tempest: // the CARD — the cost-10 spell keys itself below
-    "Three slots of open ground mean nothing to it. Whatever the armour was, it went straight through.",
+    "No slot on the board is out of its reach, and half your swings meet only the place it was.",
 
   gale_eagon:
     "Hit him and half of it comes back on the wind. The Dragons taught him that; the birds taught him not to explain it.",
@@ -48,7 +48,7 @@ export const GALE_LORE: Record<string, string> = {
     "The first meeting is the expensive one. After that you know to watch the feathers, which is already too late.",
 
   gale_bluejay:
-    "Two strikes, and she decides on the way whether they land on one of you or two. Either way, nobody leaves quicker.",
+    "Whatever lands in her range takes an arrow before it has unpacked, and every kill leaves her a little stronger than she arrived.",
 
   gale_kloud:
     "The storm does not pick a target, it picks a direction — and grows louder at every body it finds along the way.",
@@ -56,10 +56,10 @@ export const GALE_LORE: Record<string, string> = {
   // ------------------------------------------------------------------ EPIC
 
   gale_vaga: // Squall
-    "Come close and it is a fight. Shoot from range and there was never anything there. It only finishes what is already going.",
+    "Come close and it is a fight. Shoot from range and there was never anything there. It lands the first cut on everything it meets.",
 
   gale_buf: // Hornrush
-    "A highland animal, bred behind the windbreaks. Slow, patient, mends itself, and puts you on the ground for two rounds.",
+    "A highland animal, bred behind the windbreaks. Slow, thick-skinned, mends itself, and walks straight over anything smaller than it is.",
 
   gale_angale:
     "She does not swing back so much as take something out of you for trying.",
@@ -74,7 +74,7 @@ export const GALE_LORE: Record<string, string> = {
     "There is no distance in this sky, only open slots. It was on the far side of the field a moment ago because that suited it better.",
 
   gale_fano: // Fanwing
-    "The fan is not a weapon. It is for the people behind her, who are suddenly moving at her speed.",
+    "Half of what the fan touches goes away weaker than it came. The wind does the rest.",
 
   gale_vvulture: // Vulture
     "It does not hunt so much as wait for the arithmetic. Everything that dies out here makes it a little larger.",
@@ -145,7 +145,7 @@ export const GALE_LORE: Record<string, string> = {
     "It waits out the round, then gores whatever is directly ahead — and takes the ground if it drops.",
 
   gale_klouy: // Spindrift
-    "The first hit is spray. The second one is what puts you down for two rounds.",
+    "The first hit is spray. The second one stops you where you stand for a round.",
 
   // ---------------------------------------------------------------- TOKENS
 

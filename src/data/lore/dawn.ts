@@ -27,13 +27,13 @@ export const DAWN_LORE: Record<string, string> = {
   // ---------------------------------------------------------------- MYTHIC
 
   dawn_supernova:
-    "It burns five of its own for every burst — and while it hangs there, nobody else's light spreads as far.",
+    "It scorches everything in range on arrival, and while it hangs there, every enemy shot is a little likelier to go wide.",
 
   dawn_equestrian:
     "The order does not permit its people to be diminished. Nothing on the field can make them less than they arrived.",
 
   dawn_imperator:
-    "Keeper of the Eternal Vigil. He names a successor, gives one order, and the whole line answers it at once.",
+    "Keeper of the Eternal Vigil. He arrives larger for every ally already standing, and the line behind him is cleansed each round.",
 
   // ------------------------------------------------------------- LEGENDARY
 
@@ -53,10 +53,10 @@ export const DAWN_LORE: Record<string, string> = {
     "He answers arrivals. Every new banner on the field leaves the old lion a little harder to move.",
 
   dawn_commander: // Sunbanner
-    "The banner does not strike. It tells the row in front of it when to, and the row does.",
+    "The banner does not strike. It stands in front, and every card behind it carries one plate more for it.",
 
   dawn_dawn: // Empyrean
-    "It holds no post. It moves along the line, and behind it nobody is still carrying what they were hit with.",
+    "It holds no post. It lands already swinging, then walks the line each round, and everyone behind it is three points better off.",
 
   // ------------------------------------------------------------------ EPIC
 
@@ -70,7 +70,7 @@ export const DAWN_LORE: Record<string, string> = {
     "It burns brighter with each one it takes, and it does not go out quietly.",
 
   dawn_golde: // Gilden
-    "One shout and the whole line stands straighter. Reaching him in person is answered without comment.",
+    "He stands in front of the archers, and anyone who reaches him in person is answered with two points, without comment.",
 
   dawn_solstice:
     "The longest day. Every round it hands out one more thing the dark has to get through first.",
@@ -114,13 +114,13 @@ export const DAWN_LORE: Record<string, string> = {
     "It opens with a light in somebody's eyes, and holds it there for two rounds.",
 
   dawn_flash:
-    "Two points of health and no intention of being looked at directly.",
+    "Four points of health and no intention of being looked at directly. Whoever it strikes is left unable to look back.",
 
   dawn_sparkle:
     "A quarter of the time it works. The Kingdom issues them regardless.",
 
   dawn_roy: // Outrider
-    "A pawn, and most of DAWN is pawns. It grows braver the further forward it is sent.",
+    "A pawn, and most of DAWN is pawns. It sends back for something larger, and grows braver the further forward it goes.",
 
   dawn_able: // Vigil
     "It keeps the watch nobody writes down: whoever is nearly gone, every round, without being asked.",
@@ -163,25 +163,25 @@ export const DAWN_LORE: Record<string, string> = {
     "A light in the eyes, and three points for the trouble.",
 
   dawn_cleansing_light:
-    "Whatever they were carrying, they put down. Two of it, each.",
+    "The line gives ground by one step, no more, and braces for it. Two plates apiece.",
 
   dawn_grace:
-    "Five points and a sharper edge, for one round, to whoever needs both.",
+    "The two nearest the enemy do not wait for the signal. They strike first.",
 
   dawn_radiant_barrier:
     "A row of standing light. Yours take less inside it; walking into it costs the rest.",
 
   dawn_dawns_grace:
-    "The whole line healed, and one thing lifted off each of them.",
+    "The whole line healed, plated twice over, and one thing lifted off each of them.",
 
   dawn_blazing_sun:
     "Under a sun like this nothing of yours misses, and nothing gets to stay hidden from it.",
 
   dawn_judgment:
-    "Ten straight through the plate — and the line behind it puts something down as well.",
+    "Three cards are sent to posts of the commander's choosing, and none of them asks leave to quit its rank.",
 
   dawn_solar_flare:
-    "Two rows that cannot see for two rounds. The Kingdom calls that mercy, and means it.",
+    "Every DAWN card steps forward and strikes in the same breath. Nobody on the line was asked twice.",
 
   dawn_dawns_judgment:
     "Eight to everyone. Sixteen to whoever was already looking away.",

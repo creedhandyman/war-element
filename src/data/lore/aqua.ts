@@ -51,7 +51,7 @@ export const AQUA_LORE: Record<string, string> = {
     "It is only there when it decides to be. Whatever it reaches for does not walk properly again.",
 
   aqua_glacius:
-    "It closes the water over you and waits. The cold is patient, and it is not the only thing working.",
+    "It closes the water over you and waits, and the burning follows the cold. What it cannot spare you, it can lay over its own side as armour.",
 
   aqua_siren:
     "The song is the smaller half. What answers it can be killed — and then the singer is simply back, unhurt.",
@@ -65,7 +65,7 @@ export const AQUA_LORE: Record<string, string> = {
     "It does not close the distance. It takes hold of you and shortens it on your behalf.",
 
   aqua_bahari:
-    "Every hit it lands comes back to it as water. It can afford to keep going for longer than you can.",
+    "It does not pick a target. Six to everything across from it, and none of it moves quickly afterwards.",
 
   aqua_icynin: // Coilblade
     "It freezes first, then strikes the ice. Whatever was standing beside you gets the pieces.",
@@ -74,7 +74,7 @@ export const AQUA_LORE: Record<string, string> = {
     "It fights with its own armour. Strip that away and there is nothing left to be hit with.",
 
   aqua_polarbear: // PolarBear
-    "Two claws, and the only question is whether one of you loses two rounds or one of you loses four.",
+    "It takes the square it wants and drives you out of it. Everything standing behind it was permitted to stay.",
 
   aqua_anos: // Serenos
     "It is stronger for the rounds it chooses not to fight. Most nations have no word for that.",
@@ -118,7 +118,7 @@ export const AQUA_LORE: Record<string, string> = {
     "Six points of water. Take all six and it will simply be full again next round.",
 
   aqua_bulletshrimp: // Bullet Shrimp
-    "Twelve points of pressure behind one point of shrimp. It only needs the shot to land once.",
+    "Eight points of pressure behind one point of shrimp. Where it lands, the water goes still for a round.",
 
   aqua_icyninza: // Frostveil
     "It is already aiming when it arrives. Sometimes that is the whole engagement.",

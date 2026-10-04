@@ -74,7 +74,7 @@ export const BORE_LORE: Record<string, string> = {
     "Every swing carries it one slot further in. It has no plan for stopping and has never been asked for one.",
 
   bore_monger:
-    "It throws five and does not much mind which land. Whatever misses comes back as armour.",
+    "It stands in front and watches. The first time each of the others is hit, it passes them two plates. Once apiece.",
 
   bore_sheish: // Kimberlite
     "Armour is what it is for. It doubles against anything wearing plate, and keeps whatever it breaks off.",
@@ -86,10 +86,10 @@ export const BORE_LORE: Record<string, string> = {
     "Underground it moves quickly, which is the only place it does. What comes back up is not the size that went down.",
 
   bore_rohojohn: // Crystal Sabor
-    "The mount does its own mauling. Whatever stands beside your target does not get to watch.",
+    "It arrives armoured, and the mount does the mauling. Anything close enough to touch takes four more than it was owed.",
 
   bore_bolder:
-    "Hurt it and it hands the exact amount back, through the plate. Archers and knives get half a say.",
+    "It walks over what stands in front of it and drives it back through the plate. Archers and knives only ever manage half.",
 
   bore_gemaga: // Magnetite
     "It returns what it is given, and teaches the line beside it to do the same.",
@@ -121,7 +121,7 @@ export const BORE_LORE: Record<string, string> = {
     "The Black Smith's forges do not hurry, and nothing that leaves them is thin.",
 
   bore_rockgoblin: // Rock Goblin
-    "It guards the entrance. Anything arriving is given four points of welcome.",
+    "It guards the entrance. Anything that moves in is given two points of welcome, and something heavier is sent for from the back.",
 
   bore_old_timer: // Old Timer
     "Slow, and not about to be moved by anything in a hurry. It has outlasted several people who found that funny.",

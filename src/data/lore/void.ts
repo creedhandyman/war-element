@@ -27,8 +27,8 @@ export const VOID_LORE: Record<string, string> = {
     "It does not follow. It arrives where you were going to be, and waits the "
     + "difference out.",
   void_lidless_tok:
-    "There was never a lid. The name is a courtesy paid by whoever had to write it "
-    + "down, and they wrote it from memory, afterwards.",
+    "There was never a lid. Nothing on the far side is hidden from it, and what it "
+    + "looks at stops seeing.",
   void_scryer_tok:
     "It reads the brood the way the brood reads you, and what it learns travels "
     + "outward faster than anything crosses the ground between them.",
