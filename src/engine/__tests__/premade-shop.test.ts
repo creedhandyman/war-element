@@ -84,6 +84,28 @@ describe("the premade shelf rotates weekly", () => {
         expect(shopDeckPool(tier).map((d) => d.id)).toContain(deck.id);
   });
 
+  it("the 30-card shelf: one 5x5 deck per difficulty, rotating, priced by its cards", () => {
+    // Owner, 2026-10-04: "add a 18 or 30 card deck toggle and update the price".
+    for (const tier of DECK_TIERS) expect(shopDeckPool(tier, 5).length, tier).toBeGreaterThan(0);
+    const save = newSave();
+    for (let w = 0; w < 30; w++) {
+      const big = shopDecks(weekOf(w), 5);
+      expect(big.map((x) => x.tier)).toEqual([...DECK_TIERS]);
+      big.forEach(({ tier, deck }, i) => {
+        expect(deck.boardSize).toBe(5);
+        expect(deck.cards.length).toBe(30);
+        expect(shopDeckPool(tier, 5).map((d) => d.id)).toContain(deck.id);
+        const next = shopDecks(weekOf(w + 1), 5)[i].deck;
+        if (shopDeckPool(tier, 5).length > 1) expect(next.id, `${tier} week ${w}`).not.toBe(deck.id);
+      });
+    }
+    // The default is still the 18-card shelf, and a 30-card deck costs more.
+    for (const { deck } of shopDecks(weekOf(0))) expect(deck.cards.length).toBe(18);
+    const small = shopDecks(weekOf(0)).map(({ deck }) => premadeDeckPrice(save, deck).full);
+    const large = shopDecks(weekOf(0), 5).map(({ deck }) => premadeDeckPrice(save, deck).full);
+    large.forEach((p, i) => expect(p, DECK_TIERS[i]).toBeGreaterThan(small[i]));
+  });
+
   it("holds all week, and changes exactly at Monday midnight", () => {
     const ids = (d: Date) => shopDecks(d).map((x) => x.deck.id).join();
     const sunNight = new Date(2026, 9, 11, 23, 59, 0);

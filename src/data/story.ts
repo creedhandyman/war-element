@@ -2011,8 +2011,15 @@ export function buyBox(save: StorySave): StorySave {
  *  stored, and a reinstall cannot reroll the shelf. A week never repeats the
  *  deck the week before it held. Weeks turn at Monday midnight LOCAL time — the
  *  same local calendar the daily reward keeps (`data/daily.ts`). */
-export const shopDeckPool = (tier: DeckTier): PremadeDeck[] =>
-  PREMADE_DECKS.filter((d) => d.tier === tier && d.boardSize === 4)
+//
+// TWO SHELVES (owner, 2026-10-04: "add a 18 or 30 card deck toggle"): the
+// standard board's 18-card builds (boardSize 4, the default) and the large
+// board's 30-card builds (boardSize 5). Each has its own weekly rotation; the
+// price needs nothing new — it is the cards' worth, so a 30-card deck costs
+// what its 30 cards do.
+export type ShopDeckSize = 4 | 5;
+export const shopDeckPool = (tier: DeckTier, size: ShopDeckSize = 4): PremadeDeck[] =>
+  PREMADE_DECKS.filter((d) => d.tier === tier && d.boardSize === size)
     .sort((a, b) => a.id.localeCompare(b.id));
 
 const DAY_MS = 86_400_000;
@@ -2057,8 +2064,8 @@ function cycleOrder(tier: DeckTier, pool: PremadeDeck[], cycle: number): Premade
  *  none waits forever on bad luck. Where a new cycle would open on the deck the
  *  last one closed on, its first two swap, so no deck is ever on the shelf two
  *  weeks running. */
-function weekPick(tier: DeckTier, week: number): PremadeDeck | null {
-  const pool = shopDeckPool(tier);
+function weekPick(tier: DeckTier, week: number, size: ShopDeckSize = 4): PremadeDeck | null {
+  const pool = shopDeckPool(tier, size);
   const n = pool.length;
   if (!n) return null;
   if (n < 3) return pool[((week % n) + n) % n]; // two decks simply alternate
@@ -2079,9 +2086,9 @@ export const deckCardShards = (defId: string): number =>
   Math.round((PACK_COST / PACK_SIZE) * craftCostOf(defId) / CRAFT_COST.rare);
 
 /** This week's shelf: one deck per difficulty, easiest first. */
-export const shopDecks = (now: Date = new Date()): { tier: DeckTier; deck: PremadeDeck }[] =>
+export const shopDecks = (now: Date = new Date(), size: ShopDeckSize = 4): { tier: DeckTier; deck: PremadeDeck }[] =>
   DECK_TIERS.flatMap((tier) => {
-    const deck = weekPick(tier, shopWeek(now));
+    const deck = weekPick(tier, shopWeek(now), size);
     return deck ? [{ tier, deck }] : [];
   });
 

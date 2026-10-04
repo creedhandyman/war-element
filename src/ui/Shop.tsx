@@ -29,7 +29,7 @@ import { CARDS, getDef } from "../data/cards";
 import {
   BOX_BONUS_PACKS, BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_SAVING,
   CRAFT_COST, PACK_COST, PACK_SIZE, REGIONS, SHINY_CHANCE,
-  applyPack, buyBox, buyPremadeDeck, canBuyBox, canBuyPremadeDeck, premadeDeckPrice, shopDecks, shopRefreshAt, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
+  applyPack, buyBox, buyPremadeDeck, canBuyBox, canBuyPremadeDeck, premadeDeckPrice, shopDecks, shopRefreshAt, type ShopDeckSize, canCraft, canOpenPack, canRerollFoil, craftCard, craftCostOf,
   dupeEssenceFor, foilStatsOf, freePacks, keepFoilStat, openPack, packIsFree, packLeanCost,
   packLeanOf, packOdds, PACK_LEAN, PACK_LEAN_CHANGE_COST, rerollFoil, setPackLean, type PackResult, type StorySave,
 } from "../data/story";
@@ -254,6 +254,16 @@ export function Shop(props: {
     return () => window.clearInterval(t);
   }, []);
   const [deckDone, setDeckDone] = useState<{ id: string; added: number } | null>(null);
+  /** Which shelf: the 18-card standard-board decks or the 30-card large-board
+   *  ones. Remembered per device — a convenience, so it fails quietly. */
+  const [deckSize, setDeckSizeState] = useState<ShopDeckSize>(() => {
+    try { return localStorage.getItem("we_shop_deck_size") === "5" ? 5 : 4; } catch { return 4; }
+  });
+  const setDeckSize = (n: ShopDeckSize) => {
+    setDeckSizeState(n);
+    setDeckAsk(null);
+    try { localStorage.setItem("we_shop_deck_size", String(n)); } catch { /* private mode */ }
+  };
   const keepSquad = (deck: PremadeDeck) => {
     const next = saveSquad({ name: deck.name, cards: [...deck.cards], spells: deck.spells, boardSize: deck.boardSize });
     props.onSquads?.(next);
@@ -589,8 +599,16 @@ export function Shop(props: {
               NEW IN {untilText(shopRefreshAt(now).getTime() - now.getTime())}
             </span>
           </div>
+          <div className="deck-size" role="radiogroup" aria-label="Deck size">
+            {([[4, "18 cards", "4x4"], [5, "30 cards", "5x5"]] as const).map(([n, label, board]) => (
+              <button key={n} type="button" role="radio" aria-checked={deckSize === n}
+                className={deckSize === n ? "on" : ""} onClick={() => setDeckSize(n)}>
+                {label}<em>{board}</em>
+              </button>
+            ))}
+          </div>
           <div className="deck-shelf">
-            {shopDecks(now).map(({ tier, deck }) => {
+            {shopDecks(now, deckSize).map(({ tier, deck }) => {
               const { full, price, owned } = premadeDeckPrice(save, deck);
               const face = faceOf(deck);
               const els = [...new Set(deck.cards.map((id) => getDef(id).element))];
