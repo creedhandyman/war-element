@@ -45,7 +45,7 @@ export const DUSK_LORE: Record<string, string> = {
     "Hoax marks one opponent, politely. It can no longer heal, and while unshielded every hit on it lands as a critical.",
 
   dusk_destro:
-    "Destro comes back once at eight HP when killed. Flaming Chains weaken every opponent and take two max HP from each.",
+    "Destro comes back once at eight HP when killed. Phantom Chains weaken every opponent and take two max HP from each.",
 
   dusk_skelider:
     "Skelider rides up to four slots to put a lance through its target. Below 10 HP the horse gives out, and it walks on slower, without the charge.",

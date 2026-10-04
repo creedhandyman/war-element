@@ -45,6 +45,7 @@ describe("Now You Don't", () => {
     expect(describePassives(def).join(" | ")).toContain(
       "Now You Don't — Vs MUTED targets, basics gain ×2 DMG, and STUN it for 1 round.",
     );
-    expect(def.special!.text).toBe("MUTE up to 2 opponents for 2 rounds and WEAKEN them.");
+    // ...apart from the STEALTH it now leaves on the caster (owner, 2026-10-04).
+    expect(def.special!.text).toBe("MUTE up to 2 opponents for 2 rounds and WEAKEN them, then vanish into STEALTH until next round.");
   });
 });

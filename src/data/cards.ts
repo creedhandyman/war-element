@@ -8799,9 +8799,9 @@ export const CARDS: CardDef[] = [
     passiveNames: { summonSelfShields: "White Shadow", onRevive: "Ghost Return" },
     summonSelfShields: 3,
     onRevive: { heal: 8 },
-    // Flaming Chains: DRAIN 2 max HP from all opponents and WEAKEN them 2 rounds.
+    // Phantom Chains: DRAIN 2 max HP from all opponents and WEAKEN them 2 rounds.
     special: {
-      name: "Flaming Chains",
+      name: "Phantom Chains", // was Flaming Chains (owner, 2026-10-04)
       cost: 5,
       handler: "barrage",
       params: { dmg: 0, targets: 99, drain: 2, statusKind: "WEAKEN", statusDuration: 2 },
