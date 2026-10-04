@@ -55,6 +55,10 @@ describe("boss heads are earned, not set", () => {
     // A trophy that renders as a broken image is worse than no trophy.
     for (const b of VOID_BOSSES) expect(avatarArt(b.cardId)).toMatch(/^\/cards\/.+\.webp$/);
   });
+
+  it("Kato wears his Prowlform: the first form is a vehicle with no head to frame", () => {
+    expect(avatarArt("boss_kato")).toBe("/cards/boss_kato_2.webp");
+  });
 });
 
 describe("boss heads are framed on the head", () => {

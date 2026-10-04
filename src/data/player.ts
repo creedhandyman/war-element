@@ -62,7 +62,12 @@ export function activeAvatar(save: StorySave): string | undefined {
 /** The art plate for an avatar — the boss's own card art, cropped by CSS to the
  *  head. Named from the id like every other plate. */
 export const avatarArt = (cardId: string): string =>
-  `/cards/${getDef(cardId).art ?? cardId}.webp`;
+  `/cards/${AVATAR_PLATE[cardId] ?? getDef(cardId).art ?? cardId}.webp`;
+
+/** A head painted on a different plate than the card's own. Kato's first form is a
+ *  vehicle with no head to frame; its Prowlform is a crystal panther with a
+ *  snarling face, so that is the one worn as a profile picture. */
+const AVATAR_PLATE: Record<string, string> = { boss_kato: "boss_kato_2" };
 
 /** WHERE THE HEAD IS, per boss, and how far to zoom in on it.
  *
@@ -100,7 +105,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_umbranova:    { x: 50, y: 40, zoom: 200 },
   boss_cryovex:      { x: 53, y: 32, zoom: 230 },
   boss_kazehaya:     { x: 33, y: 27, zoom: 260 },
-  boss_kato:         { x: 52, y: 48, zoom: 150 },
+  boss_kato:         { x: 27, y: 53, zoom: 230 },
   boss_smolder:      { x: 37, y: 30, zoom: 260 },
   boss_spindle:      { x: 55, y: 27, zoom: 300 },
   boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
@@ -111,7 +116,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
  *  point VERTICALLY, since the art is drawn `zoom`% wide and its height follows. */
 const PLATE_ASPECT: Record<string, number> = {
-  boss_xilty: 1.249, boss_nightshrike: 1.249, boss_thunderfangs: 1.249,
+  boss_xilty: 1.249, boss_nightshrike: 1.249, boss_thunderfangs: 1.249, boss_kato: 1.249,
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders
