@@ -291,6 +291,7 @@ function NodePanel(props: {
 }) {
   const { node, save, owned } = props;
   // Which roster card is expanded, if any.
+  const [loreOpen, setLoreOpen] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const open = isOpen(save, node), cleared = isCleared(save, node.id);
   // A Blight Node is generated, so it is in no region's node list — fall back to
@@ -357,15 +358,26 @@ function NodePanel(props: {
           </p>
         )}
       </div>
-      {node.lore && <p className="np-lore">{node.lore}</p>}
-      {node.note && <p className="np-note">{node.note}</p>}
-      {/* A border boss is a Void Trial, and a tower fight runs no terrain. */}
+      {/* The node's facts as chips, the same as on the squad check it leads to
+          (owner, 2026-10-04). A border boss is a Void Trial, and a tower fight
+          runs no terrain. */}
       {region && !boss && (
-        <p className="np-terrain">
-          Terrain: <b>{region.terrain}</b> — runs all battle, both sides.
-          {contested && <> Contested by Nightfall — the Blight is fighting it.</>}
-        </p>
+        <div className="sp-facts np-facts">
+          <span className="sp-fact sp-fact-el" title="Runs all battle, both sides">
+            <b>{region.element}</b> · {region.terrain} all battle
+          </span>
+          {contested && <span className="sp-fact np-contested">Contested by Nightfall</span>}
+        </div>
       )}
+      {node.lore && (
+        <div className="sp-lorebox">
+          <p className={`np-lore sp-clamp ${loreOpen ? "open" : ""}`}>{node.lore}</p>
+          <button className="sp-more" onClick={() => setLoreOpen((v) => !v)}>
+            {loreOpen ? "Show less" : "Read more"}
+          </button>
+        </div>
+      )}
+      {node.note && <p className="np-note np-tip">{node.note}</p>}
 
       {boss && face && (
         <p className={`np-demand ${gate.ok ? "met" : ""}`}>
@@ -390,53 +402,35 @@ function NodePanel(props: {
       )}
 
       <div className="np-label">{boss ? "The boss and its brood" : isGate(node) ? "Border patrol" : "Enemy squad"}</div>
-      <ul className="np-roster">
+      <div className="sp-grid np-grid">
         {(boss ? broodOf(boss) : isGate(node) ? node.adds : pool).map((id) => {
           const d = getDef(id);
           const have = owned.has(id);
           const over = isOverflow(node, id);
           const pity = save.pity[`${node.id}:${id}`] ?? 0;
+          // What the corner says: the element on a patrol, and otherwise whether
+          // you own it or what a capture would roll to recruit it.
+          const tag = isGate(node) ? d.element : have ? "owned" : `${recruitChance(id, pity, over)}%`;
           return (
-            <li key={id} className={`${have ? "have" : ""} ${over ? "overflow" : ""}`}>
-              {/* The squad is the reason to pick a node, and a name told you
-                  nothing about what you are walking into. Tap for the full card. */}
-              <button
-                className="npr-art"
-                title={`${d.name} — see the card`}
-                onClick={() => setPreviewId(id)}
-              >
-                <img
-                  src={cardThumbSrc(d)}
-                  alt=""
-                  loading="lazy"
-                  onError={(e) => { e.currentTarget.style.display = "none"; }}
-                />
-              </button>
-              <span className="npr-name">
-                {!isGate(node) && foils.has(id) && (
-                  <i className="foil-tag inline" title="You hold this card in foil">✦</i>
-                )}
-                {d.name}
-                {over && (
-                  <span
-                    className="npr-over"
-                    title={`Overflow from ${d.element} — half odds here, full odds at its home node.`}
-                  >
-                    {d.element}
-                  </span>
-                )}
-              </span>
-              <span className={`npr-rar r-${d.rarity ?? "rare"}`}>{d.rarity ?? "rare"}</span>
-              <span className="npr-cost">{d.cost}◆</span>
-              <span className="npr-drop">
-                {isGate(node)
-                  ? getDef(id).element
-                  : have ? "owned" : `${recruitChance(id, pity, over)}%${pity ? ` (+${pity} dry)` : ""}`}
-              </span>
-            </li>
+            <button
+              key={id}
+              className={`sp-tile r-${d.rarity ?? "rare"} ${have ? "have" : ""} ${over ? "overflow" : ""}`}
+              title={`${d.name} · ${d.rarity ?? "rare"} · ${d.cost} gold${over ? ` · overflow from ${d.element}: half odds here, full at its home node` : ""}${!isGate(node) && !have && pity ? ` · +${pity} dry` : ""} — see the card`}
+              aria-label={`${d.name} — see the card`}
+              onClick={() => setPreviewId(id)}
+            >
+              <img src={cardThumbSrc(d)} alt="" loading="lazy"
+                onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+              <span className="sp-tile-cost">{d.cost}</span>
+              <span className={`sp-tile-tag ${have && !isGate(node) ? "owned" : ""}`}>{tag}</span>
+              {!isGate(node) && foils.has(id) && (
+                <i className="foil-tag inline sp-tile-foil" title="You hold this card in foil">✦</i>
+              )}
+              <span className="sp-tile-name">{d.name}</span>
+            </button>
           );
         })}
-      </ul>
+      </div>
       {node.adds.length > 0 && !isGate(node) && (
         <p className="np-adds">
           Plus {node.adds.map((id) => getDef(id).name).join(", ")} — spawned filler, not recruitable.
@@ -450,29 +444,6 @@ function NodePanel(props: {
         </p>
       )}
 
-      {!open ? (
-        <p className="np-blocked">Locked. Clear {blockedBy.join(" and ")} first.</p>
-      ) : (
-        <>
-          {isGate(node) && !gate.ok && (
-            <div className="np-gate">
-              {gate.reasons.map((r) => <p key={r} className="np-blocked">{r}</p>)}
-            </div>
-          )}
-          <button
-            className="lockin np-fight"
-            // The walkthrough's first-battle step rings THIS, not the Story tab
-            // it came in by: pointing at the nav while the map was up docked the
-            // card on top of the one button the step was asking for.
-            data-guide="story-fight"
-            disabled={!gate.ok}
-            title={gate.ok ? undefined : "This gate wants a finished deck"}
-            onClick={() => props.onFight(node)}
-          >
-            {cleared ? "Fight again" : isGate(node) ? "Cross" : "Fight"}
-          </button>
-        </>
-      )}
       {open && isGate(node) && (
         boss ? (
           <p className="np-drops">
@@ -515,6 +486,34 @@ function NodePanel(props: {
       {previewId && (
         <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
       )}
+
+      {/* Pinned to the foot of the panel, above the bottom nav on a phone, so it
+          is there however long the squad and the notes run. */}
+      <div className="np-fightbar">
+        {!open ? (
+          <p className="np-blocked">Locked. Clear {blockedBy.join(" and ")} first.</p>
+        ) : (
+          <>
+            {isGate(node) && !gate.ok && (
+              <div className="np-gate">
+                {gate.reasons.map((r) => <p key={r} className="np-blocked">{r}</p>)}
+              </div>
+            )}
+            <button
+              className="lockin np-fight"
+              // The walkthrough's first-battle step rings THIS, not the Story tab
+              // it came in by: pointing at the nav while the map was up docked the
+              // card on top of the one button the step was asking for.
+              data-guide="story-fight"
+              disabled={!gate.ok}
+              title={gate.ok ? undefined : "This gate wants a finished deck"}
+              onClick={() => props.onFight(node)}
+            >
+              {cleared ? "Fight again" : isGate(node) ? "Cross" : "Fight"}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

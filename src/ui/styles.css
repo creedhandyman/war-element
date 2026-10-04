@@ -5422,6 +5422,35 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .np-fight { width: 100%; margin-top: 14px; }
 
+/* ── THE NODE PANEL, in the squad check's style (owner, 2026-10-04) ──────────
+   Fact chips, two-line lore, the squad as card tiles that say owned / recruit
+   chance in the corner, and Fight pinned at the foot. Shares .sp-tile,
+   .sp-fact and .sp-more with the squad check, so the two screens read as one. */
+.node-panel .np-facts { margin: 8px 0 2px; }
+.np-contested { border-color: color-mix(in srgb, var(--threat) 45%, transparent); color: var(--threat); }
+.node-panel .sp-lorebox { margin: 8px 0 2px; }
+.sp-clamp { margin: 0; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sp-clamp.open { -webkit-line-clamp: unset; display: block; }
+.np-tip { font-style: normal; border-left: 2px solid var(--gold); padding-left: 10px; }
+.np-grid { grid-template-columns: repeat(auto-fill, minmax(66px, 1fr)); }
+.sp-tile-tag { position: absolute; top: 3px; right: 3px; max-width: calc(100% - 26px); padding: 1px 5px; border-radius: 8px;
+  background: rgba(7, 7, 13, .85); border: 1px solid var(--panel-line); color: var(--ink);
+  font-size: 9.5px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1.3;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sp-tile-tag.owned { color: var(--legal); border-color: color-mix(in srgb, var(--legal) 45%, transparent); }
+.sp-tile.have img { filter: grayscale(.35) brightness(.8); }
+.sp-tile.overflow { border-style: dashed; }
+.sp-tile-foil { position: absolute; left: 4px; bottom: 16px; margin: 0; }
+/* Sticky at the foot of whatever scrolls the panel: the side column on a wide
+   screen, the whole map column on a phone. That column already ends at the top
+   of the bottom nav (measured: 744 against the nav's 745.5 on a 812px phone),
+   so bottom: 0 sits the bar right on top of the nav with nothing between. */
+.np-fightbar { position: sticky; bottom: 0; z-index: 1; margin: 12px -18px -18px; padding: 10px 18px 14px;
+  background: var(--panel); border-top: 1px solid rgba(201, 162, 75, .18);
+  box-shadow: 0 -10px 18px -8px rgba(0, 0, 0, .6); }
+.np-fightbar .np-fight { margin-top: 0; }
+.np-fightbar .np-blocked { margin: 0; }
+
 @media (max-width: 900px) {
   .story-body { flex-direction: column; overflow-y: auto; }
   /* One scroller on a phone. `.story-body` already scrolls the whole column
@@ -5804,6 +5833,133 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .story-prep { max-width: 100%; }
   .sp-enemy, .sp-deck { max-height: 132px; }
 }
+
+/* ── THE SQUAD CHECK (owner, 2026-10-04, from a mock) ────────────────────────
+   A column: everything scrolls in .sp-scroll and the Fight bar sits under it,
+   never inside it. On a phone the sheet also stops short of the bottom nav, so
+   Fight can no longer slide under the nav and show half its word.
+   Scoped to .sp-main: the packing view shares .story-prep and keeps its own
+   layout. */
+.story-prep.sp-main { display: flex; flex-direction: column; padding: 0; overflow: hidden;
+  width: min(560px, 94vw); max-height: 92dvh; }
+.sp-main .sp-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  padding: 20px 20px 14px; display: flex; flex-direction: column; gap: 14px; }
+.sp-main .sp-head h1 { font-size: 24px; line-height: 1.1; text-wrap: balance; }
+.sp-main .sp-kind { font-size: 10.5px; letter-spacing: .18em; }
+.sp-main .sp-facts { margin: 0; gap: 6px; }
+.sp-fact { font-size: 12.5px; padding: 3px 9px; border-radius: var(--r-pill); border: 1px solid var(--panel-line);
+  background: var(--void-2); color: var(--ink-dim); }
+.sp-fact b { color: var(--ink); }
+.sp-fact.sp-home { border-color: color-mix(in srgb, var(--legal) 45%, transparent); color: var(--legal); }
+.sp-fact-el { border-color: color-mix(in srgb, var(--gold) 50%, transparent); color: var(--gold-lit); }
+.sp-fact-el b { color: var(--gold-lit); }
+.sp-lorebox { display: flex; flex-direction: column; gap: 2px; }
+.sp-main .sp-lore { margin: 0; font-size: 13.5px; line-height: 1.5;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sp-main .sp-lore.open { -webkit-line-clamp: unset; display: block; }
+.sp-more { align-self: flex-start; background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--gold); font: inherit; font-size: 12.5px; }
+.sp-main .sp-note { margin: 0; font-style: normal; font-size: 13px; border-left: 2px solid var(--gold); padding-left: 10px; }
+.sp-sec { display: flex; flex-direction: column; gap: 8px; }
+.sp-main .sr-label { margin: 0; }
+.sp-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.sp-meta { font-family: var(--body-font); letter-spacing: 0; text-transform: none; font-size: 12.5px;
+  color: var(--ink-dim); font-variant-numeric: tabular-nums; font-weight: 600; }
+.sp-gold { color: var(--coin); }
+
+/* The card tile, both sides: art, a cost coin, the name over a fade, and the
+   rarity on the rim. */
+.sp-grid { display: grid; gap: 6px; }
+.sp-grid-foes { grid-template-columns: repeat(auto-fill, minmax(64px, 1fr)); }
+.sp-grid-deck { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.sp-tile { position: relative; display: block; width: 100%; aspect-ratio: 3 / 4; padding: 0; overflow: hidden;
+  border-radius: 7px; border: 1.5px solid var(--panel-line); background: var(--void-2); color: var(--ink);
+  font: inherit; cursor: pointer; }
+.sp-tile:focus-visible { outline: 2px solid var(--gold-lit); outline-offset: 2px; }
+.sp-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sp-tile.r-rare { border-color: color-mix(in srgb, var(--rar-rare) 60%, transparent); }
+.sp-tile.r-epic { border-color: color-mix(in srgb, var(--rar-epic) 70%, transparent); }
+.sp-tile.r-legendary { border-color: color-mix(in srgb, var(--rar-legendary) 75%, transparent); }
+.sp-tile.r-mythic { border-color: color-mix(in srgb, var(--rar-mythic) 75%, transparent); }
+.sp-tile-cost { position: absolute; top: 3px; left: 3px; min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 9px; display: grid; place-items: center; background: rgba(7, 7, 13, .85);
+  border: 1px solid rgba(255, 201, 60, .55); color: var(--coin); font-weight: 800; font-size: 10.5px;
+  font-variant-numeric: tabular-nums; line-height: 1; }
+.sp-tile-name { position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 3px 3px; text-align: center;
+  font-size: 10.5px; font-weight: 700; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  background: linear-gradient(transparent, rgba(7, 7, 13, .92) 55%); }
+.sp-grid-deck .sp-tile-name { font-size: 9.5px; }
+.sp-tile .sp-drop { position: absolute; inset: 0; display: grid; place-items: center; font-style: normal;
+  font-size: 24px; color: var(--threat); background: rgba(7, 7, 13, .55); opacity: 0; transition: opacity .12s; }
+.sp-tile.pick:hover .sp-drop, .sp-tile.pick:focus-visible .sp-drop { opacity: 1; }
+.sp-tile-add { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  border-style: dashed; border-color: var(--gold-line); color: var(--gold-lit); background: transparent; }
+.sp-tile-add span { font-size: 22px; line-height: 1; }
+.sp-tile-add small { font-size: 10.5px; color: var(--ink-dim); }
+
+.sp-squadbar { display: flex; align-items: stretch; gap: 6px; }
+.sp-picker { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 12px; border-radius: 10px; border: 1px solid var(--gold-line); cursor: pointer;
+  background: linear-gradient(180deg, rgba(201, 162, 75, .16), rgba(201, 162, 75, .05));
+  color: var(--gold-lit); font: inherit; font-weight: 800; font-size: 14.5px; }
+.sp-picker-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-picker small { flex: none; color: var(--ink-dim); font-weight: 500; font-size: 12px; }
+.sp-picker-none { cursor: default; }
+.sp-ibtn { flex: none; min-width: 42px; padding: 0 12px; border-radius: 10px; border: 1px solid var(--panel-line);
+  background: var(--void-2); color: var(--ink); font: inherit; font-weight: 700; font-size: 13.5px; cursor: pointer; }
+.sp-ibtn:hover, .sp-picker:hover { border-color: var(--gold); }
+.sp-dots { display: inline-flex; gap: 3px; align-items: center; }
+.sp-dots i { width: 4px; height: 4px; border-radius: 50%; background: currentColor; }
+.sp-menu { display: flex; flex-direction: column; border: 1px solid var(--panel-line); border-radius: 10px;
+  background: var(--void-2); overflow: hidden; max-height: 260px; overflow-y: auto; }
+.sp-menu > button { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; text-align: left;
+  padding: 9px 12px; background: none; border: 0; border-top: 1px solid rgba(42, 51, 72, .6);
+  color: var(--ink); font: inherit; font-size: 14px; cursor: pointer; }
+.sp-menu > button:first-child { border-top: 0; }
+.sp-menu > button span { color: var(--ink-faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.sp-menu > button:hover:not(:disabled) { background: rgba(201, 162, 75, .08); }
+.sp-menu > button.on { color: var(--gold-lit); }
+.sp-menu > button.match:not(.on) { color: color-mix(in srgb, var(--legal) 70%, var(--ink)); }
+.sp-menu > button:disabled { opacity: .4; cursor: not-allowed; }
+.sp-menu > button.danger { color: var(--threat); }
+.sp-menu .sp-naming { padding: 8px 12px; border-top: 1px solid rgba(42, 51, 72, .6); }
+
+.sp-curvehead { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--ink-dim); }
+.sp-curvehead b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.sp-curve { display: grid; grid-template-columns: repeat(8, 1fr); gap: 4px; height: 44px; align-items: end; }
+.sp-bar { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 2px; height: 100%; }
+.sp-bar i { display: block; width: 100%; border-radius: 3px 3px 0 0; background: linear-gradient(180deg, var(--gold-lit), var(--gold)); }
+.sp-bar.zero i { background: var(--panel-line); }
+.sp-bar span { font-size: 10px; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.sp-status { display: flex; align-items: center; gap: 6px; font-size: 12.5px; }
+.sp-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; flex: none; }
+.sp-status.ok { color: var(--legal); }
+.sp-status.bad { color: var(--threat); font-weight: 700; }
+
+.sp-spells { display: flex; flex-wrap: wrap; gap: 6px; }
+.sp-spell { display: inline-flex; align-items: center; gap: 6px; padding: 5px 9px; border-radius: 8px;
+  border: 1px solid var(--panel-line); background: var(--void-2); font-size: 13px; font-weight: 700; }
+.sp-spell em { font-style: normal; font-size: 11.5px; color: var(--ink-dim); display: inline-flex; align-items: center; gap: 2px;
+  font-variant-numeric: tabular-nums; }
+
+.sp-fightbar { flex: none; display: flex; gap: 8px; padding: 10px 16px 14px;
+  border-top: 1px solid rgba(201, 162, 75, .18); background: var(--panel); }
+.sp-back { flex: none; width: 52px; border-radius: 12px; border: 1px solid var(--panel-line); background: var(--void-2);
+  color: var(--ink-dim); font-size: 22px; line-height: 1; cursor: pointer; }
+.sp-back:hover { border-color: var(--gold); color: var(--ink); }
+.story-prep.sp-main .sp-fight { flex: 1; width: auto; margin: 0; display: flex; flex-direction: column; align-items: center;
+  gap: 1px; padding: 9px 14px; line-height: 1.1; }
+.sp-fight b { font-family: var(--head); font-size: 19px; letter-spacing: .16em; }
+.sp-fight small { font-size: 11.5px; font-weight: 600; opacity: .75; letter-spacing: 0; text-transform: none; }
+@media (max-width: 620px) {
+  /* Stop short of the bottom nav (its height plus its 10px float plus a gap),
+     and sit at the top instead of centred, so the sheet uses the whole height. */
+  .story-prep.sp-main { width: 100%; max-width: 100%; align-self: start; margin-top: 8px; border-radius: 14px;
+    height: calc(100dvh - var(--nav-h, 72px) - max(10px, env(safe-area-inset-bottom)) - 26px); max-height: none; }
+  .sp-main .sp-scroll { padding: 16px 14px 12px; }
+  .sp-main .sp-head h1 { font-size: 21px; }
+}
+@media (prefers-reduced-motion: reduce) { .sp-tile .sp-drop { transition: none; } }
 
 /* Packing on a phone. The generic .modal is a single scrolling box, which put a
    46vh list inside a 92dvh box under a two-line title and a paragraph — about

@@ -146,12 +146,15 @@ export function StoryPrep(props: {
     }
   }, [save.deck]); // eslint-disable-line react-hooks/exhaustive-deps -- `pool` is derived; only a real save change should resync
   const [naming, setNaming] = useState(false);
-  /** Is the squad list open? Closed by default — see the Quick select block. */
-  const [pickerOpen, setPickerOpen] = useState(false);
   // Same idea as the node panel: the squad is what you are building against, so
   // it is worth seeing rather than reading.
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  /** Which drop-down under the squad bar is open: the saved squads, or the ⋯
+   *  menu (edit / pack / save / delete). One at a time. */
+  const [menu, setMenu] = useState<null | "squads" | "actions">(null);
+  /** The lore shows two lines until asked for the rest. */
+  const [loreOpen, setLoreOpen] = useState(false);
 
   const legal = loadoutLegal(deck, cap);
 
@@ -404,251 +407,322 @@ export function StoryPrep(props: {
     );
   }
 
+  // ── the squad check ───────────────────────────────────────────────────────
+  // Redesigned 2026-10-04 (owner, from a mock): one scrolling column with FIGHT
+  // pinned under it, so the button can never slide beneath the bottom nav (it
+  // used to, cut in half); both squads drawn as card art; a cost curve; and the
+  // five loose buttons folded into one squad picker and a ⋯ menu.
+  const pickedName = teams.find((t) => t.squad.id === pickedTeam)?.squad.name;
+  /** Cards per cost, 1..8+, for the curve. */
+  const curve = Array.from({ length: 8 }, () => 0);
+  for (const id of deck) curve[Math.min(8, Math.max(1, getDef(id).cost)) - 1]++;
+  const curveMax = Math.max(1, ...curve);
+  const avgCost = deck.length ? deck.reduce((n, id) => n + getDef(id).cost, 0) / deck.length : 0;
+  const enemyGold = enemy.reduce((n, d) => n + d.cost, 0);
+  const toggleMenu = (m: "squads" | "actions") => setMenu((cur) => (cur === m ? null : m));
+  const openSlots = cap - deck.length;
+
   return (
     <div className="overlay on-top">
-      <div className="modal story-prep">
-        <div className="sp-head">
-          <div>
-            <div className="sp-kind">{boss ? "Border boss" : isGate(node) ? "Border gate" : node.kind}</div>
-            <h1>{node.name}</h1>
+      <div className="modal story-prep sp-main">
+        <div className="sp-scroll">
+          <div className="sp-head">
+            <div>
+              <div className="sp-kind">
+                {boss ? "Border boss" : isGate(node) ? "Border gate" : node.kind}
+                {!boss && <> · {region.element}</>}
+              </div>
+              <h1>{node.name}</h1>
+            </div>
+            <div className="sp-board">
+              <b>{board}×{board}</b>
+              <span>{boss ? "Void Trial" : board === 5 ? "set piece" : "standard"}</span>
+            </div>
           </div>
-          <div className="sp-board">
-            <b>{board}×{board}</b>
-            <span>{boss ? "Void Trial" : board === 5 ? "set piece" : "standard"}</span>
-          </div>
-        </div>
 
-        <div className="sp-facts">
-          {boss ? (
-            <span>
-              Held by <b>{getDef(boss).name}</b>
-              {borderBossScale(node) < 1 && ` and its brood at ${Math.round(borderBossScale(node) * 100)}% strength`}
-              {" "}· slay it to cross, under the tower's rules
+          <div className="sp-facts">
+            {boss ? (
+              <span className="sp-fact">
+                Held by <b>{getDef(boss).name}</b>
+                {borderBossScale(node) < 1 && ` and its brood at ${Math.round(borderBossScale(node) * 100)}% strength`}
+                {" "}· slay it to cross, under the tower's rules
+              </span>
+            ) : (
+              <span className={`sp-fact sp-fact-el el-${region.element.toLowerCase()}`}>
+                <b>{region.element}</b> · {region.terrain} all battle
+              </span>
+            )}
+            <span className="sp-fact">
+              Squad cap <b>{cap}</b>
+              {boss ? " · a full Tower deck" : cap > STANDARD_CAP && " · the big board opens it up"}
+              {cap < ladder && squadLimit === null && ` · ${ladder} on a set piece`}
             </span>
-          ) : (
-            <span><b>{region.element}</b> · {region.terrain} runs all battle</span>
+            {/* Away from home the squad is usually the binding constraint, and it
+                is the one the player can do nothing about from here — so say which
+                it is, and say where it can be changed. */}
+            {squadLimit === null ? (
+              <span className="sp-fact sp-home">
+                {isHard(save) ? "Hard mode" : "Home ground"} · whole collection
+              </span>
+            ) : (
+              <span className="sp-fact">
+                <b>{local}</b> {region.element} here
+                {canPack && (
+                  <>
+                    {" · "}
+                    <b>{pool.length - local}</b>/{squadLimit} carried
+                    {squadIsExplicit(save, region) ? "" : " (auto)"}
+                  </>
+                )}
+              </span>
+            )}
+          </div>
+
+          {node.lore && (
+            <div className="sp-lorebox">
+              <p className={`sp-lore ${loreOpen ? "open" : ""}`}>{node.lore}</p>
+              <button className="sp-more" onClick={() => setLoreOpen((v) => !v)}>
+                {loreOpen ? "Show less" : "Read more"}
+              </button>
+            </div>
           )}
-          <span>
-            Squad cap <b>{cap}</b>
-            {boss ? " · a full Tower deck" : cap > STANDARD_CAP && " · the big board opens it up"}
-            {cap < ladder && squadLimit === null && ` · ${ladder} allowed on a set piece`}
-          </span>
-          {/* Away from home the squad is usually the binding constraint, and it
-              is the one the player can do nothing about from here — so say which
-              it is, and say where it can be changed. */}
-          {squadLimit === null ? (
-            <span className="sp-home">
-              {isHard(save) ? "Hard mode" : "Home ground"} · your whole collection is here
-            </span>
-          ) : (
-            <span>
-              <b>{local}</b> {region.element} here
-              {canPack && (
-                <>
-                  {" · "}
-                  <b>{pool.length - local}</b>/{squadLimit} carried
-                  {squadIsExplicit(save, region) ? "" : " (auto)"}
-                </>
+          {node.note && <p className="sp-note">{node.note}</p>}
+
+          <section className="sp-sec">
+            <div className="sr-label sp-row">
+              <span>They field</span>
+              <span className="sp-meta"><b className="sp-gold">{enemyGold}</b> gold · tap to read</span>
+            </div>
+            <div className="sp-grid sp-grid-foes">
+              {enemy.map((d) => (
+                <button
+                  key={d.id}
+                  className={`sp-tile r-${d.rarity ?? "rare"}`}
+                  title={`${d.name} — see the card`}
+                  aria-label={`Read ${d.name}`}
+                  onClick={() => setPreviewId(d.id)}
+                >
+                  <img src={cardThumbSrc(d)} alt="" loading="lazy"
+                    onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                  <span className="sp-tile-cost">{d.cost}</span>
+                  <span className="sp-tile-name">{d.name}</span>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          <section className="sp-sec">
+            <div className="sr-label sp-row">
+              <span>Your squad</span>
+              <span className="sp-meta">{deck.length} / {cap}</span>
+            </div>
+            <div className="sp-squadbar">
+              {teams.length > 0 ? (
+                <button
+                  className="sp-picker"
+                  aria-expanded={menu === "squads"}
+                  onClick={() => toggleMenu("squads")}
+                  title="Choose one of your saved squads"
+                >
+                  <span className="sp-picker-name">{pickedName ?? "Custom squad"}</span>
+                  <small>▾ {teams.length} saved</small>
+                </button>
+              ) : (
+                <span className="sp-picker sp-picker-none">
+                  <span className="sp-picker-name">{pickedName ?? "Custom squad"}</span>
+                </span>
               )}
-            </span>
-          )}
-        </div>
+              {/* Next to the squad it changes: the campaign remembered your deck
+                  but nothing ever built you one, so every fight opened with
+                  assembling a deck by hand even when you did not care which
+                  cards went in. */}
+              {pool.length > 0 && (
+                <button
+                  className="sp-ibtn"
+                  onClick={fillToCap}
+                  title={`Take ${Math.min(cap, new Set(pool).size)} cards from everything you can field here`}
+                >
+                  Fill
+                </button>
+              )}
+              <button
+                className="sp-ibtn"
+                aria-label="Squad actions"
+                aria-expanded={menu === "actions"}
+                onClick={() => toggleMenu("actions")}
+              >
+                {/* Dots, not "⋯": the game's body face has no U+22EF and fell back
+                    to something that read as "---". */}
+                <span className="sp-dots" aria-hidden="true"><i /><i /><i /></span>
+              </button>
+            </div>
 
-        {node.lore && <p className="sp-lore">{node.lore}</p>}
-        {node.note && <p className="sp-note">{node.note}</p>}
-
-        {teams.length > 0 && (() => {
-          // COLLAPSED TO THE ONE YOU ARE HOLDING. The first cut folded only the
-          // squads that could not be fielded here, which helps a save whose
-          // squads are mostly foreign and does nothing for one whose squads are
-          // mostly usable — the list is still every squad you own, and eleven
-          // pickable chips wrap as far as nineteen did.
-          //
-          // A squad is already CHOSEN on arrival (`pickedTeam` starts on
-          // `preferred`), so the closed state has the real answer in it and the
-          // rest is a question nobody asked yet. One control, not the two
-          // nested folds this replaced.
-          const shown = pickerOpen ? teams : teams.filter((t) => t.squad.id === pickedTeam);
-          return (
-            <>
-              <div className="sr-label">Quick select</div>
-              <div className="sp-quick">
-                {shown.map(({ squad: t, have, usable, why }) => (
+            {menu === "squads" && (
+              <div className="sp-menu" role="menu">
+                {/* Every squad you own, the unfieldable ones included — still
+                    disabled, still carrying the reason why. Tapping one used to
+                    empty the deck and grey out Fight in silence. */}
+                {teams.map(({ squad: t, have, usable, why }) => (
                   <button
                     key={t.id}
-                    className={`sp-chip ${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""} ${usable ? "" : "locked"}`}
-                    onClick={() => applyTeam(t)}
+                    role="menuitem"
+                    className={`${pickedTeam === t.id ? "on" : ""} ${t.element === region.element ? "match" : ""}`}
+                    onClick={() => { applyTeam(t); setMenu(null); }}
                     disabled={!usable}
                     title={why}
                   >
-                    {t.name}<em>{have > cap ? `${have}!` : have}</em>
+                    {t.name}
+                    <span>{have > cap ? `${have}!` : have}{pickedTeam === t.id ? " · holding" : ""}</span>
                   </button>
                 ))}
-                {/* Opening shows every squad you own, the unfieldable ones
-                    included — still disabled, still carrying the reason why.
-                    That was a deliberate fix (tapping one used to empty the
-                    deck and grey out Fight in silence) and folding must not
-                    quietly undo it. */}
-                <button
-                  className="sp-chip sp-more"
-                  onClick={() => setPickerOpen((v) => !v)}
-                  title={pickerOpen ? "Show only the squad you are holding" : "Every squad you own"}
-                >
-                  {pickerOpen ? "Hide" : pickedTeam ? `Change · ${teams.length}` : `Choose · ${teams.length}`}
-                </button>
               </div>
-            </>
-          );
-        })()}
+            )}
 
-        <div className="sr-label">They field</div>
-        <div className="sp-enemy">
-          {enemy.map((d) => (
-            <button
-              key={d.id}
-              className={`sp-foe sp-foe-btn r-${d.rarity ?? "rare"}`}
-              title={`${d.name} — see the card`}
-              onClick={() => setPreviewId(d.id)}
-            >
-              <img
-                className="sp-foe-art"
-                src={cardThumbSrc(d)}
-                alt=""
-                loading="lazy"
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-              {d.name}
-              <em className="cost">{d.cost}<i className="coin" /></em>
-            </button>
-          ))}
-        </div>
+            {menu === "actions" && (
+              <div className="sp-menu" role="menu">
+                <button role="menuitem" onClick={() => { setMenu(null); props.onEditDeck(); }}>
+                  Edit cards <span>open the builder</span>
+                </button>
+                {canPack && (
+                  <button
+                    role="menuitem"
+                    title={`Choose which cards travel with you into ${region.element}`}
+                    onClick={() => {
+                      setMenu(null);
+                      setPacking(squadFor(save, region).length ? squadFor(save, region) : pool.filter((id) => getDef(id).element !== region.element));
+                      setOpenPack(true);
+                    }}
+                  >
+                    Pack <span>which cards travel here</span>
+                  </button>
+                )}
+                {naming ? (
+                  <span className="sp-naming">
+                    <input
+                      autoFocus
+                      value={draftName}
+                      placeholder={`${region.element} squad`}
+                      onChange={(e) => setDraftName(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter") { saveTeam(); setMenu(null); } }}
+                    />
+                    <button className="ghost sm" onClick={() => { saveTeam(); setMenu(null); }}>Save</button>
+                  </span>
+                ) : (
+                  <button role="menuitem" onClick={() => setNaming(true)} disabled={!legal.ok}>
+                    Save as a squad <span>name it</span>
+                  </button>
+                )}
+                {pickedTeam && (
+                  <button
+                    role="menuitem"
+                    className="danger"
+                    onClick={() => { deleteTeam(pickedTeam); setPickedTeam(null); setMenu(null); }}
+                  >
+                    Delete “{pickedName ?? "this squad"}”
+                  </button>
+                )}
+              </div>
+            )}
 
-        <div className="sr-label sp-takelabel">
-          <span>
-            Taking in · {deck.length}/{cap}
-            {!legal.ok && <span className="sp-bad"> — {legal.reason}</span>}
-          </span>
-          {/* Next to the count it changes, because that number IS the thing the
-              button is for: the campaign remembered your deck but nothing ever
-              built you one, so every fight opened with assembling a deck by
-              hand even when you did not care which cards went in. */}
-          {pool.length > 0 && (
-            <button
-              className="sp-fillbtn"
-              onClick={fillToCap}
-              title={`Take ${Math.min(cap, new Set(pool).size)} cards from everything you can field here`}
-            >
-              Fill
-            </button>
-          )}
-        </div>
-        {/* TAPPABLE, because they were not.
-            This screen could Fill and it could apply a whole saved squad, but
-            it could not touch one card — so dropping the healer you did not
-            want meant leaving for the builder, which then opened on a different
-            cap and a different board. One card is the commonest edit there is
-            and it was the one edit this screen refused. */}
-        <div className="sp-deck">
-          {deck.map((id, i) => {
-            const d = getDef(id);
-            return (
-              <button
-                key={`${id}-${i}`}
-                className={`sp-foe pick r-${d.rarity ?? "rare"}`}
-                title={`Drop ${d.name}`}
-                aria-label={`Drop ${d.name}`}
-                onClick={() => setDeck((cur) => cur.filter((x) => x !== id))}
-              >
-                {d.name}
-                <em className="cost">{d.cost}<i className="coin" /></em>
-                <i className="sp-drop" aria-hidden="true">✕</i>
-              </button>
-            );
-          })}
-          {deck.length < cap && (
-            /* The other half of the same complaint: with room left, the only
-               way to fill it by hand was to leave. Fill is one tap for "any
-               cards"; this is one tap for "these cards". */
-            <button className="sp-foe add" onClick={props.onEditDeck} title="Pick cards yourself">
-              + Add cards
-            </button>
-          )}
-        </div>
+            <div className="sp-curvehead">
+              <span>Cost curve</span>
+              <span>avg <b>{avgCost.toFixed(1)}</b> gold</span>
+            </div>
+            <div className="sp-curve" aria-label="Cards in the squad at each cost">
+              {curve.map((n, k) => (
+                <div
+                  key={k}
+                  className={`sp-bar ${n ? "" : "zero"}`}
+                  title={`${n} card${n === 1 ? "" : "s"} at ${k === 7 ? "8+" : k + 1} gold`}
+                >
+                  <i style={{ height: `${Math.max(3, (n / curveMax) * 30)}px` }} />
+                  <span>{k === 7 ? "8+" : k + 1}</span>
+                </div>
+              ))}
+            </div>
 
-        {/* The book you are walking in with, stated. Spells are chosen in the
-            builder and travel with the team, so without this line the choice
-            vanishes between saving it and casting it — and "the shelf" and "a
-            book I picked" look identical from here. */}
-        <div className="sr-label">
-          Spellbook · {fightBook.length}/{spellCapForBoard(board)}
-          {book.length === 0 && <span className="sp-auto"> — auto, your cheapest unlocked</span>}
-        </div>
-        <div className="sp-deck">
-          {fightBook.map((id, i) => {
-            const sp = getSpell(id);
-            return (
-              <span key={`${id}-${i}`} className="sp-foe">
-                {sp.name}
-                <em className="cost">{sp.cost}<i className="gem" /></em>
-              </span>
-            );
-          })}
-          {fightBook.length === 0 && <span className="sp-none">No spells unlocked yet.</span>}
-        </div>
+            {/* TAPPABLE: one card is the commonest edit there is, and this screen
+                once refused it (the only way was to leave for the builder). */}
+            <div className="sp-grid sp-grid-deck">
+              {deck.map((id, i) => {
+                const d = getDef(id);
+                return (
+                  <button
+                    key={`${id}-${i}`}
+                    className={`sp-tile pick r-${d.rarity ?? "rare"}`}
+                    title={`Drop ${d.name}`}
+                    aria-label={`Drop ${d.name}`}
+                    onClick={() => { setDeck((cur) => cur.filter((x) => x !== id)); setPickedTeam(null); }}
+                  >
+                    <img src={cardThumbSrc(d)} alt="" loading="lazy"
+                      onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                    <span className="sp-tile-cost">{d.cost}</span>
+                    <span className="sp-tile-name">{d.name}</span>
+                    <i className="sp-drop" aria-hidden="true">✕</i>
+                  </button>
+                );
+              })}
+              {deck.length < cap && (
+                <button className="sp-tile sp-tile-add" onClick={props.onEditDeck} title="Pick cards yourself">
+                  <span>+</span>
+                  <small>Add</small>
+                </button>
+              )}
+            </div>
+            <div className={`sp-status ${legal.ok ? "ok" : "bad"}`}>
+              {!legal.ok
+                ? legal.reason
+                : openSlots > 0
+                  ? `${openSlots} slot${openSlots === 1 ? "" : "s"} open · Fill tops it up`
+                  : "Ready · tap a card to drop it"}
+            </div>
+          </section>
 
-        <div className="sp-actions">
-          <button className="ghost sm" onClick={props.onEditDeck}>Edit squad</button>
-          {canPack && (
-            <button
-              className="ghost sm"
-              onClick={() => { setPacking(squadFor(save, region).length ? squadFor(save, region) : pool.filter((id) => getDef(id).element !== region.element)); setOpenPack(true); }}
-              title={`Choose which cards travel with you into ${region.element}`}
-            >
-              {/* "Pack", not "Squad". This button chooses which cards TRAVEL
-                  with you, and it sat between "Save squad" and "Delete squad",
-                  which act on a saved team — three buttons, one word, two
-                  meanings, ever since squad became the name for a saved team. */}
-              Pack
-            </button>
-          )}
-          {pickedTeam && (
-            <button className="ghost sm" onClick={() => { deleteTeam(pickedTeam); setPickedTeam(null); }}>
-              Delete squad
-            </button>
-          )}
-          {naming ? (
-            <span className="sp-naming">
-              <input
-                autoFocus
-                value={draftName}
-                placeholder={`${region.element} squad`}
-                onChange={(e) => setDraftName(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && saveTeam()}
-              />
-              <button className="ghost sm" onClick={saveTeam}>Save</button>
-            </span>
-          ) : (
-            <button className="ghost sm" onClick={() => setNaming(true)} disabled={!legal.ok}>
-              Save squad
-            </button>
-          )}
-          <button className="ghost sm" onClick={props.onCancel}>Back</button>
+          {/* The book you are walking in with, stated. Spells are chosen in the
+              builder and travel with the team, so without this line the choice
+              vanishes between saving it and casting it. */}
+          <section className="sp-sec">
+            <div className="sr-label sp-row">
+              <span>Spellbook{book.length === 0 && <span className="sp-auto"> · auto</span>}</span>
+              <span className="sp-meta">{fightBook.length} / {spellCapForBoard(board)}</span>
+            </div>
+            <div className="sp-spells">
+              {fightBook.map((id, i) => {
+                const sp = getSpell(id);
+                return (
+                  <span key={`${id}-${i}`} className="sp-spell">
+                    {sp.name}
+                    <em>{sp.cost}<i className="gem" /></em>
+                  </span>
+                );
+              })}
+              {fightBook.length === 0 && <span className="sp-none">No spells unlocked yet.</span>}
+            </div>
+          </section>
         </div>
 
         {previewId && (
           <CardView mode="browse" def={getDef(previewId)} onClose={() => setPreviewId(null)} />
         )}
 
-        <button
-          className="lockin"
-          disabled={!legal.ok}
-          onClick={() => {
-            props.onSave(rememberDeck(save, region, deck));
-            props.onFight(deck, book);
-          }}
-        >
-          {legal.ok ? "Fight" : (legal.reason ?? "Fix your squad")}
-        </button>
+        <div className="sp-fightbar">
+          <button className="sp-back" onClick={props.onCancel} aria-label="Back to the map" title="Back">‹</button>
+          <button
+            className="lockin sp-fight"
+            disabled={!legal.ok}
+            onClick={() => {
+              props.onSave(rememberDeck(save, region, deck));
+              props.onFight(deck, book);
+            }}
+          >
+            <b>{legal.ok ? "Fight" : "Fix your squad"}</b>
+            <small>
+              {legal.ok
+                ? `${deck.length} card${deck.length === 1 ? "" : "s"} · ${fightBook.length} spell${fightBook.length === 1 ? "" : "s"}`
+                : legal.reason}
+            </small>
+          </button>
+        </div>
       </div>
     </div>
   );
