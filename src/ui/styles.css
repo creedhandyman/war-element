@@ -9683,6 +9683,25 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      hand rather than under it (untidy, never stuck). */
   .wrap.wheel-up .bottom.acting .bprompt, .bottom.acting .bprompt.oppwait { visibility: hidden; }
   .bottom.acting .bprompt { position: relative; z-index: calc(var(--z-hand) + 1); }
+  /* ...EXCEPT while a verb is armed. Hiding the prompt took the Special's
+     description (`.spec-desc`) with it, and the stand-in, `.hint`, is a 238px
+     column clipped at two lines — so on a PC an armed Special or Talent said
+     its name and nothing else (owner, 2026-10-04: "the pc mode doesn't show
+     special and talent description ... in battle"). The phone tiers read it
+     from `.bp-hint` in the prompt; this tier now does too. `.bp-hint` renders
+     only while something is armed (or a warning is up), so the prompt comes
+     back exactly then, as a solid panel: it sits over the hand, which a battle
+     turn cannot use, and plain text over card art was unreadable. `.hint`
+     stands down whenever that copy is up, so the pair still never both show. */
+  .bottom.acting .bp-hint { display: block; }
+  .bottom.acting:has(.bp-hint) .controls .hint { display: none; }
+  .wrap.wheel-up .bottom.acting .bprompt:has(.bp-hint) {
+    visibility: visible; align-self: end; justify-content: center; gap: 3px;
+    padding: 9px 16px; border-radius: 12px;
+    background: color-mix(in srgb, var(--panel) 94%, transparent);
+    border: 1px solid var(--gold-line); box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
+  }
+  .wrap.wheel-up .bottom.acting .bprompt:has(.bp-hint) .bp-text { font-size: 12.5px; line-height: 1.4; }
   /* The secondary row (Move · Auto · Clear · Surrender · How to play) is ~380px
      of buttons in a 238px column; it used to spill LEFT into the empty middle
      of the bar, which is where the hand lives now. It goes behind a ⋯ beside
