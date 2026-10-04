@@ -96,7 +96,7 @@ export { AI_SKILLS, SKILL_PROFILES, skillOf } from "./skill";
 export type { AiSkill, SkillProfile } from "./skill";
 export { CARDS, CARD_INDEX, getDef, DECK_P1, DECK_P2, DECKS, deckById, CORES, coreById, pairingCards } from "../data/cards";
 export type { DeckDef, CoreDef } from "../data/cards";
-export { AQUA_TIDE_EVERY, AQUA_TIDE_MAX, BLINDING_STAR_MISS_PCT, ELEMENT_AURA, FOG_MISS_PCT, GALE_SP_CAP, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, FLOW_MODES, LIQUID_HIT_BLURB, hasArcDischarge, liquidGivesHit, weakenMult, weakenStacks } from "./auras";
+export { AQUA_TIDE_EVERY, AQUA_TIDE_MAX, BLINDING_STAR_MISS_PCT, ELEMENT_AURA, FOG_MISS_PCT, GALE_SP_CAP, MISTY_FOG_MISS_PCT, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, FLOW_MODES, LIQUID_HIT_BLURB, LIQUID_MULTI_BLURB, hasArcDischarge, liquidDmg, liquidGivesHit, weakenMult, weakenStacks } from "./auras";
 export type { AuraDef, FlowMode } from "./auras";
 // The Flow Change menu's preview: each form's numbers, run through the engine.
 export { downpourKin, flowPreview, nextTideRound } from "./flow";

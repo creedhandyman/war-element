@@ -20,6 +20,8 @@ import {
   flowPreview,
   getDef,
   LIQUID_HIT_BLURB,
+  LIQUID_MULTI_BLURB,
+  liquidDmg,
   liquidGivesHit,
   nextTideRound,
 } from "../engine";
@@ -71,14 +73,22 @@ export function FlowChangeModal(props: {
   const downpour = !!game.pendingFlowAll;
   const kin = downpour ? downpourKin(game, card) : [card];
 
-  // Liquid's blurb per card: +1 hit on a 4+ hit card, +2 DMG on the rest. A
-  // Downpour side can hold both kinds, and then says so.
+  // Liquid's blurb per card: +1 hit on a 4+ hit card, +1 DMG on a 2-3 hit
+  // card, +2 DMG on the rest. A Downpour side can hold every kind, and then
+  // names each one it holds.
   const each = downpour ? " each" : "";
-  const hitters = kin.filter(liquidGivesHit).length;
+  const liquidOf = (c: CardInstance) =>
+    liquidGivesHit(c) ? "hit" : liquidDmg(c) === 1 ? "multi" : "single";
+  const kinds = [...new Set(kin.map(liquidOf))];
+  const LIQUID_LABEL = {
+    single: FLOW_MODES.water.blurb,
+    multi: `${LIQUID_MULTI_BLURB} on 2–3 hits`,
+    hit: `${LIQUID_HIT_BLURB} on 4+ hits`,
+  } as const;
   const liquid =
-    hitters === 0 ? `${FLOW_MODES.water.blurb}${each}`
-      : hitters === kin.length ? `${LIQUID_HIT_BLURB}${each}`
-        : `${FLOW_MODES.water.blurb} each · ${LIQUID_HIT_BLURB} on multi-hit`;
+    kinds.length === 1
+      ? `${kinds[0] === "hit" ? LIQUID_HIT_BLURB : kinds[0] === "multi" ? LIQUID_MULTI_BLURB : FLOW_MODES.water.blurb}${each}`
+      : kinds.map((k) => LIQUID_LABEL[k]).join(" · ");
   const blurb = (m: FlowMode) => (m === "water" ? liquid : `${FLOW_MODES[m].blurb}${each}`);
 
   const tideAt = nextTideRound(game);

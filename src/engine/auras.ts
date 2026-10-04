@@ -358,7 +358,7 @@ export const ELEMENT_AURA: Record<Element, AuraDef> = {
   PYRO: { name: "Scorch", desc: "Basic attacks apply BURN, stacking up to BURN 5 on the same target." },
   BORE: { name: "Exostone", desc: `Enters play with shields by rarity — Rare ${EXOSTONE_SHIELDS.rare}, Epic ${EXOSTONE_SHIELDS.epic}, Legendary ${EXOSTONE_SHIELDS.legendary}, Mythic ${EXOSTONE_SHIELDS.mythic}. Never loses more than 1 shield to a single hit however heavy, and gains +1 shield whenever its attack breaks one off an opponent — at most ${EXOSTONE_STEAL_PER_ROUND} a round, and never past its printed shields + ${EXOSTONE_STEAL_CAP}.` },
   DUSK: { name: "Midnight Shade", get desc() { return `End of round, drains ${DUSK_DRAIN} HP from an adjacent opponent — the lowest on HP — and heals itself for it. On death, ${DUSK_DEATH_HIT_TEXT}the shadows thicken — every DUSK card you control gains +${DUSK_SHADE_PCT}% dodge for a round, stacking with each fallen DUSK card (max ${DUSK_SHADE_PCT * DUSK_SHADE_MAX_STACKS}%).`; } },
-  AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (or +1 hit instead, on a card printing ${MULTI_HIT_BONUS_MIN} or more hits) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
+  AQUA: { name: "Flow Change", desc: `On summon, choose a boost it keeps for good: Liquid +2 DMG (+1 DMG on a card printing 2 or 3 hits, +1 hit instead on ${MULTI_HIT_BONUS_MIN} or more) · Frozen +3 shields · Vapor +4 SP. Then the tide comes in: every ${AQUA_TIDE_EVERY} rounds that same choice deepens again — +1 DMG · +1 shield · +2 SP — up to ${AQUA_TIDE_MAX} times.` },
   DAWN: { name: "Awakening", desc: `On summon, strikes the nearest enemy for ${DAWN_STRIKE_PCT}% of its printed DMG, rounded down. End of round, burns one negative status off itself and gains +1 SP (up to +${DAWN_SP_GROWTH} over its printed speed).` },
   GALE: { name: "Zephyr", get desc() { return `Gains +2 SP at the end of every round (up to SP ${GALE_SP_CAP}), and the speed it gains pays off. Once it has gained ${GALE_TAILWIND_PER} SP it deals +${GALE_TAILWIND_CAP} DMG, and every ${GALE_SLIPSTREAM_PER} SP gained adds ${GALE_SLIPSTREAM_PCT}% dodge (up to ${GALE_SLIPSTREAM_CAP}%).`; } },
   BOLT: { name: "Electrify", desc: "Basic attacks leave the target ELECTRIFIED, and BOLT cards deal +1 DMG to any opponent carrying a status." },
@@ -611,6 +611,18 @@ export const FLOW_MODES: Record<FlowMode, { label: string; blurb: string; tide: 
 };
 /** Liquid's blurb on a card `liquidGivesHit` covers. */
 export const LIQUID_HIT_BLURB = "+1 hit";
+/** ...and on a 2- or 3-hit card, which takes +1 DMG rather than +2. */
+export const LIQUID_MULTI_BLURB = "+1 DMG";
+
+/** Liquid's DMG grant, per hit, for a card that does NOT take the extra hit.
+ *
+ *  +2 on a single-hit card, +1 on a card printing 2 or 3 hits (owner,
+ *  2026-10-04): +2 PER HIT made a 2-hit card's pick worth +4 a volley and a
+ *  3-hit card's +6, against +2 for everything else. The tide still adds its
+ *  +1 per hit on top, so these cards grow along the way like the rest. */
+export function liquidDmg(card: CardInstance): number {
+  return getDef(card.defId).hits >= 2 ? 1 : 2;
+}
 
 /** True when Liquid should grant an extra hit rather than +2 DMG — i.e. the
  *  card already strikes multiple times, so a flat per-hit bonus would balloon
@@ -656,8 +668,8 @@ export function applyFlow(card: CardInstance, mode: FlowMode, permanent = false,
     else if (liquidGivesHit(card)) {
       if (permanent) card.hitsBonus += 1;
       else card.hitsBonusRound += 1;
-    } else if (permanent) card.dmgBonus += 2;
-    else card.dmgBonusRound += 2;
+    } else if (permanent) card.dmgBonus += liquidDmg(card);
+    else card.dmgBonusRound += liquidDmg(card);
   } else if (mode === "ice") {
     card.curShields += 3;
     // tempShields is the round-scoped refund marker; a permanent OR timed grant
