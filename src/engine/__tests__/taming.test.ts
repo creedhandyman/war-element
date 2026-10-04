@@ -164,7 +164,7 @@ describe("Thunderfangs is tamed at full strength", () => {
     // Seated in `void-seat.ts` (shared with the story's Hard border bosses),
     // with the ally App hands it.
     expect(read("App.tsx")).toContain("ally: bossFight?.ally");
-    expect(read("void-seat.ts")).toContain("scaleInstance(ally, tameScaleFor(opts.ally));");
+    expect(read("void-seat.ts")).toContain("scaleInstance(ally, tameScaleFor(allyId));");
     for (const f of ["App.tsx", "void-seat.ts"])
       expect(read(f), f).not.toContain("scaleInstance(ally, TAME_SCALE)");
     expect(read("BossDetail.tsx")).toContain('k >= 1 ? "at full strength"');

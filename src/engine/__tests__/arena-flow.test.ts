@@ -311,7 +311,8 @@ describe("the wiring in App.tsx", () => {
     ]) expect(start, read).toContain(read);
     for (const read of [
       "if (opts.enraged) scaleInstance(inst, ENRAGE_SCALE)",
-      'summonCard(fresh, "P1", opts.ally,',
+      "if (opts.ally) seatTamedAlly(fresh, opts.ally);",
+      'summonCard(fresh, "P1", allyId,',
     ]) expect(SEAT, read).toContain(read);
     const at = APP.indexOf("const tamedSave = ");
     expect(at, "tamedSave exists").toBeGreaterThan(-1);

@@ -79,13 +79,21 @@ export function seatVoidBoss(
   //
   // The seat is the player's own centre home slot, mirroring `voidBossSeat`.
   // The gates stand in the row IN FRONT of home, so this square is free.
-  if (opts.ally) {
-    const mySeat = centreHomeSeat("P1", fresh.boardSize);
-    if (!cardAt(fresh, mySeat.row, mySeat.col)) {
-      const ally = summonCard(fresh, "P1", opts.ally, mySeat as never);
-      ally.summonedThisRound = false;
-      ally.tamed = true;
-      scaleInstance(ally, tameScaleFor(opts.ally));
-    }
-  }
+  if (opts.ally) seatTamedAlly(fresh, opts.ally);
+}
+
+/** A TAMED BOSS on the player's side: their centre home slot, free, acting
+ *  from round one, at its tamed strength. One door for a Void Trial and for
+ *  every Story fight (owner, 2026-10-04: "use the bosses captured in the tower
+ *  to be able to defeat the story mode"), so the ally is the same body in both.
+ *  Returns false when the square is taken (a first battle's free deployment
+ *  could hold it) — the caller then spends nothing. */
+export function seatTamedAlly(fresh: GameState, allyId: string): boolean {
+  const mySeat = centreHomeSeat("P1", fresh.boardSize);
+  if (cardAt(fresh, mySeat.row, mySeat.col)) return false;
+  const ally = summonCard(fresh, "P1", allyId, mySeat as never);
+  ally.summonedThisRound = false;
+  ally.tamed = true;
+  scaleInstance(ally, tameScaleFor(allyId));
+  return true;
 }

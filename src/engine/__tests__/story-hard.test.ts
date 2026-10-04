@@ -23,14 +23,15 @@ import {
   type StoryNode, type StorySave,
 } from "../../data/story";
 import {
-  VOID_BOSSES, VOID_GATE, buildVoidEncounter, voidBossById, voidBossSeat, voidGateSeats,
+  VOID_BOSSES, VOID_GATE, buildVoidEncounter, tameScaleFor, voidBossById, voidBossSeat, voidGateSeats,
 } from "../../data/void-tower";
 import { playerStats } from "../../data/player";
 import { summarize } from "../../net/account";
 import { firstFightWon, onboardingStep } from "../../ui/Onboarding";
-import { broodOf, seatVoidBoss } from "../../ui/void-seat";
+import { broodOf, seatTamedAlly, seatVoidBoss } from "../../ui/void-seat";
 import { SPELLS, getSpell, spellCapForBoard } from "../spells";
 import { cardAt, createInitialState, summonCard } from "../state";
+import { centreHomeSeat } from "../types";
 
 const GATES = ALL_NODES.filter(isGate);
 const rarityOf = (id: string) => getDef(id).rarity ?? "rare";
@@ -449,53 +450,62 @@ describe("Hard borders: a Void Tower boss on every crossing", () => {
     expect(gateCheck({ ...firstRun, deck: unfit.slice(0, capFirst) }, gate).ok, "the first run still asks").toBe(false);
   });
 
-  it("the last two borders fight below their Tower strength, brood and all", () => {
-    // Owner, 2026-09-28: "reduce the power of Hoarfell until it's in line with
-    // the others in the win rate. This one should be hard" — then "do the same
-    // for Spindle at the Shadow Border". Measured in HARD_BORDER_SCALE's
-    // comment. The WHOLE enemy side is scaled: Spindle's fight is its brood.
-    const scaled = ["GF", "GS"];
-    for (const g of GATES) {
-      const sc = borderBossScale(g);
-      if (!scaled.includes(g.id)) { expect(sc, g.id).toBe(1); continue; }
-      expect(sc, g.id).toBe(HARD_BORDER_SCALE[g.id]);
-      expect(sc, g.id).toBeGreaterThan(0);
-      expect(sc, g.id).toBeLessThan(1);
-    }
-    for (const gate of scaled) {
-      const id = HARD_BORDER_BOSS[gate];
-      const scale = HARD_BORDER_SCALE[gate];
-      const fresh = () => {
-        const enc = buildVoidEncounter(voidBossById(id)!);
-        return {
-          enc,
-          s: createInitialState(7, ["leaf_sakuroot"], enc.deck, ["P1"], [], enc.spells, enc.boardSize,
-            undefined, undefined, { P2: enc.stacked.P2 }),
-        };
+  it("every border boss fights at its full Tower strength; the side scale still works", () => {
+    // Owner, 2026-10-04: "increase the power of the hard mode bosses. Back to a
+    // hundred percent" — tamed bosses can now come to a Story fight instead.
+    for (const g of GATES) expect(borderBossScale(g), g.id).toBe(1);
+    expect(Object.keys(HARD_BORDER_SCALE)).toEqual([]);
+    // The dial stays, and still scales the WHOLE enemy side when it is set.
+    const id = HARD_BORDER_BOSS.GS;
+    const scale = 0.5;
+    const fresh = () => {
+      const enc = buildVoidEncounter(voidBossById(id)!);
+      return {
+        enc,
+        s: createInitialState(7, ["leaf_sakuroot"], enc.deck, ["P1"], [], enc.spells, enc.boardSize,
+          undefined, undefined, { P2: enc.stacked.P2 }),
       };
-      // At the border: the boss at its border's strength...
-      const { enc, s } = fresh();
-      seatVoidBoss(s, id, { scale });
-      const seat = voidBossSeat(s.boardSize);
-      const boss = cardAt(s, seat.row, seat.col)!;
-      expect(boss.statScale, `${gate} boss`).toBe(scale);
-      expect(boss.maxHp, `${gate} boss HP`).toBe(Math.round(getDef(id).hp * scale));
-      // ...the brood that arrives after it too, and nothing of the player's.
-      const brood = summonCard(s, "P2", enc.stacked.P2[0], { row: 0, col: 0 } as never);
-      expect(brood.statScale, `${gate} brood`).toBe(scale);
-      const mine = summonCard(s, "P1", "leaf_sakuroot", { row: s.boardSize - 1, col: 0 } as never);
-      expect(mine.statScale ?? 1, `${gate}: the player's card`).toBe(1);
-      // The Tower's own fight is untouched.
-      const tower = fresh().s;
-      seatVoidBoss(tower, id);
-      expect(tower.sideScale).toBeUndefined();
-      const own = cardAt(tower, seat.row, seat.col)!;
-      expect(own.statScale ?? 1).toBe(1);
-      expect(own.maxHp).toBe(getDef(id).hp);
-    }
-    // ...and the campaign seats its border bosses at their border's strength.
+    };
+    const { enc, s } = fresh();
+    seatVoidBoss(s, id, { scale });
+    const seat = voidBossSeat(s.boardSize);
+    const boss = cardAt(s, seat.row, seat.col)!;
+    expect(boss.statScale).toBe(scale);
+    expect(boss.maxHp).toBe(Math.round(getDef(id).hp * scale));
+    const brood = summonCard(s, "P2", enc.stacked.P2[0], { row: 0, col: 0 } as never);
+    expect(brood.statScale).toBe(scale);
+    const mine = summonCard(s, "P1", "leaf_sakuroot", { row: s.boardSize - 1, col: 0 } as never);
+    expect(mine.statScale ?? 1).toBe(1);
+    // At scale 1 nothing is touched.
+    const full = fresh().s;
+    seatVoidBoss(full, id, { scale: 1 });
+    expect(full.sideScale).toBeUndefined();
+    expect(cardAt(full, seat.row, seat.col)!.maxHp).toBe(getDef(id).hp);
     const app = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8");
     expect(app).toContain("seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });");
+  });
+
+  it("a tamed boss can be brought to any Story fight", () => {
+    // Owner, 2026-10-04: "use the bosses captured in the tower to be able to
+    // defeat the story mode". Seated like a Void Trial's ally — the player's
+    // centre home slot, free, acting from round one, at its tamed strength —
+    // and a battle is spent only when it was actually seated.
+    const ally = "boss_smolder";
+    const s = createInitialState(7, ["leaf_sakuroot"], ["leaf_sakuroot"], ["P1"], [], [], 5);
+    expect(seatTamedAlly(s, ally)).toBe(true);
+    const at = centreHomeSeat("P1", s.boardSize);
+    const c = cardAt(s, at.row, at.col)!;
+    expect(c.defId).toBe(ally);
+    expect(c.owner).toBe("P1");
+    expect(c.tamed).toBe(true);
+    expect(c.summonedThisRound).toBe(false);
+    expect(c.statScale).toBe(tameScaleFor(ally));
+    expect(seatTamedAlly(s, ally), "the square is taken").toBe(false);
+    const app = readFileSync(join(__dirname, "..", "..", "ui", "App.tsx"), "utf8");
+    expect(app).toContain("spendAlly(!!ally && seatTamedAlly(trial, ally));");
+    expect(app).toContain("spendAlly(!!ally && seatTamedAlly(fresh, ally));");
+    const prep = readFileSync(join(__dirname, "..", "..", "ui", "StoryPrep.tsx"), "utf8");
+    expect(prep).toContain("tamedRoster(save.tamed).filter((t) => t.boss.cardId !== boss)");
   });
 
   it("is seated like a Void Trial: the boss, its board and the Fortress Gates", () => {

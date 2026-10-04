@@ -238,7 +238,7 @@ import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
 import { newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
-import { seatVoidBoss } from "./void-seat";
+import { seatTamedAlly, seatVoidBoss } from "./void-seat";
 import { battlePlaylist, REGION_TRACK, useGameMusic, type MusicTrack } from "./useGameMusic";
 import { FIRST_NODE, ONBOARDING_COUNT, onboardingIndex, onboardingStep } from "./Onboarding";
 import { GuideOverlay } from "./GuideOverlay";
@@ -5928,8 +5928,19 @@ export function App() {
           onSquads={setCustomDecks}
           onEditDeck={() => navDo({ t: "builder", open: true })}
           onCancel={() => navDo({ t: "prep", node: null })}
-          onFight={(deck, book) => {
+          onFight={(deck, book, ally) => {
             const node = prepNode;
+            // A TAMED BOSS spends one of its battles on ENTERING, win or lose —
+            // the Tower's rule, which cannot be farmed by conceding — and only
+            // when it was actually seated.
+            const spendAlly = (seatedAlly: boolean) => {
+              if (!ally || !seatedAlly) return;
+              setStory((prev) => {
+                const next = spendTame(prev, ally);
+                if (next !== prev) saveStory(next);
+                return next;
+              });
+            };
             // The node's own region decides the board and the Blight, not
             // whichever map happens to be on screen.
             const home = regionOfNode(node.id) ?? region;
@@ -5949,6 +5960,7 @@ export function App() {
               stampFoilStats(trial, ["P1"]);
               trial.aiSkill = autoRung;
               seatVoidBoss(trial, borderBoss, { scale: borderBossScale(node) });
+              spendAlly(!!ally && seatTamedAlly(trial, ally));
               enterStoryFight(trial, node, getDef(borderBoss).name);
               return;
             }
@@ -6041,6 +6053,9 @@ export function App() {
                 throned.heldHomeRounds = THRONE_HOLD_ROUNDS;
               }
             }
+            // ...and the player's tamed boss, if they brought one: their own
+            // centre home slot, free, as in a Void Trial.
+            spendAlly(!!ally && seatTamedAlly(fresh, ally));
             enterStoryFight(fresh, node, node.name);
           }}
         />

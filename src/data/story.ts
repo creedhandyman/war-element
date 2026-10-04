@@ -2942,8 +2942,8 @@ export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
   GC: "boss_basilisk",    // PYRO -> AQUA, Sunfall Harbor: AQUA's guard, as at Eastleaf
   GC2: "boss_smolder",    // the same harbour from the water: the glow on PYRO's coast
   GE: "boss_nightshrike", // the airship lanes to the Gray Continent: a GALE sky-hunter
-  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick, at 80% (below)
-  GS: "boss_spindle",     // the Shadow Border: VOID/DUSK/BOLT, the owner's pick, at 46%
+  GF: "boss_hoarfell",    // the Arctic Gate: AQUA/DAWN, the owner's pick
+  GS: "boss_spindle",     // the Shadow Border: VOID/DUSK/BOLT, the owner's pick
 };
 
 /** HOW STRONG a border's boss AND ITS BROOD stand there, as a share of their
@@ -2979,7 +2979,14 @@ export const HARD_BORDER_BOSS: Readonly<Record<string, string>> = {
  *  run, and no longer walls. Both curves are STEEP around the pick — Spindle
  *  goes 12% -> 50% between 50% and 45% — so move these in small steps and
  *  re-measure. */
-export const HARD_BORDER_SCALE: Readonly<Record<string, number>> = { GF: 0.8, GS: 0.46 };
+/*
+ *  BACK TO 100% (owner, 2026-10-04): "increase the power of the hard mode
+ *  bosses. Back to a hundred percent" — in the same breath as bringing tamed
+ *  Tower bosses into Story fights (`seatTamedAlly`). The scales above were a
+ *  stand-in for the ally a campaign fight never had; now it can have one, so
+ *  every border fights at its Tower strength again. The table and the side
+ *  scale stay, empty, as the dial if a border needs it back. */
+export const HARD_BORDER_SCALE: Readonly<Record<string, number>> = {};
 export const borderBossScale = (node: StoryNode): number => HARD_BORDER_SCALE[node.id] ?? 1;
 
 /** The boss standing on this border, in Hard mode. Null on the first run and

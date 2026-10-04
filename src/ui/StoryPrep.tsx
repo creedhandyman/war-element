@@ -26,6 +26,7 @@ import {
 import { CardView } from "./CardView";
 import { cardThumbSrc } from "./shared";
 import { broodOf } from "./void-seat";
+import { TAME_SCALE, tameScaleFor, tamedRoster } from "../data/void-tower";
 
 const RARITY_ORDER: Record<string, number> = { mythic: 0, legendary: 1, epic: 2, rare: 3 };
 
@@ -44,7 +45,8 @@ export function StoryPrep(props: {
   onSquads: (next: Squad[]) => void;
   onEditDeck: () => void;
   onCancel: () => void;
-  onFight: (deck: string[], book: string[]) => void;
+  /** `ally`: a tamed Void Tower boss to seat beside the player, or null. */
+  onFight: (deck: string[], book: string[], ally: string | null) => void;
 }) {
   const { region, node, save } = props;
   // The fight's cap, not the campaign's: a set piece opens up to 28 once the
@@ -54,6 +56,10 @@ export function StoryPrep(props: {
   // The board THIS fight is on: a Hard border boss takes the tower's 5x5.
   const board = fightBoardFor(save, region, node);
   const boss = borderBossFor(save, node);
+  // THE STABLE: tamed Tower bosses, each good for a few battles. Never the one
+  // holding this border — it is standing right there.
+  const stable = tamedRoster(save.tamed).filter((t) => t.boss.cardId !== boss);
+  const [ally, setAlly] = useState<string | null>(null);
   const ladder = deckCapFor(save.cleared);
   // The squad: away from home you field what you packed and nothing else, so
   // every "which cards do I have" question below reads the POOL, not the whole
@@ -302,7 +308,8 @@ export function StoryPrep(props: {
     pool.length <= cap &&      // no deck to choose — you field what you have
     !canPack &&                // no expedition to pack
     teams.length === 0 &&      // no saved squad to swap in
-    fightBook.length === 0;    // no spells to walk in with
+    fightBook.length === 0 &&  // no spells to walk in with
+    stable.length === 0;       // no tamed boss to bring
 
   /** Fired once per node. `onFight` unmounts this screen (App flips `started`),
    *  so this is belt and braces — but an effect that can start a battle twice is
@@ -312,7 +319,7 @@ export function StoryPrep(props: {
     if (!perfunctory || mustPack) return;
     if (autoFought.current === node.id) return;
     autoFought.current = node.id;
-    props.onFight(deck, book);
+    props.onFight(deck, book, null);
     // Deliberately keyed on the node, not on `deck`/`book`: those are state this
     // screen owns and they settle on the first render for exactly the saves this
     // applies to.
@@ -699,6 +706,41 @@ export function StoryPrep(props: {
               {fightBook.length === 0 && <span className="sp-none">No spells unlocked yet.</span>}
             </div>
           </section>
+
+          {/* A TAMED BOSS, brought from the Tower. Only when there is one — an
+              empty picker would advertise a feature the player cannot use yet. */}
+          {stable.length > 0 && (
+            <section className="sp-sec">
+              <div className="sr-label sp-row">
+                <span>Bring a tamed boss</span>
+                <span className="sp-meta">
+                  {Math.round(TAME_SCALE * 100)}% strength · uses a battle, win or lose
+                </span>
+              </div>
+              <div className="bd-stable-row">
+                <button type="button" className={`bd-tame ${ally === null ? "on" : ""}`} onClick={() => setAlly(null)}>
+                  <span className="bd-tame-none">Alone</span>
+                </button>
+                {stable.map(({ boss: t, uses }) => {
+                  const tDef = getDef(t.cardId);
+                  const k = tameScaleFor(t.cardId);
+                  return (
+                    <button
+                      key={t.cardId}
+                      type="button"
+                      className={`bd-tame ${ally === t.cardId ? "on" : ""}`}
+                      onClick={() => setAlly(ally === t.cardId ? null : t.cardId)}
+                      title={`${tDef.name} — ${uses} battle(s) left${k !== TAME_SCALE ? ` · ${Math.round(k * 100)}% strength` : ""}`}
+                    >
+                      <img src={cardThumbSrc(tDef)} alt="" />
+                      <span className="bd-tame-name">{tDef.name}</span>
+                      <span className="bd-tame-uses">{uses}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
 
         {previewId && (
@@ -712,13 +754,13 @@ export function StoryPrep(props: {
             disabled={!legal.ok}
             onClick={() => {
               props.onSave(rememberDeck(save, region, deck));
-              props.onFight(deck, book);
+              props.onFight(deck, book, ally);
             }}
           >
             <b>{legal.ok ? "Fight" : "Fix your squad"}</b>
             <small>
               {legal.ok
-                ? `${deck.length} card${deck.length === 1 ? "" : "s"} · ${fightBook.length} spell${fightBook.length === 1 ? "" : "s"}`
+                ? `${deck.length} card${deck.length === 1 ? "" : "s"} · ${fightBook.length} spell${fightBook.length === 1 ? "" : "s"}${ally ? ` · ${getDef(ally).name}` : ""}`
                 : legal.reason}
             </small>
           </button>
