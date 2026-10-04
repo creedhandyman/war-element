@@ -47,7 +47,7 @@ function killOnce(id: string, seed: number) {
 // is a second one stacked on it. It is the only card in the set that carried a
 // growth passive of its own, which is what made it the wrong home for this one.
 describe("the Super Squad roster", () => {
-  it("is the thirteen cards the tribe was created for", () => {
+  it("is the eleven cards left of the thirteen it was created for", () => {
     expect(members().map((d) => d.id).sort()).toEqual([
       "aqua_rain",        // Cloudburst
       "bolt_shoksa",      // Dynamo
@@ -58,11 +58,18 @@ describe("the Super Squad roster", () => {
       "bolt_zoez",        // Voltedge
       "gale_bluejay",     // Bluejay
       "leaf_fallow",      // Fallow
-      "pyro_chopper",     // Chopper
-      "pyro_dyna",        // Dyna
       "pyro_dynomight",   // Dynomight
       "pyro_firefly",     // FireFly
     ]);
+  });
+
+  it("Chopper and Dyna left it (owner, 2026-10-03): Forged Tech only, no Level Up", () => {
+    for (const id of ["pyro_chopper", "pyro_dyna"]) {
+      const d = getDef(id);
+      expect(tribesOf(d), id).toEqual(["Forged Tech"]);
+      expect(d.onKill?.randomStat, `${id} has no Level Up`).toBeUndefined();
+    }
+    expect(getDef("pyro_chopper").summonSelfShields, "Chopper's bike plates it").toBe(3);
   });
 
   it("does not include Storm, whose own Supercell is already a ramp", () => {
@@ -89,7 +96,7 @@ describe("the Super Squad roster", () => {
     // Added, never replaced: eight of the fourteen are Voltis, ARC, Avian,
     // Liquid or Forged Tech and stay eligible for those cards' auras.
     const kept: Record<string, string> = {
-      pyro_dynomight: "Forged Tech", pyro_dyna: "Forged Tech", pyro_chopper: "Forged Tech",
+      pyro_dynomight: "Forged Tech",
       aqua_rain: "Liquid", gale_bluejay: "Avian", bolt_shoksa: "ARC", bolt_thunder: "Voltis",
     };
     for (const [id, old] of Object.entries(kept))

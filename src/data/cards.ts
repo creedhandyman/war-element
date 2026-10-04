@@ -9059,10 +9059,8 @@ export const CARDS: CardDef[] = [
     sp: 9,
     shields: 0,
     keywords: {},
-    passiveNames: { onKill: "Level Up" },
-    // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1, randomStatMax: 8 },
-    tribe: ["Forged Tech", "Super Squad"],
+    // Out of Super Squad, and Level Up with it (owner, 2026-10-03).
+    tribe: "Forged Tech",
     // Demolition Charge (Talent, free, once per game): a bomb sized to the mark
     // — 4 DMG plus a fifth of its MAX HP.
     //
@@ -13873,7 +13871,9 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "PYRO",
     cardClass: "Support",
-    tribe: ["Forged Tech", "Super Squad"],
+    // Forged Tech only (owner, 2026-10-03): out of Super Squad, and Level Up
+    // with it.
+    tribe: "Forged Tech",
     // A MOTORCYCLE, not a helicopter — which is what it was built as first, and
     // the difference is most of the card. No FLYING, it closes on the ground,
     // and the fire it lays is a trail behind it rather than a load dropped from
@@ -13917,9 +13917,10 @@ export const CARDS: CardDef[] = [
     keywords: {},
     mounted: true,   // it is a motorcycle; the king-move survives a slow
     mountedSp: 3,    // ...and 3 of its speed belongs to the bike, not the rider
-    passiveNames: { onKill: "Level Up", roundTick: "Drip Torch", advanceOnBasic: "Throttle", mounted: "Two Wheels" },
-    // Level Up (Super Squad): every kill raises one stat at random. See OnKillDef.
-    onKill: { randomStat: 1, randomStatMax: 8 },
+    // ...and the bike is armour too (owner, 2026-10-03): it arrives behind 3
+    // shields, under the same Two Wheels name.
+    summonSelfShields: 3,
+    passiveNames: { roundTick: "Drip Torch", advanceOnBasic: "Throttle", mounted: "Two Wheels", summonSelfShields: "Two Wheels" },
     // Drip Torch survives the rewrite unchanged, because a drip torch is
     // literally the tool you lay a fire LINE with — it fitted a bike better than
     // it ever fitted the helicopter.
