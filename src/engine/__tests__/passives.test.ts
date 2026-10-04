@@ -1458,17 +1458,25 @@ describe("medium-tier passives (audit batch)", () => {
     expect(s.cards[across.instanceId].curHp).toBe(20); // untouched
   });
 
-  it("Canister's Rollout rolls with nothing in range (owner, 2026-10-03)", () => {
+  it("Canister's Detonate blows it up on command: KaBoooom where it stands (owner, 2026-10-04)", () => {
     const s = prepState();
-    s.boardSize = 4;
-    const canister = place(s, "pyro_canister", "P1", 3, 0, { autoMode: "manual" });
-    place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20 }); // far out of reach
+    const can = place(s, "pyro_canister", "P1", 2, 0, { autoMode: "manual" });
+    const foe = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 20, maxHp: 20, curShields: 0 });
     s.phase = "battle"; s.prep = null;
-    s.battle = { queue: [canister.instanceId], index: 0, awaitingInput: canister.instanceId };
-    expect(canFireTalent(s, canister.instanceId).ok, "offered with nothing in range").toBe(true);
+    s.battle = { queue: [can.instanceId], index: 0, awaitingInput: can.instanceId };
+    expect(canFireTalent(s, can.instanceId).ok).toBe(true);
     const g = applyIntent(s, { type: "BATTLE_ACTION", player: "P1", action: "talent" });
-    expect(g.cards[canister.instanceId].pos!.row, "it rolled forward").toBeLessThan(3);
-    expect(g.cards[canister.instanceId].talentUsed).toBe(true);
+    expect(g.cards[can.instanceId]?.pos ?? null, "the canister is gone").toBe(null);
+    expect(g.cards[foe.instanceId].curHp, "the neighbour takes the blast").toBe(15);
+    expect(g.cards[far.instanceId].curHp, "nothing outside the radius").toBe(20);
+  });
+
+  it("Canister rolls one slot forward every round on its own (owner, 2026-10-04)", () => {
+    const s = prepState();
+    const can = place(s, "pyro_canister", "P1", 3, 0);
+    const next = advance(atCleanup(s));
+    expect(next.cards[can.instanceId].pos).toEqual({ row: 2, col: 0 });
   });
 
   it("Equestrian's Solar aura makes allies immune to WEAKEN", () => {

@@ -5303,6 +5303,16 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     attacker.orbs = [...ORB_KINDS];
     draft.log.push(`${label(draft, attacker)} conjures 3 Light Orbs (blue · green · red).`);
   },
+  /** Detonate (Canister's Talent, owner 2026-10-04): blow up on command. It is
+   *  a death like any other — `defeatCard` is the one place on-death effects
+   *  fire — so KaBoooom goes off from where it stands, exactly as if it had
+   *  been killed there. */
+  detonate(draft, attacker, _targets) {
+    if (!attacker.pos || attacker.curHp <= 0) return;
+    draft.log.push(`${label(draft, attacker)} lights its own fuse!`);
+    attacker.curHp = 0;
+    defeatCard(draft, attacker, "Detonate");
+  },
   /** Unmask (the Butler's Talent): Nightfang drops the disguise ON COMMAND
    *  rather than waiting to be killed in it (owner's call, 2026-10-03). Same
    *  revert the death-reveal uses — full HP, the Butler's buffs gone — but no

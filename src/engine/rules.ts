@@ -2369,7 +2369,7 @@ export function canPlummet(
  *  self-affecting handler cannot quietly end up gated on enemies it does not
  *  want. */
 export const TALENT_NEEDS_NO_TARGET: ReadonlySet<string> = new Set([
-  "loadHits", "empower", "shellTuck", "electroSurge", "reposition", "unmask",
+  "loadHits", "empower", "shellTuck", "electroSurge", "reposition", "unmask", "detonate",
 ]);
 
 /** Does this Talent need something to aim at before it is worth firing?

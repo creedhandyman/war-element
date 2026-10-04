@@ -1782,6 +1782,23 @@ function chooseBattleActionUnaimed(state: GameState, instanceId: string): Battle
     return { action: "plummet", targetId: best.instanceId };
   }
 
+  // DETONATE (Canister): only when the blast is worth the bomb — it takes out
+  // something, or catches at least two opponents — and never when it would hit
+  // more of our own (non-PYRO) cards than theirs. The generic Talent rule below
+  // would light it the moment anything stood in range.
+  if (def.talent?.handler === "detonate") {
+    const bb = def.onDeath?.boardBlast;
+    if (bb && card.pos && canFireTalent(state, instanceId).ok) {
+      const caught = Object.values(state.cards).filter((c) =>
+        c.instanceId !== card.instanceId && c.curHp > 0 && c.pos
+        && getDef(c.defId).element !== bb.exceptElement
+        && Math.max(Math.abs(c.pos.row - card.pos!.row), Math.abs(c.pos.col - card.pos!.col)) <= (bb.radius ?? 99));
+      const foes = caught.filter((c) => c.owner !== card.owner);
+      const mine = caught.filter((c) => c.owner === card.owner);
+      const kills = foes.filter((c) => c.curHp + c.curShields <= bb.dmg).length;
+      if ((kills > 0 || foes.length >= 2) && mine.length < foes.length) return { action: "talent" };
+    }
+  } else
   // UNMASK (the Butler): keep the disguise — being killed in it is worth a free
   // Soul Slash — and drop it only to take a kill the Butler cannot: something
   // in reach that Nightfang's basic would finish and the Butler's would not.

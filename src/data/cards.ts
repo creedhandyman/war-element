@@ -10283,20 +10283,21 @@ export const CARDS: CardDef[] = [
     // payout was the same whether you placed it thoughtfully or parked it in a
     // corner and forgot about it. A radius makes the placement the play — which
     // is what Rollout below was always for.
-    passiveNames: { onDeath: "KaBoooom" },
+    passiveNames: { onDeath: "KaBoooom", roundTick: "Roll Forward" },
     onDeath: { dmg: 0, boardBlast: { dmg: 5, exceptElement: "PYRO", radius: 1 } },
+    // ROLL FORWARD (owner, 2026-10-04): one slot toward the enemy home every
+    // round, on its own — the Acorn's Seed Roll (`advance`), stopping at the
+    // first body or captured slot. It has 0 SP and never walked; it rolls.
+    roundTick: { advance: 1 },
     // Rares carry Talents, not repeatable Specials: free, but once per game.
-    // Rollout: the canister rolls off the back line, striking then phasing PAST
-    // bodies to the first open slot toward the enemy home — parking the bomb in
-    // their line so KaBoooom lands where it hurts.
+    // DETONATE (owner, 2026-10-04, replacing Rollout — the roll is now every
+    // round): blow up on command. KaBoooom goes off where it stands, so it is
+    // no longer only an answer to being killed.
     talent: {
-      name: "Rollout",
-      handler: "strike",
-      // 4 -> 2. The damage was never the point: Rollout exists to PARK the bomb
-      // in the enemy line so KaBoooom lands where it hurts — and now that the
-      // blast only reaches one square, the trip is the whole card.
-      params: { dmg: 2, rollThrough: 1 },
-      text: "Once per game: deal 2 DMG, then roll through to the first open slot toward the enemy home — it rolls even with nothing in range.",
+      name: "Detonate",
+      handler: "detonate",
+      targetSide: "self",
+      text: "Once per game: detonate on command. KaBoooom goes off where it stands — 5 DMG to every non-PYRO card next to it — and the Canister is destroyed.",
     },
   },
   {
