@@ -947,7 +947,7 @@ export const CARDS: CardDef[] = [
     hp: 10,
     sp: 12,
     shields: 0,
-    keywords: { EVASION: true }, // Silent Weaver
+    keywords: { EVASION: true, STEALTH: true }, // Silent Weaver; STEALTH (owner, 2026-10-04)
     // Its dodge only works while it is on the ENEMY's side (like Ravven). It
     // stalks evasive but is exposed defending its own ground — a defensive nerf,
     // since permanent everywhere-evasion made it far too hard to remove at home.
@@ -3964,7 +3964,7 @@ export const CARDS: CardDef[] = [
     hp: 11,
     sp: 11,
     shields: 0,
-    keywords: {},
+    keywords: { STEALTH: true }, // owner, 2026-10-04
     tribe: "Skeleton",
     // Soul Reaper (On Kill): +1 DMG permanently, heal 7.
     passiveNames: { onKill: "Soul Reaper" },
@@ -7386,7 +7386,7 @@ export const CARDS: CardDef[] = [
     hp: 16,
     sp: 11,
     shields: 0,
-    keywords: { CRIT: true },
+    keywords: { CRIT: true, STEALTH: true }, // STEALTH: owner, 2026-10-04
     tribe: ["Skeleton", "ScareKrow"],
     // Unpredictable: a slower opponent has only a 50% chance to hit Ender.
     passiveNames: { evadeVsSlower: "Unpredictable" },
@@ -8753,7 +8753,7 @@ export const CARDS: CardDef[] = [
     hp: 22,
     sp: 15,
     shields: 0,
-    keywords: { CRIT: true, EVASION: true },
+    keywords: { CRIT: true, EVASION: true, STEALTH: true }, // STEALTH: owner, 2026-10-04
     tribe: "ScareKrow",
     // Blur: EVASION (keyword) + when a MARKED target dies, Hoax banks a one-time
     // guaranteed dodge (next incoming attack auto-misses). Mark of Hoax brands a
