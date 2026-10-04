@@ -234,6 +234,7 @@ export function BossDetail(props: {
                     title={`${tDef.name} — ${uses} battle(s) left`}
                   >
                     <img src={cardThumbSrc(tDef)} alt="" />
+                    <TameStrength k={tameScaleFor(t.cardId)} />
                     <span className="bd-tame-name">{tDef.name}</span>
                     <span className="bd-tame-uses">{uses}</span>
                   </button>
@@ -257,4 +258,11 @@ export function BossDetail(props: {
       </div>
     </div>
   );
+}
+
+/** A tamed boss's strength, on its tile in a picker: 70% for most, gold at full
+ *  (Thunderfangs). On the tile, not in a header — one shared figure was wrong
+ *  for whichever boss did not share it (owner, 2026-10-04). */
+export function TameStrength({ k }: { k: number }) {
+  return <span className={`bd-tame-pct ${k >= 1 ? "full" : ""}`}>{Math.round(k * 100)}%</span>;
 }

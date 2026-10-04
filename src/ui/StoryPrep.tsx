@@ -25,6 +25,7 @@ import {
 } from "../data/squads";
 import { CardView } from "./CardView";
 import { cardThumbSrc } from "./shared";
+import { TameStrength } from "./BossDetail";
 import { broodOf } from "./void-seat";
 import { tameScaleFor, tamedRoster } from "../data/void-tower";
 
@@ -714,9 +715,7 @@ export function StoryPrep(props: {
               <div className="sr-label sp-row">
                 <span>Bring a tamed boss</span>
                 <span className="sp-meta">
-                  {/* The picked boss's own strength: most fight at 70%, Thunderfangs
-                      at full, and one shared figure would be wrong for someone. */}
-                  {ally ? `${Math.round(tameScaleFor(ally) * 100)}% strength · uses a battle` : "Uses a battle, win or lose"}
+                  Uses a battle, win or lose
                 </span>
               </div>
               <div className="bd-stable-row">
@@ -735,6 +734,7 @@ export function StoryPrep(props: {
                       title={`${tDef.name} — ${uses} battle(s) left · ${Math.round(k * 100)}% strength`}
                     >
                       <img src={cardThumbSrc(tDef)} alt="" />
+                      <TameStrength k={k} />
                       <span className="bd-tame-name">{tDef.name}</span>
                       <span className="bd-tame-uses">{uses}</span>
                     </button>
