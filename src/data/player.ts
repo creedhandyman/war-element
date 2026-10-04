@@ -66,46 +66,52 @@ export const avatarArt = (cardId: string): string =>
 
 /** WHERE THE HEAD IS, per boss, and how far to zoom in on it.
  *
- *  A single crop rule cannot fit twenty paintings. The first cut used one
- *  (`object-position: 50% 14%`) and it worked for exactly the boss it was
- *  written against: Basilisk's head sits at 60% DOWN the canvas, so the frame
- *  showed swamp canopy; Thunderfangs is at 27% ACROSS; Kato is a tank with no
- *  head at all. Read off each plate by eye, once, and recorded.
+ *  A single crop rule cannot fit twenty paintings: Basilisk's head sits 34% down
+ *  its plate, Thunderfangs' is 27% across, Kato is a tank with no head at all.
+ *  Each was read off a percentage grid laid over the art, once, and recorded.
  *
- *  `x`/`y` are the point in the ART that should land in the middle of the frame,
- *  as a percentage — the exact semantics of `background-position` when the image
- *  is larger than its box. That is why this renders as a background rather than
- *  an <img>: with `object-fit: cover` on a SQUARE frame, a 3:4 plate is scaled
- *  until the width fits exactly, so the horizontal crop is a no-op and
- *  `object-position`'s X is silently ignored. Half the control was missing.
+ *  `x`/`y` are the CENTRE OF THE HEAD, as a percentage of the plate (0,0 is the
+ *  top-left corner). They are NOT CSS `background-position` values - that was the
+ *  bug in the first cut, which stored them as if they were: a background-position
+ *  of y% lines the point y% down the image up with the point y% down the FRAME, so
+ *  it only centres a point at infinite zoom. At the 200-600% used here it left
+ *  every head several percent off and the frame on a chest or a shoulder.
+ *  `avatarStyle` does the conversion, so what is recorded is what is seen.
  *
- *  `zoom` is `background-size`, so 400 means the art is drawn four frames wide.
- *  It varies because the SUBJECTS vary: Kheiringer's face is a twentieth of her
- *  plate and Kato's prow is a third of its.
+ *  `zoom` is `background-size`, so 300 means the art is drawn three frames wide.
+ *  It varies because the SUBJECTS vary: Kheiringer's head is a twelfth of her
+ *  plate's width and Hoarfell's horns fill most of his. Aim for the head to fill
+ *  a little over half the frame.
  */
 export interface AvatarFocus { x: number; y: number; zoom: number }
 
 export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
-  boss_rotroot:      { x: 45, y: 13, zoom: 440 },
-  boss_skeleeze:     { x: 37, y: 31, zoom: 480 },
-  boss_xilty:        { x: 48, y: 30, zoom: 400 },
-  boss_permafrost:   { x: 32, y: 18, zoom: 370 },
-  boss_overclock:    { x: 44, y: 23, zoom: 440 },
-  boss_nightshrike:  { x: 48, y: 41, zoom: 440 },
-  boss_basilisk:     { x: 47, y: 56, zoom: 280 },
-  boss_helion:       { x: 44, y: 18, zoom: 440 },
-  boss_hoarfell:     { x: 50, y: 26, zoom: 340 },
-  boss_thunderfangs: { x: 26, y: 56, zoom: 310 },
-  boss_vulcanyx:     { x: 72, y: 17, zoom: 260 },
-  boss_umbranova:    { x: 48, y: 44, zoom: 320 },
-  boss_cryovex:      { x: 61, y: 30, zoom: 370 },
-  boss_kazehaya:     { x: 37, y: 22, zoom: 410 },
-  boss_kato:         { x: 32, y: 58, zoom: 220 },
-  boss_smolder:      { x: 38, y: 30, zoom: 410 },
-  boss_spindle:      { x: 52, y: 26, zoom: 320 },
-  boss_skybreaker:   { x: 47, y: 17, zoom: 480 },
-  boss_continental:  { x: 60, y: 19, zoom: 410 },
-  boss_kheiringer:   { x: 60, y: 18, zoom: 550 },
+  boss_rotroot:      { x: 52, y: 15, zoom: 300 },
+  boss_skeleeze:     { x: 40, y: 34, zoom: 420 },
+  boss_xilty:        { x: 55, y: 27, zoom: 230 },
+  boss_permafrost:   { x: 47, y: 22, zoom: 210 },
+  boss_overclock:    { x: 50, y: 22, zoom: 300 },
+  boss_nightshrike:  { x: 46, y: 34, zoom: 280 },
+  boss_basilisk:     { x: 44, y: 64, zoom: 250 },
+  boss_helion:       { x: 41, y: 18, zoom: 330 },
+  boss_hoarfell:     { x: 53, y: 34, zoom: 170 },
+  boss_thunderfangs: { x: 27, y: 55, zoom: 210 },
+  boss_vulcanyx:     { x: 78, y: 18, zoom: 260 },
+  boss_umbranova:    { x: 50, y: 40, zoom: 200 },
+  boss_cryovex:      { x: 53, y: 32, zoom: 230 },
+  boss_kazehaya:     { x: 33, y: 27, zoom: 260 },
+  boss_kato:         { x: 52, y: 48, zoom: 150 },
+  boss_smolder:      { x: 37, y: 30, zoom: 260 },
+  boss_spindle:      { x: 55, y: 27, zoom: 300 },
+  boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
+  boss_continental:  { x: 63, y: 25, zoom: 260 },
+  boss_kheiringer:   { x: 62, y: 17, zoom: 600 },
+};
+
+/** Plate height over width, where it is not the usual 4:3. Needed to centre a
+ *  point VERTICALLY, since the art is drawn `zoom`% wide and its height follows. */
+const PLATE_ASPECT: Record<string, number> = {
+  boss_xilty: 1.249, boss_nightshrike: 1.249, boss_thunderfangs: 1.249,
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders
@@ -113,14 +119,26 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
 export const avatarFocus = (cardId: string): AvatarFocus =>
   AVATAR_FOCUS[cardId] ?? { x: 50, y: 22, zoom: 380 };
 
+/** The `background-position` percentage that puts the point `at` (0..1 along the
+ *  art) in the MIDDLE of the frame, when the art is drawn `size` frames long on
+ *  that axis. Clamped so the art always covers the frame. */
+export function centreOn(at: number, size: number): number {
+  if (size <= 1) return 50;
+  const pos = ((at * size - 0.5) / (size - 1)) * 100;
+  return Math.min(100, Math.max(0, pos));
+}
+
 /** The inline style that frames a head. One place, so the home row, the picker
  *  and anywhere else this lands cannot crop it three different ways. */
 export function avatarStyle(cardId: string): Record<string, string> {
   const f = avatarFocus(cardId);
+  const wide = f.zoom / 100;
+  const tall = wide * (PLATE_ASPECT[cardId] ?? 4 / 3);
+  const r = (n: number) => String(Math.round(n * 10) / 10);
   return {
     backgroundImage: `url(${avatarArt(cardId)})`,
     backgroundSize: `${f.zoom}% auto`,
-    backgroundPosition: `${f.x}% ${f.y}%`,
+    backgroundPosition: `${r(centreOn(f.x / 100, wide))}% ${r(centreOn(f.y / 100, tall))}%`,
     backgroundRepeat: "no-repeat",
   };
 }

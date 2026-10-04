@@ -84,8 +84,21 @@ describe("boss heads are framed on the head", () => {
   it("avatarStyle frames a head from its focal point", () => {
     const st = avatarStyle("boss_basilisk");
     const f = AVATAR_FOCUS.boss_basilisk;
-    expect(st.backgroundPosition).toBe(`${f.x}% ${f.y}%`);
     expect(st.backgroundSize).toBe(`${f.zoom}% auto`);
     expect(st.backgroundImage).toContain("boss_basilisk.webp");
+  });
+
+  it("puts the recorded head in the MIDDLE of the frame, not merely near it", () => {
+    // background-position is not 'the point to centre': y% lines the point y% down
+    // the image up with the point y% down the FRAME, so storing the head's
+    // coordinates there left every head off-centre and several on a chest.
+    // Where the head lands in the frame is  pos*(1 - size) + at*size  (frame = 1).
+    for (const [id, f] of Object.entries(AVATAR_FOCUS)) {
+      const st = avatarStyle(id);
+      const [px] = st.backgroundPosition.split(" ").map((n) => parseFloat(n) / 100);
+      const wide = f.zoom / 100;
+      const landsAt = px * (1 - wide) + (f.x / 100) * wide;
+      expect(landsAt, `${id} horizontal`).toBeCloseTo(0.5, 1);
+    }
   });
 });
