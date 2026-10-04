@@ -27,6 +27,88 @@ function useMedia(query: string): boolean {
 }
 const useNarrow = (): boolean => useMedia(NARROW_QUERY);
 
+/** A drawn card's flight from the deck pile to its place in the fan, ms... */
+const DRAW_MS = 640;
+/** ...and the beat between two that come together: the refuel every fifth
+ *  round draws three. */
+const DRAW_STAGGER_MS = 170;
+/** How small a drawn card leaves the deck, against its size in the fan. */
+const DRAW_FROM_SCALE = 0.5;
+/** The fan making room for a card, or closing the gap one left, ms. */
+const FAN_SHIFT_MS = 260;
+
+type Pt = { x: number; y: number };
+
+/** THE DRAW, SEEN. A drawn card used to simply be there, one more in the fan,
+ *  and the refuel's three at once read as nothing at all. Each card new to the
+ *  hand now flies out of the deck pile to its place, a beat apart when several
+ *  come together, and the pile kicks as each one leaves; the cards already
+ *  held glide aside to make room (`moved`: how far each was, in the fan's own
+ *  px, from where it stands now) rather than jumping. Every way a card reaches
+ *  the hand is a draw from the deck (the round's draw, a refuel, a call-up),
+ *  so this is read off the hand itself and needs no word from the engine.
+ *
+ *  Web Animations on the card's own `translate`/`scale`, which compose with
+ *  the fan pose in its `transform` instead of replacing it. A card's pose turns
+ *  about `transform-origin`, well below the card, and the scale turns about it
+ *  too: `pivot` finds that point on screen, so the card starts its flight
+ *  centred on the pile. `k` is any scale on the hand around it (the desktop
+ *  band shrinks out of prep), since `translate` is in the fan's own px. */
+function playDraws(fan: HTMLElement, deck: HTMLElement | null, fresh: string[], moved: Map<string, number>) {
+  const calm = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  const card = (id: string) => fan.querySelector<HTMLElement>(`.hcard[data-hid="${CSS.escape(id)}"]`);
+  if (!calm)
+    for (const [id, dx] of moved)
+      card(id)?.animate([{ translate: `${dx}px 0px` }, { translate: "0px 0px" }],
+        { duration: FAN_SHIFT_MS, easing: "cubic-bezier(.25,.8,.3,1)" });
+  const pile = deck?.getBoundingClientRect();
+  const k = fan.offsetWidth > 0 ? fan.getBoundingClientRect().width / fan.offsetWidth : 1;
+  fresh.forEach((id, i) => {
+    const el = card(id);
+    if (!el) return;
+    const delay = i * DRAW_STAGGER_MS;
+    if (calm || !pile) {
+      el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay, fill: "backwards" });
+      return;
+    }
+    const r = el.getBoundingClientRect();
+    const c: Pt = { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    const o = pivot(el, c, k);
+    const s = DRAW_FROM_SCALE;
+    const d: Pt = { x: pile.left + pile.width / 2, y: pile.top + pile.height / 2 };
+    const tx = (d.x - o.x - s * (c.x - o.x)) / k, ty = (d.y - o.y - s * (c.y - o.y)) / k;
+    // Each stretch eases on its own (the easing on a keyframe runs to the next
+    // one that sets the same property): the flight slows as it arrives, over
+    // most of the time, so the eye can follow it; then the card settles.
+    el.animate([
+      { translate: `${tx}px ${ty}px`, scale: `${s}`, opacity: 0, filter: "brightness(1.6)", easing: "cubic-bezier(.3,.5,.35,1)" },
+      { opacity: 1, offset: 0.12 },
+      { translate: "0px 0px", scale: "1.08", filter: "brightness(1.45)", offset: 0.78, easing: "ease-out" },
+      { translate: "0px 0px", scale: "1" },
+    ], { duration: DRAW_MS, delay, fill: "backwards" });
+    deck?.animate([{ scale: "1" }, { scale: "1.14" }, { scale: "1" }], { duration: 240, delay, easing: "ease-out" });
+  });
+}
+
+/** Each card's place in the fan, by hand id: its layout offset, blind to the
+ *  pose and to anything animating it. */
+function cardsAt(fan: HTMLElement): Map<string, number> {
+  const at = new Map<string, number>();
+  for (const el of fan.querySelectorAll<HTMLElement>(".hcard[data-hid]")) at.set(el.dataset.hid!, el.offsetLeft);
+  return at;
+}
+
+/** Where a card's `transform` turns about, on screen: its centre `c` less the
+ *  pose applied to the centre's offset from the origin. The pose (the fan's
+ *  rotate and dip, or anything else) is read whole off the computed matrix. */
+function pivot(el: HTMLElement, c: Pt, k: number): Pt {
+  const cs = getComputedStyle(el);
+  const [ox, oy] = cs.transformOrigin.split(" ").map(parseFloat);
+  const m = new DOMMatrix(cs.transform === "none" ? undefined : cs.transform);
+  const vx = el.offsetWidth / 2 - (ox || 0), vy = el.offsetHeight / 2 - (oy || 0);
+  return { x: c.x - k * (m.a * vx + m.c * vy + m.e), y: c.y - k * (m.b * vx + m.d * vy + m.f) };
+}
+
 /** What the highlighted card's readout says about playing it right now. On a
  *  desktop the hint line beside the Pass button says this; the phone layouts
  *  hide that line, so a tap on a card you could not afford used to answer
@@ -195,10 +277,38 @@ export function Hand(props: {
     return () => ro.disconnect();
   }, [n]);
 
+  // THE DRAW (see `playDraws`): what is new to the hand since the last commit
+  // flies in, and what was already there glides from where it stood. "Where it
+  // stood" is read HERE, in render, off the fan still on screen: by the time a
+  // layout effect runs the DOM has changed, and positions kept from an earlier
+  // commit go stale whenever the fan reflows on its own (it collapses out of
+  // prep, it re-fits on a resize). Only when the hand itself changed, and not
+  // across a seat change or a new match, where nothing was drawn.
+  const deckRef = useRef<HTMLDivElement>(null);
+  const shown = useRef<{ player: PlayerId; round: number; ids: string[] } | null>(null);
+  const last = shown.current;
+  const ids = me.hand.map((h) => h.handId);
+  const changed = !!last && last.player === player && game.round >= last.round &&
+    (last.ids.length !== ids.length || last.ids.some((id, i) => id !== ids[i]));
+  const before = changed && fanRef.current ? cardsAt(fanRef.current) : null;
+  useLayoutEffect(() => {
+    shown.current = { player, round: game.round, ids };
+    const fan = fanRef.current;
+    if (!before || !fan || !last) return;
+    const after = cardsAt(fan);
+    const fresh = ids.filter((id) => !last.ids.includes(id));
+    const moved = new Map<string, number>();
+    for (const [id, x] of after) {
+      const was = before.get(id);
+      if (was !== undefined && Math.abs(was - x) > 1) moved.set(id, was - x);
+    }
+    if (fresh.length || moved.size) playDraws(fan, deckRef.current, fresh, moved);
+  });
+
   return (
     <div className={`hand${myPrep || desk ? "" : " collapsed"}`} ref={handRef}>
       {/* Deck as a stacked pile with its count. */}
-      <div className="deck-stack" title={`Your deck — ${me.deck.length} cards`}>
+      <div className="deck-stack" ref={deckRef} title={`Your deck — ${me.deck.length} cards`}>
         <span className="ds-plate" />
         <span className="ds-plate" />
         <span className="ds-face">
@@ -245,6 +355,7 @@ export function Hand(props: {
             <div
               key={h.handId}
               className={`${cls} carded`}
+              data-hid={h.handId}
               data-el={def.element}
               style={{
                 ["--rot" as string]: `${rot}deg`,
