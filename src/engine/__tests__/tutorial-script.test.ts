@@ -1,44 +1,46 @@
-// THE FIRST BATTLE, PLAYED BY ITS OWN SCRIPT (ui/tutorial.ts).
+// THE SCRIPTED BATTLES, PLAYED BY THEIR OWN SCRIPTS (ui/tutorials.ts).
 //
 // Every beat is taken in order, the way the forced-play overlay makes a player
 // take it, and the enemy plays its scripted turns. If a rules change (a stat, a
-// speed tier, an element power, the opening placement) stops the battle going
-// the way the beat sheet says, this fails here instead of in a new player's
-// first minute.
+// speed tier, an element power, the opening placement) stops a battle going
+// the way its beat sheet says, this fails here instead of in a player's lesson.
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent, needsInput } from "../phases";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
-import { BEATS, beatIndex, createTutorialState, enemyStep, scriptedIntent, type TutUi } from "../../ui/tutorial";
+import { BEATS, beatIndex, type TutorialDef, type TutUi } from "../../ui/tutorial";
+import { TUTORIALS, TUTORIAL_ORDER } from "../../ui/tutorials";
 
-function playThrough() {
-  let s: GameState = createTutorialState();
-  const ui: TutUi = { handDef: null, cardId: null, pending: null };
+function playThrough(def: TutorialDef = TUTORIALS.basics) {
+  let s: GameState = def.create();
+  const ui: TutUi = { handDef: null, cardId: null, pending: null, spellId: null };
   const order: string[] = [];
   const states: GameState[] = [s];
   let cursor = 0;
   for (let guard = 0; guard < 2000 && s.phase !== "gameover"; guard++) {
     const who = needsInput(s);
-    if (who === "P2") { s = enemyStep(s)!; states.push(s); continue; }
+    if (who === "P2") { s = def.enemyStep(s)!; states.push(s); continue; }
     if (who === null) { s = advance(s); states.push(s); continue; }
-    cursor = beatIndex(s, ui, cursor);
-    const beat = BEATS[cursor];
-    if (!beat) throw new Error("P1 asked to act with no beat left");
+    cursor = beatIndex(s, ui, cursor, def.beats);
+    const beat = def.beats[cursor];
+    if (!beat) throw new Error(`${def.id}: P1 asked to act with no beat left`);
     if (order[order.length - 1] !== beat.id) order.push(beat.id);
-    const intent = scriptedIntent(s, beat);
+    const intent = def.scriptedIntent(s, beat);
     if (!intent) {
       // A selection tap: what the App's state becomes when the glowing thing is tapped.
-      if (beat.target.kind === "hand") ui.handDef = beat.target.defId;
-      else if (beat.target.kind === "verb") ui.pending = "basic";
-      else if (beat.target.kind === "slot") {
-        const c = Object.values(s.cards).find((x) => x.pos?.row === (beat.target as { row: number }).row && x.pos?.col === (beat.target as { col: number }).col);
+      const t = beat.target;
+      if (t.kind === "hand") ui.handDef = t.defId;
+      else if (t.kind === "verb") ui.pending = t.verb;
+      else if (t.kind === "spell") ui.spellId = t.spellId;
+      else if (t.kind === "slot") {
+        const c = Object.values(s.cards).find((x) => x.pos?.row === t.row && x.pos?.col === t.col);
         ui.cardId = c?.instanceId ?? null;
       }
       continue;
     }
     s = applyIntent(s, intent);
     states.push(s);
-    ui.handDef = null; ui.cardId = null; ui.pending = null;
+    ui.handDef = null; ui.cardId = null; ui.pending = null; ui.spellId = null;
   }
   return { s, order, states };
 }
@@ -78,5 +80,68 @@ describe("the first battle's script", () => {
     const { s } = playThrough();
     const hits = s.log.filter((l) => /^Birch \(P1\) hits Grill/.test(l)).length;
     expect(hits).toBe(2);
+  });
+});
+
+describe("every scripted battle", () => {
+  it.each(TUTORIAL_ORDER)("%s takes every beat in order and is won", (id) => {
+    const def = TUTORIALS[id];
+    const { s, order } = playThrough(def);
+    expect(order).toEqual(def.beats.map((b) => b.id));
+    expect(s.win?.winner).toBe("P1");
+  });
+
+  it.each(TUTORIAL_ORDER)("%s: no status lands on any card", (id) => {
+    const { states } = playThrough(TUTORIALS[id]);
+    for (const st of states)
+      for (const c of Object.values(st.cards)) expect(c.statuses, `${id}: ${c.defId}`).toEqual([]);
+  });
+
+  it("each has its own mark, and a pre step only where a target can be folded away", () => {
+    const marks = TUTORIAL_ORDER.map((id) => TUTORIALS[id].mark);
+    expect(new Set(marks).size).toBe(marks.length);
+    for (const id of TUTORIAL_ORDER)
+      for (const b of TUTORIALS[id].beats)
+        if (b.pre) expect(b.target.kind, `${id}/${b.id}`).toBe("spell");
+  });
+});
+
+describe("the magic battle's script", () => {
+  const def = TUTORIALS.magic;
+  const shieldsOf = (st: GameState, defId: string) =>
+    Object.values(st.cards).find((c) => c.defId === defId && c.owner === "P1")!;
+
+  it("the near enemy's hit is soaked by the Armadillo's shields: no HP lost, one shield worn", () => {
+    const { s, states } = playThrough(def);
+    const hit = s.log.find((l) => /^Duster \(P2\) hits Granite Armadillo \(P1\) for 0/.test(l));
+    expect(hit, s.log.join(" | ")).toBeTruthy();
+    const before = states.find((st) => st.phase === "battle" && st.round === 1)!;
+    const arm0 = shieldsOf(before, "bore_armadillo");
+    const arm1 = shieldsOf(s, "bore_armadillo");
+    expect(arm1.curHp).toBe(arm0.curHp);
+    expect(arm1.curShields).toBe(arm0.curShields - 1);
+  });
+
+  it("the spell is cast once, and its shield lands on the Armadillo before the hit", () => {
+    const { s, states } = playThrough(def);
+    expect(s.players.P1.spellbook.filter((sl) => sl.used)).toHaveLength(1);
+    const start = shieldsOf(states[0], "bore_armadillo").curShields;
+    const battle = states.find((st) => st.phase === "battle" && st.round === 1)!;
+    expect(shieldsOf(battle, "bore_armadillo").curShields).toBe(start + 1);
+  });
+
+  it("Lazor's Special fires once, and its next hit is to HP — no shields to soak it", () => {
+    const { s } = playThrough(def);
+    expect(s.log.filter((l) => /^Lazor \(P1\) fires /.test(l))).toHaveLength(1);
+    const lazor = shieldsOf(s, "dawn_lazor");
+    expect(lazor.curShields).toBe(0);
+    expect(lazor.curHp).toBeLessThan(lazor.maxHp);
+  });
+
+  it("is over in round 2, and the beats' numbers are true: 3 Magic, a 2-Magic Special, a 1-Magic spell", () => {
+    const { s, states } = playThrough(def);
+    expect(s.round).toBe(2);
+    expect(states.find((st) => st.round === 1 && st.phase === "prep")!.players.P1.magicPool).toBe(3);
+    expect(getDef("dawn_lazor").special!.cost).toBe(2);
   });
 });

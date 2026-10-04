@@ -12,7 +12,7 @@
  *  board animates and the action ring moves with the acting card.
  */
 import { useEffect, useLayoutEffect, useState } from "react";
-import type { Beat, TutTarget } from "./tutorial";
+import type { Beat, TutorialDef, TutTarget } from "./tutorial";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -22,32 +22,48 @@ function selectorFor(t: TutTarget): string {
     case "slot": return `.board [data-pos="${t.row},${t.col}"]`;
     case "pass": return ".pass-btn";
     case "verb": return `.wheel-verb[data-verb="${t.verb}"]`;
+    case "spellbook": return ".spellbook-toggle";
+    case "spell": return `.spellchip[data-spell="${t.spellId}"]:not(.used)`;
   }
 }
 
-/** Where the target is right now, padded a little; null while it is not on
- *  screen (the ring has not opened yet, the hand is still dealing). */
-function useTargetRect(target: TutTarget | null): Rect | null {
-  const [rect, setRect] = useState<Rect | null>(null);
+const PAD = 6;
+
+/** The first element matching `sel` that is actually on screen and enabled.
+ *  Several can match: the spellbook is mounted in the desktop rail and in the
+ *  phone's action panel at once, one of them hidden by CSS. */
+function visibleRect(sel: string): Rect | null {
+  for (const el of Array.from(document.querySelectorAll<HTMLElement>(sel))) {
+    const r = el.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0 || (el as HTMLButtonElement).disabled) continue;
+    return { x: r.left - PAD, y: r.top - PAD, w: r.width + PAD * 2, h: r.height + PAD * 2 };
+  }
+  return null;
+}
+
+/** Where the target is right now, padded a little — or, while it is not on
+ *  screen, where the beat's `pre` target is (`usedPre`). Null while neither
+ *  is (the ring has not opened yet, the hand is still dealing). */
+function useTargetRect(beat: Beat | null): { rect: Rect | null; usedPre: boolean } {
+  const [found, setFound] = useState<{ rect: Rect | null; usedPre: boolean }>({ rect: null, usedPre: false });
   useLayoutEffect(() => {
-    if (!target) { setRect(null); return; }
-    const sel = selectorFor(target);
+    if (!beat) { setFound({ rect: null, usedPre: false }); return; }
+    const main = selectorFor(beat.target);
+    const pre = beat.pre ? selectorFor(beat.pre.target) : null;
     let raf = 0;
     let last = "";
     const tick = () => {
-      const el = document.querySelector<HTMLElement>(sel);
-      const r = el?.getBoundingClientRect();
-      const visible = !!r && r.width > 0 && r.height > 0 && !(el as HTMLButtonElement)?.disabled;
-      const pad = 6;
-      const next = visible ? { x: r!.left - pad, y: r!.top - pad, w: r!.width + pad * 2, h: r!.height + pad * 2 } : null;
-      const key = next ? `${Math.round(next.x)},${Math.round(next.y)},${Math.round(next.w)},${Math.round(next.h)}` : "none";
-      if (key !== last) { last = key; setRect(next); }
+      let rect = visibleRect(main);
+      let usedPre = false;
+      if (!rect && pre) { rect = visibleRect(pre); usedPre = !!rect; }
+      const key = rect ? `${usedPre}:${Math.round(rect.x)},${Math.round(rect.y)},${Math.round(rect.w)},${Math.round(rect.h)}` : "none";
+      if (key !== last) { last = key; setFound({ rect, usedPre }); }
       raf = requestAnimationFrame(tick);
     };
     tick();
     return () => cancelAnimationFrame(raf);
-  }, [target]);
-  return rect;
+  }, [beat]);
+  return found;
 }
 
 export function TutorialRail(props: {
@@ -57,13 +73,15 @@ export function TutorialRail(props: {
   onSkip: () => void;
 }) {
   const { beat, actionable } = props;
-  const rect = useTargetRect(beat && actionable ? beat.target : null);
+  const { rect, usedPre } = useTargetRect(beat && actionable ? beat : null);
   const [askSkip, setAskSkip] = useState(false);
   useEffect(() => setAskSkip(false), [beat?.id]);
 
   const live = !!(beat && actionable && rect);
-  const big = beat ? (actionable ? beat.big : beat.wait ?? "Watch the board.") : "";
-  const small = beat && actionable ? beat.small : undefined;
+  // The `pre` step speaks for itself while its target is the one on screen.
+  const say = beat && usedPre && beat.pre ? beat.pre : beat;
+  const big = beat ? (actionable ? say!.big : beat.wait ?? "Watch the board.") : "";
+  const small = beat && actionable ? say!.small : undefined;
   // The line sits away from what it points at: low when the target is in the
   // top half of the screen, high otherwise.
   const low = live && rect!.y + rect!.h / 2 < window.innerHeight / 2;
@@ -104,17 +122,16 @@ export function TutorialRail(props: {
   );
 }
 
-/** The result of the first battle, in place of the ordinary win screen. */
-export function TutorialDone(props: { firstRun: boolean; onContinue: () => void }) {
+/** The result of a scripted battle, in place of the ordinary win screen. */
+export function TutorialDone(props: { def: TutorialDef; firstRun: boolean; onContinue: () => void }) {
+  const { result } = props.def;
   return (
     <div className="overlay on-top">
       <div className="modal tut-done">
         <div className="win-title win">VICTORY</div>
-        <p className="tut-done-lead">You captured a square and defeated every enemy card.</p>
+        <p className="tut-done-lead">{result.lead}</p>
         <ul className="tut-done-list">
-          <li>Capture all 4 squares on their back row, or defeat every enemy card, to win.</li>
-          <li>Place cards on your back row, and earn Gold every round to buy more.</li>
-          <li>Move one card a turn. Melee cards hit the 8 squares around them.</li>
+          {result.bullets.map((b) => <li key={b}>{b}</li>)}
         </ul>
         <button className="lockin" onClick={props.onContinue}>
           {props.firstRun ? "Open your free pack" : "Back to the Training Ground"}

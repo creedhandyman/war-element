@@ -113,7 +113,11 @@ export type TutTarget =
   | { kind: "hand"; defId: string }
   | { kind: "slot"; row: number; col: number }
   | { kind: "pass" }
-  | { kind: "verb"; verb: "basic" };
+  | { kind: "verb"; verb: "basic" | "special" }
+  /** The spellbook's toggle, on the layouts that fold it away. */
+  | { kind: "spellbook" }
+  /** One spell in the book. */
+  | { kind: "spell"; spellId: string };
 
 /** The parts of the App's UI a beat needs to see: what is selected and armed. */
 export interface TutUi {
@@ -123,6 +127,8 @@ export interface TutUi {
   cardId: string | null;
   /** The armed battle verb ("basic" for Attack), if any. */
   pending: string | null;
+  /** The spell armed for casting, if any. */
+  spellId?: string | null;
 }
 
 export interface Beat {
@@ -135,14 +141,22 @@ export interface Beat {
    *  resolving) — what is happening on screen right now. */
   wait?: string;
   target: TutTarget;
+  /** When `target` is not on screen yet, the tap that puts it there — the
+   *  spellbook's toggle before a spell inside it — with its own line. The rail
+   *  shows this instead until the real target appears. */
+  pre?: { target: TutTarget; big: string; small?: string };
   /** Done once this holds — read off the game and the UI, never a counter, so
    *  a beat finished by any route (an auto-attack, say) moves on. */
   done: (s: GameState, ui: TutUi) => boolean;
 }
 
 const roundPast = (s: GameState, r: number) => s.round > r || s.phase === "gameover";
-const p1PassedIn = (s: GameState, r: number) =>
-  roundPast(s, r) || (s.round === r && !(s.phase === "prep" && s.prep?.priority === "P1"));
+/** Round `r`'s prep is over: both sides passed. A Pass beat that is the round's
+ *  LAST waits for this rather than for the player's own pass, so while the
+ *  enemy finishes its turn the rail says so — instead of jumping to the next
+ *  beat's line ("Battle!") a second early. Shared with tutorial-magic.ts. */
+export const prepOver = (s: GameState, r: number) =>
+  roundPast(s, r) || (s.round === r && s.phase !== "prep");
 
 /** The beat sheet. */
 export const BEATS: Beat[] = [
@@ -163,9 +177,9 @@ export const BEATS: Beat[] = [
   { id: "move-birch-1", big: "Move Birch here.", small: "You can move one card each turn.",
     target: { kind: "slot", row: 2, col: 1 },
     done: (s) => !at(mine(s, BIRCH), 3, 1) },
-  { id: "pass-1", big: "Tap Pass.",
+  { id: "pass-1", big: "Tap Pass.", wait: "The enemy passes.",
     target: { kind: "pass" },
-    done: (s) => p1PassedIn(s, 1) },
+    done: (s) => prepOver(s, 1) },
   { id: "attack-1", big: "Battle! Tap Attack.", wait: "Battle! The fastest cards act first.",
     target: { kind: "verb", verb: "basic" },
     done: (s, ui) => ui.pending === "basic" || roundPast(s, 1) || foes(s).length === 0 },
@@ -191,8 +205,9 @@ export const BEATS: Beat[] = [
     done: (s) => roundPast(s, 1) && (foes(s).length > 0 || roundPast(s, 2)) },
   { id: "pass-2b", big: "They bought a card. Tap Pass again.",
     small: "The round goes on until both sides pass in a row.",
+    wait: "They bought a card.",
     target: { kind: "pass" },
-    done: (s) => p1PassedIn(s, 2) },
+    done: (s) => prepOver(s, 2) },
   // ── round 3: capture, and the win ───────────────────────────────────────
   { id: "pick-birch-3", big: "Tap Birch.", wait: "No one was close enough to fight. Then the last enemy moves.",
     target: { kind: "slot", row: 1, col: 1 },
@@ -201,9 +216,9 @@ export const BEATS: Beat[] = [
     small: "A card still standing there when the round ends captures that square.",
     target: { kind: "slot", row: 0, col: 1 },
     done: (s) => !at(mine(s, BIRCH), 1, 1) },
-  { id: "pass-3", big: "Tap Pass.",
+  { id: "pass-3", big: "Tap Pass.", wait: "The enemy passes.",
     target: { kind: "pass" },
-    done: (s) => p1PassedIn(s, 3) },
+    done: (s) => prepOver(s, 3) },
   { id: "attack-3", big: "Tap Attack.", wait: "Battle!",
     target: { kind: "verb", verb: "basic" },
     done: (s, ui) => ui.pending === "basic" || s.phase === "gameover" || foes(s).length === 0 },
@@ -212,12 +227,12 @@ export const BEATS: Beat[] = [
     done: (s) => s.phase === "gameover" || foes(s).length === 0 },
 ];
 
-/** Index of the first beat not yet done (BEATS.length when all are). Beats are
+/** Index of the first beat not yet done (beats.length when all are). Beats are
  *  checked in order from `from`, so a later beat can never be skipped past one
  *  that is still waiting. */
-export function beatIndex(s: GameState, ui: TutUi, from = 0): number {
+export function beatIndex(s: GameState, ui: TutUi, from = 0, beats: Beat[] = BEATS): number {
   let i = from;
-  while (i < BEATS.length && BEATS[i].done(s, ui)) i++;
+  while (i < beats.length && beats[i].done(s, ui)) i++;
   return i;
 }
 
@@ -247,3 +262,50 @@ export function scriptedIntent(s: GameState, b: Beat): Intent | null {
       return null; // a selection tap: no intent of its own
   }
 }
+
+// ── the scripted battles, as one shape ─────────────────────────────────────
+// There are two (ui/tutorials.ts lists them): this one, the basics, which a
+// new player meets first; and Magic (ui/tutorial-magic.ts) — spells, Specials
+// and shields — in the Training Ground's Basics. The App, the rail and the
+// replay test drive both through this.
+
+export type TutorialId = "basics" | "magic";
+
+export interface TutorialDef {
+  id: TutorialId;
+  /** The `taught` mark written when it is won. */
+  mark: string;
+  /** The Training Ground row. */
+  title: string;
+  blurb: string;
+  /** The player's cards and the foe's name, for the row's art strip. */
+  youCards: readonly string[];
+  foeName: string;
+  create: () => GameState;
+  beats: Beat[];
+  enemyStep: (s: GameState) => GameState | null;
+  scriptedIntent: (s: GameState, b: Beat) => Intent | null;
+  /** The victory screen. */
+  result: { lead: string; bullets: string[] };
+}
+
+export const BASICS: TutorialDef = {
+  id: "basics",
+  mark: TUT_DONE,
+  title: "Your first battle",
+  blurb: "Every move, one tap at a time: place a card, move, attack, buy a card with Gold, and capture.",
+  youCards: TUTORIAL_YOU,
+  foeName: "Grills",
+  create: createTutorialState,
+  beats: BEATS,
+  enemyStep,
+  scriptedIntent,
+  result: {
+    lead: "You captured a square and defeated every enemy card.",
+    bullets: [
+      "Capture all 4 squares on their back row, or defeat every enemy card, to win.",
+      "Place cards on your back row, and earn Gold every round to buy more.",
+      "Move one card a turn. Melee cards hit the 8 squares around them.",
+    ],
+  },
+};

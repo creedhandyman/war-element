@@ -2877,7 +2877,45 @@ as optional, so the first battle now TEACHES BY FORCED PLAY.
   already rare: `foldIntoSquad` puts the first pack straight in when it fits.
 - **CSS**: the rail lives beside `.tut-coach` (before `.draft-screen`/`.lvl-up`,
   whose tests scan to EOF for `infinite`). The rail's skip is `.tut-rail-skip`.
-- **Later (owner)**: a second scripted match for spells, Specials and shields.
+- **The second battle** (spells, Specials, shields) shipped next — see below.
+
+## The second scripted battle — `ui/tutorial-magic.ts`
+
+Owner, 2026-10-04. Training Ground → Basics, second row ("Spells, Specials and
+shields"); never forced on anyone. Both battles are `TutorialDef`s
+(ui/tutorial.ts) listed in `ui/tutorials.ts`; App keeps `tutorialRun = {id,
+from}` and drives `create` / `beats` / `enemyStep` / `result` from the def. A
+won battle writes its own `mark` (`TUT_DONE`, `TUT2_DONE`).
+
+- **The board is SET, not dealt** (`summonCard` in `createMagicState`, decks
+  empty, no deploy): Granite Armadillo (3,1) + Lazor (3,2) vs two GALE Dusters,
+  near (2,1) and far (1,3). Patched: P1 starts with 2 Magic (3 in round 1), the
+  near Duster 5 HP and +3 SP (it must act before Lazor so the soak is seen
+  first), the far one 7 HP. Seed 1: the enemy has the first prep turn.
+- **The lesson**: round 1 — Pebble Toss (1 Magic) on the far Duster: 3 damage
+  and +1 shield to the Armadillo; the near Duster hits the Armadillo for 0
+  (shields soak it, one wears off; the shield-hit plate plays); Lazor's Special
+  (2 Magic, any range) kills it. Round 2 — the far Duster steps up and hits
+  Lazor, who has no shields, for 5; the Special is recharging, so its basic
+  attack wins. 9 beats.
+- **Chosen so nothing else fires**: no statuses (GALE's power only adds speed),
+  the Armadillo has no passives, Lazor's Special is plain damage. Shields on a
+  board token are ONLY the silver end of its health bar (`tk-bar-sh`, no
+  number), so the line says so.
+- **Rail additions**: target kinds `spellbook` (`.spellbook-toggle`) and `spell`
+  (`.spellchip[data-spell]`, added to SpellTray), `verb: "special"`; a beat's
+  `pre` step is shown while its real target is folded away (the phone's closed
+  spellbook); several matches → the first VISIBLE one (the desktop rail's tray
+  and the phone's panel tray are both mounted). Not actionable while a cast's art
+  flashes; the flashing spell counts as armed. Round-ending Pass beats use
+  `prepOver` (both sides passed) so the enemy's last pass shows "The enemy
+  passes." rather than the next beat's line.
+- **Testing gotcha**: the rail re-measures on `requestAnimationFrame`, which a
+  HIDDEN preview pane pauses — interleave screenshots when driving it.
+- `tutorial-script.test.ts` plays both battles beat by beat (`it.each`), checks
+  no status ever lands, and for Magic: the 0-damage soak (HP same, shields −1),
+  the spell's shield landing first, one Special, Lazor's HP hit, the Magic
+  numbers the beats quote.
 
 ## After the first battle: no lectures, one-line tips when stuck — `ui/struggle.ts`
 

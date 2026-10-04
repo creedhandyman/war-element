@@ -58,6 +58,7 @@ export function SpellTray(props: {
             key={`${slot.defId}-${i}`}
             className={`spellchip ${armed ? "armed" : ""} ${slot.used ? "used" : ""} ${ready ? "ready" : ""} ${poor ? "poor" : ""}`}
             data-el={spell.element}
+            data-spell={slot.defId}
             disabled={disabled}
             title={`${spell.name} (cost ${spell.cost}) — ${spell.text}${slot.used ? " · already cast" : afford ? "" : " · not enough Magic"}`}
             onClick={() => {

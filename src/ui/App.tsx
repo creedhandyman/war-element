@@ -247,7 +247,8 @@ import { tipMark } from "./struggle";
 import { LessonCoach } from "./LessonCoach";
 import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
-import { BEATS, TUT_DONE, TUT_SKIP, beatIndex, createTutorialState, enemyStep, needsFirstRun, type TutUi } from "./tutorial";
+import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
+import { TUTORIALS } from "./tutorials";
 import { LESSONS, LESSON_BOARD, completeLesson, lessonDone, type Lesson } from "./training";
 import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -898,7 +899,8 @@ export function App() {
   const [trainingRun, setTrainingRun] = useState<Lesson | null>(null);
   /** The scripted first battle in progress (ui/tutorial.ts), and where it was
    *  started from: the first-run screen, or the Training Ground's Basics. */
-  const [tutorialRun, setTutorialRun] = useState<"first" | "training" | null>(null);
+  const [tutorialRun, setTutorialRun] = useState<{ id: TutorialId; from: "first" | "training" } | null>(null);
+  const tutDef = tutorialRun ? TUTORIALS[tutorialRun.id] : null;
   /** Bumped on every lesson deal, so the coach starts fresh on a refight. */
   const [trainingDeal, setTrainingDeal] = useState(0);
   /** Which Shop economy to open on, when Home sent you there for a reason. */
@@ -1743,8 +1745,8 @@ export function App() {
     // THE TUTORIAL pays nothing and moves nothing: it is a lesson on rails.
     // Winning it is recorded here, not on its Continue button, so closing the
     // app on the victory screen still counts — from either door.
-    if (tutorialRun) {
-      if (game.win?.winner === "P1") markTaught(TUT_DONE);
+    if (tutDef) {
+      if (game.win?.winner === "P1") markTaught(tutDef.mark);
       return;
     }
     // ONLINE settles on its own short path and never touches the arena's.
@@ -1904,21 +1906,24 @@ export function App() {
   // leaves it alone; the enemy's scripted turn is played here, after a pause
   // long enough to see that it is the enemy's turn.
   useEffect(() => {
-    if (!started || !tutorialRun || game.phase === "gameover" || needsInput(game) !== "P2") return;
+    if (!started || !tutDef || game.phase === "gameover" || needsInput(game) !== "P2") return;
     const t = window.setTimeout(() => {
-      const next = enemyStep(game);
+      const next = tutDef.enemyStep(game);
       if (next) setGame((cur) => (cur === game ? next : cur));
     }, 1100);
     return () => window.clearTimeout(t);
-  }, [started, tutorialRun, game]);
+  }, [started, tutDef, game]);
   // Which beat the player is on: read off the board and what is selected, from
   // the first beat every time, so letting go of a card steps back to "tap it".
   const tutUi: TutUi = {
     handDef: sel?.kind === "hand" ? (game.players.P1?.hand.find((h) => h.handId === sel.handId)?.defId ?? null) : null,
     cardId: sel?.kind === "card" ? sel.instanceId : null,
     pending,
+    // While a cast's art flashes the selection is already cleared; the spell
+    // is still on its way, so the beat that armed it stays done.
+    spellId: sel?.kind === "spell" ? sel.spellId : castFlash?.spellId ?? null,
   };
-  const tutBeat = tutorialRun ? beatIndex(game, tutUi) : 0;
+  const tutBeat = tutDef ? beatIndex(game, tutUi, 0, tutDef.beats) : 0;
   /** A save that has done nothing yet opens on the title and one Play button. */
   const showFirstRun = !started && !tutorialRun && needsFirstRun(story);
   // Spell effects on the WebGL effects layer, held while any flash covers the
@@ -2637,12 +2642,12 @@ export function App() {
     return next;
   });
 
-  /** Deal the scripted first battle (ui/tutorial.ts). */
-  function startTutorial(from: "first" | "training") {
+  /** Deal a scripted battle (ui/tutorials.ts). */
+  function startTutorial(id: TutorialId, from: "first" | "training") {
     setArenaMode("ai");
     setTrainingRun(null);
-    setTutorialRun(from);
-    setGame(createTutorialState());
+    setTutorialRun({ id, from });
+    setGame(TUTORIALS[id].create());
     setIntroNames(null);
     setMatchIntro(false);
     setViewSide("P1");
@@ -2657,7 +2662,7 @@ export function App() {
    *  where the ordinary walkthrough takes over. From the Training Ground, back
    *  to the Training Ground. */
   function endTutorial(skipped: boolean) {
-    const from = tutorialRun;
+    const from = tutorialRun?.from ?? null;
     setTutorialRun(null);
     setStarted(false);
     setSel(null); setPending(null); setPicks([]); setStaged(null);
@@ -5486,15 +5491,16 @@ export function App() {
           never reflows and never moves them. `.controls` is none of those on a
           phone. */}
       {started && trainingRun && <LessonCoach key={trainingDeal} game={game} lesson={trainingRun} />}
-      {started && tutorialRun && game.phase !== "gameover" && (
+      {started && tutDef && game.phase !== "gameover" && (
         <TutorialRail
-          beat={BEATS[tutBeat] ?? null}
-          actionable={needsInput(game) === "P1"}
+          beat={tutDef.beats[tutBeat] ?? null}
+          // Not while a spell's art is flashing: the cast is already on its way.
+          actionable={needsInput(game) === "P1" && !castFlash}
           onSkip={() => endTutorial(true)}
         />
       )}
-      {started && tutorialRun && game.phase === "gameover" && (
-        <TutorialDone firstRun={tutorialRun === "first"} onContinue={() => endTutorial(false)} />
+      {started && tutDef && tutorialRun && game.phase === "gameover" && (
+        <TutorialDone def={tutDef} firstRun={tutorialRun.from === "first"} onContinue={() => endTutorial(false)} />
       )}
       {/* NO LECTURES IN A MATCH (owner, 2026-10-04): one small line, only when
           the board shows the player is stuck (ui/struggle.ts). The teaching is
@@ -6834,7 +6840,7 @@ export function App() {
         <TrainingGround
           save={story}
           onStart={startLesson}
-          onBasics={() => startTutorial("training")}
+          onBasics={(id) => startTutorial(id, "training")}
           onClose={() => setHomeTraining(false)}
         />
       )}
@@ -7076,7 +7082,7 @@ export function App() {
           same reason the nav is — there is nothing to walk you through mid-fight,
           and a spotlight over a board covers the board. */}
       {showFirstRun && (
-        <FirstRun onPlay={() => startTutorial("first")} onSkip={() => markTaught(TUT_SKIP)} />
+        <FirstRun onPlay={() => startTutorial("basics", "first")} onSkip={() => markTaught(TUT_SKIP)} />
       )}
       {!started && !showFirstRun && !packBusy && !levelUp && !builderOpen && !rulesOpen && !galleryOpen && guideStep && (
         <GuideOverlay
