@@ -40,21 +40,23 @@ export interface StruggleTip {
   times: number;
 }
 
+// Rows are named by the colour the board tints them (owner, 2026-10-04): your
+// BLUE home row, their RED home row — the same words as the tutorials.
 export const TIPS: Record<TipId, StruggleTip> = {
   "idle-deploy": { id: "idle-deploy", times: 3,
-    text: "Tap a card in your hand, then a square on your Home row. Your first card is free." },
+    text: "Tap a card in your hand, then a square on your blue home row. Your first card is free." },
   "idle-prep": { id: "idle-prep", times: 3,
     text: "Your turn: tap a card in your hand to place it, tap one of yours to move it, or tap Pass." },
   "idle-battle": { id: "idle-battle", times: 3,
     text: "Tap Attack, then a glowing enemy. Nobody in reach? Tap Skip." },
   "empty-board": { id: "empty-board", times: 1,
-    text: "You had Gold for a card and nothing on the board. Tap a card in your hand, then a square on your Home row." },
+    text: "You had Gold for a card and nothing on the board. Tap a card in your hand, then a square on your blue home row." },
   "home-full": { id: "home-full", times: 1,
-    text: "Your Home row is full, so new cards can't come in. Move a card forward to make room." },
+    text: "Your blue home row is full, so new cards can't come in. Move a card forward to make room." },
   "no-income": { id: "no-income", times: 1,
-    text: "Cards standing on your Home row earn extra Gold each round. Keep one there while you save up." },
+    text: "Cards standing on your blue home row earn extra Gold each round. Keep one there while you save up." },
   "captured": { id: "captured", times: 1,
-    text: "They took a square on your Home row for good. Knock out any enemy that steps onto it before the round ends." },
+    text: "They took a square on your blue home row for good. Knock out any enemy that steps onto it before the round ends." },
   "outsped": { id: "outsped", times: 1,
     text: "That enemy was faster, so it struck first. In battle, higher SP acts earlier." },
 };

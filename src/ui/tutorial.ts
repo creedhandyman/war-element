@@ -158,7 +158,8 @@ const roundPast = (s: GameState, r: number) => s.round > r || s.phase === "gameo
 export const prepOver = (s: GameState, r: number) =>
   roundPast(s, r) || (s.round === r && s.phase !== "prep");
 
-/** The beat sheet. */
+/** The beat sheet. Rows are named by the colour the board tints them (owner,
+ *  2026-10-04): your BLUE home row, their RED home row — never "back row". */
 export const BEATS: Beat[] = [
   // ── the opening placement ───────────────────────────────────────────────
   { id: "hand-birch", big: "Tap Birch.", wait: "The enemy places a card.",
@@ -191,7 +192,7 @@ export const BEATS: Beat[] = [
     wait: "One down!",
     target: { kind: "hand", defId: CACTUS },
     done: (s, ui) => ui.handDef === CACTUS || !!mine(s, CACTUS) },
-  { id: "place-cactus", big: "Place Cactus on your back row.",
+  { id: "place-cactus", big: "Place Cactus on your blue home row.",
     target: { kind: "slot", row: 3, col: 2 },
     done: (s) => !!mine(s, CACTUS) },
   { id: "pick-birch-2", big: "Now tap Birch.",
@@ -212,7 +213,7 @@ export const BEATS: Beat[] = [
   { id: "pick-birch-3", big: "Tap Birch.", wait: "No one was close enough to fight. Then the last enemy moves.",
     target: { kind: "slot", row: 1, col: 1 },
     done: (s, ui) => ui.cardId === mine(s, BIRCH)?.instanceId || !at(mine(s, BIRCH), 1, 1) },
-  { id: "move-birch-3", big: "Step onto their back row.",
+  { id: "move-birch-3", big: "Step onto their red home row.",
     small: "A card still standing there when the round ends captures that square.",
     target: { kind: "slot", row: 0, col: 1 },
     done: (s) => !at(mine(s, BIRCH), 1, 1) },
@@ -303,8 +304,8 @@ export const BASICS: TutorialDef = {
   result: {
     lead: "You captured a square and defeated every enemy card.",
     bullets: [
-      "Capture all 4 squares on their home row, or defeat every enemy card, to win.",
-      "Cards are placed on your back row, and you earn Gold every round to buy more.",
+      "Capture all 4 squares on their red home row, or defeat every enemy card, to win.",
+      "Cards are placed on your blue home row, and you earn Gold every round to buy more.",
       "Move one card a turn. Melee cards hit the 8 squares around them.",
     ],
   },
