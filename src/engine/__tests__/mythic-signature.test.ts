@@ -180,7 +180,7 @@ describe("a mythic's signature move", () => {
   });
 
   it("every legendary of a finished element fires its own move", () => {
-    const done = ["LEAF", "AQUA", "PYRO", "GALE", "BOLT", "BORE"]; // an element at a time; add each as its legendaries are drawn
+    const done = ["LEAF", "AQUA", "PYRO", "GALE", "BOLT", "BORE", "DAWN"]; // an element at a time; add each as its legendaries are drawn
     const unsigned = CARDS.filter((c) => c.rarity === "legendary" && done.includes(c.element) && !SIGNATURES[c.id]).map((c) => c.id);
     expect(unsigned).toEqual([]);
   });
