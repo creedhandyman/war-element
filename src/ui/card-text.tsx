@@ -524,6 +524,7 @@ export function describePassives(def: CardDef): string[] {
       k.gainShields && `+${k.gainShields} shields${k.gainShieldsMax != null ? ` (up to +${k.gainShieldsMax} in all)` : ""}`,
       k.aoeDmg && `${k.aoeDmg} to all enemies`,
       k.blindInRange && `BLIND every opponent touching the card it killed, for ${k.blindInRange} round${k.blindInRange > 1 ? "s" : ""}`,
+      k.burnSplash && `BURN ${k.burnSplash.power} for ${rounds(k.burnSplash.rounds)} to every opponent touching the card it killed`,
       k.nearestVolley && `${k.nearestVolley.dmg}×${k.nearestVolley.hits} to the closest opponent`,
       k.lowestHpDmg && `${k.lowestHpDmg} DMG to the lowest-HP opponent${k.closeOnPrey ? ", then moves in front of it" : ""}`,
       k.aoeDmgElectrified && `${k.aoeDmgElectrified} to all electrified (statused) enemies, once/round`,

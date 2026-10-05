@@ -2004,30 +2004,43 @@ describe("medium-tier passives (audit batch)", () => {
     expect(next.cards[foe.instanceId].curHp).toBe(28 - (od.dmg + 1) * od.hits);
   });
 
-  it("Ash Boar's Charging Tusks hits what's in reach on arrival, then charges in", () => {
+  // Charging Tusks, owner 2026-10-05: Warthog's Tusk Rush at 4 DMG — rush up to
+  // two slots forward, THEN gore up to 2 opponents directly ahead.
+  it("Ash Boar rushes up to two slots forward on an open lane", () => {
     const s = prepState();
     s.players.P1.gold = 6;
-    const foe = place(s, "dusk_gool", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 });
     const handId = giveHand(s, "P1", "pyro_ash_boar");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const boar = Object.values(next.cards).find((c) => c.defId === "pyro_ash_boar")!;
-    expect(next.cards[foe.instanceId].curHp).toBe(16); // took the 4 on arrival
-    expect(boar.pos!.row).toBe(2); // charged off its home row (3 → 2)
+    expect(boar.pos!.row).toBe(1); // home row 3 -> 1
   });
 
-  it("Ash Boar TRAMPLES THROUGH a foe directly ahead (doesn't stall on it)", () => {
-    // Regression: the boar "keeps going" via a forward charge, which stalls on
-    // the first occupied slot — so a foe in its OWN column (the one it just hit)
-    // used to block it, and the boar that's "meant to trample THROUGH" didn't
-    // move at all. Now it phases past the struck body to the next open slot.
+  it("Ash Boar stops at a body and gores it for 4 — and only what is ahead", () => {
     const s = prepState();
     s.players.P1.gold = 6;
-    const foe = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, curShields: 0 }); // directly ahead, same column
+    const ahead = place(s, "dusk_gool", "P2", 1, 0, { curHp: 20, maxHp: 20, curShields: 0 });
+    const aside = place(s, "dusk_gool", "P2", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 });
     const handId = giveHand(s, "P1", "pyro_ash_boar");
     const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
     const boar = Object.values(next.cards).find((c) => c.defId === "pyro_ash_boar")!;
-    expect(next.cards[foe.instanceId].curHp).toBe(36); // still landed the 4
-    expect(boar.pos!.row).toBe(1); // phased PAST the foe at row 2 to the open slot beyond
+    expect(boar.pos!.row).toBe(2); // rushed one, the body stopped the second
+    expect(next.cards[ahead.instanceId].curHp).toBe(16);
+    expect(next.cards[aside.instanceId].curHp, "not ahead of it: untouched").toBe(20);
+  });
+
+  it("Ash Boar's Ember Splash: a kill sets every opponent touching the fallen card alight", () => {
+    const s = prepState();
+    s.players.P1.gold = 6;
+    const prey = place(s, "dusk_gool", "P2", 1, 0, { curHp: 3, maxHp: 3, curShields: 0 });
+    const touching = place(s, "dusk_gool", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 });
+    const far = place(s, "dusk_gool", "P2", 1, 3, { curHp: 20, maxHp: 20, curShields: 0 });
+    const handId = giveHand(s, "P1", "pyro_ash_boar");
+    const next = applyIntent(s, { type: "SUMMON", player: "P1", handId, col: 0 });
+    expect(next.cards[prey.instanceId], "gored to death").toBeUndefined();
+    const burn = next.cards[touching.instanceId].statuses.find((x) => x.kind === "BURN");
+    expect(burn?.power).toBe(1);
+    expect(burn?.duration).toBe(2);
+    expect(next.cards[far.instanceId].statuses.some((x) => x.kind === "BURN")).toBe(false);
   });
 
   it("Ravven's EVASION is dead on its own ground and live on the enemy's", () => {

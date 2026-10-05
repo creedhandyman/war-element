@@ -182,6 +182,9 @@ export interface OnKillDef {
   gainShieldsMax?: number;
   aoeDmg?: number; // deal N to every reachable enemy
   blindInRange?: number; // Star Blaster (Zenith): BLIND every opponent touching the card it killed, N rounds
+  /** Ember Splash (Ash Boar): BURN every opponent touching the card it killed —
+   *  Star Blaster's shape with fire in it. */
+  burnSplash?: { power: number; rounds: number };
   /** Perpetual Fog (Driftwraith): a kill cloaks it (and same-row same-element
    *  allies) in STEALTH for N rounds. */
   grantStealth?: number;

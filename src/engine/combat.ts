@@ -3733,6 +3733,14 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
   // Zenith herself, a Ranger who kills from two squares away, so the burst
   // almost always landed on nobody.
   if (def.blindInRange && deathPos) starBlast(draft, killer.owner, name, getDef(killer.defId).element, deathPos, def.blindInRange);
+  // Ember Splash (Ash Boar, owner 2026-10-05): the same ring around the fallen
+  // card, set alight instead of blinded.
+  if (def.burnSplash && deathPos) {
+    const at = deathPos;
+    const near = enemyCards(draft, killer.owner).filter((e) => e.curHp > 0 && e.pos && chebyshev(e.pos, at) <= 1);
+    for (const e of near) applyStatus(draft, e, "BURN", def.burnSplash.rounds, def.burnSplash.power, getDef(killer.defId).element);
+    if (near.length) draft.log.push(`${name}'s Ember Splash sets ${near.length} foe(s) alight around the fallen card.`);
+  }
   if (def.extendStatus) {
     const { kind, rounds } = def.extendStatus;
     let n = 0;

@@ -5316,15 +5316,16 @@ export const CARDS: CardDef[] = [
     sp: 8,
     shields: 0,
     keywords: {},
-    // Charging Tusks (On Summon): it arrives mid-charge — everything in reach
-    // takes 4, then it keeps going one more slot into enemy ground. `targets: 8`
-    // is "all of them"; a board only ever holds 8 enemies.
-    // NO chargeFirst, unlike the other chargers: this is an ON-SUMMON, so there
-    // is nothing to roll in from, and the boar is meant to trample THROUGH.
-    onSummon: {
-      handler: "barrage",
-      params: { dmg: 4, targets: 8, rollThrough: 1 },
-    },
+    // Charging Tusks (On Summon), owner 2026-10-05: Warthog's Tusk Rush — it
+    // rushes up to TWO slots forward, THEN gores 4 DMG into up to 2 opponents
+    // directly ahead of where it stops (same targeting as Warthog). Was 4 to
+    // everything in reach and roll one slot through.
+    // Ember Splash (On Kill): every opponent touching the card it killed
+    // catches BURN 1 for 2 rounds.
+    passiveNames: { summonAdvance: "Charging Tusks", onKill: "Ember Splash" },
+    summonAdvance: 2,
+    onSummon: { handler: "barrage", params: { dmg: 4, spread: 1, forwardDepth: 1, targets: 2 } },
+    onKill: { burnSplash: { power: 1, rounds: 2 } },
   },
   {
     id: "bore_obsidi",
