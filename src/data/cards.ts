@@ -13744,7 +13744,13 @@ export const CARDS: CardDef[] = [
       // feeds Photosynthesis, which is the element's whole engine, and it drops
       // a shape Growrilla was sharing with Dyna's Demolition anyway.
       handler: "barrage",
-      params: { dmg: 6, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2 },
+      // SWINGS IN, 6 -> 5 DMG (owner, 2026-10-04): up to 2 squares toward the
+      // first of its targets — sideways and diagonally too, Sabor Pounce's
+      // movement — before the canopy comes down. Already beside it, it stays.
+      params: {
+        dmg: 5, targets: 3, closest: 1, statusKind: "ROOT", statusDuration: 2,
+        charge: 2, chargeFirst: 1, chargeLateral: 1, chargeDiagonal: 1,
+      },
       targetSide: "enemy",
       // REQUIRED once the card went Melee, and it is the same WarPhant fix
       // Crystal Rhino carries. `validSpecialTargets` gates a Melee caster to what it is
@@ -13752,7 +13758,7 @@ export const CARDS: CardDef[] = [
       // promises would collapse to "up to 3 opponents already adjacent" — the
       // basic is what got shorter here, not the canopy coming down.
       ranged: true,
-      text: "6 DMG to the 3 nearest opponents, pinning them (ROOT) for 2 rounds.",
+      text: "Swing up to 2 spaces toward the nearest opponent, then deal 5 DMG to the 3 nearest opponents, pinning them (ROOT) for 2 rounds.",
     },
   },
   {

@@ -4534,11 +4534,18 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     const n = num(params, "targets", 1);
     // Rover (see strike): move BEFORE the volley. Deliberately above the target
     // filters below, so "everyone straight ahead" is read from where the charger
-    // ENDS UP rather than where it started. Forward-only — `chargeLateral` has no
-    // meaning for a volley with many targets, and neither barrage charger wants it.
+    // ENDS UP rather than where it started. Forward, unless the volley asks to
+    // HOME IN with `chargeLateral`: then it swings toward the FIRST target (the
+    // one picked, or the nearest) the way Sabor Pounce does — sideways, and
+    // diagonally with `chargeDiagonal` — and still hits every target it had
+    // (Growrilla's Canopy Crash, owner 2026-10-04).
     const chargeFirst = num(params, "chargeFirst") > 0;
-    if (chargeFirst && num(params, "charge") > 0)
-      chargeForward(draft, attacker, num(params, "charge"));
+    if (chargeFirst && num(params, "charge") > 0) {
+      const toward = num(params, "chargeLateral") > 0 ? targets[0]?.pos : undefined;
+      if (toward)
+        chargeToward(draft, attacker, num(params, "charge"), { ...toward }, 0, num(params, "chargeDiagonal") > 0);
+      else chargeForward(draft, attacker, num(params, "charge"));
+    }
     // Cast for the step alone (`moveIfNoTarget`, see canFireSpecial): nothing
     // was in range where it stood, so it rakes whatever the step brought into
     // range, which is what "move forward, then deal DMG to opponents in range"
