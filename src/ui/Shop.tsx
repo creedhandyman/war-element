@@ -94,6 +94,10 @@ const GUARANTEE_LINE = (() => {
  *  positions, and re-ordering the source to drive a presentation choice is how
  *  those quietly start disagreeing.
  */
+function reducedMotion(): boolean {
+  return typeof window !== "undefined" && !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+}
+
 export function revealOrder(pulled: readonly string[], shiny: readonly string[] = []): number[] {
   const rank = (id: string) => -(RARITY_ORDER[getDef(id).rarity ?? ""] ?? 9);
   return pulled
@@ -159,6 +163,14 @@ export function Shop(props: {
   /** How many of the pack's cards have been turned over. The reveal is one at
    *  a time, so this is the whole state of it. */
   const [shown, setShown] = useState(0);
+  /** THE TOP CARD IS FACE DOWN until you turn it. `face` = it has been turned
+   *  and is showing; `charging` = the beat before an Epic-or-better turns,
+   *  when it shakes and its colour leaks round the edges — the tell; `burst`
+   *  bumps once per turn so the flourish behind the card replays. */
+  const [face, setFace] = useState(false);
+  const [charging, setCharging] = useState(false);
+  const [burst, setBurst] = useState(0);
+  const chargeTimer = useRef<number | null>(null);
   /** Live drag offset in px while a swipe is in progress, so the card follows
    *  the finger instead of snapping when it is let go. */
   const [drag, setDrag] = useState(0);
@@ -329,6 +341,8 @@ export function Shop(props: {
     // the shards already bought.
     setOpened(result);
     setShown(0);
+    setFace(false);
+    setCharging(false);
     setDrag(0);
     setLastRefund(Object.values(result.refund).reduce((a, b) => a + b, 0));
     props.onSave(applyPack(save, result));
@@ -365,11 +379,32 @@ export function Shop(props: {
     mq.addEventListener?.("change", read);
     return () => mq.removeEventListener?.("change", read);
   }, []);
+  /** How long a card's tell holds before it turns, by what it is. A Rare
+   *  turns at once — the pause is what says "this one is worth something",
+   *  so it means nothing if every card has it. */
+  const tellMs = (id: string, foil: boolean) => {
+    if (reducedMotion()) return 0;
+    const r = getDef(id).rarity;
+    return r === "mythic" ? 900 : r === "legendary" ? 650 : r === "epic" ? 420 : foil ? 420 : 0;
+  };
+  const turnTop = () => {
+    const top = reveal[shown];
+    if (!top || face || charging) return;
+    const ms = tellMs(top.id, opened?.shiny.includes(top.id) ?? false);
+    const go = () => { chargeTimer.current = null; setCharging(false); setFace(true); setBurst((b) => b + 1); };
+    if (ms === 0) { go(); return; }
+    setCharging(true);
+    chargeTimer.current = window.setTimeout(go, ms);
+  };
   const nextCard = () => {
     dragPx.current = 0;
     setDrag(0);
+    // Face down: the gesture turns it. Face up: it sends it to the pile.
+    if (!face) { turnTop(); return; }
+    setFace(false);
     setShown((n) => Math.min(n + 1, reveal.length));
   };
+  useEffect(() => () => { if (chargeTimer.current) window.clearTimeout(chargeTimer.current); }, []);
   const onDragStart = (y: number) => { dragFrom.current = y; dragPx.current = 0; };
   const onDragMove = (y: number) => {
     if (dragFrom.current === null) return;
@@ -386,6 +421,14 @@ export function Shop(props: {
     dragPx.current = 0;
     if (far) nextCard(); else setDrag(0);
   };
+
+  /** The best card in the pack, for the tear: its colour is in the light
+   *  that blows out of the seam, so the pack tells you before you see it. */
+  const best = useMemo(() => {
+    if (!opened) return "epic";
+    return opened.pulled.map((id) => getDef(id).rarity ?? "rare")
+      .sort((a, b) => (RARITY_ORDER[a] ?? 9) - (RARITY_ORDER[b] ?? 9))[0];
+  }, [opened]);
 
   const skipTear = () => {
     if (tearTimer.current) { window.clearTimeout(tearTimer.current); tearTimer.current = null; }
@@ -881,7 +924,7 @@ export function Shop(props: {
           planted its card on top of the card you had just pulled, covering the
           art and the button to dismiss it. */}
       {opened && tearing && (
-        <div className="overlay on-top pack-tear" data-guide-suppress onClick={skipTear}>
+        <div className={`overlay on-top pack-tear best-${best}`} data-guide-suppress onClick={skipTear}>
           <span className="tear-bloom" aria-hidden="true" />
           {/* The seam is a CHILD of the pack's stage, not a sibling centred in
               the overlay: it has to sit on the crimp, and the crimp moves with
@@ -898,7 +941,10 @@ export function Shop(props: {
 
       {opened && !tearing && (
         <div className="overlay on-top" data-guide-suppress onClick={() => setOpened(null)}>
-          <div className={`modal pack-reveal ${allShown ? "" : "revealing"}`} onClick={(e) => e.stopPropagation()}>
+          <div
+            key={face && reveal[shown] && getDef(reveal[shown].id).rarity === "mythic" ? `quake${burst}` : "sheet"}
+            className={`modal pack-reveal ${allShown ? "" : "revealing"} ${face && reveal[shown] && getDef(reveal[shown].id).rarity === "mythic" ? "quake" : ""}`}
+            onClick={(e) => e.stopPropagation()}>
             {/* Header, tally and buttons all wait. While you are turning cards
                 the screen is the card — chrome around it is just competition
                 for the one thing you opened the pack to see. */}
@@ -930,6 +976,7 @@ export function Shop(props: {
                 const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
                 const turned = n < shown;
                 const isTop = n === shown;
+                const down = !isTop || !face;
                 // Only the top card and the two behind it are rendered as
                 // stack; everything already turned goes to the ribbon below.
                 if (turned) return null;
@@ -944,7 +991,7 @@ export function Shop(props: {
                     // like a dud, because `dupe` was decided on the card id
                     // alone. You keep the essence refund too; the engine was
                     // always right, only this line was not.
-                    className={`pack-card big r-${d.rarity ?? "rare"} ${isNew || foil ? "new" : "dupe"} ${foil ? "foil" : ""} ${isTop ? "top" : "behind"}`}
+                    className={`pack-card big r-${d.rarity ?? "rare"} ${isNew || foil ? "new" : "dupe"} ${foil ? "foil" : ""} ${isTop ? "top" : "behind"} ${down ? "face-down" : "face-up"} ${isTop && charging ? "charging" : ""}`}
                     style={{
                       zIndex: 10 - depth,
                       transform: isTop
@@ -965,6 +1012,15 @@ export function Shop(props: {
                     onPointerCancel={isTop ? onDragEnd : undefined}
                     onClick={isTop ? () => { if (dragFrom.current === null && dragPx.current === 0) nextCard(); } : undefined}
                   >
+                    {/* The back, while it is face down. The face is rendered
+                        underneath it the whole time, so turning it cannot
+                        wait on the art loading. */}
+                    {down && (
+                      <span className="pc-back" aria-hidden="true">
+                        <span className="pc-back-ring" />
+                        <span className="pc-back-mark">✦</span>
+                      </span>
+                    )}
                     <img src={cardThumbSrc(d)} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
                     {rar && <span className="pack-rar" style={{ color: rar.color, borderColor: rar.color }}>{rar.label}</span>}
@@ -982,9 +1038,31 @@ export function Shop(props: {
                   </div>
                 );
               })}
+              {/* THE BURST, behind the card it belongs to: replayed once per
+                  turn (`burst` in the key), in the card's own rarity. A Rare
+                  gets none — see `tellMs`. */}
+              {face && reveal[shown] && (() => {
+                const top = reveal[shown];
+                const r = getDef(top.id).rarity ?? "rare";
+                const foil = opened.shiny.includes(top.id);
+                if (r === "rare" && !foil) return null;
+                return (
+                  <span key={`burst${burst}`} className={`pc-burst b-${r} ${foil ? "b-foil" : ""}`} aria-hidden="true">
+                    <span className="pc-rays" />
+                    <span className="pc-ring" />
+                    <span className="pc-ring pc-ring2" />
+                    <span className="pc-flash" />
+                    {foil && Array.from({ length: 10 }, (_, k) => (
+                      <span key={k} className="pc-spark" style={{ ["--a" as string]: `${k * 36}deg` }} />
+                    ))}
+                  </span>
+                );
+              })()}
               <span className="pack-swipe">
                 <i aria-hidden="true">⌄</i>
-                {coarse ? "swipe down" : "click to turn"}
+                {face
+                  ? (coarse ? "swipe down for the next" : "click for the next")
+                  : (coarse ? "tap to turn it over" : "click to turn it over")}
               </span>
             </div>
             )}
@@ -1002,7 +1080,7 @@ export function Shop(props: {
                 once rather than animating through them: this is the control
                 for someone who has stopped wanting the animation. */}
             {!allShown && shown > 0 && reveal.length - shown > 1 && (
-              <button className="pack-rest" onClick={() => { setDrag(0); setShown(reveal.length); }}>
+              <button className="pack-rest" onClick={() => { if (chargeTimer.current) window.clearTimeout(chargeTimer.current); setCharging(false); setFace(false); setDrag(0); setShown(reveal.length); }}>
                 Turn the last {reveal.length - shown}
               </button>
             )}
