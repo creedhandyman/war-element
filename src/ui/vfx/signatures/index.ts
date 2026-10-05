@@ -46,6 +46,7 @@ import { LEAF_LEGENDARIES } from "./leaf";
 import { AQUA_LEGENDARIES } from "./aqua";
 import { PYRO_LEGENDARIES } from "./pyro";
 import { GALE_LEGENDARIES } from "./gale";
+import { BOLT_LEGENDARIES } from "./bolt";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -95,6 +96,7 @@ const ALL: Record<string, Signature | null> = {
   ...AQUA_LEGENDARIES,
   ...PYRO_LEGENDARIES,
   ...GALE_LEGENDARIES,
+  ...BOLT_LEGENDARIES,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(
