@@ -2469,7 +2469,21 @@ describe("the trials", () => {
     // way at 25-40%, the only Floor-1 boss an ordinary deck beats on the
     // numbers alone. Floor 1 is meant to teach seven different lessons, so
     // that is a tuning pass waiting to happen.
-  }, 30_000);
+    //
+    // 60s, like the smoke and replay matches. The 30s it had was set on
+    // 2026-08-22 for seven bosses: 21 matches, 4-5s alone. It is 20 bosses and
+    // 60 matches now: 11-13s alone and 24-27s inside the full parallel suite on
+    // 2026-10-04, up to 90% of 30s. Nothing recent made it slower: the roster
+    // was complete by Aug 31 and this still ran 4-8s, then went 4.3s -> 11.4s
+    // when the AI began farming its home row (`farms`, 2026-09-26) — twice the
+    // steps a match (174 -> 344) with 12 cards on the board instead of 7.5, at
+    // no higher cost per card per step — and has held at 11-12s since. The
+    // budget is wall-clock under parallel load. A stall still fails on the
+    // `finished` expectation, naming the boss and seed: the engine decides
+    // every match by round 50 (MAX_ROUNDS; the longest here is 1,347 steps) and
+    // the loop gives up at 8,000 steps, ~5s alone and ~10s loaded. On 30s a
+    // loaded run could time out first and hide which match stalled.
+  }, 60_000);
 });
 
 describe("the boss clock", () => {
