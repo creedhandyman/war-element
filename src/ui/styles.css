@@ -3036,6 +3036,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: rgba(201, 162, 75, .1); border: 1px solid var(--gold-line); color: var(--gold-lit);
 }
 .gt-start:hover { background: rgba(201, 162, 75, .2); }
+/* Streak's dealt fight: a statement, not a button — no rerolls there. */
+.gt-start.dealt { cursor: default; }
+.gt-start.dealt:hover { background: rgba(201, 162, 75, .1); }
 .gt-start-main {
   display: flex; align-items: center; gap: 7px;
   font-family: var(--head); font-size: 13px; font-weight: 700; letter-spacing: .03em;

@@ -394,15 +394,21 @@ describe("the wiring in App.tsx", () => {
     const deal = fn("dealStreakFight");
     expect(deal).toContain("setP2DeckId(pick.id)");
     expect(deal).toContain("dealExtras(tier, board, pick.id)");
-    // The matchmaker's button and the re-deal after a match both use it, and
-    // it is the only place the Arena rolls an opponent at all.
-    expect(APP).toContain("onClick={() => dealStreakFight(tier, boardSize, p2DeckId)}");
+    // The re-deal after a match uses it, and it is the only place the Arena
+    // rolls an opponent at all. NO REROLL BUTTON (owner, 2026-10-04): the
+    // lobby names the dealt fight and nothing in it calls a deal.
+    expect(APP).not.toContain("onClick={() => dealStreakFight(");
     expect(APP).toContain("dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);");
+    expect(deal).toContain("saveStreakDeal(board, pick.id, extras)");
     const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
     expect(code.match(/rollOpponent\(/g), "rolled only inside dealStreakFight").toHaveLength(1);
-    // A seat that is still on the rung keeps its deck but not a stale table.
+    // The seat comes from the SAVED deal for the board, never from what the seat
+    // last held (a Quick-match pick, a board flipped and back); a deal that
+    // still fits keeps its deck, and a stale table is re-dealt around it.
     const reseat = fn("reseatStreak");
-    expect(reseat).toContain("!extrasFit(streakExtras, tier, board, seat)");
+    expect(reseat).toContain("const dealt = story.streakDeal?.[String(board)];");
+    expect(reseat).toContain("setP2DeckId(dealt.id);");
+    expect(reseat).toContain("extrasFit(dealt.extras, tier, board, dealt.id)");
   });
 
   it("a table's bonus is paid from the FINISHED match, and quoted by the same function", () => {

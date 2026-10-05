@@ -2379,17 +2379,40 @@ export function App() {
    *  different army entirely. On the 7x7 the rest of the TABLE is held to the
    *  same standard: dealt again when the one it has no longer fits the rung, the
    *  board or the seat — and dealt for the first time when there is none. */
+  //
+  // NO REROLLS (owner, 2026-10-04). The seat comes from the SAVED deal for this
+  // board (`StorySave.streakDeal`), never from whatever the seat last held: a
+  // deck hand-picked in Quick match, or a board flipped and flipped back, used
+  // to walk straight into the streak. Only a deal that no longer fits — the
+  // rung moved, the deck left the shelf — is replaced.
   function reseatStreak(board: number, seat: string) {
     const tier = tierForStreak(story.ladder?.streak ?? 0, board);
-    const onShelf = premadeDecksFor(board).some((d) => d.id === seat);
-    if (tierOf(seat) !== tier || !onShelf) {
+    const dealt = story.streakDeal?.[String(board)];
+    if (!dealt || tierOf(dealt.id) !== tier || !premadeDecksFor(board).some((d) => d.id === dealt.id)) {
       dealStreakFight(tier, board, seat);
       return;
     }
+    setP2DeckId(dealt.id);
     if (board < DOMINATION_7X7.boardSize) setStreakExtras(null);
-    else if (!streakExtras || !extrasFit(streakExtras, tier, board, seat)) {
-      setStreakExtras(dealExtras(tier, board, seat));
+    else if (dealt.extras && extrasFit(dealt.extras, tier, board, dealt.id)) setStreakExtras(dealt.extras);
+    else {
+      const extras = dealExtras(tier, board, dealt.id);
+      setStreakExtras(extras);
+      saveStreakDeal(board, dealt.id, extras);
     }
+  }
+
+  /** Keep a streak deal in the save. Functional, because the post-match deal
+   *  lands in the same tick as the match's own payout write. */
+  function saveStreakDeal(board: number, id: string, extras: string[] | null) {
+    setStory((prev) => {
+      const next: StorySave = {
+        ...prev,
+        streakDeal: { ...prev.streakDeal, [String(board)]: extras?.length ? { id, extras } : { id } },
+      };
+      saveStory(next);
+      return next;
+    });
   }
 
   /** THE STREAK'S NEXT FIGHT, dealt whole: a deck from the rung and, on the 7x7,
@@ -2399,8 +2422,10 @@ export function App() {
   function dealStreakFight(tier: DeckTier, board: number, avoid: string) {
     const pick = rollOpponent(tier, board, avoid);
     if (!pick) return;
+    const extras = board >= DOMINATION_7X7.boardSize ? dealExtras(tier, board, pick.id) : null;
     setP2DeckId(pick.id);
-    setStreakExtras(board >= DOMINATION_7X7.boardSize ? dealExtras(tier, board, pick.id) : null);
+    setStreakExtras(extras);
+    saveStreakDeal(board, pick.id, extras);
   }
 
   /** A battlefield picked on an Arena screen. Remembered as the duel board when
@@ -6239,11 +6264,11 @@ export function App() {
                   </div>
                 )}
 
-                {/* THE STREAK'S MATCHMAKER. One control with a hierarchy: the
-                    automatic answer first, the reroll under it. The rung is the
-                    streak's to decide — choosing your own fight is what Quick match
-                    is for — so the seat is dealt, and this names what it dealt
-                    before you agree to the fight. */}
+                {/* THE STREAK'S MATCHMAKER. The rung is the streak's to decide and
+                    the seat is dealt — choosing your own fight is what Quick match
+                    is for — so this NAMES what it dealt before you agree to the
+                    fight, and nothing more. It used to be a button that rerolled
+                    the seat (owner, 2026-10-04: no rerolls in Streak). */}
                 {/* A STREAK ON THE 7x7 — picked in the settings row, beside the
                     4x4 and 5x5 — says what changes, above the fight it dealt. */}
                 {arenaView === "streak" && !eventRun && boardSize === DOMINATION_7X7.boardSize && (
@@ -6260,11 +6285,6 @@ export function App() {
                   const streak = story.ladder?.streak ?? 0;
                   const tier = tierForStreak(streak, boardSize);
                   const owed = winsToNextRung(streak, boardSize);
-                  const onRung = tierOf(p2DeckId) === tier;
-                  // "a Easy match". Three of the four rung names open on a vowel
-                  // (Easy, Even, Elite) and only Hard does not, so the article has
-                  // to be derived rather than written.
-                  const a = /^[AEIOU]/i.test(TIER_LABEL[tier]) ? "an" : "a";
                   // What the NEXT win is worth, stated before you agree to the
                   // fight. The ladder pays by rung and streak, so "wins pay 12" is
                   // the whole reason to be up here rather than farming Easy — and
@@ -6277,12 +6297,9 @@ export function App() {
                   const pays = `${foes > 1 ? `${foes} opponents · ` : ""}wins pay ${winPay}`;
                   return (
                     <div className="ar-gauntlet mm">
-                      <button
-                        className="gt-start"
-                        onClick={() => dealStreakFight(tier, boardSize, p2DeckId)}
-                      >
+                      <div className="gt-start dealt">
                         <span className="gt-start-main">
-                          {onRung ? "Reroll" : "Find"} {a} {TIER_LABEL[tier]} match
+                          Your {TIER_LABEL[tier]} match
                           <em className="gt-pay mm-streak">{streak}<i aria-hidden="true">&#9650;</i></em>
                         </span>
                         <span className="gt-sub">
@@ -6293,7 +6310,7 @@ export function App() {
                               : `${streak} in a row · ${pays} · top rung, a loss drops you to ${TIER_LABEL[tierForStreak(afterMatch(streak, false, boardSize), boardSize)]}`}
                           {(story.ladder?.best ?? 0) > streak && ` · best ${story.ladder!.best}`}
                         </span>
-                      </button>
+                      </div>
                     </div>
                   );
                 })()}

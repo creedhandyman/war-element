@@ -3243,6 +3243,16 @@ export interface StorySave {
    *  on every save written before this existed, which reads as zero — the right
    *  answer, since nobody has beaten anything on a ladder that did not exist. */
   ladder?: LadderState;
+  /** THE STREAK'S DEALT FIGHT, per board ("4", "5", "7"): the opponent the
+   *  matchmaker seated and, on the 7x7, the rest of its table.
+   *
+   *  No rerolls in Streak (owner, 2026-10-04: "You're not supposed to be able
+   *  to re-roll your streak opponent. Only ... a casual match"). In React
+   *  state the deal could be shaken loose by flipping the board and back, by
+   *  carrying a hand-picked Quick-match seat over, or by reloading — so it
+   *  lives here, beside the streak it belongs to, and only a played match
+   *  deals the next one (`streakDealFor`). */
+  streakDeal?: Record<string, { id: string; extras?: string[] }>;
   /** Cards you own but have not LOOKED at yet — the ones that still wear a
    *  NEW flag in the collection.
    *
@@ -3707,6 +3717,20 @@ export function loadStory(): StorySave {
         const streak = Number.isFinite(l.streak) ? Math.max(0, Math.floor(l.streak)) : 0;
         const best = Number.isFinite(l.best) ? Math.max(0, Math.floor(l.best)) : 0;
         return { streak, best: Math.max(best, streak) };
+      })(),
+      // Ids only; whether a deal still fits its rung and board is the App's
+      // call (`reseatStreak`), which deals again when it does not.
+      streakDeal: (() => {
+        const d = p.streakDeal as Record<string, unknown> | undefined;
+        if (!d || typeof d !== "object" || Array.isArray(d)) return undefined;
+        const out: Record<string, { id: string; extras?: string[] }> = {};
+        for (const [board, v] of Object.entries(d)) {
+          const e = v as { id?: unknown; extras?: unknown } | null;
+          if (!e || typeof e.id !== "string") continue;
+          const extras = Array.isArray(e.extras) ? e.extras.filter((x): x is string => typeof x === "string") : undefined;
+          out[board] = extras ? { id: e.id, extras } : { id: e.id };
+        }
+        return Object.keys(out).length ? out : undefined;
       })(),
       loadouts: Array.isArray(p.loadouts)
         ? (p.loadouts as Loadout[])
