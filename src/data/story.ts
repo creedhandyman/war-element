@@ -259,7 +259,7 @@ const LEAF: StoryRegion = {
       lore: "The one border DAWN keeps in the open: the Sun's Army rides in daylight while Hibernal and Birch watch the same snow from the treeline. Neither side has ever needed to explain itself."
     },
     { id: "L10", name: "Winter Village Sentinels", kind: "warden", at: { x: 58, y: 23 },
-      requires: ["L9"], tribe: "Grove", roster: ["leaf_citra", "leaf_guardian", "leaf_squanch"], adds: ["leaf_oak", "leaf_sticks"],
+      requires: ["L9"], tribe: "Grove", roster: ["leaf_citra", "leaf_guardian", "leaf_squanch", "leaf_wintermoose"], adds: ["leaf_oak", "leaf_sticks"], // Winter Moose from L12 (owner, 2026-10-05)
       note: "Under the Arctic Veil. The ice wall north is DAWN's border — sealed all campaign.",
       lore: "Sentinels of Rest — not dormant, on duty. Winter holds that a forest which never stops to sleep forgets how to grow, and Squanch has stood the village gate through four of them."
     },
@@ -269,7 +269,7 @@ const LEAF: StoryRegion = {
       lore: "The weathered stones around the Tree are not markers but graves. The first Keepers of every tribe chose the roots over their own season's ground, and Elderroot has not left them since."
     },
     { id: "L12", name: "Heart of Nature: The Spirit Tree", kind: "landmark", at: { x: 58, y: 55 },
-      requires: ["L11"], tribe: "Grove", roster: ["leaf_wintermoose", "leaf_grizzly", "leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] ,
+      requires: ["L11"], tribe: "Grove", roster: ["leaf_grizzly", "leaf_warden", "leaf_efy", "leaf_fallow"], adds: [] , // Winter Moose moved to L10 (owner, 2026-10-05)
       lore: "Elders whisper that the roots reach further down than any Keeper has followed — to something already here when the first tribe arrived. Hartwood does not whisper it, and does not deny it."
     },
     { id: "L13", name: "Jungle Throne", kind: "throne", at: { x: 70.5, y: 71 },
