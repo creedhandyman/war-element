@@ -2339,6 +2339,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    rides inside it, so the separate line stands down there. */
 .bp-verbs { display: none; flex-direction: column; gap: 4px; }
 .wrap.wheel-up .bottom.acting .bp-verbs { display: flex; }
+/* ...FLOATING above the prompt, over the hand (which a battle turn cannot use),
+   rather than in the bar's flow. In flow it grew the bar ~55px and shoved GOLD
+   and MAGIC down and half off a phone's screen (owner, 2026-10-04: "the gold
+   and the magic go below the description ... see if it wouldn't have to be
+   moved at all"). Floating, the bar keeps its height and nothing moves. The
+   PC tier puts it back in flow inside its own panel (see the desktop block). */
+.wrap.wheel-up .bottom.acting .bprompt:has(.bp-verbs) { position: relative; z-index: calc(var(--z-hand) + 1); }
+.wrap.wheel-up .bottom.acting .bp-verbs {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 6px); z-index: 2;
+  padding: 8px 12px; border-radius: 12px; text-align: left;
+  background: color-mix(in srgb, var(--panel) 95%, transparent);
+  border: 1px solid var(--gold-line); box-shadow: 0 -6px 20px rgba(0, 0, 0, .55);
+}
 .wrap.wheel-up .bottom.acting:has(.bp-verbs) .bp-unavail { display: none; }
 .bp-verb { color: var(--ink); line-height: 1.35; }
 .bp-verb b { color: var(--accent); }
@@ -9716,6 +9729,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     border: 1px solid var(--gold-line); box-shadow: 0 -8px 24px rgba(0, 0, 0, .55);
   }
   .wrap.wheel-up .bottom.acting .bprompt:is(:has(.bp-hint), :has(.bp-verbs)) .bp-text { font-size: 12.5px; line-height: 1.4; }
+  /* Here the prompt IS the panel, and it fits the bar beside the gems, so the
+     list sits in it rather than floating above it. */
+  .wrap.wheel-up .bottom.acting .bp-verbs {
+    position: static; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none;
+  }
   /* The secondary row (Move · Auto · Clear · Surrender · How to play) is ~380px
      of buttons in a 238px column; it used to spill LEFT into the empty middle
      of the bar, which is where the hand lives now. It goes behind a ⋯ beside
