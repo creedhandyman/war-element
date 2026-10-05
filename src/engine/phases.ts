@@ -102,8 +102,23 @@ import {
 } from "./types";
 import { chooseBattleAction, aiMulligan, aiPrepIntent } from "./ai";
 
+/** Deep-copies everything EXCEPT the log's strings: the draft gets its own
+ *  array over the same entries. Strings cannot be mutated and nothing writes to
+ *  the log but `push`, so that is as private as a deep copy for as long as the
+ *  entries are strings. It matters because this runs on every step (two or
+ *  three times on a prep step) and the log only grows: it was half the bytes of
+ *  every state copied across the smoke test's 35 5x5 matchups, 93KB of 126KB by
+ *  round 37 of the longest. Those 35 went 10.1s -> 7.9s (median of six), and
+ *  410 seeded matches on 4x4, 5x5 and the 7x7 hash the same at every step.
+ *
+ *  `log` must KEEP ITS PLACE in the key order: `stateHash` (replay.ts) is FNV
+ *  over JSON.stringify. The placeholder holds the slot; `const { log, ...rest }`
+ *  would move it last, change every hash, and every saved replay would claim it
+ *  was recorded on an older version of the game. */
 function clone(state: GameState): GameState {
-  return structuredClone(state);
+  const draft = structuredClone({ ...state, log: [] as string[] });
+  draft.log = state.log.slice();
+  return draft;
 }
 
 /** Per-turn magic gain scales in 5-round brackets: rounds 1–5 give +1/turn,
