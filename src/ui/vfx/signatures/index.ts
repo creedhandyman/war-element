@@ -45,6 +45,7 @@ import { SMOLDER } from "./boss-smolder";
 import { LEAF_LEGENDARIES } from "./leaf";
 import { AQUA_LEGENDARIES } from "./aqua";
 import { PYRO_LEGENDARIES } from "./pyro";
+import { GALE_LEGENDARIES } from "./gale";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -93,6 +94,7 @@ const ALL: Record<string, Signature | null> = {
   ...LEAF_LEGENDARIES,
   ...AQUA_LEGENDARIES,
   ...PYRO_LEGENDARIES,
+  ...GALE_LEGENDARIES,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(
