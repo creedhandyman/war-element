@@ -159,11 +159,14 @@ describe("Trample Through", () => {
 
   it("...and Mountain Kin is what decides some of those matchups", () => {
     // The aura does not merely make the tribe harder to kill: TRAMPLE compares
-    // max HP, so +2 widens the set of bodies a Mountain Beast can shove. Bastion
-    // at 31 walled Bearocks at 30 and does not wall it at 32. Pinned because it
+    // max HP, so +2 widens the set of bodies a Mountain Beast can shove. A 31 HP
+    // body walled Bearocks at 30 and does not wall it at 32. Pinned because it
     // is the load-bearing half of an aura that otherwise reads as a small
-    // survivability bump.
-    const { s, mover, to } = facing("bore_bearocks", "bore_bastion");
+    // survivability bump. (The 31 HP body was Bastion until it went to 35 on
+    // 2026-10-05 — now out of Bearocks' reach either way — so the victim here
+    // is held at 31 rather than read off a card.)
+    const { s, mover, victim, to } = facing("bore_bearocks", "bore_bastion");
+    victim.maxHp = 31; victim.curHp = 31;
     expect(effectiveMaxHp(s, s.cards[mover.instanceId]), "lifted by its own aura").toBe(32);
     expect(canMove(s, "P1", mover.instanceId, to).ok, "31 is no longer a wall").toBe(true);
   });

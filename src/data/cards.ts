@@ -4594,9 +4594,11 @@ export const CARDS: CardDef[] = [
     cost: 8,
     dmg: 5,
     hits: 1,
-    hp: 31,
-    sp: 2,
-    shields: 6,
+    // SP 2 -> 1 and shields 6 -> 5 for HP 31 -> 35 (owner, 2026-10-05): more
+    // wall, less of a barrier it rebuilds anyway (+2 a round).
+    hp: 35,
+    sp: 1,
+    shields: 5,
     keywords: { TRAMPLE: true },
     passiveNames: { onShieldBreak: "Breach Response" },
     trampleDmg: 2,
@@ -4604,7 +4606,7 @@ export const CARDS: CardDef[] = [
     // on summon); when the barrier first breaks it enrages (+3 DMG / +2 SP).
     roundTick: { selfShields: 2, selfShieldsMax: 12 },
     // Trample Through: a moving wall. The gate reads effective MAX HP, not
-    // shields, so its six plates buy it nothing here — 31 HP does.
+    // shields, so its five plates buy it nothing here — 35 HP does.
     onShieldBreak: { dmg: 3, sp: 2 },
     special: {
       name: "Boulder Barrage",
