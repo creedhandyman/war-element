@@ -1,6 +1,7 @@
-/** Every mythic's signature, by card id (see types.ts). A module that has not
- *  been drawn exports null, and its card plays its element's look like any
- *  other; so does a mythic missing from this list. */
+/** Every mythic's signature, and the legendaries' an element at a time, by card
+ *  id (see types.ts). A module that has not been drawn exports null, and its
+ *  card plays its element's look like any other; so does a card missing from
+ *  this list. */
 import type { Signature } from "./types";
 import { OAKGRE } from "./oakgre";
 import { TRINEZER } from "./trinezer";
@@ -41,6 +42,7 @@ import { KATO } from "./boss-kato";
 import { KATO_PROWLFORM } from "./boss-kato-prowlform";
 import { KATO_STORMWING } from "./boss-kato-stormwing";
 import { SMOLDER } from "./boss-smolder";
+import { LEAF_LEGENDARIES } from "./leaf";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -84,6 +86,9 @@ const ALL: Record<string, Signature | null> = {
   boss_kato_2: KATO_PROWLFORM,
   boss_kato_3: KATO_STORMWING,
   boss_smolder: SMOLDER,
+  // THE LEGENDARIES, an element at a time: their Specials only (spell-fx
+  // `signatureOf`).
+  ...LEAF_LEGENDARIES,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(

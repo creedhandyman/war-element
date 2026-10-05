@@ -266,11 +266,17 @@ export interface CardAttack {
   arrow?: boolean;
 }
 
-/** A MYTHIC's signature: its card id, when the step is its Special or the
- *  strike it makes as it lands. vfx/signatures/ draws the ones it has; any
- *  other (a boss, a mythic not drawn yet) plays its element's look. */
-function signatureOf(a: { def: CardDef; special: boolean }): string | undefined {
-  return a.special && a.def.rarity === "mythic" ? a.def.id : undefined;
+/** A signature move's key (its card id): a MYTHIC's, when the step is its
+ *  Special or the strike it makes as it lands, and a LEGENDARY's, for its
+ *  Special alone (owner, 2026-10-04: "customizing the specials of the
+ *  legendary cards", an element at a time). A legendary's landing strike is a
+ *  different move (Snapmaw's Snare Garden is not its Devour) and keeps the
+ *  element's look. vfx/signatures/ draws the ones it has; any other plays its
+ *  element's look. */
+function signatureOf(a: { def: CardDef; special: boolean; arriving: boolean }): string | undefined {
+  if (!a.special) return undefined;
+  if (a.def.rarity === "mythic") return a.def.id;
+  return a.def.rarity === "legendary" && !a.arriving ? a.def.id : undefined;
 }
 
 /** A PROJECTILE'S SIZE IS ITS DAMAGE: its area in proportion to what it

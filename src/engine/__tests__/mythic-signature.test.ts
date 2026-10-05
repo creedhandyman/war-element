@@ -152,9 +152,37 @@ describe("a mythic's signature move", () => {
     throw new Error("Kraken never fired Black Wave Crash");
   });
 
-  it("every drawn signature is a real mythic, keyed by its card id", () => {
-    const mythic = new Set(CARDS.filter((c) => c.rarity === "mythic").map((c) => c.id));
-    for (const key of Object.keys(SIGNATURES)) expect(mythic.has(key)).toBe(true);
+  it("every drawn signature is a real mythic or legendary, keyed by its card id", () => {
+    const signed = new Set(CARDS.filter((c) => c.rarity === "mythic" || c.rarity === "legendary").map((c) => c.id));
+    for (const key of Object.keys(SIGNATURES)) expect(signed.has(key), key).toBe(true);
+  });
+
+  // Owner, 2026-10-04: "customizing the specials of the legendary cards of
+  // each region". A legendary's Special is its signature; the strike it makes
+  // as it lands is a different move and keeps the element's look.
+  it("a legendary's Special is its signature, and its landing strike is not", () => {
+    const s = prepState(1);
+    const snap = place(s, "leaf_snapmaw", "P2", 1, 1);
+    const prey = place(s, "leaf_greegon", "P1", 2, 1, { curHp: 30, curShields: 0 });
+    const after = step(s, snap.instanceId);
+    after.cards[snap.instanceId].specialCasts += 1;
+    hurt(after, prey.instanceId, 4);
+    expect(sigOf(cardAttackEffects(s, after))[0]).toMatchObject({ key: "leaf_snapmaw", arriving: false });
+    expect(cardAttack(s, after)?.signature).toBe("leaf_snapmaw");
+
+    const s2 = prepState(1);
+    const t2 = place(s2, "leaf_greegon", "P1", 2, 1, { curHp: 30, curShields: 0 });
+    const landed = structuredClone(s2);
+    place(landed, "leaf_snapmaw", "P2", 0, 1); // Snare Garden roots one as it lands
+    landed.cards[t2.instanceId].statuses = [{ kind: "ROOT", duration: 2, power: 0, source: "LEAF" }];
+    expect(sigOf(cardAttackEffects(s2, landed))).toEqual([]);
+    expect(cardAttack(s2, landed)?.signature).toBeUndefined();
+  });
+
+  it("every legendary of a finished element fires its own move", () => {
+    const done = ["LEAF"]; // an element at a time; add each as its legendaries are drawn
+    const unsigned = CARDS.filter((c) => c.rarity === "legendary" && done.includes(c.element) && !SIGNATURES[c.id]).map((c) => c.id);
+    expect(unsigned).toEqual([]);
   });
 
   it("every mythic — each collectible and each boss — fires its own move", () => {
