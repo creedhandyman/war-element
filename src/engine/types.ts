@@ -99,6 +99,12 @@ export interface StatusEffect {
   duration: number; // rounds remaining; ticks down in Cleanup
   power: number; // DOT damage per round / stat delta; 0 when N/A
   source: Element;
+  /** STEALTH only: the card has attacked since this cloak last hid it, so it
+   *  is in the open for the rest of the round — the STEALTH keyword's rule
+   *  (owner, 2026-10-04: "the stealth should all be the same as the keyword").
+   *  Set by `revealStealth` on every attack, cleared at Cleanup and by a fresh
+   *  grant. Read through `isStealthed`. */
+  revealed?: boolean;
 }
 
 export interface SpecialDef {

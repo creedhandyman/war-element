@@ -841,20 +841,31 @@ export function rangedReachFor(state: GameState, card: CardInstance): number {
  *  two ignored Magalogoon's move-break and hid it "all the time".
  *
  *  Three ways to be hidden, and Magalogoon's is deliberately NOT the keyword:
- *   - a granted STEALTH status (always hides);
+ *   - a granted STEALTH status — the KEYWORD'S rule for as long as it lasts:
+ *     hidden each round until the card attacks, then in the open for the rest
+ *     of that round (owner, 2026-10-04: one STEALTH, one meaning). A grant that
+ *     lands AFTER the attack (a kill, a vanishing Special) hides it at once;
  *   - the STEALTH keyword — hides until the card attacks this round
  *     (Frostveil, Obsidian);
  *   - Swamp Monster (Magalogoon) — a CONDITIONAL passive, hidden only while it
  *     has neither moved nor attacked this round. No standing keyword, so it is
  *     never "always" stealthed. */
 export function isStealthed(def: CardDef, card: CardInstance): boolean {
-  if (hasStatus(card, "STEALTH")) return true;
+  if (card.statuses.some((s) => s.kind === "STEALTH" && s.duration > 0 && !s.revealed)) return true;
   if (def.keywords.STEALTH && !card.attackedThisRound) return true;
   // Idle stealth needs a whole round still: acting last round keeps it in the
   // open this round too (`exposedFromLastRound`), not just until Cleanup.
   if (def.stealthWhenIdle && !card.attackedThisRound && !card.movedThisRound
     && !card.exposedFromLastRound) return true;
   return false;
+}
+
+/** An attack (basic, Special, Talent, dive) takes a granted STEALTH off for the
+ *  rest of the round, as the keyword's `attackedThisRound` does. Called beside
+ *  every `attackedThisRound = true`, before the action resolves, so a cloak the
+ *  same action grants (Vanish, a kill's cover) still hides the card. */
+export function revealStealth(card: CardInstance): void {
+  for (const s of card.statuses) if (s.kind === "STEALTH") s.revealed = true;
 }
 
 /** Statuses that drag a FLYING card out of the air. It stays aloft by actively

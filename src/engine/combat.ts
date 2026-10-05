@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, revealStealth, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -324,6 +324,8 @@ export function applyStatus(
     if (power >= st.power) st.source = source;
     st.power = Math.max(st.power, power);
     st.duration = Math.max(st.duration, dur);
+    // A fresh cloak hides again, even after an attack this round.
+    if (kind === "STEALTH") st.revealed = false;
     note = grew ? " (refreshed)" : " (already worse — held)";
   } else {
     target.statuses.push(fresh);
@@ -2167,6 +2169,7 @@ export function basicAttack(
   if (picks.length === 0) return null;
   const aDef = getDef(attacker.defId);
   attacker.attackedThisRound = true; // STEALTH breaks even on a miss
+  revealStealth(attacker); // ...the granted kind too
   attacker.lastBasicRound = draft.round; // Crank and Loose: the reload clock
   // Spend a pocketed ranged shot — but ONLY if the shot is what reached.
   //

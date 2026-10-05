@@ -69,6 +69,7 @@ import {
   specialIsZone,
   allyShieldTargets,
   noActionReason,
+  revealStealth,
 } from "./rules";
 import type {
   EnchantMode,
@@ -1939,6 +1940,7 @@ function performBattleAction(
     if (!victim) throw new Error("Illegal plummet target");
     const landing = { ...victim.pos! };
     card.attackedThisRound = true; // the dive is this turn's action
+    revealStealth(card);
     draft.log.push(`${label(draft, card)} folds and drops on ${label(draft, victim)}.`);
     // Kill FIRST, then take the ground — the slot has to be empty before the
     // diver can stand in it, and `defeatCard` is the same door every other death
@@ -1960,6 +1962,7 @@ function performBattleAction(
     const t = getDef(card.defId).talent!;
     card.talentUsed = true;
     card.attackedThisRound = true; // the Talent is this turn's action
+    revealStealth(card);
     draft.log.push(`${label(draft, card)} uses ${t.name}!`);
     if (t.handler === "loadHits") {
       card.loadedHits += Number(t.params?.hits ?? 0);
@@ -2104,6 +2107,7 @@ function performBattleAction(
       card.specialCooldown = (special.cooldown ?? DEFAULT_SPECIAL_COOLDOWN) + 1;
     }
     card.attackedThisRound = true; // STEALTH breaks on any attack
+    revealStealth(card);
     // Horde (RIP): a MANUALLY fired Special can cost HP as well as magic. This
     // lives on the manual path ON PURPOSE — the Dead Clock's free auto-fire
     // invokes the handler directly and never reaches here, so the clock's payout
@@ -4185,6 +4189,8 @@ function doCleanupPhase(draft: GameState): void {
     // a round spent still (both flags false here) lets it hide again.
     card.exposedFromLastRound = !!(card.attackedThisRound || card.movedThisRound);
     card.attackedThisRound = false;
+    // A granted STEALTH hides again next round, as the keyword does.
+    for (const st of card.statuses) if (st.kind === "STEALTH") st.revealed = false;
     card.movedThisRound = false;
     card.critsThisRound = 0; // Jackpot (Highroller) counts crits per round
     card.platesTakenThisRound = 0; // Exostone (BORE): two plates a round, no more

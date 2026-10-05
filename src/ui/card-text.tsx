@@ -52,6 +52,22 @@ export function chipify(text: string): ReactNode[] {
   return out;
 }
 
+/** The self-status an on-summon WITH an attack ends on, which the handler text
+ *  never said: Frostveil's Icy Mist read as a 3 DMG opener and nothing else,
+ *  its STEALTH and the extra round per kill both missing (owner, 2026-10-04).
+ *  The pure-cloak branch inside `describeOnSummon` already says it itself. */
+function withSelfCloak(
+  os: { handler?: string; selfStatus?: string; selfStatusDuration?: number; extendSelfStatusOnKill?: number },
+  text: string,
+): string {
+  if (!os.handler || !os.selfStatus || !text) return text;
+  const dur = os.selfStatusDuration ? ` for ${rounds(os.selfStatusDuration)}` : "";
+  const ext = os.extendSelfStatusOnKill
+    ? `, +${os.extendSelfStatusOnKill} round for each kill while it lasts`
+    : "";
+  return `${text.replace(/\.$/, "")}, then gains ${os.selfStatus}${dur}${ext}.`;
+}
+
 /** Spell out an on-summon passive from its handler + params, instead of the old
  *  catch-all "fires an effect". Mirrors how the effect actually resolves. */
 function describeOnSummon(os: {
@@ -1182,7 +1198,7 @@ export function describePassives(def: CardDef): string[] {
   // Velvolt Knight's Live Current all name their on-summon half in the data, and
   // the name was silently dropped here — so the same ability appeared once
   // titled and once anonymous, which read as two unrelated passives.
-  if (def.onSummon) named("onSummon", describeOnSummon(def.onSummon, def.vsTarget, def.element));
+  if (def.onSummon) named("onSummon", withSelfCloak(def.onSummon, describeOnSummon(def.onSummon, def.vsTarget, def.element)));
   if (def.onDeath) {
     const od = def.onDeath;
     const parts: string[] = [];
@@ -1463,6 +1479,6 @@ export const STATUS_TEXT: Record<StatusKind, string> = {
   BLIND: "Blinded — each basic hit has a 50% chance to miss.",
   SEAL: "Bluflamed — cannot be healed.",
   ELECTRIFIED: "Electrified — BOLT cards deal +1 DMG to it.",
-  STEALTH: "Stealthed — can't be targeted.",
+  STEALTH: "Stealthed — can't be targeted until it attacks this round; hides again next round.",
   EVASION: "Evasive — 50% chance to dodge each hit.",
 };

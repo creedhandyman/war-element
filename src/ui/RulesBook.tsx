@@ -391,7 +391,7 @@ export function RulesBook(props: { onClose: () => void }) {
               <li><b>BLIND</b> — its basic attacks have a ~50% chance to miss.</li>
               <li><b>SEAL</b> — cannot be healed while sealed.</li>
               <li><b>ELECTRIFIED</b> — harmless on its own, but Bolt cards deal +1 DMG to <i>any</i> statused foe.</li>
-              <li><b>STEALTH / EVASION</b> — also appear as timed <i>buffs</i>: temporary untargetability or dodge.</li>
+              <li><b>STEALTH / EVASION</b> — also appear as timed <i>buffs</i>. A timed STEALTH works exactly like the keyword while it lasts: hidden each round until the card attacks.</li>
             </ul>
           </section>
 
