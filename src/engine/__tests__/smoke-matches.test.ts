@@ -42,12 +42,16 @@ describe("smoke: whole matches run to completion", () => {
       expect(s.phase, `${a.id} vs ${b.id}`).toBe("gameover");
     }
     expect(big.length).toBeGreaterThan(0);
-    // 20s, not the 5s default: the premade roster has grown to 26 5x5 decks
-    // (the ladder's fifth rung members included), which sits at ~3.5s alone and
-    // over 5s under a loaded parallel run — where it flaked once. The budget is
-    // for scheduling noise, not for a slower game: a real stall still trips the
-    // per-match step cap long before any timeout does.
-  }, 20_000);
+    // 60s, like the two beside it. The 20s it had was set at 26 decks and ~3.5s
+    // alone; it is now 35 decks, ~10s alone and 21-24s inside the full parallel
+    // suite, where it timed out three times on 2026-10-04 — a red test that said
+    // nothing about the code. Not a slower engine: since the AI farms its home
+    // row (`farms`, 2026-09-26) its games run longer with more cards on the
+    // board — the same 30 decks went from 3.0s to 7.7s on 1.75x the steps, at
+    // the same cost per card on the board — and five elite decks came two days
+    // later. The budget is wall-clock under parallel load: a real stall still
+    // trips the per-match step cap long before any timeout does.
+  }, 60_000);
 
   it("rotates the whole draftable pool through real matches", () => {
     // So no single card's trigger path is left unexercised by the suite.
