@@ -4067,7 +4067,8 @@ describe("balance pass: reach, payloads and lockouts", () => {
   it("a melee on-summon strike reaches the nearest enemy from the home row", () => {
     // The shape that broke ThunderCat: summoned into your own home row, with the
     // enemy nowhere near king-step reach.
-    for (const [id, col] of [["bolt_zap", 0], ["bolt_electricel", 0], ["aqua_krakler", 0]] as const) {
+    // (Electricel left this list 2026-10-05: its Wrap moved to its basic.)
+    for (const [id, col] of [["bolt_zap", 0], ["aqua_krakler", 0]] as const) {
       const s = prepState();
       s.players.P1.gold = 20;
       s.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };

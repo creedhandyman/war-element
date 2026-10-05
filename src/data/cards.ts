@@ -3944,12 +3944,11 @@ export const CARDS: CardDef[] = [
     sp: 10,
     shields: 0,
     keywords: {},
-    // Wrap (On Summon): PARALYZE an opponent in range for 2 rounds.
-    // `reachNearest` because it could not otherwise reach anything: a Melee card
-    // lands in its own home row, where its on-summon target list is king-step
-    // reach, and on the turn you play it that square is almost always empty. The
-    // same hole ThunderCat had. Splint, Ariel and Sticks already carry this.
-    onSummon: { handler: "barrage", params: { dmg: 0, targets: 1, reachNearest: 1, statusKind: "PARALYZE", statusDuration: 2 } },
+    // Wrap (owner, 2026-10-05): its BASIC paralyzes — every hit leaves the
+    // target PARALYZED for 1 round. Was an on-summon PARALYZE 2 on the nearest
+    // opponent; the eel now wraps what it actually bites.
+    passiveNames: { onHitStatus: "Wrap" },
+    onHitStatus: { kind: "PARALYZE", duration: 1, power: 0 },
   },
 
   // ───────────────────────── DUSK ─────────────────────────
