@@ -44,6 +44,7 @@ import { KATO_STORMWING } from "./boss-kato-stormwing";
 import { SMOLDER } from "./boss-smolder";
 import { LEAF_LEGENDARIES } from "./leaf";
 import { AQUA_LEGENDARIES } from "./aqua";
+import { PYRO_LEGENDARIES } from "./pyro";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -91,6 +92,7 @@ const ALL: Record<string, Signature | null> = {
   // `signatureOf`).
   ...LEAF_LEGENDARIES,
   ...AQUA_LEGENDARIES,
+  ...PYRO_LEGENDARIES,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(
