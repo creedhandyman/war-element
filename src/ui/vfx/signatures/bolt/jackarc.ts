@@ -125,7 +125,7 @@ function rifle(A: ReturnType<typeof aim>, kick: number): number[][] {
  *  `kick` px of recoil by time, fading in and out at the ends. */
 function drawRifle(t: FxTools, A: ReturnType<typeof aim>, D: number, inA: number, outA: number,
   glow: (time: number) => number, kick: (time: number) => number) {
-  const fade = (time: number) => clamp01(inA ? time / inA : 1) * (1 - clamp01((time - (D - outA)) / outA));
+  const fade = (time: number) => clamp01(inA ? time / inA : 1) * (outA ? 1 - clamp01((time - (D - outA)) / outA) : 1);
   t.draw(D, (g, u) => {
     const time = u * D, a = fade(time);
     for (const pts of rifle(A, kick(time))) g.poly(pts, true).fill({ color: CHROME, alpha: 0.88 * a });

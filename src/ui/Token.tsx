@@ -551,7 +551,7 @@ export function Token(props: {
       )}
       {props.aura && <AuraLightUp key={props.aura.key} glow={props.aura} />}
       {combatFx && (
-        <div key={combatFx.key} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
+        <div key={`cf${combatFx.key}`} className={`fx-float fx-${combatFx.kind.toLowerCase()}`}>
           {combatFx.kind}
         </div>
       )}
@@ -574,7 +574,7 @@ export function Token(props: {
         <span key={`true${trueFx}`} className="fx-true">STRIKES TRUE</span>
       )}
       {dmgFx && (
-        <div key={dmgFx.key} className="fx-dmg-stack">
+        <div key={`dmg${dmgFx.key}`} className="fx-dmg-stack">
           {dmgFx.nums.map((n, i) => (
             <span key={i} className="fx-dmg" style={{ ["--i" as string]: i }}>
               −{n}

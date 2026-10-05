@@ -1351,7 +1351,30 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     return { add, dark, m };
   }
 
+  /** ONE BAD EFFECT MUST NOT STOP THE REST. An effect that throws — a draw
+   *  callback, a `later`, a look or a signature handed a moment it did not
+   *  expect — is dropped on the spot. Uncaught, it escaped the frame loop and,
+   *  never removed, threw again every frame after: every effect behind it in
+   *  the list stopped for the rest of the match. The game is complete without
+   *  any single effect (see `createImpactLayer`). Logged once per message. */
+  const reported = new Set<string>();
+  function dropped(err: unknown) {
+    const msg = err instanceof Error ? err.message : String(err);
+    if (reported.has(msg)) return;
+    reported.add(msg);
+    console.error("[vfx] effect dropped:", err);
+  }
+
   function play(fx: LayerFx) {
+    try {
+      playFx(fx);
+    } catch (err) {
+      dropped(err);
+      wake();
+    }
+  }
+
+  function playFx(fx: LayerFx) {
     const el = STYLES[fx.element] ?? STYLES.VOID;
     const look = LOOKS[fx.element] ?? LOOKS.VOID;
     const t = toolsFor(fx.element);
@@ -1499,7 +1522,9 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
       const e = effects[i];
       if (e.delay > 0) { e.delay -= dt; continue; }
       e.age += dt;
-      if (!e.tick(e.age, dt)) {
+      let going = false;
+      try { going = e.tick(e.age, dt); } catch (err) { dropped(err); }
+      if (!going) {
         e.node?.destroy();
         effects.splice(i, 1);
       }
