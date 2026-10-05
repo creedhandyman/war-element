@@ -254,6 +254,10 @@ export function Shop(props: {
     return () => window.clearInterval(t);
   }, []);
   const [deckDone, setDeckDone] = useState<{ id: string; added: number } | null>(null);
+  /** Which premade is opened to show its cards (owner, 2026-10-04: "the
+   *  premades in the shop are not clickable so the player cant tell what cards
+   *  they get"). One at a time; a card in it opens the full card view. */
+  const [deckOpen, setDeckOpen] = useState<string | null>(null);
   /** Which shelf: the 18-card standard-board decks or the 30-card large-board
    *  ones. Remembered per device — a convenience, so it fails quietly. */
   const [deckSize, setDeckSizeState] = useState<ShopDeckSize>(() => {
@@ -617,10 +621,12 @@ export function Shop(props: {
               const armed = deckAsk === deck.id;
               return (
                 <div key={deck.id} className="deck-offer" style={{ ["--tier" as string]: TIER_HUE[tier] }}>
-                  <div className="deck-shot">
+                  <button type="button" className="deck-shot" aria-expanded={deckOpen === deck.id}
+                    title={`See the ${deck.cards.length} cards in ${deck.name}`}
+                    onClick={() => setDeckOpen(deckOpen === deck.id ? null : deck.id)}>
                     <img src={cardThumbSrc(face)} alt="" loading="lazy" draggable={false}
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
-                  </div>
+                  </button>
                   <div className="box-body">
                     <div className="deck-head">
                       <span className="deck-tier">{TIER_LABEL[tier]}</span>
@@ -632,6 +638,10 @@ export function Shop(props: {
                         <img key={e} className="deck-el" src={EL_ICON[e as keyof typeof EL_ICON]} alt={e} title={e} />
                       ))}
                       <span>{deck.cards.length} cards · <b>{owned}</b> owned</span>
+                      <button type="button" className="deck-see" aria-expanded={deckOpen === deck.id}
+                        onClick={() => setDeckOpen(deckOpen === deck.id ? null : deck.id)}>
+                        {deckOpen === deck.id ? "Hide cards ▴" : "See cards ▾"}
+                      </button>
                     </div>
                     {deckDone?.id === deck.id ? (
                       <div className="deck-done">
@@ -656,6 +666,34 @@ export function Shop(props: {
                       </div>
                     )}
                   </div>
+                  {/* THE CARDS YOU GET, each once with its count, cheapest first;
+                      the ones already in your collection say so (they come off
+                      the price). Tap one for the full card. */}
+                  {deckOpen === deck.id && (
+                    <div className="sp-grid np-grid deck-cards">
+                      {[...new Set(deck.cards)]
+                        .map((id) => getDef(id))
+                        .sort((a, b) => a.cost - b.cost || a.name.localeCompare(b.name))
+                        .map((d) => {
+                          const n = deck.cards.filter((x) => x === d.id).length;
+                          const have = save.collection.includes(d.id);
+                          return (
+                            <button key={d.id} type="button"
+                              className={`sp-tile r-${d.rarity ?? "rare"} ${have ? "have" : ""}`}
+                              title={`${d.name} · ${d.rarity ?? "rare"} · ${d.cost} gold${have ? " · already yours" : ""} — see the card`}
+                              onClick={() => setPreviewId(d.id)}>
+                              <img src={cardThumbSrc(d)} alt="" loading="lazy"
+                                onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                              <span className="sp-tile-cost">{d.cost}</span>
+                              <span className={`sp-tile-tag ${have ? "owned" : ""}`}>
+                                {have ? "owned" : n > 1 ? `×${n}` : "new"}
+                              </span>
+                              <span className="sp-tile-name">{d.name}</span>
+                            </button>
+                          );
+                        })}
+                    </div>
+                  )}
                 </div>
               );
             })}

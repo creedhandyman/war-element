@@ -6831,6 +6831,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1px solid color-mix(in srgb, var(--tier) 60%, transparent); background: var(--void-2);
 }
 .deck-shot img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Tap the deck (its face or "See cards") to open what is in it. */
+.deck-offer { flex-wrap: wrap; }
+button.deck-shot { padding: 0; cursor: pointer; }
+.deck-see {
+  margin-left: auto; padding: 2px 8px; border-radius: 6px; cursor: pointer; white-space: nowrap;
+  font-size: var(--fs-2); font-weight: 700; color: var(--tier); background: transparent;
+  border: 1px solid color-mix(in srgb, var(--tier) 55%, transparent);
+}
+.deck-cards { flex: 1 0 100%; margin-top: 2px; }
+/* The meta row now carries the "See cards" button too: wrap as a whole rather
+   than squeezing "30 cards · 10 owned" into a word a line. */
+.deck-meta { flex-wrap: wrap; row-gap: 4px; }
+.deck-meta span { white-space: nowrap; }
 .deck-head { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
 .deck-tier {
   padding: 1px 7px; border-radius: 6px; font-size: var(--fs-1); font-weight: 800;
