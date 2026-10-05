@@ -43,6 +43,7 @@ import { KATO_PROWLFORM } from "./boss-kato-prowlform";
 import { KATO_STORMWING } from "./boss-kato-stormwing";
 import { SMOLDER } from "./boss-smolder";
 import { LEAF_LEGENDARIES } from "./leaf";
+import { AQUA_LEGENDARIES } from "./aqua";
 
 const ALL: Record<string, Signature | null> = {
   leaf_oakgre: OAKGRE,
@@ -89,6 +90,7 @@ const ALL: Record<string, Signature | null> = {
   // THE LEGENDARIES, an element at a time: their Specials only (spell-fx
   // `signatureOf`).
   ...LEAF_LEGENDARIES,
+  ...AQUA_LEGENDARIES,
 };
 
 export const SIGNATURES: Readonly<Record<string, Signature>> = Object.fromEntries(
