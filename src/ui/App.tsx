@@ -2419,6 +2419,14 @@ export function App() {
    *  the rest of its table. One function for every deal — the matchmaker's
    *  button, the re-deal after a match, a seat that fell off the rung — so a new
    *  opponent can never sit down at the last one's table. */
+  /** QUICK MATCH'S REROLL (owner, 2026-10-04/05: the reroll belongs to casual
+   *  play, not to Streak). A random premade from the picked rung for this
+   *  board, never the one already seated. */
+  function rerollQuick(tier: DeckTier) {
+    const pick = rollOpponent(tier, boardSize, p2DeckId);
+    if (pick) setP2DeckId(pick.id);
+  }
+
   function dealStreakFight(tier: DeckTier, board: number, avoid: string) {
     const pick = rollOpponent(tier, board, avoid);
     if (!pick) return;
@@ -6649,6 +6657,25 @@ export function App() {
                     />
                   )}
                 </div>
+                )}
+
+                {/* REROLL — Quick match only. A random opponent from the rung you
+                    tap; "change" on the seat still picks one by hand. The rung
+                    the seat is on now is lit. */}
+                {arenaView === "quick" && !eventRun && (
+                  <div className="ar-field ar-reroll">
+                    <span className="ar-flabel">REROLL</span>
+                    <div className="seg">
+                      {tiersFor(boardSize).map((rung) => (
+                        <button
+                          key={rung}
+                          className={tierOf(p2DeckId) === rung ? "on" : ""}
+                          title={`Deal a random ${TIER_LABEL[rung]} opponent`}
+                          onClick={() => rerollQuick(rung)}
+                        >{TIER_LABEL[rung]}</button>
+                      ))}
+                    </div>
+                  </div>
                 )}
 
                 {/* THE OTHER SEATS AT THE TABLE. Domination is the only mode that

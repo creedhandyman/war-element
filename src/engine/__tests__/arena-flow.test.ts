@@ -401,7 +401,11 @@ describe("the wiring in App.tsx", () => {
     expect(APP).toContain("dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);");
     expect(deal).toContain("saveStreakDeal(board, pick.id, extras)");
     const code = APP.split("\n").filter((l) => !/^\s*(\/\/|\/?\*)/.test(l)).join("\n");
-    expect(code.match(/rollOpponent\(/g), "rolled only inside dealStreakFight").toHaveLength(1);
+    // ...and Quick match's reroll, the one place a player may ask for a new
+    // opponent (owner, 2026-10-05). Nothing else rolls.
+    expect(code.match(/rollOpponent\(/g), "rolled only by the streak deal and Quick match's reroll").toHaveLength(2);
+    expect(fn("rerollQuick")).toContain("rollOpponent(tier, boardSize, p2DeckId)");
+    expect(APP).toContain('{arenaView === "quick" && !eventRun && (');
     // The seat comes from the SAVED deal for the board, never from what the seat
     // last held (a Quick-match pick, a board flipped and back); a deal that
     // still fits keeps its deck, and a stale table is re-dealt around it.
