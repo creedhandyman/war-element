@@ -39,6 +39,7 @@ import {
   previewSpecialArea,
   previewSpecialFarRow,
   previewSpecialWaveRow,
+  previewSpecialZoneAhead,
   specialIsZone,
   specialAimable,
   specialAreaShape,
@@ -4452,7 +4453,8 @@ export function App() {
   const aimArea: Pos[] = useMemo(() => {
     if (pending !== "special" || !awaitingId) return [];
     // A wave's row is fixed by where the caster stands, exactly like a far row.
-    const far = [...previewSpecialFarRow(game, awaitingId), ...previewSpecialWaveRow(game, awaitingId)];
+    const far = [...previewSpecialFarRow(game, awaitingId), ...previewSpecialWaveRow(game, awaitingId),
+      ...previewSpecialZoneAhead(game, awaitingId)];
     if (!aimedArea || picks.length === 0) return far;
     const anchor = game.cards[picks[0]];
     if (!anchor?.pos) return far;

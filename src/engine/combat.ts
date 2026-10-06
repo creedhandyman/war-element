@@ -16,7 +16,7 @@
 
 import { CARDS, getDef } from "../data/cards";
 import { chance, coin, pctChance, randInt } from "./rng";
-import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, revealStealth, shoveTarget, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
+import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, revealStealth, shoveTarget, zoneAheadCells, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
 import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
@@ -4563,6 +4563,13 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // says.
     if (chargeFirst && targets.length === 0 && num(params, "moveIfNoTarget") > 0)
       targets = specialTargets(draft, attacker.instanceId);
+    // A FIXED ZONE AHEAD (Mortar's Airburst Shell): every opponent in the block
+    // in front of it, whatever was picked — `specialTargets` reads the same zone.
+    if (num(params, "zoneAhead") > 0 && attacker.pos) {
+      const zone = zoneAheadCells(draft.boardSize, attacker.owner, attacker.pos, num(params, "zoneAhead"));
+      targets = enemyCards(draft, attacker.owner).filter((e) => e.curHp > 0 && !!e.pos
+        && zone.some((z) => z.row === e.pos!.row && z.col === e.pos!.col));
+    }
     // Timberer (Lumberjack): scope the volley to the row directly ahead — the
     // tree falls forward, it doesn't scatter across the board.
     // Wildfire (Scorch): scope the volley to the enemy's own home row.

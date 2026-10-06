@@ -14410,19 +14410,18 @@ export const CARDS: CardDef[] = [
       // MELEE swing pick a flier through the dodge, and is a complete no-op on a
       // Ranged caster like this one — printing it here would have been a param
       // that costs magic and silently does nothing.
-      // A 4x4 BURST rather than two picked bodies. `blastSize` anchors the
-      // square on the target and grows it AWAY from the mortar, so the card you
-      // aim at is the near corner and the shell bursts onward through what is
-      // behind it. Where the edge would cut it short the square slides back
-      // onto the board, so it is always the full 4x4 the text promises — on
-      // the standard 4x4 board that is every opponent, a deliberate call
-      // (2026-09-25) over the clipped two-row sliver it used to land.
-      // `targets: 99` because the square decides the count now, not the cap.
+      // A FIXED 4x4 ZONE DIRECTLY AHEAD (owner, 2026-10-06), no longer aimed.
+      // It was a `blastSize` square anchored on any target the shell could
+      // reach — which for a ranged Special is the whole board, so on a 5x5 or
+      // 7x7 it landed anywhere. Now it is the four ranks in front of the
+      // mortar, four files wide around its lane (`zoneAheadCells`): on the
+      // standard 4x4 board that is still every opponent (2026-09-25's call).
+      // `targets: 99` because the zone decides the count, not the cap.
       // STUN rather than ROOT, on a 3-round cooldown (owner's call).
       cooldown: 3,
-      params: { dmg: 6, targets: 99, blastSize: 4, vsFlyingDmg: 4, statusKind: "STUN", statusDuration: 2 },
+      params: { dmg: 6, targets: 99, zoneAhead: 4, vsFlyingDmg: 4, statusKind: "STUN", statusDuration: 2 },
       targetSide: "enemy",
-      text: "6 DMG and STUN 2 rounds to every opponent in a 4×4 burst — 10 instead against anything FLYING, which the shell brings down. 3-round cooldown.",
+      text: "6 DMG and STUN 2 rounds to every opponent in the 4×4 area directly in front of it — 10 instead against anything FLYING, which the shell brings down. 3-round cooldown.",
     },
   },
   {

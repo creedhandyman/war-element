@@ -5,14 +5,14 @@ import { applyIntent } from "../phases";
 import { applyStatus, basicAttack, effectiveBasicHits, SPECIAL_HANDLERS } from "../combat";
 import {
   aoeRowsHit, areaBlastCells, blastArea, canBasicAttack, canFireSpecial, farRowCells,
-  hasFarRow, isActionBlocked, previewOnSummonArea, previewSpecialArea, previewSpecialFarRow,
+  hasFarRow, isActionBlocked, previewOnSummonArea, previewSpecialArea, previewSpecialFarRow, previewSpecialZoneAhead,
   specialAreaShape, specialTargets, splashCells,
 } from "../rules";
 import { getSpell } from "../spells";
 import { effectiveDmg, effectiveSp } from "../state";
 import { DUSK_DRAIN } from "../auras";
 import { CARDS, getDef } from "../../data/cards";
-import { atCleanup, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
+import { atCleanup, bigPrepState, giveHand, place, prepState, seedForCoins, statusOf } from "./helpers";
 import { advance } from "../phases";
 import type { GameState } from "../types";
 
@@ -1675,7 +1675,10 @@ describe("an area Special shows its footprint before it fires", () => {
   });
 
   it("names the three shapes, and nothing else", () => {
-    expect(specialAreaShape(getDef("pyro_mortar").special)).toBe("blast");
+    // No card aims a `blastSize` square since Mortar's shell became a fixed zone
+    // (2026-10-06); the shape is still the engine's, so it is named off a stand-in.
+    expect(specialAreaShape({ name: "x", cost: 1, handler: "barrage", params: { blastSize: 4 }, text: "" } as never)).toBe("blast");
+    expect(specialAreaShape(getDef("pyro_mortar").special), "Mortar's zone is not aimed").toBeNull();
     expect(specialAreaShape(getDef("aqua_cryo").special)).toBe("areaBlast");
     const splasher = CARDS.find((c) => c.special?.handler === "strike" && Number(c.special.params?.splash ?? 0) > 0);
     expect(splasher, "no strike-with-splash card in the set").toBeTruthy();
@@ -1687,18 +1690,30 @@ describe("an area Special shows its footprint before it fires", () => {
     expect(specialAreaShape(undefined)).toBeNull();
   });
 
-  it("previewSpecialArea draws Airburst's 4x4 from the caster's real position", () => {
+  // MORTAR'S ZONE (owner, 2026-10-06): a fixed 4x4 directly in front of it,
+  // nothing to aim. On a 4x4 board that is the whole board, as it always was.
+  it("Airburst covers the 4x4 directly ahead: the whole 4x4 board, lit when armed", () => {
     const s = prepState();
     const mortar = place(s, "pyro_mortar", "P1", 3, 0);
-    place(s, "dusk_vamp", "P2", 1, 1);
-    const cells = previewSpecialArea(s, mortar.instanceId, at(1, 1))!;
-    expect(cells).not.toBeNull();
-    // Anchored at (1,1) on a 4x4 board: it used to clip to six squares (rows
-    // 0-1, columns 1-3) under a card that says 4x4. It now slides back onto the
-    // board, and a 4x4 on a 4x4 board is all sixteen.
-    expect(cells).toHaveLength(16);
-    // ...and it is the engine's own shape, not a second copy of the maths.
-    expect(set(cells)).toEqual(set(blastArea(4, mortar.pos!, at(1, 1), 4)));
+    expect(previewSpecialArea(s, mortar.instanceId, at(1, 1)), "nothing anchored on a pick").toBeNull();
+    expect(previewSpecialZoneAhead(s, mortar.instanceId)).toHaveLength(16);
+  });
+
+  it("on a 5x5 the zone is the four ranks ahead, four files round its lane, mirrored per seat", () => {
+    const s = bigPrepState();
+    const mine = place(s, "pyro_mortar", "P1", 4, 2);
+    expect(set(previewSpecialZoneAhead(s, mine.instanceId))).toEqual(set(
+      [0, 1, 2, 3].flatMap((row) => [1, 2, 3, 4].map((col) => at(row, col)))));
+    const theirs = place(s, "pyro_mortar", "P2", 0, 2);
+    expect(set(previewSpecialZoneAhead(s, theirs.instanceId))).toEqual(set(
+      [1, 2, 3, 4].flatMap((row) => [0, 1, 2, 3].map((col) => at(row, col)))));
+    // The engine hits exactly the zone: an opponent outside it is untouched.
+    const inZone = place(s, "leaf_stickviper", "P2", 1, 4, { curHp: 99, maxHp: 99, curShields: 0 });
+    const outside = place(s, "leaf_stickviper", "P2", 1, 0, { curHp: 99, maxHp: 99, curShields: 0 });
+    SPECIAL_HANDLERS.barrage(s, s.cards[mine.instanceId], [s.cards[outside.instanceId]],
+      getDef("pyro_mortar").special!.params as Record<string, number>);
+    expect(s.cards[inZone.instanceId].curHp).toBeLessThan(99);
+    expect(s.cards[outside.instanceId].curHp, "outside the zone, even when picked").toBe(99);
   });
 
   it("the shell hits what the slid square lights, not the old clipped sliver", () => {

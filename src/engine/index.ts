@@ -43,6 +43,7 @@ export {
   specialAimable,
   previewSpecialFarRow,
   previewSpecialWaveRow,
+  previewSpecialZoneAhead,
   specialIsZone,
   specialAreaShape,
   specialIsPicked,

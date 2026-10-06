@@ -35,7 +35,7 @@ describe("which Specials ask where their shots go", () => {
     for (const id of [
       "gale_kloud",   // self: raises a storm
       "bolt_storm",   // a zone: every ELECTRIFIED opponent
-      "pyro_mortar",  // an anchored area, aimed by its own one-pick flow
+      "pyro_mortar",  // a fixed 4x4 zone directly ahead
       "gale_eagon",   // everyone in the far row
       "leaf_sprinu",  // Vernal: eight shots is the whole board
       "pyro_firefly", // RANDOM shots

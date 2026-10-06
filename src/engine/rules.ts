@@ -1540,7 +1540,35 @@ export function specialAreaShape(
  *  predicate for both sides, so they cannot come to disagree about which
  *  Specials are zones. */
 export function specialIsZone(special: CardDef["special"] | undefined): boolean {
-  return special?.handler === "smite" || special?.handler === "surfsUp";
+  return special?.handler === "smite" || special?.handler === "surfsUp"
+    || Number(special?.params?.zoneAhead ?? 0) > 0;
+}
+
+/** A FIXED N x N ZONE DIRECTLY IN FRONT OF THE CASTER (Mortar's Airburst Shell,
+ *  owner 2026-10-06: "only 4x4 target range", picked as a fixed zone ahead
+ *  rather than an aim). The `size` ranks ahead of it — slid back onto the board
+ *  when fewer remain, so on a board no bigger than `size` it is the whole board,
+ *  as the shell always was there — and `size` files wide around its own lane:
+ *  one to its left and the rest to its right, as its OWNER faces, so the two
+ *  seats are mirror images. Nothing to aim, so it lights up the moment the
+ *  Special is armed. Forward always; it is not a Domination-aimed Special. */
+export function zoneAheadCells(boardSize: number, owner: PlayerId, pos: Pos, size: number): Pos[] {
+  const span = Math.min(size, boardSize);
+  const fit = (lo: number) => Math.max(0, Math.min(lo, boardSize - span));
+  const r0 = fit(owner === "P1" ? pos.row - span : pos.row + 1);
+  const c0 = fit(owner === "P1" ? pos.col - 1 : pos.col - (span - 2));
+  const out: Pos[] = [];
+  for (let row = r0; row < r0 + span; row++)
+    for (let col = c0; col < c0 + span; col++) out.push({ row, col } as Pos);
+  return out;
+}
+
+/** The zone `casterId`'s Special covers, if it is a `zoneAhead` Special. */
+export function previewSpecialZoneAhead(state: GameState, casterId: string): Pos[] {
+  const caster = state.cards[casterId];
+  const size = Number(caster && getDef(caster.defId).special?.params?.zoneAhead || 0);
+  if (!caster?.pos || size <= 0) return [];
+  return zoneAheadCells(state.boardSize, caster.owner, caster.pos, size);
 }
 
 /** Specials that choose their OWN victims. The handler is handed a target list
@@ -2094,6 +2122,14 @@ export function specialTargets(state: GameState, instanceId: string): CardInstan
   // from the enemy's back line where there is no row ahead at all — and spent
   // its magic and its recharge on a heal. What lights up is what gets hit, so an
   // empty row is no target at all.
+  // A ZONE AHEAD (Mortar) is the same kind of thing: the lit block is what
+  // gets hit, every opponent in it, wherever the caster's reach would stop.
+  if (Number(p.zoneAhead ?? 0) > 0) {
+    if (!card.pos) return [];
+    const zone = zoneAheadCells(state.boardSize, card.owner, card.pos, Number(p.zoneAhead));
+    return enemyCards(state, card.owner).filter((e) => e.curHp > 0 && !!e.pos
+      && zone.some((z) => z.row === e.pos!.row && z.col === e.pos!.col));
+  }
   if (special.handler === "surfsUp") {
     if (!card.pos) return [];
     const aims = specialAims(state, card);
