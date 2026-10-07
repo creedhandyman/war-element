@@ -10243,7 +10243,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
    builder, the collection, the gallery, the draft and the card reader, so a
    card looks like the same object everywhere it appears. The pieces:
      .ef-rim    the element hairline (shares .tk-rim's rule), from EdgeFace.tsx
-     the cost   rides the element's badge in a NOTCH at the top centre
+     the cost   rides the element's badge in a tab in the top-left corner
      .ef-name   centred, uppercase, sized to fit by --nl (EdgeFace's EdgeName)
      .ef-stats  the token's glyphed numerals (EdgeStats)
      rarity     a small gem on the bottom edge, its label in the tooltip
@@ -10275,13 +10275,18 @@ button.deck-shot { padding: 0; cursor: pointer; }
    top edge; its other marks (info, NEW, the tick, the kind tag) keep theirs. */
 .deck-thumb.carded > .dt-top, .mull-card.carded > .hc-top { position: static; min-height: 18px; }
 .deck-thumb.carded > .dt-top > *, .mull-card.carded > .hc-top > * { position: relative; z-index: 3; }
-/* THE NOTCH. The badge that was a circle in the corner: the element's sigil is
-   still its fill and the cost still rides on it, now in a tab hanging from
-   the top edge, ringed in the element's colour (set inline). */
+/* THE CORNER TAB. The element's sigil is the fill and the cost rides on it,
+   in a tab tucked into the top-left corner, ringed in the element's colour
+   (set inline). It sat in a centre notch for a day; the owner moved it back to
+   the corner so it stays off the card's face (2026-10-07). Board tokens keep
+   their centre notch — that one carries no cost, only the sigil. The top row's
+   other marks start after it (--ef-badge-w). */
+.deck-thumb.carded, .mull-card.carded { --ef-badge-w: clamp(24px, 30cqw, 40px); }
+.deck-thumb.carded > .dt-top, .mull-card.carded > .hc-top { padding-left: calc(var(--ef-badge-w) - 1px); }
 .deck-thumb.carded .dt-cost, .mull-card.carded .mull-cost {
-  position: absolute; top: 0; left: 50%; translate: -50% 0; z-index: 3;
-  width: clamp(24px, 30cqw, 40px); height: clamp(16px, 20cqw, 27px);
-  border-radius: 0 0 8px 8px; border-width: 1.5px; border-style: solid; border-top-width: 0;
+  position: absolute; top: 0; left: 0; z-index: 3;
+  width: var(--ef-badge-w); height: clamp(16px, 20cqw, 27px);
+  border-radius: 9px 0 8px 0; border-width: 1.5px; border-style: solid; border-top-width: 0; border-left-width: 0;
   background-size: auto 96%; background-repeat: no-repeat; background-position: center;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
@@ -10342,11 +10347,5 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .cd-art { border-color: transparent; }
 .cd-art img { border-radius: 10px; }
 .cd-art > .ef-rim { border-radius: 10px; padding: 2px; }
-/* The element badge moves from the bottom corner into the top notch. */
-.cd-art > .cd-el-badge {
-  top: 0; bottom: auto; left: 50%; right: auto; translate: -50% 0; z-index: 3;
-  width: 40px; height: 27px; border-radius: 0 0 9px 9px; border-top-width: 0;
-  display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
-}
-.cd-art > .cd-el-badge img { width: 22px; height: 22px; object-fit: contain; }
-.cd-art > .cd-cost { z-index: 3; }
+/* Cost and element badge stay in their corners, off the art's face. */
+.cd-art > .cd-cost, .cd-art > .cd-el-badge { z-index: 3; }
