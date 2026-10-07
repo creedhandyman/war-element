@@ -1241,16 +1241,55 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    between things and then clips the last one. Name on the top edge, numerals on
    the bottom, bar under them, statuses down the left. Nothing can push anything
    else off. */
+/* THE EDGE FRAME (owner's pick, 2026-10-07): full-bleed art, a thin glowing
+   element hairline (.tk-rim), the element's badge in a notch at the top
+   (.tk-tab), and the name over the numerals in a dark fade at the bottom.
+   Whose side a card is on is an outer glow (.tk-glow) — cyan yours, red theirs.
+   The box itself has no border: the rim is a separate layer so it can be a
+   gradient. --tk-st is the numeral size, which grows with the tile on a big
+   board; the name and the pip column are placed from it. */
 .token {
   position: absolute; inset: 3%; border-radius: 9px; overflow: visible;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  border: 1.5px solid var(--el-rim, var(--panel-line));
+  border: 0;
+  --own: #ff4d5e;
+  --el-hi: color-mix(in srgb, var(--el-rim, #888) 50%, #fff);
+  --tk-st: clamp(11px, 10.5cqw, 16px);
   /* A CONTACT shadow (tight, dark, cast down-right — away from the board's
      top-left light) under the soft one, so the card sits ON the stone. */
-  box-shadow: 3px 5px 4px rgba(0, 0, 0, 0.55), 4px 10px 18px rgba(0, 0, 0, 0.6), 0 0 15px color-mix(in srgb, var(--el-rim, #000) 30%, transparent);
+  box-shadow: 3px 5px 4px rgba(0, 0, 0, 0.55), 4px 10px 18px rgba(0, 0, 0, 0.6);
 }
-.token.mine { background: linear-gradient(180deg, #1c1a26, #12111a); }
+.token.mine { --own: #3ad8ff; background: linear-gradient(180deg, #1c1a26, #12111a); }
 .token.enemy { background: linear-gradient(180deg, #1c1a26, #12111a); }
+/* Ownership. Its own element because the token's box-shadow is spoken for by
+   every state (attacking, foil, the strike preview) and a masked rim cannot
+   cast a shadow. No fill, so it only ever paints OUTSIDE the card. */
+.tk-glow {
+  position: absolute; inset: 0; z-index: 0; border-radius: inherit; pointer-events: none;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--own) 55%, transparent), 0 0 3px var(--own), 0 0 11px color-mix(in srgb, var(--own) 70%, transparent);
+}
+/* The hairline: an element gradient, bright at the top-left and fading
+   through the middle, cut to a ring by masking the content box out. */
+.tk-rim {
+  position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
+  padding: 1.5px;
+  background: linear-gradient(170deg, var(--el-hi), var(--el-rim, #888) 35%, rgba(255, 255, 255, 0.1) 62%, var(--el-rim, #888));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+          mask-composite: exclude;
+}
+/* The element notch, hanging from the top edge. Sized off the tile so a 7x7
+   phone board gets a small one and a PC board a readable one. */
+.tk-tab {
+  position: absolute; top: 0; left: 50%; z-index: 3; translate: -50% 0; pointer-events: none;
+  width: clamp(12px, 27cqw, 36px); height: clamp(8px, 17cqw, 22px);
+  display: grid; place-items: center;
+  background: #0b0c12; border: 1.5px solid var(--el-rim, #888); border-top: 0;
+  border-radius: 0 0 7px 7px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+.tk-tab > img { width: 82%; height: 82%; object-fit: contain; display: block; }
 /* Two pip columns, one down each edge: what the card IS on the right
    (keywords), what is currently HAPPENING to it on the left (statuses, buffs,
    debuffs). Opposite edges because they never then compete for the same space.
@@ -1276,7 +1315,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-pips {
   position: absolute; top: 17px; left: 2px; z-index: 5;
   display: flex; flex-direction: column; gap: 2px;
-  max-height: calc(100% - 34px); overflow: hidden; pointer-events: none;
+  max-height: calc(100% - 17px - var(--tk-st) - 26px); overflow: hidden; pointer-events: none;
 }
 .tk-pips-kw { left: auto; right: 2px; }
 .tk-pip {
@@ -1306,7 +1345,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    long as the player took to decide. */
 .token.acting { outline: 2px solid rgba(167, 139, 250, 0.4); outline-offset: 1px; }
 .token.acting::before {
-  content: ""; position: absolute; inset: -1.5px; border-radius: inherit; pointer-events: none;
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
   outline: 2px solid var(--accent); outline-offset: 1px;
   opacity: 0; --glow-min: 0; animation: glowpulse 1.3s infinite;
 }
@@ -1401,7 +1440,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    filter doesn't force a low-res rasterization. */
 .card-art {
   position: absolute; inset: 0; width: 100%; height: 100%; z-index: 0;
-  object-fit: cover; object-position: 50% 16%; border-radius: 7px;
+  object-fit: cover; object-position: 50% 16%; border-radius: 9px;
   pointer-events: none; filter: saturate(1.08);
 }
 /* STEALTH (Token.tsx useStealthFx): the art drains to a dim near-grey and
@@ -1410,9 +1449,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    off in one burst and the art flashes back to full colour.
    The drift is opacity + transform only — no repaint while it loops. */
 .token.stealthed .card-art { filter: grayscale(0.55) brightness(0.78) contrast(1.05); transition: filter 0.4s ease; }
-.token.stealthed { border-style: dashed; }
+/* The hairline dims with the art — the frame's version of the old dashed border. */
+.token.stealthed > .tk-rim { opacity: 0.35; }
 .tk-veil {
-  position: absolute; inset: 0; z-index: 0; border-radius: 7px; overflow: hidden; pointer-events: none;
+  position: absolute; inset: 0; z-index: 0; border-radius: 9px; overflow: hidden; pointer-events: none;
   background:
     radial-gradient(55% 40% at 28% 38%, rgba(60, 30, 100, 0.5), transparent 70%),
     radial-gradient(50% 45% at 74% 60%, rgba(14, 8, 30, 0.55), transparent 72%),
@@ -1550,11 +1590,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    a stronger one behind the BOTTOM stat strip, with the art left clear in the
    middle. Stats used to sit straight on busy art and were unreadable; these
    plates make the numbers legible without hiding the illustration. */
+/* Edge frame: the name moved down to the numerals, so the top only needs a
+   light wash behind the notch and pips, and the bottom carries one fade. */
 .token::after {
-  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 7px;
+  content: ""; position: absolute; inset: 0; z-index: 0; border-radius: 9px;
   background:
-    linear-gradient(180deg, rgba(6,7,12,0.78) 0%, rgba(6,7,12,0) 34%),
-    linear-gradient(180deg, rgba(6,7,12,0) 48%, rgba(6,7,12,0.72) 74%, rgba(6,7,12,0.94) 100%);
+    linear-gradient(180deg, rgba(6,7,12,0.45) 0%, rgba(6,7,12,0) 20%),
+    linear-gradient(180deg, rgba(6,7,12,0) 50%, rgba(6,7,12,0.78) 72%, #06070c 96%);
 }
 .token > .tk-name, .token > .tk-stats, .token > .tk-bar { z-index: 1; }
 /* Top row: name is the hero, flanked by the cost badge and element dot. */
@@ -1564,10 +1606,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    serif: this is the size at which Cinzel's small lowercase forced names to
    truncate to "Rep…". At 11px Inter Tight, "Hydrogon" and "Kinguin" fit whole
    on a 70px tile. */
+/* Edge frame: centred over the numerals, uppercase. A long name SHRINKS to fit
+   rather than cutting off: --nl is the longest line's length (Token.tsx, which
+   also splits a name over 13 letters onto two lines), and the size is the
+   tile's text width shared out at ~0.74em per uppercase letter, capped at the
+   numerals' size. Measured: every name in the set fits whole from a 58px tile
+   up; the ellipsis is only the backstop below 6px. */
 .tk-name {
-  position: absolute; top: 2px; left: 3px; right: 3px; z-index: 1;
-  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 600;
-  letter-spacing: -0.1px; line-height: 13px; color: #f5efe4;
+  position: absolute; left: 2px; right: 2px; bottom: calc(var(--tk-st) + 11px); z-index: 1;
+  font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; text-align: center;
+  font-size: clamp(6px, calc((94cqw - 4px) / (var(--nl, 8) * 0.74)), var(--tk-st));
+  letter-spacing: 0.03em; line-height: 1.15; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
 }
@@ -1591,20 +1640,39 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    font-variant-numeric: tabular-nums so a 9 becoming a 10 does not shuffle the
    row sideways mid-fight. */
 .tk-stats {
-  position: absolute; left: 0; right: 0; bottom: 4px; z-index: 1;
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 0 3px; height: 13px;
-  font-family: var(--font-ui); font-size: var(--fs-2); font-weight: 700;
+  position: absolute; left: 0; right: 0; bottom: 6px; z-index: 1;
+  display: flex; align-items: center; justify-content: center; gap: clamp(3px, 7cqw, 12px);
+  padding: 0 3px; height: calc(var(--tk-st) + 2px);
+  font-family: var(--font-ui); font-size: var(--tk-st); font-weight: 700;
   line-height: 1; font-variant-numeric: tabular-nums;
 }
+/* The element hairline between the name and the numerals. */
+.tk-stats::before {
+  content: ""; position: absolute; left: 22%; right: 22%; top: -3px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--el-rim, #888), transparent);
+}
+/* A tiny glyph ahead of each numeral, in its own colour: a diamond for damage,
+   a leaf for HP, a dot for speed. Dropped on a cramped tile, where colour alone
+   has to say it and the width is worth more. */
+.tk-stats > span::before {
+  content: ""; width: 0.42em; height: 0.42em; margin-right: 0.22em; flex: none;
+  background: currentColor; box-shadow: 0 0 3px #000;
+}
+.tk-stats > .st-dmg::before { rotate: 45deg; }
+.tk-stats > .st-hp::before { border-radius: 0 60% 0 60%; }
+.tk-stats > .st-sp::before { border-radius: 50%; }
+@container (max-width: 70px) {
+  .tk-stats > span::before { display: none; }
+}
+.tk-name.two { white-space: pre; line-height: 1.05; }
 /* HP + shields, 3px, the full width of the card. The bar is what replaced the
    "/max" text: it carries the ratio, and it does not change the row's width
    when a card is wounded — which is the bug that broke the stat row. Shields
    are the GREY HEAD because that is the order damage spends them in. */
 .tk-bar {
-  position: absolute; left: 0; right: 0; bottom: 0; z-index: 1; height: 3px;
-  display: flex; overflow: hidden; border-radius: 0 0 7px 7px;
-  background: rgba(255, 255, 255, 0.07);
+  position: absolute; left: 8px; right: 8px; bottom: 3px; z-index: 1; height: 2px;
+  display: flex; overflow: hidden; border-radius: 2px;
+  background: rgba(255, 255, 255, 0.1);
 }
 .tk-bar-sh { background: var(--stat-sh); transition: width 0.25s ease; }
 .tk-bar-hp { background: linear-gradient(90deg, #3ec778, var(--stat-hp)); transition: width 0.25s ease; }
@@ -9221,13 +9289,8 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .token > .tk-name.suit-club-alt { color: var(--suit-club-alt); }
 .token > .tk-name.suit-diamond-alt { color: var(--suit-diamond-alt); }
 .token > .tk-name.suit-heart-alt { color: var(--suit-heart-alt); }
-/* A faint plate behind it, so the tint survives whatever art is underneath —
-   a pale portrait was washing the lighter two out. */
-.token > .tk-name {
-  background: linear-gradient(180deg, rgba(6, 7, 12, 0.72), rgba(6, 7, 12, 0.22));
-  border-radius: 3px;
-  padding: 0 2px;
-}
+/* (The faint plate that sat behind the name is gone: the Edge frame's bottom
+   fade is darker than it was, and the tint reads on it as it is.) */
 
 /* THE WELL — the one square on the map that mends you, at the crossroads where
    all four lanes meet. Green, because that is what healing reads as everywhere
@@ -9363,13 +9426,9 @@ button.deck-shot { padding: 0; cursor: pointer; }
   line-height: 13px;
   pointer-events: none;
   text-shadow: 0 1px 3px #000, 0 0 5px rgba(0, 0, 0, 0.9);
-  /* SEE-THROUGH, so the name may pass beneath it. The suit answers "whose card
-     is this", which is a question you ask once when you glance at the board and
-     never again; the NAME is what you are reading the tile for. At full opacity
-     it had to be given a 13px no-go strip of a ~55px tile, and a quarter of the
-     width is the difference between "Sphere" and "Sph…". It stays legible at
-     this alpha because it is a solid high-contrast glyph over a dark plate. */
-  opacity: 0.5;
+  /* It used to be half see-through so the name could run beneath it; the name
+     lives at the bottom in the Edge frame, so the corner is the suit's alone. */
+  opacity: 0.9;
 }
 /* Coloured BY SUIT rather than by seat number, using the `suit-*` class the
    token already carried and nothing had ever styled. Same values either way —
@@ -9423,11 +9482,8 @@ button.deck-shot { padding: 0; cursor: pointer; }
    Cut at 17px/9px rather than a smooth 0-100% ramp so the first two thirds of
    the name are at full strength — a gradient across the whole label would dim
    text that has no reason to be dim. */
-.token > .tk-name {
-  right: 3px;
-  -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 17px), rgba(0, 0, 0, 0.55) calc(100% - 9px), rgba(0, 0, 0, 0.12) 100%);
-          mask-image: linear-gradient(90deg, #000 calc(100% - 17px), rgba(0, 0, 0, 0.55) calc(100% - 9px), rgba(0, 0, 0, 0.12) 100%);
-}
+/* (Retired by the Edge frame, which moved the name to the bottom edge, clear
+   of the suit — so it no longer fades out beneath it.) */
 
 /* ── BATTLE CHAT ──────────────────────────────────────────────────────────
    Online matches only. It has to sit over the board without taking any of it:

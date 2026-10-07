@@ -3,7 +3,7 @@ import type { CardInstance, GameState, PlayerId } from "../engine";
 import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiveSp, fieldFlag, getDef, hasTotemSpirit, isBloodfire, legalMoves } from "../engine";
 import { isStealthed } from "../engine/rules";
 import type { AuraGlow } from "./aura-glow";
-import { cardThumbSrc, EL_COLOR, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
+import { cardThumbSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -484,6 +484,7 @@ export function Token(props: {
   const shPct = (shields / barTotal) * 100;
   const hpPct = (Math.max(0, card.curHp) / barTotal) * 100;
   const hits = effectiveBasicHits(card, game);
+  const nameLines = splitName(def.name);
   const cls = [
     "token",
     mine ? "mine" : "enemy",
@@ -516,6 +517,9 @@ export function Token(props: {
       data-el={def.element}
       title={`${def.name} — click to inspect (full art, stats, Special & passives)${def.special ? `\n\n${def.special.name}: ${def.special.text}` : ""}`}
     >
+      {/* Edge frame: the ownership glow sits under everything (it only paints
+          outside the card), the rim and the element notch over the art. */}
+      <span className="tk-glow" aria-hidden="true" />
       <img
         className="card-art"
         src={cardThumbSrc(def)}
@@ -524,6 +528,10 @@ export function Token(props: {
           e.currentTarget.style.display = "none";
         }}
       />
+      <span className="tk-rim" aria-hidden="true" />
+      <span className="tk-tab" aria-hidden="true">
+        <img src={EL_ICON[def.element]} alt="" />
+      </span>
       {/* A real element rather than ::after — the token already spends its
           ::after on the bottom scrim that keeps the stat row readable. */}
       {props.foil && <span className="tk-foil foil-sheen" aria-hidden="true" />}
@@ -608,7 +616,14 @@ export function Token(props: {
       >
         {suit.glyph}
       </span>
-      <div className={`tk-name suit-${suit.key}`}>{def.name}</div>
+      {/* --nl (the longest line's length) lets the CSS shrink a long name to
+          fit instead of cutting it; a name too long for one line splits in two. */}
+      <div
+        className={`tk-name suit-${suit.key}${nameLines.length > 1 ? " two" : ""}`}
+        style={{ ["--nl" as string]: Math.max(...nameLines.map((l) => l.length)) }}
+      >
+        {nameLines.join("\n")}
+      </div>
       {/* Statuses as a left column, two deep, then a count. A wrapping strip
           across the middle of the art could grow to five chips and hide the
           thing you are looking at. */}
@@ -688,4 +703,16 @@ export function Token(props: {
       </div>
     </div>
   );
+}
+
+/** A name the Edge frame cannot shrink onto one line — "Thunderfangs,
+ *  Stormform" would need 5px type — goes on two, split at the space nearest
+ *  the middle. Short names, and one-word names, stay whole. */
+function splitName(name: string): string[] {
+  if (name.length <= 13 || !name.includes(" ")) return [name];
+  let best = -1;
+  for (let i = 0; i < name.length; i++) {
+    if (name[i] === " " && (best < 0 || Math.abs(i - name.length / 2) < Math.abs(best - name.length / 2))) best = i;
+  }
+  return [name.slice(0, best), name.slice(best + 1)];
 }
