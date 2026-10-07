@@ -1965,6 +1965,20 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     scrollbar-width: none;
   }
   .hand:not(.collapsed) .hand-fan::-webkit-scrollbar { display: none; }
+  /* ...and a scroller CLIPS ON EVERY SIDE, the top included. The hover lift
+     below (20px up, plus 7% of growth from the bottom edge) carried the card
+     out of the row's box and its top was cut off right at the board's edge —
+     "the highlighted card goes underneath the board" (owner, 2026-10-06).
+     Headroom: the box reaches 34px higher than it used to (padding) and the
+     same 34px is taken back (margin), so the row sits exactly where it was.
+     That empty band now lies over the board's bottom row, so it lets clicks
+     through; the cards themselves still take them. */
+  .hand:not(.collapsed) .hand-fan {
+    padding-top: calc(8px + 34px);
+    margin-top: -34px;
+    pointer-events: none;
+  }
+  .hand:not(.collapsed) .hand-fan > * { pointer-events: auto; }
   .hand:not(.collapsed) .hand-fan .hcard {
     /* `!important` because Hand.tsx sets --rot and --ty as INLINE styles, one
        pair per card, and an inline custom property beats any stylesheet rule
