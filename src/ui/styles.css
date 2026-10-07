@@ -652,12 +652,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
    texture slid by `--sx`/`--sy` so no two tiles match); then the tile's own
    tinted base underneath, unchanged. */
 .slot {
-  background:
+  /* THE STONE, as one variable (owner, 2026-10-06): every terrain square on
+     Domination's 7x7 — road, shrine, Well, closed citadel — and a captured
+     square paints its own tint ON TOP of this instead of replacing it, so the
+     whole board is one ground. They used to set `background` outright, which
+     wiped the stone and left those squares flat. */
+  --stone-layers:
     linear-gradient(135deg, rgba(255, 244, 222, 0.07) 0%, transparent 26%, transparent 66%, rgba(0, 0, 0, 0.3) 100%),
     linear-gradient(rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4)), rgba(0, 0, 0, calc(0.46 - var(--lit, 0.5) * 0.4))),
     linear-gradient(rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08)), rgba(255, 226, 180, calc(var(--lit, 0.5) * 0.08))),
     var(--ground, url("/tile-stone.webp")) var(--sx, 0%) var(--sy, 0%) / 230% auto repeat,
     radial-gradient(95% 95% at 50% 42%, rgba(70, 74, 92, 0.32), rgba(14, 16, 24, 0.6));
+  background: var(--stone-layers);
   /* CRISP EDGES: a one-pixel lit lip top-left and a dark one bottom-right —
      the hard edge of a cut block, which a blurred rim alone never reads as. */
   box-shadow:
@@ -868,7 +874,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   border: 1.5px dashed rgba(232, 236, 248, 0.65);
   background:
     repeating-linear-gradient(135deg, rgba(0, 0, 0, 0.62) 0 7px, rgba(226, 232, 248, 0.13) 7px 14px),
-    radial-gradient(95% 95% at 50% 42%, rgba(38, 41, 52, 0.92), rgba(9, 10, 16, 0.96));
+    linear-gradient(rgba(9, 10, 16, 0.45), rgba(9, 10, 16, 0.45)),
+    var(--stone-layers);
   box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.65), inset 0 0 24px rgba(0, 0, 0, 0.72);
   cursor: default;
 }
@@ -8913,7 +8920,8 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .slot.dom-closed {
   background:
     repeating-linear-gradient(45deg,
-      rgba(0, 0, 0, 0.55) 0 6px, rgba(120, 120, 140, 0.10) 6px 12px);
+      rgba(0, 0, 0, 0.55) 0 6px, rgba(120, 120, 140, 0.10) 6px 12px),
+    var(--stone-layers);
   border-color: rgba(150, 150, 170, 0.30);
   cursor: not-allowed;
 }
@@ -8930,7 +8938,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
    to stay quiet enough that a token on top of it still reads first. */
 .slot.dom-road {
   background: linear-gradient(180deg,
-    rgba(80, 160, 255, 0.09), rgba(80, 160, 255, 0.04));
+    rgba(80, 160, 255, 0.09), rgba(80, 160, 255, 0.04)), var(--stone-layers);
   border-color: rgba(90, 170, 255, 0.22);
 }
 
@@ -8938,7 +8946,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
    team colour. */
 .slot.dom-shrine {
   background: radial-gradient(circle at 50% 50%,
-    rgba(168, 85, 247, 0.26), rgba(168, 85, 247, 0.06) 70%);
+    rgba(168, 85, 247, 0.26), rgba(168, 85, 247, 0.06) 70%), var(--stone-layers);
   border-color: rgba(190, 120, 255, 0.55);
 }
 .slot.dom-shrine::before {
@@ -8959,7 +8967,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
    one square the colour must not claim, because nothing is standing on it. */
 .slot.dom-closed.dom-poi { background:
   repeating-linear-gradient(45deg,
-    rgba(0, 0, 0, 0.55) 0 6px, rgba(120, 120, 140, 0.10) 6px 12px); }
+    rgba(0, 0, 0, 0.55) 0 6px, rgba(120, 120, 140, 0.10) 6px 12px), var(--stone-layers); }
 
 /* The Domination scoreboard, in the slot the "Opponent Home" crest used to
    occupy. Four pips and two tallies — small, because it sits above the board
@@ -9227,7 +9235,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
    something rather than another piece of terrain. */
 .slot.dom-well {
   background: radial-gradient(circle at 50% 50%,
-    rgba(64, 210, 125, 0.30), rgba(64, 210, 125, 0.06) 72%);
+    rgba(64, 210, 125, 0.30), rgba(64, 210, 125, 0.06) 72%), var(--stone-layers);
   border-color: rgba(90, 230, 150, 0.65);
   /* The pulse's dim end, still; the cue layer brings it up to the old 0.42. */
   box-shadow: inset 0 0 12px rgba(64, 210, 125, 0.20);
