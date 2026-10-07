@@ -84,9 +84,22 @@
   /* Grid overlay alignment onto the painted tiles. The playable 4x4 sits inside
      the art's stone border — these insets/gap position the clickable grid over
      it. Nudge to line the slots up with the painted tiles. */
+  /* Kept for anything outside `.wrap` that reads it; a match board takes its
+     size from the 3:4 formula on `.wrap` (see "THE STANDARD CARD"). */
   --board-size: min(78vh, 720px);
-  --board-frame: 3%;   /* stone rim thickness around the grid */
-  --grid-gap: 1.6%;    /* glowing seam between tiles */
+  /* PC BUDGETS for that formula. 283px is everything in the PC column that is
+     not the board — the phase ribbon, the opponent's hand row, the fixed
+     150px bar and the gaps — measured identical at 1280x720, 1366x850 and
+     1920x1080. Re-measure it if a row is added to or removed from the column. */
+  --board-hb: calc(100vh - 283px);
+  --board-wb: min(calc(100vw - 470px), 960px);
+  --board-floor: 200px;
+  /* ABSOLUTE, not %. A percentage rim resolves against the column's width and
+     a percentage seam against the board's own height, so neither could be
+     subtracted to size a tile. These match what the percentages drew at
+     1366x850 (27px, 8px). */
+  --board-frame: clamp(16px, 3.2vh, 40px);   /* stone rim thickness around the grid */
+  --grid-gap: clamp(5px, 1vh, 11px);         /* glowing seam between tiles */
   /* per-row tile glow colors (procedural battlefield) */
   --tile-opp: #ff8578;
   --tile-mid: #c9d2e8;
@@ -506,6 +519,34 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
     0 0 40px rgba(201, 162, 75, 0.12);
   /* Flat top-down board (3D tilt removed). */
 }
+/* ══ THE STANDARD CARD: every board tile is 3:4 (owner, 2026-10-06) ══════════
+   One shape on every screen, so a card — and the battle frames painted for it
+   — looks the same on a phone and a PC. PC tiles were wider than tall (144x122
+   at 1366x850): the width was fixed and the board was squeezed into whatever
+   height the column had left.
+
+   Each tier now states only its BUDGETS — the height the board may take
+   (--board-hb), the width (--board-wb), and a floor — and this works out the
+   rest. With N tiles a side (--cells, set by the match), the rim F and the
+   seam G, the fixed part of either side is 2F + (N-1)G; the tiles share the
+   remainder, so a 3:4 tile means
+        width  = (height - fixed) * 3/4 + fixed
+   The board takes the largest width both budgets allow and derives its height
+   from that width, so it is always the right shape and as big as it can be.
+   Declared on `.wrap` because that is where --cells lives. */
+.wrap {
+  --bd-n: var(--cells, 4);
+  --bd-fix: calc(2 * var(--board-frame) + (var(--bd-n) - 1) * var(--grid-gap));
+  --board-size: max(var(--board-floor), min(
+    var(--board-wb),
+    calc((var(--board-hb) - var(--board-extra, 0px) - var(--bd-fix)) * 3 / 4 + var(--bd-fix))
+  ));
+  --board-h: calc((var(--board-size) - var(--bd-fix)) * 4 / 3 + var(--bd-fix));
+}
+/* DOMINATION adds the points strip (`.crest.dom-score`) above the board — a
+   row the tier budgets do not count. Measured: 20px and the column's 6px gap
+   on PC; the compact tiers' gap is 3px. */
+.wrap:has(.crest.dom-score) { --board-extra: 26px; }
 /* ONE .brow rule. There were two, and the second silently won: the row gap was
    the fluid var(--grid-gap) and the column gap a fixed 8px, so a tile's aspect
    ratio drifted with board size and a "square" tile was never actually square
@@ -4191,8 +4232,14 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
        re-sized on every touch. `svh` is the height with the bar SHOWN — it
        never moves — so the board keeps one size. The wrap stays on `dvh` and
        simply gains a little room at the foot when the bar is hidden. */
-    --board-size: max(240px, min(calc(100vw - 12px), calc((100svh - var(--hud-budget)) * 70 / 87)));
-    --board-h: calc(var(--board-size) * 87 / 70);
+    /* Budgets for the 3:4 formula (see "THE STANDARD CARD"); this tier used to
+       fix the board at 87/70 tall, which made its tiles 0.80, not 0.75.
+       The height is also capped at what that 87/70 board reached for this
+       width, so the board is never TALLER than it was — only narrower, which
+       is the trade a portrait tile makes — and the page below it does not move. */
+    --board-hb: min(calc(100svh - var(--hud-budget)), calc((100vw - 12px) * 87 / 70));
+    --board-wb: calc(100vw - 12px);
+    --board-floor: 240px;
   }
 
   .wrap {
@@ -4821,8 +4868,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
      of the budget moved it, because the thing overflowing was never the width. */
   :root {
     --hud-budget: 280px;
-    --board-size: max(150px, min(calc(100vw - 12px), calc((100svh - var(--hud-budget)) * 70 / 87))); /* svh: see above */
-    --board-h: calc(var(--board-size) * 87 / 70);
+    --board-hb: min(calc(100svh - var(--hud-budget)), calc((100vw - 12px) * 87 / 70)); /* svh: see above; capped at the old 87/70 height */
+    --board-wb: calc(100vw - 12px);
+    --board-floor: 150px;
   }
   /* The opponent's fanned cards are decoration, and the first thing to go when
      the screen is this short — the landscape tier drops them for the same
@@ -4885,10 +4933,18 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
        height at all, so the board is height-bound and takes everything it can. */
     /* Floored for the same reason as the portrait rule above — landscape is
        the tighter of the two on height, so it goes negative sooner. */
+    /* NOT 3:4 HERE (see "THE STANDARD CARD"). A sideways phone has no height:
+       portrait tiles at 844x390 came to 26x35 on a 4x4 and 11x15 on the 7x7,
+       half the width of today's tiles for the same height. This tier keeps its
+       square board and its own sizing, set on `.wrap` after the formula so it
+       wins, until there is a layout that gives it the height. */
     --board-size: max(200px, min(
       calc(100svh - 186px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)), /* svh: the address bar must not resize the board */
       calc(100vw - var(--hreserve))
     ));
+    --board-h: var(--board-size);
+    --board-frame: 3%;
+    --grid-gap: 1.6%;
     padding: calc(5px + env(safe-area-inset-top)) calc(6px + env(safe-area-inset-right))
              calc(5px + env(safe-area-inset-bottom)) calc(6px + env(safe-area-inset-left));
   }

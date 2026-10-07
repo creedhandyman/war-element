@@ -68,6 +68,9 @@ export function MatchLayout(props: {
   logCollapsed: boolean;
   preMatch: boolean;
   wheelUp: boolean;
+  /** Tiles per side of the board in play (4, 5 or 7). The 3:4 board formula in
+   *  styles.css ("THE STANDARD CARD") needs it to size a tile. */
+  cells: number;
 
   /** Which phone drawer is open, and how to change it. */
   mobilePanel: MobilePanel;
@@ -108,6 +111,7 @@ export function MatchLayout(props: {
         (props.preMatch ? " pre-match" : "") +
         (props.wheelUp ? " wheel-up" : "")
       }
+      style={{ ["--cells" as string]: props.cells }}
     >
       <button
         className="music-toggle"

@@ -5078,6 +5078,7 @@ export function App() {
       logCollapsed={logCollapsed}
       preMatch={!started}
       wheelUp={barTucked}
+      cells={game.boardSize}
       mobilePanel={mobilePanel}
       setMobilePanel={setMobilePanel}
       logIsStrip={logIsStrip}
