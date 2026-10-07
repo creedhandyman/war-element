@@ -38,7 +38,6 @@ import {
 import { cardArtSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, RARITY_STYLE, STATUS_STYLE } from "./shared";
 import { EdgeRim } from "./EdgeFace";
 import { cardMods, grantedKeywords } from "./Token";
-import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
 import { chipify, describeOwnPassives, describeSharedPassives, liveDef, rounds, STATUS_TEXT, talentEffect, TALENT_LINE_PREFIX } from "./card-text";
 import { foilBonusFor, FOIL_STAT_LABEL, type FoilStat } from "../data/foils";
@@ -175,7 +174,7 @@ export function CardView(props: CardViewProps) {
     // inside other overlays (the deck builder, the collection) and a bare
     // onClose would close the parent underneath it too.
     <div className="overlay on-top cardview" onClick={(e) => { e.stopPropagation(); props.onClose(); }}>
-      <div className="modal cd-modal" onClick={(e) => e.stopPropagation()}>
+      <div className="modal cd-modal" data-el={d.element} onClick={(e) => e.stopPropagation()}>
         <button className="cd-x" title="Close" onClick={props.onClose}>✕</button>
 
         {/* ── zone 1 · header ─────────────────────────────────────────────── */}
@@ -190,11 +189,18 @@ export function CardView(props: CardViewProps) {
               }}
             />
             <EdgeRim />
-            <span className="cd-cost">{d.cost}</span>
-            <span className="cd-el-badge" style={{ borderColor: EL_COLOR[d.element] }}>
-              <img src={EL_ICON[d.element]} alt={d.element}
-                onError={(e) => { e.currentTarget.style.display = "none"; }} />
+            {/* The Edge face, large: cost on the element's sigil in the corner
+                tab, as on every thumb; rarity as the gem on the bottom edge. */}
+            <span
+              className="cd-cost"
+              title={`${d.element} · cost ${d.cost}`}
+              style={{ borderColor: EL_COLOR[d.element], backgroundImage: `url(${EL_ICON[d.element]})` }}
+            >
+              <b>{d.cost}</b>
             </span>
+            {d.rarity && RARITY_STYLE[d.rarity] && (
+              <span className="cd-rar-gem" style={{ color: RARITY_STYLE[d.rarity].color }} title={RARITY_STYLE[d.rarity].label} />
+            )}
           </div>
 
           <div className="cd-info">
@@ -214,23 +220,23 @@ export function CardView(props: CardViewProps) {
               <div className="cd-stat" title="Damage — live value includes Mid-row control and statuses">
                 <span className="cd-lbl">DMG</span>
                 <span className="cd-val st-dmg">
-                  ⚔<span className="atk-dmg">{vm.stats.dmg}</span>
-                  {vm.stats.hits > 1 ? <span className="atk-x"> ×{vm.stats.hits}</span> : ""}
+                  {vm.stats.dmg}
+                  {vm.stats.hits > 1 ? <span className="atk-x">×{vm.stats.hits}</span> : ""}
                 </span>
               </div>
               <div className="cd-stat" title="Current / max HP">
                 <span className="cd-lbl">HP</span>
                 <span className="cd-val st-hp">
-                  ♥{vm.wounded ? `${vm.stats.hp}/${vm.stats.hpMax}` : vm.stats.hp}
+                  {vm.wounded ? `${vm.stats.hp}/${vm.stats.hpMax}` : vm.stats.hp}
                 </span>
               </div>
               <div className="cd-stat" title="Shields">
                 <span className="cd-lbl">SHIELD</span>
-                <span className="cd-val st-sh">🛡{vm.stats.shields}</span>
+                <span className="cd-val st-sh">{vm.stats.shields}</span>
               </div>
               <div className="cd-stat" title="Speed — queue order & move reach">
                 <span className="cd-lbl">SP</span>
-                <span className="cd-val st-sp"><SpIcon />{vm.stats.sp}</span>
+                <span className="cd-val st-sp">{vm.stats.sp}</span>
               </div>
             </div>
 

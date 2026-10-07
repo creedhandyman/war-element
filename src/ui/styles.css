@@ -10343,9 +10343,88 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .hcard .hc-name.two { white-space: pre; line-height: 1.05; }
 .hcard .hc-stats > span::before { margin-right: 0.18em; }
 
-/* ── the card reader (CardView) ──────────────────────────────────────────── */
-.cd-art { border-color: transparent; }
-.cd-art img { border-radius: 10px; }
-.cd-art > .ef-rim { border-radius: 10px; padding: 2px; }
-/* Cost and element badge stay in their corners, off the art's face. */
-.cd-art > .cd-cost, .cd-art > .cd-el-badge { z-index: 3; }
+/* ── the card reader (CardView): the Edge face, large ──────────────────────
+   The panel takes the card's element (data-el on .cd-modal): a faint wash of
+   it in the top corner, the art as a real 3:4 Edge card with its glow, an
+   uppercase name over an element hairline, stat tiles wearing the same glyphs
+   as the card faces, and each ability block as a panel with an element edge. */
+.cd-modal {
+  border-color: color-mix(in srgb, var(--el-rim, var(--panel-line)) 38%, var(--panel-line));
+  background:
+    radial-gradient(130% 55% at 0% 0%, color-mix(in srgb, var(--el-rim, #888) 13%, transparent), transparent 62%),
+    var(--panel);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+}
+.cd-body { gap: 16px; align-items: flex-start; }
+.cd-art {
+  width: 132px; height: auto; aspect-ratio: 3 / 4; border: 0; border-radius: 11px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.6), 0 0 18px color-mix(in srgb, var(--el-rim, #000) 32%, transparent);
+}
+.cd-art > img { border-radius: 11px; }
+.cd-art > .ef-rim { border-radius: 11px; padding: 2px; }
+/* A soft fade at the foot so the rarity gem has something dark to sit on. */
+.cd-art::before {
+  content: ""; position: absolute; inset: 0; z-index: 1; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(180deg, rgba(6,7,12,0.35) 0%, rgba(6,7,12,0) 18%, rgba(6,7,12,0) 72%, rgba(6,7,12,0.7) 100%);
+}
+/* The corner tab: the thumbs' badge at reader size. */
+.cd-art > .cd-cost {
+  top: 0; left: 0; z-index: 3; width: 42px; height: 30px;
+  border-radius: 11px 0 9px 0; border: 1.5px solid; border-top: 0; border-left: 0;
+  background-color: #0b0c12; background-size: auto 94%; background-repeat: no-repeat; background-position: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7); overflow: hidden;
+}
+.cd-art > .cd-cost::after {
+  content: ""; position: absolute; inset: 0;
+  background: radial-gradient(circle, rgba(6, 7, 12, .62) 22%, rgba(6, 7, 12, .12) 62%, transparent 78%);
+}
+.cd-art > .cd-cost b {
+  position: relative; z-index: 1; font-size: 17px; font-weight: 800; color: #fff; line-height: 1; display: block;
+  text-shadow: 0 1px 2px #000, 0 0 3px #000, 0 0 6px rgba(0, 0, 0, .9);
+}
+.cd-rar-gem {
+  position: absolute; left: 50%; bottom: 7px; z-index: 3; translate: -50% 0; rotate: 45deg;
+  width: 9px; height: 9px; border-radius: 1.5px;
+  background: currentColor; border: 1px solid rgba(0, 0, 0, 0.75); box-shadow: 0 0 7px currentColor;
+}
+/* The name: uppercase, over the element hairline, clear of the close button. */
+.cd-name {
+  padding-right: 26px; font-family: var(--font-ui); font-size: 20px; font-weight: 800;
+  text-transform: uppercase; letter-spacing: 0.04em; line-height: 1.1; color: #fff;
+}
+.cd-name::after {
+  content: ""; display: block; width: 72%; height: 1px; margin-top: 7px;
+  background: linear-gradient(90deg, var(--el-rim, #888), transparent);
+}
+.cd-sub span { border-radius: 999px; padding: 2px 8px; letter-spacing: 0.05em; border: 1px solid rgba(255, 255, 255, 0.07); }
+.cd-sub .cd-el { border-color: transparent; }
+/* Stat tiles: a coloured top edge per stat and the card faces' glyph before
+   each number (diamond damage, leaf HP, shield, dot speed). */
+.cd-stat {
+  background: rgba(255, 255, 255, 0.035); border: 1px solid rgba(255, 255, 255, 0.06);
+  border-top: 2px solid var(--cd-stat, var(--panel-line)); padding: 6px 2px 7px;
+}
+.cd-stat:nth-child(1) { --cd-stat: var(--stat-dmg); }
+.cd-stat:nth-child(2) { --cd-stat: var(--stat-hp); }
+.cd-stat:nth-child(3) { --cd-stat: var(--stat-sh); }
+.cd-stat:nth-child(4) { --cd-stat: var(--stat-sp); }
+.cd-lbl { letter-spacing: 0.08em; }
+.cd-val { font-family: var(--font-ui); font-size: 16px; font-variant-numeric: tabular-nums; }
+.cd-val::before {
+  content: ""; width: 0.46em; height: 0.46em; margin-right: 0.25em; flex: none;
+  background: currentColor; box-shadow: 0 0 3px #000;
+}
+.cd-val.st-dmg::before { rotate: 45deg; }
+.cd-val.st-hp::before { border-radius: 0 60% 0 60%; }
+.cd-val.st-sh::before { width: 0.5em; height: 0.56em; clip-path: polygon(50% 0, 100% 16%, 92% 62%, 50% 100%, 8% 62%, 0 16%); }
+.cd-val.st-sp::before { border-radius: 50%; }
+.cd-val .atk-x { color: #fff; font-size: 0.72em; margin-left: 1px; }
+.cd-kw { border: 1px solid rgba(143, 195, 255, 0.22); }
+/* Ability blocks as panels with the element down their left edge. */
+.cd-section {
+  margin-top: 12px; padding: 10px 12px; border-top: 0; border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid color-mix(in srgb, var(--el-rim, var(--panel-line)) 65%, transparent);
+}
+.cd-h { font-family: var(--font-ui); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
+.cd-text { margin-top: 5px; }
