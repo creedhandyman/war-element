@@ -2738,6 +2738,14 @@ export function copyCapFor(defId: string, deckCap: number, epicsMayDouble = fals
 }
 export const DUPLICATE_CAP_DEFAULT = 1;
 
+/** The cheap end of a formation: at least this share of it costs `CHEAP_COST` or
+ *  less (and never fewer than `CHEAP_FLOOR_MIN` bodies), on any squad of
+ *  `CHEAP_FLOOR_FROM_SIZE` or more. See the pass in `buildFormation`. */
+export const CHEAP_COST = 2;
+export const CHEAP_SHARE = 0.25;
+export const CHEAP_FLOOR_MIN = 2;
+export const CHEAP_FLOOR_FROM_SIZE = 6;
+
 /** Bodies a formation aims for: a WHOLE DECK, matched to the player's own card
  *  count. The enemy brings as many cards as you do — the fight is decided by
  *  what the cards are, not by who ran out of board first. §10.7's smaller
@@ -3198,6 +3206,47 @@ export function buildFormation(save: StorySave, region: StoryRegion, node: Story
   fill(musterPool("epic"), maxEpic);
   fill(tribePool("epic"), maxEpic);
   fill(regionPool("epic"), maxEpic);
+  // THE CHEAP END. A real deck opens on 1- and 2-drops; a formation that is all
+  // power bands plus whatever the muster hands over has none, so a late Landmark
+  // or Throne could field twelve bodies of cost 3 and up and never put anything
+  // on the board in the first round. Measured over every node with the rest of
+  // its region cleared: GALE G12, BORE R11/R12 and DAWN's Wardens fielded NO
+  // card of cost 1-2, and Landmarks and Thrones averaged under three of twelve.
+  //
+  // So a floor, taken from the Rare remainder AFTER the Legendary/Epic bands
+  // (those quotas are what make a tier feel like itself, and are untouched):
+  // a quarter of the squad costs 2 or less, whatever the node's own roster and
+  // the muster brought. Own cards first, then the tribe, then the region — all of
+  // them placed on nodes of their own, so nothing is made unobtainable by this.
+  // A node that already has enough cheap bodies adds none, so early fights, which
+  // are all cheap already, do not change.
+  if (!opening && target >= CHEAP_FLOOR_FROM_SIZE) {
+    const cheap = (id: string) => getDef(id).cost <= CHEAP_COST;
+    let need = Math.max(CHEAP_FLOOR_MIN, Math.ceil(target * CHEAP_SHARE)) - out.filter(cheap).length;
+    const cheapRares = (ids: string[]) =>
+      ids.filter((id) => rarity(id) === "rare" && cheap(id)).sort(byCost);
+    const regionIds = [...new Set(region.nodes.flatMap((n) => n.roster))];
+    const pools = [
+      cheapRares(present),
+      cheapRares(regionIds.filter((id) => !present.includes(id)
+        && nodeTribe != null && tribesOf(getDef(id)).includes(nodeTribe))),
+      cheapRares(regionIds.filter((id) => !present.includes(id))),
+    ];
+    for (const pool of pools) {
+      for (let guard = 0; guard < 40 && need > 0 && out.length < target; guard++) {
+        let placed = false;
+        for (const id of pool) {
+          if (need <= 0 || out.length >= target) break;
+          if ((copies.get(id) ?? 0) >= copyCapFor(id, cap, epicsMayDouble)) continue;
+          out.push(id);
+          copies.set(id, (copies.get(id) ?? 0) + 1);
+          need--;
+          placed = true;
+        }
+        if (!placed) break;
+      }
+    }
+  }
   // Rares are the remainder — no quota, they fill whatever is left.
   fill(present.filter((id) => rarity(id) === "rare").sort(byCost), -1);
   fill(musterPool("rare"), -1);
