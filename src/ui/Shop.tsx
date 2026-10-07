@@ -38,6 +38,7 @@ import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE } from "./shared";
 import { CardView } from "./CardView";
 import { TIER_LABEL, type PremadeDeck } from "../data/custom-decks";
 import { saveSquad, type Squad } from "../data/squads";
+import { track } from "../net/telemetry";
 
 /** "3d 4h", "5h 12m", "9m": the time left on the weekly deck shelf. */
 function untilText(ms: number): string {
@@ -333,6 +334,9 @@ export function Shop(props: {
   const allShown = !!opened && shown >= reveal.length;
 
   function tearOpen() {
+    // The free pack, opened for the first time ever: a step of the new-player
+    // funnel (net/telemetry.ts).
+    if (packIsFree(save) && !save.tally?.packs) track("first_pack");
     const result = openPack(save);
     // Read BEFORE applyPack, which is what spends it.
     setOpenedFree(packIsFree(save));

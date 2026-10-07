@@ -250,6 +250,7 @@ import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
 import { TUTORIALS } from "./tutorials";
+import { track } from "../net/telemetry";
 import { LESSONS, LESSON_BOARD, completeLesson, lessonDone, type Lesson } from "./training";
 import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
@@ -306,7 +307,7 @@ import {
   PLAYER_DEPLOY, ENEMY_DEPLOY, REGIONS, applyClear, boardForNode, buildFormation, capForNode,
   THRONE_HEAD_START, THRONE_HOLD_ROUNDS, throneSeatedCard,
   loadStory, isFirstBattle, addShards, awardShards, heroBookFor, SHARDS_PER_WIN, onlineMatchShards,
-  everCleared, isHard, borderBossFor, borderBossScale, startHardMode, resumeHardMode, fightBoardFor, fightCap,
+  everCleared, freePacks, isHard, borderBossFor, borderBossScale, startHardMode, resumeHardMode, fightBoardFor, fightCap,
   type StoryNode,
   isRegionOpen, poolForRegion, recruitablePool,
   regionOfNode, regionsOpenedBy, rollRecruits, saveStory, THRONE_OPENING_STACK, type StorySave, heroSpellShelf,
@@ -902,6 +903,13 @@ export function App() {
    *  started from: the first-run screen, or the Training Ground's Basics. */
   const [tutorialRun, setTutorialRun] = useState<{ id: TutorialId; from: "first" | "training" } | null>(null);
   const tutDef = tutorialRun ? TUTORIALS[tutorialRun.id] : null;
+  // ANONYMOUS PLAY EVENTS (net/telemetry.ts): a device's first open — a fresh
+  // save or one from before — and one open a day. Read once, at launch.
+  useEffect(() => {
+    track("first_open", everCleared(story).length === 0 && freePacks(story) > 0 ? "new" : "returning");
+    track("day_open");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- launch only
+  }, []);
   /** Bumped on every lesson deal, so the coach starts fresh on a refight. */
   const [trainingDeal, setTrainingDeal] = useState(0);
   /** Which Shop economy to open on, when Home sent you there for a reason. */
@@ -1682,6 +1690,7 @@ export function App() {
       // map, which told you neither what beat you nor how close it was — and the
       // match report is the whole reason to re-fight a node differently.
       reportSkillMatch(false);
+      track("story_loss", storyNode.id);
       navDo({ t: "result", result: { node: storyNode, won: [], captured: 0, lost: true } });
       return;
     }
@@ -1691,6 +1700,7 @@ export function App() {
     // handicap was built for on the gentlest opponent forever, because they
     // have no reason to walk into the Arena at all.
     reportSkillMatch(true);
+    track("story_win", storyNode.id);
     setShardMark({ game, before: story.hero?.shards ?? 0 });
     const captured = game.slots.flat().filter((sl) => sl.capturedBy === "P1").length;
     const result = rollRecruits(story, storyNode, captured);
@@ -1747,7 +1757,10 @@ export function App() {
     // Winning it is recorded here, not on its Continue button, so closing the
     // app on the victory screen still counts — from either door.
     if (tutDef) {
-      if (game.win?.winner === "P1") markTaught(tutDef.mark);
+      if (game.win?.winner === "P1") {
+        markTaught(tutDef.mark);
+        track(tutDef.id === "magic" ? "magic_done" : "tutorial_done", tutorialRun?.from);
+      }
       return;
     }
     // ONLINE settles on its own short path and never touches the arena's.
@@ -2702,7 +2715,7 @@ export function App() {
     setSel(null); setPending(null); setPicks([]); setStaged(null);
     if (from === "first") {
       // A win was already marked as it landed (the settle effect).
-      if (skipped) { markTaught(TUT_SKIP); goTab("home"); }
+      if (skipped) { markTaught(TUT_SKIP); track("tutorial_skip", "mid"); goTab("home"); }
       else goTab("shop"); // the Shop opens on Packs, the free pack ringed
     } else {
       goTab("home");
@@ -7159,7 +7172,8 @@ export function App() {
           same reason the nav is — there is nothing to walk you through mid-fight,
           and a spotlight over a board covers the board. */}
       {showFirstRun && (
-        <FirstRun onPlay={() => startTutorial("basics", "first")} onSkip={() => markTaught(TUT_SKIP)} />
+        <FirstRun onPlay={() => startTutorial("basics", "first")}
+          onSkip={() => { markTaught(TUT_SKIP); track("tutorial_skip", "start"); }} />
       )}
       {!started && !showFirstRun && !packBusy && !levelUp && !builderOpen && !rulesOpen && !galleryOpen && guideStep && (
         <GuideOverlay

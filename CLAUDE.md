@@ -2959,6 +2959,36 @@ the player fight; they train once they notice they need help.
   silent cases, and plays the whole scripted first battle to show a well-played
   match never trips one.
 
+## Anonymous play events — `net/telemetry.ts`, `public.play_events`
+
+Owner, 2026-10-06: "how many people have tried the game?" Supabase only knew
+the 3 sign-in accounts (all ours) — the game is local-first. Now each device
+gets a random id (`we_device_id` in localStorage; no name, email or account)
+and sends a few milestones:
+
+- `first_open` (detail `new` = fresh save / `returning`), `day_open` (once a
+  day), `tutorial_done` (detail first|training) / `tutorial_skip`
+  (start|mid) / `magic_done`, `first_pack`, `story_win` / `story_loss`
+  (detail = node id, lower-case: how far players get, where they lose).
+- Each is sent ONCE per device per detail (`day_open` once a day); queued in
+  `we_events_pending` and retried on the next call / `online` event if a send
+  fails; the queue drains fully per flush (capped at 50). 409 = already there.
+- Plain `fetch` to `/rest/v1/play_events` with the anon key and
+  `Prefer: return=minimal` — NOT the Supabase SDK (it stays off the first
+  frame). Off when `import.meta.env.DEV` or MODE test: dev and preview runs
+  are not players (a `vite build` served locally with real env DOES send).
+- **DB** (migrations `play_events_anonymous_log` + `..._unique_with_detail`):
+  RLS insert-only for anon/authenticated, column grants (device_id, event,
+  detail) so day/created_at are the server's; event `^[a-z0-9_]{1,32}$`,
+  detail `^[a-z0-9_]{1,24}$` — a new event needs no migration, just add it to
+  `PLAY_EVENTS`. Unique (device, event, coalesce(detail,''), day). Nobody but
+  the owner reads it. Read-outs (dashboard Table Editor / SQL): views
+  `play_funnel` (devices per event+detail) and `play_daily` (players / new
+  players per day), security_invoker with grants revoked.
+- Google Play's Data safety form (and the privacy policy, not written yet)
+  must declare it: device or other IDs + app interactions, collected, not
+  shared, not linked to the user, used for analytics.
+
 ## The boss panel's ✕ was under the mute button, and three bugs deep
 
 Reported as "the mute button is bigger than the x button in the boss menu".
