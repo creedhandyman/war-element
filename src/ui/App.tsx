@@ -5110,13 +5110,18 @@ export function App() {
             selectedId={sel?.kind === "card" ? sel.instanceId : linedUp}
             actingId={awaitingId}
             grayTeam={
-              // Throughout your prep turn, fade the idle opponent's team to ~50% so
-              // it's clear those pieces aren't yours to act on. The one exception is
-              // a damage spell you're aiming — then the enemy must stay lit to target.
-              game.phase === "prep" &&
-              me !== null &&
-              game.prep?.priority === me &&
-              armedPickSide !== "enemy"
+              // ONLY WHILE YOU ARE PICKING ON YOUR OWN SIDE (owner, 2026-10-07).
+              // The opponent's team used to be grayed for the whole of your prep
+              // turn, which just dulled their cards; whose card is whose is the
+              // suit glyph, the seat-tinted name and the red outer glow. The gray
+              // is kept for the moment it helps: a card of yours selected to
+              // move or summon, or an ally spell / Special / Talent being aimed.
+              // Aiming at the enemy keeps them lit, as it always did.
+              me !== null && (
+                (game.phase === "prep" && game.prep?.priority === me &&
+                  sel !== null && armedPickSide !== "enemy")
+                || (legalTargetIds.length > 0 && !targetsAreEnemies)
+              )
                 ? enemyOf(me)
                 : null
             }
