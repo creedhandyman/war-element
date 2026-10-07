@@ -12,8 +12,8 @@ import {
   BIG_BATTLE_KINDS, BLIGHT_MAX, blightAddsFor, blightLevel, blightNodeFor, borderBossFor, borderBossScale,
   canResumeHard,
   canStartHard,
-  deckCapFor, fieldedBy, fightCap, gateCheck, isBlightNode, isCleared, isGate, isHard, isOpen,
-  isOverflow, isRegionCleared, recruitChance, recruitablePool, regionOfNode, terrainContested,
+  deckCapFor, fieldedBy, fightCap, gateCheck, isBlightNode, isCleared, isGate, isHard, isOpen, recruitLabel,
+  isOverflow, isRegionCleared, recruitablePool, regionOfNode, terrainContested,
   type StoryNode, type StoryRegion, type StorySave,
 } from "../data/story";
 import { broodOf } from "./void-seat";
@@ -410,7 +410,7 @@ function NodePanel(props: {
           const pity = save.pity[`${node.id}:${id}`] ?? 0;
           // What the corner says: the element on a patrol, and otherwise whether
           // you own it or what a capture would roll to recruit it.
-          const tag = isGate(node) ? d.element : have ? "owned" : `${recruitChance(id, pity, over)}%`;
+          const tag = isGate(node) ? d.element : have ? "owned" : recruitLabel(id, pity, over);
           return (
             <button
               key={id}

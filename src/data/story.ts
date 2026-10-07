@@ -215,18 +215,18 @@ const LEAF: StoryRegion = {
       lore: "Nobody planted the verge. Nettle and weed took it themselves, and the village long ago stopped pulling them: an edge that grows back on its own is cheaper than a wall that does not."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
-      requires: ["L1"], tribe: "Grove", roster: ["leaf_sakuroot", "leaf_sprinu", "leaf_leaf"], adds: [],
-      lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Vernal and Frond hold the path for all nine and then let it fall — a grove is not defended by refusing to lose it."
+      requires: ["L1"], tribe: "Grove", roster: ["leaf_sakuroot", "leaf_walking_tree"], adds: [], // Elephlora in; Vernal to L3, Frond to L4 (owner, 2026-10-06)
+      lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Sakuroot and Elephlora hold the path for all nine and then let it fall — a grove is not defended by refusing to lose it."
      },
     { id: "L3", name: "Bloomwardens' Ring", kind: "warden", at: { x: 32, y: 40 },
-      requires: ["L2"], tribe: "Grove", roster: ["leaf_stickers", "leaf_dartfrog", "leaf_bark_bushmen"], adds: ["leaf_acorn_tok"],
-      note: "No Reptiles here — just what lives in the blooms. The dart frog is not decoration.",
-      lore: "A Bloomwarden is not appointed. The candidate stands inside the ring until it blooms around them, and Stickers and the Bark Bushmen stand there for however long that takes."
+      requires: ["L2"], tribe: "Grove", roster: ["leaf_stickers", "leaf_bark_bushmen", "leaf_sprinu", "leaf_cactus"], adds: ["leaf_acorn_tok"], // Vernal + Cactus in, Dart Frog to L6 (owner, 2026-10-06)
+      note: "No Reptiles here — just what lives in the blooms. The cactus is not decoration.",
+      lore: "A Bloomwarden is not appointed. The candidate stands inside the ring until it blooms around them — Vernal brings the spring to it, and Stickers, the Bark Bushmen and one very patient Cactus stand there for however long that takes."
      },
     { id: "L4", name: "Evergreen Plains", kind: "skirmish", at: { x: 18, y: 54 },
-      requires: ["L1"], tribe: "Grove", roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_walking_tree"], adds: [],
+      requires: ["L1"], tribe: "Grove", roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_leaf"], adds: [], // Frond in, Elephlora to L2 (owner, 2026-10-06)
       note: "Unclaimed by any season, so everything grazes here — including the python.",
-      lore: "Green in every month, so no season could ever claim it. The four tribes gave up dividing the plains and left Oak and Elephlora to hold the one stretch of forest that never changes hands."
+      lore: "Green in every month, so no season could ever claim it. The four tribes gave up dividing the plains and left Oak and Frond to hold the one stretch of forest that never changes hands."
      },
     { id: "L5", name: "Summer's Embrace Grove", kind: "warden", at: { x: 37, y: 74 },
       requires: ["L4"], tribe: "Grove", roster: ["leaf_sumerose", "leaf_dande", "leaf_splint"], adds: ["leaf_acorn_tok"] ,
@@ -234,9 +234,9 @@ const LEAF: StoryRegion = {
       lore: "Guardians of Growth, where the forest stands at its fullest. Summer is in no hurry — Dandelion has outlasted every boot that crossed this grove, and Estival simply waits in the warm."
     },
     { id: "L6", name: "Jungle Wilds", kind: "warden", tribe: "Reptile", at: { x: 83, y: 60 },
-      requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_cactus", "leaf_snapmaw"], adds: ["leaf_reptilian_tok"],
+      requires: ["L5"], roster: ["leaf_stickviper", "leaf_gecko", "leaf_snapmaw", "leaf_dartfrog"], adds: ["leaf_reptilian_tok"], // Dart Frog in, Cactus to L3 (owner, 2026-10-06)
       note: "The Reptile node — StickViper and Gecko are the tribe. Fight it before the warlord who buffs it.",
-      lore: "Reptiles, not Keepers. The four tribes counted the Wilds as forest rather than as a fifth people: a decision made early, never put to the brood, and Snapmaw has never once accepted it."
+      lore: "Reptiles, not Keepers. The four tribes counted the Wilds as forest, not as a fifth people — never put to the brood, and Snapmaw has never accepted it. The dart frogs on the riverbanks were never asked at all."
      },
     // Gated off L10, not L2: the art puts Rustling Woods at Autumn's Gold in the
     // far north-east, so the approach is along the northern treeline.
@@ -2318,6 +2318,18 @@ export function recruitChance(defId: string, pity: number, overflow = false): nu
   return Math.min(100, base + pity * PITY_STEP);
 }
 
+/** MYTHICS ARE EARNED BY WINNING (owner, 2026-10-06): no recruit roll and no
+ *  percentage. Every Mythic lives on a Throne, whose first clear always handed
+ *  it over — the "5%" the panels printed was a number that never applied — and
+ *  `rollRecruits` now hands over any Mythic you still lack on any win of its
+ *  node, so "win it" is the whole rule. */
+export const earnedByWin = (defId: string): boolean => getDef(defId).rarity === "mythic";
+
+/** What a node's card says it takes to recruit it: "win" for a Mythic,
+ *  otherwise its odds. One label for every panel that shows one. */
+export const recruitLabel = (defId: string, pity: number, overflow = false): string =>
+  earnedByWin(defId) ? "win" : `${recruitChance(defId, pity, overflow)}%`;
+
 // ── the Blight (§10.4) ──────────────────────────────────────────────────────
 // DUSK does not wait in its region; it spreads across territory you have
 // already taken. The load-bearing constraint is that Blight ONLY touches
@@ -4045,7 +4057,11 @@ export function rollRecruits(
     return withFoils([...eligible], missed);
   }
 
-  const pool = [...eligible];
+  // A Mythic still missing joins on the win itself — earned, not rolled
+  // (`earnedByWin`), and it takes none of the rolls the capture earned.
+  const sure = eligible.filter(earnedByWin);
+  won.push(...sure);
+  const pool = eligible.filter((id) => !sure.includes(id));
   for (let i = 0; i < rolls && pool.length; i++) {
     const pick = pool[Math.floor(rand() * pool.length) % pool.length];
     const key = `${node.id}:${pick}`;

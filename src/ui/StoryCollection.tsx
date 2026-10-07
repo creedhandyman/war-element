@@ -18,7 +18,7 @@ import type { CardClass, Element, Keyword } from "../engine";
 import { CARDS } from "../data/cards";
 import {
   PLACED_CARDS, bestSource, deckCapFor, foilStatsOf, isShiny, markSeen,
-  recruitChance, sourcesOf, type StorySave,
+  earnedByWin, recruitChance, recruitLabel, sourcesOf, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import {
@@ -139,7 +139,8 @@ export function StoryCollection(props: {
       const oddsOf = (id: string) => {
         const src = bestSource(save, id);
         if (!src) return -1;                    // locked or unplaced — the tail
-        return recruitChance(id, save.pity[`${src.node.id}:${id}`] ?? 0, src.overflow);
+        // A Mythic is a sure thing on a win, so it sorts as one.
+        return earnedByWin(id) ? 100 : recruitChance(id, save.pity[`${src.node.id}:${id}`] ?? 0, src.overflow);
       };
       return list.sort((a, b) =>
         oddsOf(b.id) - oddsOf(a.id) ||
@@ -386,7 +387,7 @@ export function StoryCollection(props: {
 function whereLabel(save: StorySave, defId: string, src: ReturnType<typeof bestSource>): string {
   if (src) {
     const pity = save.pity[`${src.node.id}:${defId}`] ?? 0;
-    return `${src.node.id} · ${recruitChance(defId, pity, src.overflow)}%`;
+    return `${src.node.id} · ${recruitLabel(defId, pity, src.overflow)}`;
   }
   // Placed but every source is still locked — the honest answer is "keep going",
   // not a percentage the player cannot act on yet.
@@ -414,7 +415,7 @@ function SourceList(props: {
               <span className="npr-name">{s.node.id} · {s.node.name}</span>
               {s.overflow && <span className="npr-over">overflow</span>}
               <span className="npr-drop">
-                {open ? `${recruitChance(props.defId, pity, s.overflow)}%` : "locked"}
+                {open ? recruitLabel(props.defId, pity, s.overflow) : "locked"}
               </span>
               {open && props.onGoToNode && (
                 <button className="cdl-go" onClick={() => props.onGoToNode!(s.node.id)}>Show</button>

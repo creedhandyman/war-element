@@ -920,13 +920,14 @@ describe("story: recruitment", () => {
     expect(new Set(r.won).size).toBe(r.won.length);
   });
 
-  it("guarantees a Throne's Mythic on first clear, but not on repeats", () => {
+  it("guarantees a Throne's Mythic on first clear, and on any win after it", () => {
     const throne = node({ id: "L14", kind: "throne", roster: ["leaf_oakgre"] });
     // First clear: no RNG on a story-critical unlock, even with a hostile roll.
     expect(rollRecruits(save(), throne, 0, never).won).toEqual(["leaf_oakgre"]);
-    // Already cleared: it rolls like anything else — and it's owned by then anyway.
+    // Already cleared: a Mythic is EARNED BY WINNING (owner, 2026-10-06), never
+    // rolled — so one still missing joins on a repeat too.
     const after = { ...save(), cleared: ["L14"] };
-    expect(rollRecruits(after, throne, 1, never).won).toEqual([]);
+    expect(rollRecruits(after, throne, 1, never).won).toEqual(["leaf_oakgre"]);
   });
 
   it("pays nothing when the node is exhausted", () => {
