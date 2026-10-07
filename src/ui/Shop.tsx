@@ -1020,10 +1020,7 @@ export function Shop(props: {
                         underneath it the whole time, so turning it cannot
                         wait on the art loading. */}
                     {down && (
-                      <span className="pc-back" aria-hidden="true">
-                        <span className="pc-back-ring" />
-                        <span className="pc-back-mark">✦</span>
-                      </span>
+                      <span className="pc-back" aria-hidden="true" />
                     )}
                     <img src={cardThumbSrc(d)} alt="" loading="lazy"
                       onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />

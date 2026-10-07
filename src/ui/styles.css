@@ -461,13 +461,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* Fog of war — the opponent's hand as face-down cards; deck hidden. */
 .opp-fog { position: relative; z-index: 1; display: flex; align-items: center; gap: 14px; }
 .opp-fan { display: flex; align-items: flex-end; height: 40px; padding-left: 8px; }
-.opp-back { position: relative; width: 26px; height: 37px; margin-left: -11px; border-radius: 4px; background: linear-gradient(160deg, #1d2438, #0e1322); border: 1px solid rgba(120, 150, 220, 0.5); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5), inset 0 0 8px rgba(120, 150, 220, 0.12); transform: rotate(calc(var(--i) * 5deg)); transform-origin: bottom center; }
+/* The real CARD BACK (owner, 2026-10-06), the same art the pack reveal turns
+   over — a small cut of it, since these are 26px wide. */
+.opp-back { position: relative; width: 26px; height: 37px; margin-left: -11px; border-radius: 4px; background: #0e1322 url("/card-back-sm.webp") center / cover no-repeat; border: 1px solid rgba(201, 162, 75, 0.55); box-shadow: 0 3px 8px rgba(0, 0, 0, 0.5); transform: rotate(calc(var(--i) * 5deg)); transform-origin: bottom center; }
 /* RECON PING: the card turns face up. Its art fills the back, the ✦ comes off,
    and the border goes BOLT-violet so an exposed hand reads at a glance as
    something you did rather than a rendering quirk. */
 .opp-back.revealed { background-size: cover; background-position: center 28%; border-color: rgba(149, 117, 255, 0.9); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.55), 0 0 10px rgba(149, 117, 255, 0.5); }
 .opp-back.revealed::after { content: none; }
-.opp-back::after { content: "✦"; position: absolute; inset: 0; display: grid; place-items: center; font-size: 11px; color: rgba(143, 183, 240, 0.45); }
+.opp-back::after { content: none; } /* the printed back carries its own mark */
 .opp-meta { font-size: 11px; color: var(--steel-lit); font-weight: 700; letter-spacing: 0.03em; line-height: 1.3; }
 .opp-hidden { display: block; font-size: 9px; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; }
 .opp-res { display: flex; gap: 8px; }
@@ -7364,21 +7366,14 @@ button.deck-shot { padding: 0; cursor: pointer; }
    rarity's burst plays behind it. */
 .pack-card.big.face-down { border-color: rgba(201, 162, 75, 0.55); box-shadow: 0 10px 26px rgba(0, 0, 0, 0.55); animation: none; }
 .pack-card.big.face-down::after { display: none; }
+/* THE CARD BACK (owner, 2026-10-06): the printed War Element back, in place of
+   the drawn ring-and-star stand-in. The tell's leak (::after, below) still
+   blooms over it. */
 .pc-back {
   position: absolute; inset: 0; z-index: 3; border-radius: 11px; overflow: hidden;
   display: grid; place-items: center;
-  background:
-    repeating-linear-gradient(45deg, rgba(201, 162, 75, 0.07) 0 2px, transparent 2px 12px),
-    repeating-linear-gradient(-45deg, rgba(201, 162, 75, 0.07) 0 2px, transparent 2px 12px),
-    radial-gradient(circle at 50% 42%, #2a2140, #121022 62%, #0a0912);
-  box-shadow: inset 0 0 0 5px #0d0c16, inset 0 0 0 6px rgba(201, 162, 75, 0.6);
+  background: #0a0912 url("/card-back.webp") center / cover no-repeat;
 }
-.pc-back-ring {
-  position: absolute; width: 58%; aspect-ratio: 1; border-radius: 50%;
-  border: 2px solid rgba(232, 200, 119, 0.55);
-  box-shadow: 0 0 18px rgba(232, 200, 119, 0.25), inset 0 0 18px rgba(232, 200, 119, 0.18);
-}
-.pc-back-mark { position: relative; font-size: 54px; color: var(--gold-hi); text-shadow: 0 0 16px rgba(232, 200, 119, 0.7); }
 .pack-card.big.face-up.top { animation: pcTurnIn 0.34s cubic-bezier(0.2, 1.4, 0.4, 1) both; }
 @keyframes pcTurnIn { 0% { scale: 0 1; filter: brightness(2.2); } 60% { scale: 1.06 1.04; } 100% { scale: 1 1; filter: brightness(1); } }
 /* The legendary/mythic breathing (`rarBreathe`) is an animation too, and the
