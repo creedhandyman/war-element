@@ -477,8 +477,9 @@ function NodePanel(props: {
         ) : (
           <p className="np-foils">
             <i className="foil-tag inline" aria-hidden="true">✦</i>
-            <b>Foils drop here.</b> Every slot you padlock is a 1-in-100 shot at a foil of one
-            of these cards{exhausted ? "" : " — one you don't have yet joins you in foil"}.
+            <b>Foils drop here.</b> Every slot you padlock is a {isHard(save)
+              ? "foil roll on one of these cards: 1 in 20 for a card you own (Hard mode), 1 in 100 for one you don't"
+              : "1-in-100 shot at a foil of one of these cards"}{exhausted ? "" : " — one you don't have yet joins you in foil"}.
           </p>
         )
       )}

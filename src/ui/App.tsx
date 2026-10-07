@@ -5946,6 +5946,7 @@ export function App() {
           boss={borderBossFor(story, storyResult.node)}
           exhausted={recruitablePool(storyResult.node).every((id) => story.collection.includes(id))}
           foils={foilIds}
+          hard={isHard(story)}
           opened={storyResult.opened}
           shards={shardsWon}
           onDone={finishStoryResult}

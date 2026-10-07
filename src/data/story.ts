@@ -1574,6 +1574,16 @@ export const SHINY_CHANCE = 1;
 export const rollShiny = (rand: () => number = Math.random): boolean =>
   rand() * 100 < SHINY_CHANCE;
 
+/** HARD MODE pays foils on the collection you already have (owner,
+ *  2026-10-06): a story foil roll that lands on a card you OWN is 5%, one in
+ *  twenty, instead of `SHINY_CHANCE`. A card you do not own yet keeps the 1% —
+ *  that roll also hands you the card. Packs are untouched. */
+export const HARD_OWNED_FOIL_CHANCE = 5;
+
+/** The foil odds, as a PERCENTAGE, of one story foil roll landing on `defId`. */
+export const foilChanceFor = (save: StorySave, defId: string): number =>
+  isHard(save) && save.collection.includes(defId) ? HARD_OWNED_FOIL_CHANCE : SHINY_CHANCE;
+
 /** Does the player hold this card in foil? */
 export const isShiny = (save: StorySave, defId: string): boolean =>
   (save.hero?.shiny ?? []).includes(defId);
@@ -4006,7 +4016,7 @@ export function rollRecruits(
       const left = candidates.filter((id) => !held.has(id) && !shiny.includes(id));
       if (!left.length) break;
       const pick = left[Math.floor(rand() * left.length) % left.length];
-      if (rollShiny(rand)) shiny.push(pick);
+      if (rand() * 100 < foilChanceFor(save, pick)) shiny.push(pick);
     }
     const joined = shiny.filter((id) => !save.collection.includes(id) && !wonNow.includes(id));
     return {

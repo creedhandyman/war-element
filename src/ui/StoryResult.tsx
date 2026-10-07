@@ -35,6 +35,8 @@ export function StoryResult(props: {
    *  the same way a pack does — and this screen was the one place that could
    *  hand you your first foil without ever saying so. */
   foils?: ReadonlySet<string>;
+  /** Hard mode: a foil roll on a card you own is 1 in 20 (`foilChanceFor`). */
+  hard?: boolean;
   /** Shards this win paid. Shown inside the match report. */
   shards?: number;
   /** HARD MODE: the Void Tower boss that held this border, when one did. */
@@ -50,6 +52,7 @@ export function StoryResult(props: {
   const { node, game, won, captured, firstClear, lost } = props;
   const bossName = props.boss ? getDef(props.boss).name : null;
   const rolls = Math.max(1, captured);
+  const foilOdds = props.hard ? "foil roll (1 in 20 on a card you own)" : "1-in-100 foil roll";
   const [showReport, setShowReport] = useState(false);
   // A JSX element is always truthy, so ask the data — not the element — whether
   // there is a report, or the toggle appears above an empty panel.
@@ -78,8 +81,8 @@ export function StoryResult(props: {
             {/* Every roll is a foil roll as well (`withFoils` in story.ts), and
                 this line is where the player learns what the capture bought. */}
             {captured > 0
-              ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}, {rolls === 1 ? "also a 1-in-100 foil roll" : "each also a 1-in-100 foil roll"}.</>
-              : <>Won by elimination — no slots padlocked, so one roll, also a 1-in-100 foil roll.</>}
+              ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}, {rolls === 1 ? "also a " : "each also a "}{foilOdds}.</>
+              : <>Won by elimination — no slots padlocked, so one roll, also a {foilOdds}.</>}
           </p>
         )}
 
