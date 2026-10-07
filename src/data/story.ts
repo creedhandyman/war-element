@@ -210,23 +210,23 @@ const LEAF: StoryRegion = {
     // west -> south -> east (Evergreen Plains -> the Rot Line / Jungle Wilds).
     // Both converge on the Heart of Nature in the centre.
     { id: "L1", name: "Spring Village Outskirts", kind: "skirmish", at: { x: 13, y: 37 },
-      requires: [], tribe: "Grove", roster: ["leaf_nettle", "leaf_weeds", "leaf_greegon"], adds: [],
-      note: "Greegon heals 2 HP at the end of every round. Hit it with more than one card.",
-      lore: "Nobody planted the verge. Nettle and weed took it themselves, and the village long ago stopped pulling them: an edge that grows back on its own is cheaper than a wall that does not."
+      requires: [], tribe: "Grove", roster: ["leaf_nettle", "leaf_weeds", "leaf_sticks"], adds: [], // Sticks in, Greegon to L4 (owner, 2026-10-06)
+      note: "Sticks hits for 8 but stands on 3 HP. Make sure it is the one that gets swung at first.",
+      lore: "The Spring Village woke to find its outskirts overrun — Nettle and Weeds choking the fences, Sticks rattling at the gate. Nobody planted them and nobody is waiting for them to leave: clear the verge and send them packing."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
       requires: ["L1"], tribe: "Grove", roster: ["leaf_sakuroot", "leaf_walking_tree", "leaf_forestdeer"], adds: [], // Elephlora in; Vernal to L3, Frond to L4; Forest Deer from L11 (owner, 2026-10-06)
       lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Sakuroot and Elephlora hold the path for all nine, the forest deer graze beneath the petals, and then they let it fall — a grove is not defended by refusing to lose it."
      },
     { id: "L3", name: "Bloomwardens' Ring", kind: "warden", at: { x: 32, y: 40 },
-      requires: ["L2"], tribe: "Grove", roster: ["leaf_stickers", "leaf_bark_bushmen", "leaf_sprinu", "leaf_cactus"], adds: ["leaf_acorn_tok"], // Vernal + Cactus in, Dart Frog to L6 (owner, 2026-10-06)
+      requires: ["L2"], tribe: "Grove", roster: ["leaf_oak", "leaf_bark_bushmen", "leaf_sprinu", "leaf_cactus"], adds: ["leaf_acorn_tok"], // Vernal + Cactus in, Dart Frog to L6; Oak in, Stickers to L4 (owner, 2026-10-06)
       note: "No Reptiles here — just what lives in the blooms. The cactus is not decoration.",
-      lore: "A Bloomwarden is not appointed. The candidate stands inside the ring until it blooms around them — Vernal brings the spring to it, and Stickers, the Bark Bushmen and one very patient Cactus stand there for however long that takes."
+      lore: "A Bloomwarden is not appointed. The candidate stands inside the ring until it blooms around them — Vernal brings the spring to it, and Oak, the Bark Bushmen and one very patient Cactus stand there for however long that takes."
      },
     { id: "L4", name: "Evergreen Plains", kind: "skirmish", at: { x: 18, y: 54 },
-      requires: ["L1"], tribe: "Grove", roster: ["leaf_oak", "leaf_python", "leaf_sticks", "leaf_leaf"], adds: [], // Frond in, Elephlora to L2 (owner, 2026-10-06)
+      requires: ["L1"], tribe: "Reptile", roster: ["leaf_stickers", "leaf_python", "leaf_greegon", "leaf_leaf"], adds: [], // owner, 2026-10-06: Frond, Greegon and Stickers in; Elephlora, Sticks and Oak out — now a Reptile node (Python + Greegon)
       note: "Unclaimed by any season, so everything grazes here — including the python.",
-      lore: "Green in every month, so no season could ever claim it. The four tribes gave up dividing the plains and left Oak and Frond to hold the one stretch of forest that never changes hands."
+      lore: "Green in every month, so no season could ever claim it. The tribes gave up dividing the plains, so whatever wanders in stays: Frond keeps the grass, Stickers the brambles, and the python and Greegon sun themselves wherever they please."
      },
     { id: "L5", name: "Summer's Embrace Grove", kind: "warden", at: { x: 37, y: 74 },
       requires: ["L4"], tribe: "Grove", roster: ["leaf_sumerose", "leaf_dande", "leaf_splint"], adds: ["leaf_acorn_tok"] ,

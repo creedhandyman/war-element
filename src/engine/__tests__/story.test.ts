@@ -207,7 +207,7 @@ describe("story: the deck cap ladder", () => {
     const leaf = REGIONS.find((r) => r.id === "leaf")!;
     const l1 = nodeById("L1")!;
     expect(buildFormation(newSave(), leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds"]);
-    expect(l1.roster).toHaveLength(3); // Greegon is on the roster, just not fielded
+    expect(l1.roster).toHaveLength(3); // the third (Sticks since 2026-10-06) is on the roster, just not fielded
     // And it stays small however far the ladder has climbed — coming back later
     // with the same one card must not turn the tutorial into a 30-card fight.
     const late = { ...newSave(), cleared: ["L14", "P13", "A13", "G14", "B14"] };
@@ -216,7 +216,7 @@ describe("story: the deck cap ladder", () => {
     // padded to six with second copies: 76% -> 99% for a Learning-AI seat.
     const packed = { ...newSave(), collection: leaf.nodes.flatMap((n) => n.roster).slice(0, 6) };
     packed.deck = [...packed.collection];
-    expect(buildFormation(packed, leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds", "leaf_greegon"]);
+    expect(buildFormation(packed, leaf, l1)).toEqual(["leaf_nettle", "leaf_weeds", "leaf_sticks"]);
     // The node after it is an ordinary fight again — but on the ladder's first
     // rung, not its third. This line asserting 12 was the bug: the second fight
     // of the campaign was the region's full size, straight after a 1-v-2.
@@ -1161,7 +1161,7 @@ describe("story: where do I get this card", () => {
     expect(sourcesOf("leaf_nightshade").length).toBeGreaterThan(0);
     expect(bestSource(fresh, "leaf_nightshade")).toBeNull();
     // L1 is open from the start.
-    expect(bestSource(fresh, "leaf_greegon")?.node.id).toBe("L1");
+    expect(bestSource(fresh, "leaf_sticks")?.node.id).toBe("L1");
   });
 
   it("recommends the best odds when a card is reachable two ways", () => {
@@ -1495,10 +1495,10 @@ describe("story: formations (10.7)", () => {
     const leaf = REGIONS.find((r) => r.id === "leaf")!;
     const l1 = nodeById("L1")!;
     const fielded = buildFormation(newSave(), leaf, l1);
-    expect(fielded).not.toContain("leaf_greegon"); // not on the board
+    expect(fielded).not.toContain("leaf_sticks"); // not on the board
     const start = newSave();
     const after = applyClear(start, l1, rollRecruits(start, l1, 1, () => 0.99));
-    expect(after.collection).toContain("leaf_greegon"); // paid out anyway
+    expect(after.collection).toContain("leaf_sticks"); // paid out anyway
     for (const id of l1.roster) expect(after.collection).toContain(id);
   });
 
