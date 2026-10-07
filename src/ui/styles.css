@@ -9882,6 +9882,20 @@ button.deck-shot { padding: 0; cursor: pointer; }
    tier). Mid-battle it is out of the way already: a card's verbs are on the
    action wheel over the board, which hides the bar's button row. */
 @media (min-width: 1180px) and (min-height: 541px) {
+  /* BIGGER CARDS ON PC (owner, 2026-10-06). The 3:4 board is height-bound
+     here, so cards grow only with height. Two rows of it go back to the
+     board: the opponent's hand line (40px + the 6px gap) moves out of the
+     column into the empty corner beside the narrow board, and the stone rim
+     thins from ~27px to ~14px. 1366x850: tiles 91x121 -> 104x139. */
+  :root {
+    --board-hb: calc(100vh - 237px);
+    --board-frame: clamp(10px, 1.7vh, 22px);
+  }
+  .board-area > .opp-fog {
+    position: absolute; top: 0; left: 0; z-index: 2;
+    flex-wrap: wrap; row-gap: 6px;
+    max-width: calc((100% - var(--board-size)) / 2 - 12px);
+  }
   .bottom, .bottom.compact, .bottom.acting {
     height: 150px; min-height: 150px; max-height: 150px; transition: none;
     align-items: center;
