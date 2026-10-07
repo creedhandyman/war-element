@@ -215,8 +215,8 @@ const LEAF: StoryRegion = {
       lore: "Nobody planted the verge. Nettle and weed took it themselves, and the village long ago stopped pulling them: an edge that grows back on its own is cheaper than a wall that does not."
     },
     { id: "L2", name: "Cherry Grove Path", kind: "skirmish", at: { x: 19, y: 24 },
-      requires: ["L1"], tribe: "Grove", roster: ["leaf_sakuroot", "leaf_walking_tree"], adds: [], // Elephlora in; Vernal to L3, Frond to L4 (owner, 2026-10-06)
-      lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Sakuroot and Elephlora hold the path for all nine and then let it fall — a grove is not defended by refusing to lose it."
+      requires: ["L1"], tribe: "Grove", roster: ["leaf_sakuroot", "leaf_walking_tree", "leaf_forestdeer"], adds: [], // Elephlora in; Vernal to L3, Frond to L4; Forest Deer from L11 (owner, 2026-10-06)
+      lore: "The blossom lasts nine days and the Spring Tribe dates its promises by it. Sakuroot and Elephlora hold the path for all nine, the forest deer graze beneath the petals, and then they let it fall — a grove is not defended by refusing to lose it."
      },
     { id: "L3", name: "Bloomwardens' Ring", kind: "warden", at: { x: 32, y: 40 },
       requires: ["L2"], tribe: "Grove", roster: ["leaf_stickers", "leaf_bark_bushmen", "leaf_sprinu", "leaf_cactus"], adds: ["leaf_acorn_tok"], // Vernal + Cactus in, Dart Frog to L6 (owner, 2026-10-06)
@@ -264,7 +264,7 @@ const LEAF: StoryRegion = {
       lore: "Sentinels of Rest — not dormant, on duty. Winter holds that a forest which never stops to sleep forgets how to grow, and Squanch has stood the village gate through four of them."
     },
     { id: "L11", name: "Heart of Nature: Outer Roots", kind: "landmark", at: { x: 40, y: 60 },
-      requires: ["L3", "L8"], tribe: "Grove", roster: ["leaf_forestdeer", "leaf_monkey", "leaf_gorilla", "leaf_season", "leaf_thorn", "leaf_elderroot"], adds: [],
+      requires: ["L3", "L8"], tribe: "Grove", roster: ["leaf_monkey", "leaf_gorilla", "leaf_season", "leaf_thorn", "leaf_elderroot"], adds: [], // Forest Deer moved to L2 (owner, 2026-10-06)
       note: "Elderroot is the game's only melee Support.",
       lore: "The weathered stones around the Tree are not markers but graves. The first Keepers of every tribe chose the roots over their own season's ground, and Elderroot has not left them since."
     },
