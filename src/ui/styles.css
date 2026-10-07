@@ -1935,12 +1935,16 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* deck as a stacked pile with its count */
 .deck-stack { flex: none; position: relative; width: 56px; height: 76px; align-self: center; }
 .ds-plate, .ds-face { position: absolute; inset: 0; border-radius: 8px; border: 1px solid var(--gold-line); }
-.ds-plate { background: linear-gradient(160deg, #1b1826, #12101a); }
+/* THE CARD BACK on the pile too (owner, 2026-10-06), the same art as the
+   opponent's fan and the pack reveal. The cards under the top one are dimmed
+   so the stack still reads as depth. */
+.ds-plate { background: #12101a url("/card-back-sm.webp") center / cover no-repeat; filter: brightness(0.55); }
 .ds-plate:nth-child(1) { transform: translate(6px, 6px); }
 .ds-plate:nth-child(2) { transform: translate(3px, 3px); }
-.ds-face { background: linear-gradient(160deg, #2a2410, #171204); border: 1.5px solid var(--gold); display: grid; place-items: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
-.ds-count { font-size: 21px; font-weight: 900; color: var(--gold-hi); text-shadow: 0 0 8px rgba(232, 200, 119, 0.6); }
-.ds-lbl { font-family: var(--head); font-size: 8px; letter-spacing: 0.14em; color: var(--gold-lit); }
+/* A dark pool behind the count so the number reads over the art. */
+.ds-face { background: radial-gradient(circle at 50% 50%, rgba(8, 7, 12, 0.8) 0 30%, rgba(8, 7, 12, 0) 64%), #171204 url("/card-back-sm.webp") center / cover no-repeat; border: 1.5px solid var(--gold); display: grid; place-items: center; align-content: center; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5); }
+.ds-count { font-size: 21px; font-weight: 900; color: var(--gold-hi); text-shadow: 0 0 8px rgba(232, 200, 119, 0.6), 0 1px 3px #000, 0 0 2px #000; }
+.ds-lbl { font-family: var(--head); font-size: 8px; letter-spacing: 0.14em; color: var(--gold-lit); text-shadow: 0 1px 2px #000, 0 0 3px #000; }
 
 /* Collapsed hand — a compact pile of art thumbnails when you can't act. Hovering
    a card peeks it (scales up + shows its plate) without growing the bar. */
