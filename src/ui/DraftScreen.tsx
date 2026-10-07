@@ -21,8 +21,8 @@ import { useMemo, useState } from "react";
 import { getDef, getSpell } from "../engine";
 import { composition, DeckStats } from "./DeckStats";
 import { CardView } from "./CardView";
-import { SpIcon } from "./icons";
 import { cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
+import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
   cardsComplete, draftComplete, draftSize, draftSpellCap, inGroupPhase, picksLeft,
   type DraftRun,
@@ -40,7 +40,7 @@ function DraftCard(props: { id: string; onInfo: (id: string) => void }) {
   const d = getDef(props.id);
   const rar = d.rarity ? RARITY_STYLE[d.rarity] : null;
   return (
-    <div className="deck-thumb carded db-card dr-card">
+    <div className="deck-thumb carded db-card dr-card" data-el={d.element}>
       <img
         className="card-art"
         src={cardThumbSrc(d)}
@@ -48,6 +48,7 @@ function DraftCard(props: { id: string; onInfo: (id: string) => void }) {
         decoding="async"
         onError={(e) => { e.currentTarget.style.display = "none"; }}
       />
+      <EdgeRim />
       <div className="dt-top">
         <span
           className="dt-cost"
@@ -70,12 +71,8 @@ function DraftCard(props: { id: string; onInfo: (id: string) => void }) {
           {rar.label}
         </span>
       )}
-      <div className="dt-name">{d.name}</div>
-      <div className="dt-stats">
-        <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
-        <span className="s-hp">♥{d.hp}</span>
-        <span className="s-sp"><SpIcon />{d.sp}</span>
-      </div>
+      <EdgeName name={d.name} className="dt-name" />
+      <EdgeStats className="dt-stats" dmg={d.dmg} hits={d.hits} hp={d.hp} sp={d.sp} />
     </div>
   );
 }

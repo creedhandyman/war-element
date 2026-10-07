@@ -256,7 +256,6 @@ import {
   customDecksFor, deckSizeFor, loadCustomDecks, PREMADE_DECKS, premadeDecksFor, rollOpponent, scriptedOpeningFor, TIER_LABEL, tierOf, tiersFor,
   validateDeck, type CustomDeck, type DeckTier,
 } from "../data/custom-decks";
-import { SpIcon } from "./icons";
 import { Hand } from "./Hand";
 import { PhaseRibbon } from "./PhaseRibbon";
 import { ResourcePool } from "./ResourcePool";
@@ -284,6 +283,7 @@ import { mvpScore } from "./MatchReport";
 import { hasReplay, loadReplay, newMatchId, saveMatch } from "../data/match-history";
 import type { Replay } from "../engine/replay";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, SEAT_SUIT, type PendingBattle, type Selection } from "./shared";
+import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import { AI_SKILLS, SKILL_PROFILES } from "../engine/skill";
 import type { AiSkill } from "../engine/skill";
 import { aiSkillIsAuto, clearAiSkill, loadAiSkill, loadAiTrack, recordAiMatch, saveAiSkill } from "../data/prefs";
@@ -5627,6 +5627,7 @@ export function App() {
                   <div
                     key={h.handId}
                     className={`mull-card carded ${toss ? "toss" : ""}`}
+                    data-el={def.element}
                     onClick={() =>
                       setMullToss((cur) =>
                         toss ? cur.filter((x) => x !== h.handId) : [...cur, h.handId],
@@ -5641,6 +5642,7 @@ export function App() {
                         e.currentTarget.style.display = "none";
                       }}
                     />
+                    <EdgeRim />
                     {/* Same merge as the hand and the thumbs: the sigil is the
                         badge and the cost rides on it. */}
                     <div className="hc-top">
@@ -5649,12 +5651,8 @@ export function App() {
                         <b>{def.cost}</b>
                       </div>
                     </div>
-                    <div className="hc-name">{def.name}</div>
-                    <div className="hc-stats">
-                      <span className="s-dmg">⚔<span className="atk-dmg">{def.dmg}</span>{def.hits > 1 ? <span className="atk-x"> ×{def.hits}</span> : ""}</span>
-                      <span className="s-hp">♥{def.hp}</span>
-                      <span className="s-sp"><SpIcon />{def.sp}</span>
-                    </div>
+                    <EdgeName name={def.name} className="hc-name" />
+                    <EdgeStats className="mull-stats" dmg={def.dmg} hits={def.hits} hp={def.hp} sp={def.sp} />
                     <div className="hc-class">{def.cardClass}</div>
                   </div>
                 );

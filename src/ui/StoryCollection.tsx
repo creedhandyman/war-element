@@ -21,12 +21,12 @@ import {
   earnedByWin, recruitChance, recruitLabel, sourcesOf, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
+import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
   ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
-import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
 
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
@@ -311,6 +311,7 @@ export function StoryCollection(props: {
                   <div
                     key={d.id}
                     className={`deck-thumb carded db-card col-card ${have ? "" : "locked"} ${on ? "selected" : ""} ${foil ? "foil" : ""} ${unseen.has(d.id) ? "unseen" : ""}`}
+                    data-el={d.element}
                     role="button"
                     tabIndex={0}
                     title={foil ? `${d.name} — foil` : have ? d.name : `${d.name} — not yet recruited`}
@@ -319,6 +320,7 @@ export function StoryCollection(props: {
                   >
                     <img className="card-art" src={cardThumbSrc(d)} alt="" loading="lazy" decoding="async"
                       onError={(e) => { e.currentTarget.style.display = "none"; }} />
+                    <EdgeRim />
                     <div className="dt-top">
                       <span
                         className="dt-cost"
@@ -345,13 +347,9 @@ export function StoryCollection(props: {
                         {rar.label}
                       </span>
                     )}
-                    <div className="dt-name">{d.name}</div>
+                    <EdgeName name={d.name} className="dt-name" />
                     {have ? (
-                      <div className="dt-stats">
-                        <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
-                        <span className="s-hp">♥{d.hp}</span>
-                        <span className="s-sp"><SpIcon />{d.sp}</span>
-                      </div>
+                      <EdgeStats className="dt-stats" dmg={d.dmg} hits={d.hits} hp={d.hp} sp={d.sp} />
                     ) : (
                       // The whole point of the locked state: say where it is.
                       <div className="dt-where">{whereLabel(save, d.id, src)}</div>

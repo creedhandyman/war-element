@@ -36,6 +36,7 @@ import {
   getDef, getSpell,
 } from "../engine";
 import { cardArtSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, RARITY_STYLE, STATUS_STYLE } from "./shared";
+import { EdgeRim } from "./EdgeFace";
 import { cardMods, grantedKeywords } from "./Token";
 import { SpIcon } from "./icons";
 import { autoPrefFor, setAutoPref } from "./auto-prefs";
@@ -179,8 +180,7 @@ export function CardView(props: CardViewProps) {
 
         {/* ── zone 1 · header ─────────────────────────────────────────────── */}
         <div className="cd-body">
-          <div className={`cd-art ${props.mode === "browse" && props.foil ? "foil" : ""}`}
-            style={{ borderColor: EL_COLOR[d.element] }}>
+          <div className={`cd-art ${props.mode === "browse" && props.foil ? "foil" : ""}`} data-el={d.element}>
             <img
               src={cardArtSrc(d)}
               alt=""
@@ -189,6 +189,7 @@ export function CardView(props: CardViewProps) {
                 e.currentTarget.style.display = "none";
               }}
             />
+            <EdgeRim />
             <span className="cd-cost">{d.cost}</span>
             <span className="cd-el-badge" style={{ borderColor: EL_COLOR[d.element] }}>
               <img src={EL_ICON[d.element]} alt={d.element}

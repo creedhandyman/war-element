@@ -4,6 +4,7 @@ import { auraSources, effectiveBasicHits, effectiveDmg, effectiveMaxHp, effectiv
 import { isStealthed } from "../engine/rules";
 import type { AuraGlow } from "./aura-glow";
 import { cardThumbSrc, EL_COLOR, EL_ICON, KEYWORD_STYLE, STATUS_STYLE, suitFor } from "./shared";
+import { splitName } from "./EdgeFace";
 
 /** One letter, because the tile has no room for a word and the marker only has
  *  to distinguish two states you already chose deliberately. The names are the
@@ -703,16 +704,4 @@ export function Token(props: {
       </div>
     </div>
   );
-}
-
-/** A name the Edge frame cannot shrink onto one line — "Thunderfangs,
- *  Stormform" would need 5px type — goes on two, split at the space nearest
- *  the middle. Short names, and one-word names, stay whole. */
-function splitName(name: string): string[] {
-  if (name.length <= 13 || !name.includes(" ")) return [name];
-  let best = -1;
-  for (let i = 0; i < name.length; i++) {
-    if (name[i] === " " && (best < 0 || Math.abs(i - name.length / 2) < Math.abs(best - name.length / 2))) best = i;
-  }
-  return [name.slice(0, best), name.slice(best + 1)];
 }

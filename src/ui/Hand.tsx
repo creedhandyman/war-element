@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
 import { getDef, effectiveSummonCost } from "../engine";
 import { cardThumbSrc, EL_ICON } from "./shared";
+import { EdgeName, EdgeRim } from "./EdgeFace";
 import { SpIcon } from "./icons";
 
 /** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
@@ -396,6 +397,7 @@ export function Hand(props: {
                 alt=""
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
+              <EdgeRim />
               {/* Cost and element are one mark now. The RING still carries
                    affordability (gold vs red) — that is a gameplay signal and
                    it does not move onto the art. */}
@@ -412,13 +414,13 @@ export function Hand(props: {
                   red damage, green HP, blue speed — and shields are the grey
                   head of the bar under them. The glyph is Melee or Ranged. */}
               <div className="hc-plate">
-                <div className="hc-name">{def.name}</div>
+                <EdgeName name={def.name} className="hc-name" />
                 <div className="hc-type">
                   <span className={`hc-atk ${melee ? "melee" : "ranged"}`}>{melee ? "🗡" : "🏹"}</span>
                   {def.cardClass}
                   <span className="hc-atk-word"> · {def.attackType}</span>
                 </div>
-                <div className="hc-stats">
+                <div className="hc-stats ef-stats">
                   <span className="st-dmg" title={`Damage${def.hits > 1 ? ` ×${def.hits} hits` : ""}`}>
                     {def.dmg}{def.hits > 1 && <span className="atk-x">×{def.hits}</span>}
                   </span>

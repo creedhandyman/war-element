@@ -31,12 +31,12 @@ import { useBackLayer } from "./use-back-layer";
 import type { CardClass, CardDef, Element, Keyword } from "../engine";
 import { CARDS, TOKENS } from "../data/cards";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
+import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
   ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe,
   type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
-import { SpIcon } from "./icons";
 import { CardView } from "./CardView";
 import { REGIONS } from "../data/story";
 import { describeOwnPassives } from "./card-text";
@@ -381,6 +381,7 @@ export function CardGallery(props: { onClose: () => void }) {
                 <div
                   key={d.id}
                   className={`deck-thumb carded db-card gal-card ${k}`}
+                  data-el={d.element}
                   role="button"
                   tabIndex={0}
                   title={`${d.name} — ${d.element} ${d.cardClass}${rule ? ` · ${rule}` : ""}`}
@@ -400,6 +401,7 @@ export function CardGallery(props: { onClose: () => void }) {
                     decoding="async"
                     onError={(e) => { e.currentTarget.style.display = "none"; }}
                   />
+                  <EdgeRim />
                   <div className="dt-top">
                     <span
                       className="dt-cost"
@@ -419,16 +421,9 @@ export function CardGallery(props: { onClose: () => void }) {
                       {rs.label}
                     </span>
                   )}
-                  <div className="dt-name">{d.name}</div>
+                  <EdgeName name={d.name} className="dt-name" />
                   {rule && <div className="gal-rule">{rule}</div>}
-                  <div className="dt-stats">
-                    <span className="s-dmg">
-                      ⚔<span className="atk-dmg">{d.dmg}</span>
-                      {d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}
-                    </span>
-                    <span className="s-hp">♥{d.hp}</span>
-                    <span className="s-sp"><SpIcon />{d.sp}</span>
-                  </div>
+                  <EdgeStats className="dt-stats" dmg={d.dmg} hits={d.hits} hp={d.hp} sp={d.sp} />
                 </div>
               );
             })}

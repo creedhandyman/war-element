@@ -1270,10 +1270,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* The hairline: an element gradient, bright at the top-left and fading
    through the middle, cut to a ring by masking the content box out. */
-.tk-rim {
+.tk-rim, .ef-rim {
   position: absolute; inset: 0; z-index: 2; border-radius: inherit; pointer-events: none;
   padding: 1.5px;
-  background: linear-gradient(170deg, var(--el-hi), var(--el-rim, #888) 35%, rgba(255, 255, 255, 0.1) 62%, var(--el-rim, #888));
+  background: linear-gradient(170deg, var(--el-hi, color-mix(in srgb, var(--el-rim, #888) 50%, #fff)), var(--el-rim, #888) 35%, rgba(255, 255, 255, 0.1) 62%, var(--el-rim, #888));
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
   -webkit-mask-composite: xor;
           mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -1654,17 +1654,17 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* A tiny glyph ahead of each numeral, in its own colour: a diamond for damage,
    a leaf for HP, a dot for speed. Dropped on a cramped tile, where colour alone
    has to say it and the width is worth more. */
-.tk-stats > span::before {
+.tk-stats > span::before, .ef-stats > :is(.st-dmg, .st-hp, .st-sp)::before {
   content: ""; width: 0.42em; height: 0.42em; margin-right: 0.22em; flex: none;
   background: currentColor; box-shadow: 0 0 3px #000;
 }
-.tk-stats > .st-dmg::before { rotate: 45deg; }
-.tk-stats > .st-hp::before { border-radius: 0 60% 0 60%; }
-.tk-stats > .st-sp::before { border-radius: 50%; }
+.tk-stats > .st-dmg::before, .ef-stats > .st-dmg::before { rotate: 45deg; }
+.tk-stats > .st-hp::before, .ef-stats > .st-hp::before { border-radius: 0 60% 0 60%; }
+.tk-stats > .st-sp::before, .ef-stats > .st-sp::before { border-radius: 50%; }
 @container (max-width: 70px) {
   .tk-stats > span::before { display: none; }
 }
-.tk-name.two { white-space: pre; line-height: 1.05; }
+.tk-name.two, .ef-name.two { white-space: pre; line-height: 1.05; }
 /* HP + shields, 3px, the full width of the card. The bar is what replaced the
    "/max" text: it carries the ratio, and it does not change the row's width
    when a card is wounded — which is the bug that broke the stat row. Shields
@@ -10237,3 +10237,116 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .mkt-toast-head { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; color: var(--gold-lit); margin-bottom: 4px; }
 .mkt-toast p { margin: 0 0 5px; font-size: 12px; line-height: 1.4; color: var(--ink); }
 .mkt-toast .lockin { margin-top: 4px; padding: 6px 16px; }
+
+/* ══ THE EDGE FACE — every card face off the board (owner, 2026-10-07) ═══════
+   The board token's Edge frame, carried to the hand, the mulligan, the deck
+   builder, the collection, the gallery, the draft and the card reader, so a
+   card looks like the same object everywhere it appears. The pieces:
+     .ef-rim    the element hairline (shares .tk-rim's rule), from EdgeFace.tsx
+     the cost   rides the element's badge in a NOTCH at the top centre
+     .ef-name   centred, uppercase, sized to fit by --nl (EdgeFace's EdgeName)
+     .ef-stats  the token's glyphed numerals (EdgeStats)
+     rarity     a small gem on the bottom edge, its label in the tooltip
+   Every face declares data-el so --el-rim is its element. The faces are query
+   containers so the name and the notch size off the CARD, not the screen.
+   Last in the file on purpose: these restyle rules written earlier, at the
+   same specificity. */
+
+/* The hairline is placed, not flowed: `.carded > *:not(.card-art)` and
+   `.deck-thumb > *:not(.card-art)` would otherwise drop it into the layout. */
+.carded > .ef-rim, .deck-thumb > .ef-rim, .cd-art > .ef-rim { position: absolute; inset: 0; z-index: 2; }
+
+/* ── the thumb (deck builder, collection, gallery, draft) and the mulligan ── */
+.deck-thumb.carded, .mull-card.carded {
+  container-type: inline-size;
+  border-color: transparent;
+}
+.deck-thumb.carded { padding: 5px 3px 10px; }
+.mull-card.carded {
+  aspect-ratio: 3 / 4; display: flex; flex-direction: column;
+  padding: 5px 3px 7px; overflow: hidden;
+}
+.deck-thumb.carded::after, .mull-card.carded::after {
+  background:
+    linear-gradient(180deg, rgba(6,7,12,0.42) 0%, rgba(6,7,12,0) 20%),
+    linear-gradient(180deg, rgba(6,7,12,0) 46%, rgba(6,7,12,0.8) 70%, #06070c 96%);
+}
+/* The top row lets go of its own stacking so the cost can hang from the CARD's
+   top edge; its other marks (info, NEW, the tick, the kind tag) keep theirs. */
+.deck-thumb.carded > .dt-top, .mull-card.carded > .hc-top { position: static; min-height: 18px; }
+.deck-thumb.carded > .dt-top > *, .mull-card.carded > .hc-top > * { position: relative; z-index: 3; }
+/* THE NOTCH. The badge that was a circle in the corner: the element's sigil is
+   still its fill and the cost still rides on it, now in a tab hanging from
+   the top edge, ringed in the element's colour (set inline). */
+.deck-thumb.carded .dt-cost, .mull-card.carded .mull-cost {
+  position: absolute; top: 0; left: 50%; translate: -50% 0; z-index: 3;
+  width: clamp(24px, 30cqw, 40px); height: clamp(16px, 20cqw, 27px);
+  border-radius: 0 0 8px 8px; border-width: 1.5px; border-style: solid; border-top-width: 0;
+  background-size: auto 96%; background-repeat: no-repeat; background-position: center;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
+}
+.deck-thumb.carded .dt-cost b, .mull-card.carded .mull-cost b { font-size: clamp(11px, 13cqw, 16px); }
+/* Name and numbers centred over the fade. */
+.deck-thumb.carded > .dt-name, .mull-card.carded > .hc-name {
+  margin-top: auto; min-height: 0; padding: 0 1px;
+  font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; text-align: center;
+  font-size: clamp(6px, calc((100cqw - 8px) / (var(--nl, 8) * 0.74)), 13px);
+  letter-spacing: 0.03em; line-height: 1.12; color: #fff;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
+}
+.deck-thumb.carded > .dt-name.two, .mull-card.carded > .hc-name.two { white-space: pre; line-height: 1.05; }
+/* The element hairline under the name, as on the token. */
+.deck-thumb.carded > .ef-stats, .mull-card.carded > .ef-stats {
+  margin-top: 4px; padding: 0; justify-content: center; flex-wrap: nowrap; gap: clamp(3px, 6cqw, 9px);
+  font-family: var(--font-ui); font-size: clamp(10px, 11.5cqw, 14px); font-weight: 700;
+  line-height: 1; font-variant-numeric: tabular-nums;
+}
+.deck-thumb.carded > .ef-stats::before, .mull-card.carded > .ef-stats::before {
+  content: ""; position: absolute; left: 22%; right: 22%; top: -2.5px; height: 1px; pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--el-rim, #888), transparent);
+}
+.ef-stats > span { display: inline-flex; align-items: center; text-shadow: 0 1px 2px #000, 0 0 4px #000; }
+.ef-stats .atk-x { color: #fff; font-size: 0.78em; margin-left: 1px; }
+.deck-thumb.carded > .ef-stats > .dt-in { position: absolute; right: 2px; margin: 0; }
+.deck-thumb.carded > .dt-where, .deck-thumb.carded > .gal-rule { text-align: center; }
+/* RARITY, as a gem on the bottom edge — where a modern card wears it. The
+   vertical label it replaces ran up the right edge through the name and the
+   numbers once those were centred; the word is still the gem's tooltip and
+   every reader shows it. Colour comes inline (currentColor). */
+.deck-thumb.carded > .dt-rarity {
+  position: absolute; left: 50%; right: auto; top: auto; bottom: 2px; z-index: 3;
+  translate: -50% 0; rotate: 45deg;
+  width: 6px; height: 6px; padding: 0; border-radius: 1px;
+  writing-mode: horizontal-tb; font-size: 0; line-height: 0;
+  background: currentColor; border: 1px solid rgba(0, 0, 0, 0.75);
+  box-shadow: 0 0 5px currentColor;
+}
+.mull-card.carded > .hc-class { text-align: center; margin-top: 3px; position: relative; z-index: 1; }
+
+/* ── the hand ─────────────────────────────────────────────────────────────
+   Two deliberate differences from the other faces, both because the hand is a
+   FAN: each card lies over the right third of the one before it. The cost gem
+   stays in the top-left corner (the only corner always seen — and its ring is
+   the affordability signal), and the name and numbers stay left-aligned. The
+   rest is the Edge face: the hairline, the uppercase name that fits, the glyphs. */
+.hcard { container-type: inline-size; border-color: transparent; }
+.hcard .hc-name {
+  font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
+  font-size: clamp(7px, calc((100cqw - 16px) / (var(--nl, 8) * 0.74)), 13px); line-height: 1.12; color: #fff;
+}
+.hcard .hc-name.two { white-space: pre; line-height: 1.05; }
+.hcard .hc-stats > span::before { margin-right: 0.18em; }
+
+/* ── the card reader (CardView) ──────────────────────────────────────────── */
+.cd-art { border-color: transparent; }
+.cd-art img { border-radius: 10px; }
+.cd-art > .ef-rim { border-radius: 10px; padding: 2px; }
+/* The element badge moves from the bottom corner into the top notch. */
+.cd-art > .cd-el-badge {
+  top: 0; bottom: auto; left: 50%; right: auto; translate: -50% 0; z-index: 3;
+  width: 40px; height: 27px; border-radius: 0 0 9px 9px; border-top-width: 0;
+  display: grid; place-items: center; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.7);
+}
+.cd-art > .cd-el-badge img { width: 22px; height: 22px; object-fit: contain; }
+.cd-art > .cd-cost { z-index: 3; }

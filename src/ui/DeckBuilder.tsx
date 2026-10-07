@@ -19,13 +19,13 @@ import {
   type CheckId, type CheckResult, type CheckState,
 } from "../data/squad-check";
 import { BUILDABLE_ELEMENTS, cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
+import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
   AttackRow, ClassRow, CostRow, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   cardHasKeyword, matchesCost, useFilterFold, type AttackFilter, type CostFilter, type RarityFilter, type TribeFilter,
 } from "./filters";
 import { CardView } from "./CardView";
 import { CostCurve, DeckStats, useComposition } from "./DeckStats";
-import { SpIcon } from "./icons";
 
 const CLASSES: CardClass[] = ["Assassin", "Warrior", "Tank", "Ranger", "Mage", "Support"];
 
@@ -1357,6 +1357,7 @@ export function DeckBuilder(props: {
             <div
               key={d.id}
               className={`deck-thumb carded db-card ${on ? "selected" : ""} ${foils?.has(d.id) ? "foil" : ""}`}
+              data-el={d.element}
               role="button"
               tabIndex={0}
               aria-pressed={on}
@@ -1372,6 +1373,7 @@ export function DeckBuilder(props: {
                 decoding="async"
                 onError={(e) => { e.currentTarget.style.display = "none"; }}
               />
+              <EdgeRim />
               <div className="dt-top">
                 {/* One badge, not two: the cost sits ON the element's sigil. */}
                 <span
@@ -1400,13 +1402,10 @@ export function DeckBuilder(props: {
                   {rar.label}
                 </span>
               )}
-              <div className="dt-name">{d.name}</div>
-              <div className="dt-stats">
-                <span className="s-dmg">⚔<span className="atk-dmg">{d.dmg}</span>{d.hits > 1 ? <span className="atk-x"> ×{d.hits}</span> : ""}</span>
-                <span className="s-hp">♥{d.hp}</span>
-                <span className="s-sp"><SpIcon />{d.sp}</span>
+              <EdgeName name={d.name} className="dt-name" />
+              <EdgeStats className="dt-stats" dmg={d.dmg} hits={d.hits} hp={d.hp} sp={d.sp}>
                 {on && <span className="dt-in" aria-hidden="true">✓</span>}
-              </div>
+              </EdgeStats>
             </div>
           );
         })}
