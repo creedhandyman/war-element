@@ -175,7 +175,7 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       params: { dmg: 8, statusKind: "ROOT", statusDuration: 3, charge: 2, chargeLateral: 1, chargeFirst: 1 },
       targetSide: "enemy",
-      text: "Tackle an opponent within 2 spaces for 8 DMG and ROOT them for 3 rounds, closing to the nearest slot beside them first.",
+      text: "Tackle an opponent within 2 spaces for 8 DMG and ROOT them for 3 rounds, closing to the nearest slot beside them first. A kill leaves Alpha standing in its place.",
     },
   },
   {
@@ -1294,7 +1294,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 15, pen: 1, charge: 4, chargeLateral: 1, chargeFirst: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Ride up to 4 slots in any direction toward your target and deal 15 DMG (PEN) to it.",
+      text: "Ride up to 4 slots in any direction toward your target and deal 15 DMG (PEN) to it. A kill leaves Skelider standing in its place.",
     },
   },
 
@@ -2555,7 +2555,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 8, charge: 2, chargeFirst: 1, chargeLateral: 1, chargeDiagonal: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Pounce up to 2 spaces in any direction onto your target and deal 8 DMG.",
+      text: "Pounce up to 2 spaces in any direction onto your target and deal 8 DMG. A kill leaves ThunderCat standing in its place.",
     },
   },
   {
@@ -3302,7 +3302,7 @@ export const CARDS: CardDef[] = [
       },
       targetSide: "enemy",
       ranged: true, // the dive reaches across the board
-      text: "Ride up to 4 spaces in any direction toward your target, dealing 5 DMG (PEN) to every opponent you pass that isn't flying. Then hit it for 19 DMG (PEN) + 9 DOT and gain EVASION for a round. 3-round cooldown.",
+      text: "Ride up to 4 spaces in any direction toward your target, dealing 5 DMG (PEN) to every opponent you pass that isn't flying. Then hit it for 19 DMG (PEN) + 9 DOT and gain EVASION for a round; a kill leaves them standing in its place. 3-round cooldown.",
     },
   },
   {
@@ -4162,7 +4162,7 @@ export const CARDS: CardDef[] = [
       params: { dmg: 3, hits: 3, charge: 2, chargeLateral: 1, chargeFirst: 1 },
       ranged: true,
       targetSide: "enemy",
-      text: "Roll up to 2 slots into an opponent in range, then deal 3×3 DMG.",
+      text: "Roll up to 2 slots into an opponent in range, then deal 3×3 DMG. A kill leaves Rumbler standing in its place.",
     },
   },
   {
@@ -5556,7 +5556,7 @@ export const CARDS: CardDef[] = [
         charge: 2, chargeFirst: 1, chargeLateral: 1, chargeDiagonal: 1,
       },
       targetSide: "enemy",
-      text: "Pounce up to 2 spaces toward an opponent in range, then deal 10 DMG, STUN them for 2 rounds and BLEED 3 for 2 rounds.",
+      text: "Pounce up to 2 spaces toward an opponent in range, then deal 10 DMG, STUN them for 2 rounds and BLEED 3 for 2 rounds. A kill leaves it standing in their place.",
     },
   },
   {
@@ -7473,7 +7473,7 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       params: { chargeFirst: 1, charge: 3, dmg: 10 },
       targetSide: "enemy",
-      text: "Move up to 3 spaces into the enemy battlefield and deal 10 DMG to an opponent in range.",
+      text: "Move up to 3 spaces toward an opponent and deal 10 DMG to it. A kill leaves Omega standing in its place.",
     },
   },
   {
@@ -8881,7 +8881,7 @@ export const CARDS: CardDef[] = [
       handler: "strike",
       params: { chargeFirst: 1, charge: 3, dmg: 12 },
       targetSide: "enemy",
-      text: "Move up to 3 spaces forward and deal 12 DMG to the first opponent hit.",
+      text: "Charge up to 3 spaces at an opponent, crossing your own cards, and deal 12 DMG. A kill leaves Infernus Rex standing in its place.",
     },
   },
 
@@ -9851,7 +9851,7 @@ export const CARDS: CardDef[] = [
         statusKind: "WEAKEN", statusDuration: 3, splashStatus: 1,
       },
       targetSide: "enemy",
-      text: "Dash into the target's row, then deal 14 DMG to it and 7 DMG to opponents adjacent to it.",
+      text: "Dash into the target's row, then deal 14 DMG to it and 7 DMG to opponents adjacent to it. A kill leaves Stormfang standing in its place.",
     },
   },
   {

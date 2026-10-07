@@ -1401,7 +1401,10 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
       type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
     });
     expect(n.cards[doomed.instanceId]).toBeUndefined(); // it died to the bash
-    expect(n.cards[rollo.instanceId].pos).toEqual({ row: 2, col: 1 }); // stopped BESIDE it
+    // Since 2026-10-07 every charge-first strike takes the ground it cleared
+    // (owner), so the tell is ON the slot, never PAST it: a roll that ran after
+    // the bash would find the square empty and keep going up the column.
+    expect(n.cards[rollo.instanceId].pos).toEqual({ row: 1, col: 1 });
   });
 
   it("every rider now closes BEFORE it strikes, not after", () => {
@@ -1430,13 +1433,10 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
         type: "BATTLE_ACTION", player: "P1", action: "special", targetId: doomed.instanceId,
       });
       expect(n.cards[doomed.instanceId], `${id} failed to kill`).toBeUndefined();
-      const takesGround = Number(getDef(id).special!.params!.takeSpotOnKill ?? 0) > 0;
-      if (takesGround)
-        expect(n.cards[rider.instanceId].pos, `${id} charged past the slot it cleared`)
-          .toEqual({ row: 1, col: 1 });
-      else
-        expect(n.cards[rider.instanceId].pos, `${id} walked onto the corpse`)
-          .not.toEqual({ row: 1, col: 1 });
+      // Every charge-first rider takes the ground it cleared now (owner,
+      // 2026-10-07), so all of them must end ON the slot and none past it.
+      expect(n.cards[rider.instanceId].pos, `${id} did not end on the slot it cleared`)
+        .toEqual({ row: 1, col: 1 });
     }
   });
 

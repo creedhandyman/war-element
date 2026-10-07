@@ -8,7 +8,7 @@
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent } from "../phases";
 import { canFireSpecial, canMove, specialTargets, validSpecialTargets, validTargets } from "../rules";
-import { SPECIAL_HANDLERS, basicAttack, defeatCard } from "../combat";
+import { SPECIAL_HANDLERS, basicAttack, chargeForward, defeatCard } from "../combat";
 import { boardCards, effectiveDmg, effectiveSp } from "../state";
 import { getDef } from "../../data/cards";
 import { atCleanup, giveHand, place, prepState, statusOf } from "./helpers";
@@ -282,6 +282,63 @@ describe("a charge that kills takes the ground", () => {
 
   it("Burnout charges three slots now, not two", () => {
     expect(getDef("pyro_burnout").special!.params!.charge).toBe(3);
+  });
+});
+
+describe("a charge crosses its own side and rides to its target (owner, 2026-10-07)", () => {
+  // Volcanic Charge stopped dead at a teammate in front, and the chargers
+  // without `chargeLateral` ran straight up their own column even when the
+  // target they picked stood one over — so Infernus Rex struck from where it
+  // stood and never moved, even with the slot it emptied lying open.
+  const REX = "pyro_infernus_rex";
+  const rex = (s: GameState, prey: CardInstance, me: CardInstance) =>
+    SPECIAL_HANDLERS.strike(s, s.cards[me.instanceId], [prey], getDef(REX).special!.params!);
+
+  it("passes over an ally and takes the slot of what it killed", () => {
+    const s = prepState();
+    const me = place(s, REX, "P1", 3, 1);
+    place(s, "leaf_alpha", "P1", 2, 1);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    rex(s, prey, me);
+    expect(s.cards[prey.instanceId], "the target died").toBeUndefined();
+    expect(s.cards[me.instanceId].pos).toEqual({ row: 1, col: 1 });
+  });
+
+  it("crosses an ally to stand beside a target that survives", () => {
+    const s = prepState();
+    const me = place(s, REX, "P1", 3, 1);
+    place(s, "leaf_alpha", "P1", 2, 1);
+    const prey = place(s, "leaf_alpha", "P2", 0, 1, { curHp: 999, maxHp: 999 });
+    rex(s, prey, me);
+    expect(s.cards[me.instanceId].pos, "over the ally, up to the target").toEqual({ row: 1, col: 1 });
+  });
+
+  it("never stops on an ally's square", () => {
+    const s = prepState();
+    const me = place(s, REX, "P1", 3, 1);
+    const pal = place(s, "leaf_alpha", "P1", 2, 1);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 999, maxHp: 999 });
+    rex(s, prey, me);
+    const at = s.cards[me.instanceId].pos;
+    expect(at, "not on top of its teammate").not.toEqual(s.cards[pal.instanceId].pos);
+    expect(at, "and not on the target").not.toEqual({ row: 1, col: 1 });
+  });
+
+  it("homes in on a target one column over instead of running up its own", () => {
+    const s = prepState();
+    const me = place(s, REX, "P1", 3, 0);
+    const prey = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 1, maxHp: 1, curShields: 0 });
+    rex(s, prey, me);
+    expect(s.cards[prey.instanceId]).toBeUndefined();
+    expect(s.cards[me.instanceId].pos).toEqual({ row: 1, col: 1 });
+  });
+
+  it("a plain forward charge crosses allies too (chargeForward)", () => {
+    const s = prepState();
+    const me = place(s, "leaf_oak", "P1", 3, 1);
+    place(s, "leaf_alpha", "P1", 2, 1);
+    chargeForward(s, s.cards[me.instanceId], 2);
+    expect(s.cards[me.instanceId].pos).toEqual({ row: 1, col: 1 });
   });
 });
 

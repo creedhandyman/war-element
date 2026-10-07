@@ -3028,14 +3028,31 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
   const d = aimOf(draft, card);
   const enemyHome = homeRow(enemyOf(card.owner), draft.boardSize);
   let moved = 0;
+  // OVER ITS OWN SIDE (owner, 2026-10-07). A charge passes through the squares
+  // its allies stand on — it just cannot STOP on one. It used to halt at the
+  // first body of either side, so a teammate parked in front cancelled the
+  // whole move and the charger struck from where it stood. `over` counts the
+  // allied squares crossed since the last open one; the card only lands on
+  // open ground, so a run that ends on an ally falls back to the last gap.
+  let over = 0;
+  let cur = card.pos ? { ...card.pos } : null;
   for (let i = 0; i < steps; i++) {
-    const pos = card.pos;
+    const pos = cur;
     if (!pos) break;
     const row: number = pos.row + d.dr;
     const col: number = pos.col + d.dc;
     if (row < 0 || row >= draft.boardSize || col < 0 || col >= draft.boardSize) break;
     if (groundClosed(draft, row, col)) break;
     const blocker = cardAt(draft, row, col);
+    if (blocker && blocker.owner === card.owner && blocker.instanceId !== card.instanceId) {
+      cur = { row: row as Pos["row"], col: col as Pos["col"] };
+      over++;
+      if (d.dr !== 0 && row === enemyHome) break;
+      continue;
+    }
+    // An enemy behind an ally: the charger is not standing next to it, so it
+    // neither shoves nor passes — the run ends at the last open square.
+    if (blocker && over > 0) break;
     if (blocker) {
       // A JUGGERNAUT SHOVES. A TRAMPLE card walking into a lighter body drives
       // it back and takes the square, exactly as `shoveTarget` does in Prep —
@@ -3050,7 +3067,9 @@ export function chargeForward(draft: GameState, card: CardInstance, steps: numbe
       applyShove(draft, card, shove);
     }
     card.pos = { row: row as Pos["row"], col: col as Pos["col"] };
-    moved++;
+    cur = { ...card.pos };
+    moved += over + 1;
+    over = 0;
     if (d.dr !== 0 && row === enemyHome) break; // stop on the enemy home row
   }
   if (moved > 0) draft.log.push(`${label(draft, card)} charges forward ${moved} slot(s).`);
@@ -3119,9 +3138,18 @@ function chargeToward(
   // else is orthogonal, so a ground rider spends two of its steps to cut a
   // corner. A charge that ignored this would out-manoeuvre normal movement.
   const canDiagonal = diagonal || isFlying(card);
-  const open = (r: number, c: number) =>
-    r >= 0 && r < draft.boardSize && c >= 0 && c < draft.boardSize &&
-    !groundClosed(draft, r, c) && !cardAt(draft, r, c);
+  // OVER ITS OWN SIDE (owner, 2026-10-07): an ally's square can be crossed but
+  // not stopped on, the same rule as chargeForward. `landing` is the last OPEN
+  // square the rider reached; if the run ends on an ally it settles there.
+  const passable = (r: number, c: number) => {
+    if (r < 0 || r >= draft.boardSize || c < 0 || c >= draft.boardSize || groundClosed(draft, r, c)) return false;
+    const there = cardAt(draft, r, c);
+    return !there || (there.owner === card.owner && there.instanceId !== card.instanceId);
+  };
+  const start = card.pos ? { ...card.pos } : null;
+  let landing = start;
+  const onAlly = () => !!card.pos && Object.values(draft.cards).some((o) =>
+    o.instanceId !== card.instanceId && o.pos && o.pos.row === card.pos!.row && o.pos.col === card.pos!.col);
   let moved = 0;
   for (let i = 0; i < steps; i++) {
     const pos = card.pos;
@@ -3156,10 +3184,11 @@ function chargeToward(
     const seen = new Set<string>();
     const step = tries
       .filter(([sr, sc]) => (seen.has(`${sr},${sc}`) ? false : (seen.add(`${sr},${sc}`), true)))
-      .find(([sr, sc]) => open(pos.row + sr, pos.col + sc));
+      .find(([sr, sc]) => passable(pos.row + sr, pos.col + sc));
     if (!step) break;
     card.pos = { row: pos.row + step[0], col: pos.col + step[1] };
     moved++;
+    if (!onAlly()) landing = { ...card.pos };
     if (run) {
       // Collect as we go, damage after the ride — resolving mid-move could kill
       // a blocker and change the lane the rider is still walking.
@@ -3171,6 +3200,9 @@ function chargeToward(
     }
     if (card.pos.row === enemyHome) break; // a charge ends on the enemy home row
   }
+  // Ended on a teammate's square: settle back on the last open one.
+  if (onAlly() && landing) card.pos = { ...landing };
+  if (start && card.pos) moved = card.pos.row === start.row && card.pos.col === start.col ? 0 : moved;
   if (moved > 0) draft.log.push(`${label(draft, card)} charges ${moved} slot(s) to close the gap.`);
   if (run && run.size > 0) {
     let hit = 0;
@@ -4220,14 +4252,17 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // on; without it `charge` keeps its original after-the-hit behaviour, which
     // is what every existing charger (Skelider, Shadow Horsemen, Skyrend) wants.
     const chargeFirst = num(params, "chargeFirst") > 0;
-    if (chargeFirst && num(params, "charge") > 0 && center) {
-      if (num(params, "chargeLateral") > 0)
-        chargeToward(
-          draft, attacker, num(params, "charge"), center,
-          num(params, "trampleDmg"), num(params, "chargeDiagonal") > 0,
-        );
-      else chargeForward(draft, attacker, num(params, "charge"));
-    }
+    // Every charge-first strike now RIDES TO ITS TARGET (owner, 2026-10-07).
+    // The ones without `chargeLateral` — Volcanic Charge, Omega, Tempest,
+    // Sunstalker, Grizzly — ran straight up their own column, but targeting
+    // lets them pick anything within the charge's reach, so a target one
+    // column over was struck from where the charger stood and it never moved.
+    const chargeStart = attacker.pos ? { ...attacker.pos } : null;
+    if (chargeFirst && num(params, "charge") > 0 && center)
+      chargeToward(
+        draft, attacker, num(params, "charge"), center,
+        num(params, "trampleDmg"), num(params, "chargeDiagonal") > 0,
+      );
     // Sunlight Strike: a bigger number against what this card hunts. Read
     // through the SAME matcher as the passive, so "vs Dragons" means one thing.
     // Snapshotted before the strike, or ThunderShot's conditional would be
@@ -4256,7 +4291,15 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     // Guarded on the slot being genuinely free: a captured slot is off limits to
     // everyone, and something else can already be standing there (a splash kill
     // that shuffled bodies, a spawn-on-death filling its own corpse's square).
-    if (num(params, "takeSpotOnKill") > 0 && r.targetDied && center
+    // A charge-first strike takes it by default (owner, 2026-10-07): the slot
+    // it cleared is where the charge was going. Only when that slot was within
+    // the charge's reach from where it STARTED — allies in between are crossed,
+    // the same as on the way in, so a teammate standing between the charger and
+    // its kill no longer leaves it stranded at the back.
+    const takeSpot = num(params, "takeSpotOnKill") > 0
+      || (chargeFirst && num(params, "charge") > 0 && !!chargeStart && !!center
+        && chebyshev(chargeStart, center) <= num(params, "charge"));
+    if (takeSpot && r.targetDied && center
         && attacker.curHp > 0 && attacker.pos
         && !groundClosed(draft, center.row, center.col)
         && !cardAt(draft, center.row, center.col)) {
