@@ -1577,7 +1577,7 @@ export function previewSpecialZoneAhead(state: GameState, casterId: string): Pos
  *  (FireFly's RANDOM shots). A pick means nothing to these. */
 const SELF_AIMED_HANDLERS = new Set([
   "battleCharge", "bloodyWaters", "extendStatusAll", "grandFinally",
-  "lacingKnots", "sprayWeapon", "sweep", "flameStrike",
+  "lacingKnots", "sprayWeapon", "sweep", "flameStrike", "igniter",
 ]);
 
 /** From this many shots up, `targets` means "everyone it reaches" rather than a

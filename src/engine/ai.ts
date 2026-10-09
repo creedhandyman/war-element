@@ -1645,8 +1645,9 @@ function chooseBattleActionUnaimed(state: GameState, instanceId: string): Battle
       // Cheap DOT amplifier — fire whenever an opponent is carrying a DOT worth
       // doubling.
       const dots = ["BURN", "BLEED", "SCALD", "DOT"];
+      // It picks its own three, so no target is named.
       const withDot = specTargets.find((t) => t.statuses.some((st) => dots.includes(st.kind)));
-      if (withDot) return { action: "special", targetId: withDot.instanceId };
+      if (withDot) return { action: "special" };
     } else if (sp.handler === "markTarget") {
       // Mark of Hoax: brand the meatiest survivor — the guaranteed-CRIT payoff
       // is biggest on a high-HP target. Take it when there's no kill to secure.

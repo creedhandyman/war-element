@@ -1362,6 +1362,23 @@ describe("medium-tier passives (audit batch)", () => {
     expect(burn.duration).toBe(4);
   });
 
+  it("Liza's Igniter takes the 3 CLOSEST opponents carrying a DOT, and skips the rest", () => {
+    const s = prepState();
+    const liza = place(s, "pyro_liza", "P1", 3, 0);
+    const burn = () => ({ kind: "BURN" as const, duration: 2, power: 1, source: "PYRO" as const });
+    const near1 = place(s, "dusk_gool", "P2", 2, 0, { curHp: 40, maxHp: 40, status: burn() });
+    const near2 = place(s, "dusk_gool", "P2", 2, 1, { curHp: 40, maxHp: 40, status: burn() });
+    const clean = place(s, "dusk_gool", "P2", 2, 2, { curHp: 40, maxHp: 40 }); // no DOT: never takes a slot
+    const near3 = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, status: burn() });
+    const far = place(s, "dusk_gool", "P2", 0, 3, { curHp: 40, maxHp: 40, status: burn() });
+    const all = [far, clean, near3, near2, near1].map((c) => s.cards[c.instanceId]);
+    SPECIAL_HANDLERS.igniter(s, s.cards[liza.instanceId], all, { targets: 3 });
+    const pw = (c: { instanceId: string }) => s.cards[c.instanceId].statuses.find((st) => st.kind === "BURN")?.power;
+    expect([pw(near1), pw(near2), pw(near3)]).toEqual([2, 2, 2]);
+    expect(pw(far)).toBe(1); // fourth-closest: untouched
+    expect(pw(clean)).toBeUndefined();
+  });
+
   it("Liza's Gaslighting buffs the ally that lands a kill", () => {
     const s = prepState();
     place(s, "pyro_liza", "P1", 3, 3); // the enabler

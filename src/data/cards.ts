@@ -9955,15 +9955,16 @@ export const CARDS: CardDef[] = [
     // end of next round.
     passiveNames: { allyKillBuff: "Gaslighting" },
     allyKillBuff: { dmg: 1, rounds: 2 },
-    // Igniter: double the power AND remaining duration of a DOT on an opponent.
+    // Igniter: double the power AND remaining duration of the DOT on the 3
+    // closest opponents carrying one (owner, 2026-10-09: was one picked target).
     special: {
       name: "Igniter",
       cost: 1,
       handler: "igniter",
-      params: {},
+      params: { targets: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "Double the damage and remaining duration of one DOT on an opponent.",
+      text: "Double the damage and remaining duration of the DOT on the 3 closest opponents carrying one."
     },
   },
   {

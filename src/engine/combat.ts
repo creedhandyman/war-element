@@ -5740,15 +5740,24 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
   },
   /** Igniter (Liza): find a DOT on the target and double both its power and its
    *  remaining duration — turn a smoulder into an inferno. */
-  igniter(draft, attacker, targets, _params) {
-    const t = targets[0];
-    if (!t) return;
+  /** Igniter (Liza): the `targets` CLOSEST opponents in reach that carry a DOT
+   *  each get it doubled, power and remaining rounds (owner, 2026-10-09: was
+   *  one picked opponent). Picks its own victims, so it is a one-tap Confirm
+   *  (rules.ts SELF_AIMED_HANDLERS); a body with no DOT never takes a slot. */
+  igniter(draft, attacker, targets, params) {
     const DOTS: StatusKind[] = ["BURN", "BLEED", "SCALD", "DOT"];
-    const dot = t.statuses.find((s) => DOTS.includes(s.kind));
-    if (!dot) { draft.log.push(`${label(draft, attacker)} finds nothing to ignite on ${label(draft, t)}.`); return; }
-    dot.power *= 2;
-    dot.duration *= 2;
-    draft.log.push(`${label(draft, attacker)} ignites the ${dot.kind} on ${label(draft, t)} — ${dot.power} for ${dot.duration}r.`);
+    const from = attacker.pos;
+    const lit = targets
+      .filter((t) => t.curHp > 0 && t.pos && t.statuses.some((s) => DOTS.includes(s.kind)))
+      .sort((x, y) => (from ? manhattan(from, x.pos!) - manhattan(from, y.pos!) : 0))
+      .slice(0, num(params, "targets", 3));
+    if (lit.length === 0) { draft.log.push(`${label(draft, attacker)} finds nothing to ignite.`); return; }
+    for (const t of lit) {
+      const dot = t.statuses.find((s) => DOTS.includes(s.kind))!;
+      dot.power *= 2;
+      dot.duration *= 2;
+      draft.log.push(`${label(draft, attacker)} ignites the ${dot.kind} on ${label(draft, t)} — ${dot.power} for ${dot.duration}r.`);
+    }
   },
   /** Mark of Hoax: brand one opponent — while marked, EVERY basic attack against
    *  it is a guaranteed CRIT, and its death banks Hoax a guaranteed dodge. */
