@@ -72,8 +72,9 @@ describe("the eight legends are on the board", () => {
     // 31 -> 25: the King Cobra was promoted from a TOKEN to a draftable cost-3
     // Rare and restatted to that budget, so Kobra's free body is six points
     // smaller than when this discount was written. Still comfortably more
-    // than the four points off Kobra's own line.
-    expect(body(tok), "and the free snake beside it").toBe(25);
+    // than the four points off Kobra's own line. 25 -> 20 when the owner
+    // re-costed it to 2 (2026-10-08).
+    expect(body(tok), "and the free snake beside it").toBe(20);
     // The discount is real but small; the RECOST is what pays for the token.
     expect(5 * k.cost + 10 - body(k), "four points under").toBe(4);
     expect(k.summonSpawn?.token).toBe("bore_kingcobra_tok");

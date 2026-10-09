@@ -161,6 +161,10 @@ export interface OnHitByMeleeDef {
 
 /** Fires when this card's basic/special attack KILLS an enemy (per kill). */
 export interface OnKillDef {
+  /** Death Roll (Crock): drag the kill under and surface in its square — the
+   *  passive form of Falcon Punch's `takeSpotOnKill`. Skipped when the square
+   *  is already filled or the ground is closed, like every other take-the-spot. */
+  takeSpot?: boolean;
   buffDmg?: number; // permanent +DMG (stacks)
   /** CEILING on that stack. Every other ramp in this file has one — `packDmg`,
    *  `momentum`, `vsFrozenRamp`, `onHitSpawn`, `spawnToken.maxAlive` — and an

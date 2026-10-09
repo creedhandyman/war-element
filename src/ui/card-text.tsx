@@ -509,6 +509,7 @@ export function describePassives(def: CardDef): string[] {
   if (def.onKill) {
     const k = def.onKill;
     const bits = [
+      k.takeSpot && "takes the square of the card it killed",
       // The ceiling is printed the way the shield one below is — Bounty stops
       // at +3 DMG, and an unprinted cap reads as a ramp that never ends.
       k.buffDmg && `+${k.buffDmg} DMG${k.buffDmgMax != null ? ` (up to +${k.buffDmgMax} in all)` : ""}`,

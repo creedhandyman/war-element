@@ -815,7 +815,7 @@ const BORE: StoryRegion = {
     },
     { id: "R7", name: "Faultline", kind: "warden", at: { x: 31.5, y: 38 },
       requires: ["R5"], tribe: "Cavernous", roster: ["bore_shift", "bore_rhe", "bore_sheish", "bore_kobra"],
-      adds: ["bore_cosmic", "bore_crock", "bore_obsidi"],
+      adds: ["bore_cosmic", "bore_thorny_ripper", "bore_obsidi"],
       note: "Walls set loose so the ground can move. Rhyolite turns shots astray and sleeps two of you; Kobra strikes the sleeping twice as hard.",
       lore: "The stonework is set without mortar on purpose: the ground can shift a hand's width and the wall goes with it. Building rigid was tried once, and Shift is what the ground does about it."
      },

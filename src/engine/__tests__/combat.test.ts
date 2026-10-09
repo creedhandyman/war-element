@@ -245,27 +245,24 @@ describe("on-hit keywords", () => {
   });
 });
 
-describe("on-death retaliation only reaches killers the corpse could have hit", () => {
-  it("Crock's Deathroll thrashes an adjacent killer", () => {
+describe("Crock's Deathroll", () => {
+  it("Crock's Deathroll takes the square of the card it kills", () => {
+    // A kill passive since 2026-10-08 (owner): drag it under, surface in its
+    // square — Falcon Punch's take-the-spot, on every kill.
     const s = prepState();
-    // Keyword-free, non-regenerating killer, so the 5 measured is Deathroll.
-    const killer = place(s, "gale_guan", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
-    const crock = place(s, "bore_crock", "P2", 2, 1, { curHp: 1, curShields: 0 });
-    basicAttack(s, killer.instanceId, crock.instanceId);
-    expect(s.cards[crock.instanceId]).toBeUndefined();
-    expect(30 - s.cards[killer.instanceId].curHp).toBe(5);
+    const prey = place(s, "gale_guan", "P1", 2, 0, { curHp: 1, curShields: 0 });
+    const crock = place(s, "bore_crock", "P2", 2, 1);
+    basicAttack(s, crock.instanceId, prey.instanceId);
+    expect(s.cards[prey.instanceId]).toBeUndefined();
+    expect(s.cards[crock.instanceId].pos).toEqual({ row: 2, col: 0 });
   });
 
-  it("...but never a killer it could not have reached", () => {
-    // A death roll is a melee thrash. It was landing on ranged killers clear
-    // across the board, which made picking Crock off from range strictly worse
-    // than walking up to it.
+  it("...and stays put when it does not kill", () => {
     const s = prepState();
-    const sniper = place(s, "dawn_sparkle", "P1", 0, 3, { curHp: 30, maxHp: 30, curShields: 0 });
-    const crock = place(s, "bore_crock", "P2", 2, 1, { curHp: 1, curShields: 0 });
-    basicAttack(s, sniper.instanceId, crock.instanceId);
-    expect(s.cards[crock.instanceId]).toBeUndefined();
-    expect(s.cards[sniper.instanceId].curHp).toBe(30); // untouched
+    const prey = place(s, "gale_guan", "P1", 2, 0, { curHp: 30, maxHp: 30, curShields: 0 });
+    const crock = place(s, "bore_crock", "P2", 2, 1);
+    basicAttack(s, crock.instanceId, prey.instanceId);
+    expect(s.cards[crock.instanceId].pos).toEqual({ row: 2, col: 1 });
   });
 });
 

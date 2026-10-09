@@ -4172,19 +4172,18 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 1,
-    dmg: 5,
+    // Owner's line, 2026-10-08: cost 3, 8/10/SP 8, and Deathroll became a kill
+    // passive — it drags its prey under and takes the square, like Falcon Punch.
+    cost: 3,
+    dmg: 8,
     hits: 1,
-    hp: 3,
-    sp: 7,
+    hp: 10,
+    sp: 8,
     shields: 0,
     keywords: {},
     tribe: "Reptile",
-    // Deathroll (On Death): deal 5 DMG to the attacker — but only one it can
-    // actually reach. A death roll is a melee thrash; it was landing on ranged
-    // killers clear across the board.
-    passiveNames: { onDeath: "Deathroll" },
-    onDeath: { dmg: 5, inRangeOnly: true },
+    passiveNames: { onKill: "Deathroll" },
+    onKill: { takeSpot: true },
   },
   {
     id: "aqua_bahari",
@@ -9537,12 +9536,13 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 2,
-    dmg: 4,
+    cost: 1,
+    // 3 + 4 + 1*2 + 6 = 15 = 5*1+10. Cost 1 since 2026-10-08 (owner).
+    dmg: 3,
     hits: 1,
     hp: 4,
-    sp: 8,
-    shields: 2,
+    sp: 6,
+    shields: 1,
     // Spined Hide: REFLECT 2 — anything that hits it takes 2 back.
     keywords: { REFLECT: 2 },
     tribe: "Sand Village",
@@ -9550,7 +9550,7 @@ export const CARDS: CardDef[] = [
     // takes, melee or ranged, hits the decoy and does nothing. It was the first
     // MELEE attack EACH round, which on a 4 HP body meant a melee attacker could
     // never finish it while a ranged one ignored the passive entirely. Specials
-    // punch through: a cost-2 blocker should turn away a swing, not someone's
+    // punch through: a cost-1 blocker should turn away a swing, not someone's
     // once-a-game payoff. Spined Hide (REFLECT 2) is unchanged.
     passiveNames: { falseHead: "False Head" },
     falseHead: true,
@@ -14519,13 +14519,13 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Assassin",
     attackType: "Melee",
-    cost: 3,
-    // 5 + 8 + 2*2 + 8 = 25 = 5*3+10.
+    cost: 2,
+    // 5 + 7 + 1*2 + 6 = 20 = 5*2+10. Cost 2 since 2026-10-08 (owner).
     dmg: 5,
     hits: 1,
-    hp: 8,
-    sp: 8,
-    shields: 2,
+    hp: 7,
+    sp: 6,
+    shields: 1,
     keywords: {},
     tribe: ["Sand Village", "Cavernous"],
     passiveNames: { vsStatus: "Ambush Coil", onHitStatus: "Sleeping Venom" },
@@ -14533,12 +14533,12 @@ export const CARDS: CardDef[] = [
     vsStatus: { status: "SLEEP", dmgMult: 2 },
     talent: {
       name: "Hood Flare",
-      text: "Once per game, free: rear up and put 2 opponents to SLEEP for 2 rounds.",
+      text: "Once per game, free: rear up and put 1 opponent to SLEEP for 2 rounds.",
       // SLEEP, not the BLIND the shelved duplicate used: this card's whole
       // payoff is Ambush Coil doubling into a SLEEPING body, so the Talent sets
       // up its own kit instead of importing a status nothing here reads.
       handler: "statusNova",
-      params: { statusKind: "SLEEP", statusDuration: 2, targets: 2 },
+      params: { statusKind: "SLEEP", statusDuration: 2, targets: 1 },
     },
   },
   {

@@ -3564,6 +3564,12 @@ function applyOnKill(draft: GameState, killer: CardInstance, def: OnKillDef, dea
     });
     draft.log.push(`${name} hides a trap where its prey fell.`);
   }
+  if (def.takeSpot && deathPos && killer.pos && killer.curHp > 0
+      && !groundClosed(draft, deathPos.row, deathPos.col)
+      && !cardAt(draft, deathPos.row, deathPos.col)) {
+    killer.pos = { row: deathPos.row as Pos["row"], col: deathPos.col };
+    draft.log.push(`${name} rolls its prey under and takes its ground.`);
+  }
   if (def.buffDmg) {
     // ...UP TO ITS CEILING. Measured on Vulcanyx, whose Apex Hunger is +3 a
     // kill against the next-biggest ramp's +2: across real fights it reached a

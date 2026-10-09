@@ -4968,7 +4968,9 @@ describe("a Talent is a cost-3 Rare's trick, and nothing else's", () => {
   // is Nightfang's DISGUISE, a mask with no place in any deck, and its cost-8
   // line is Nightfang's own. Its Unmask Talent is how the legendary under it
   // comes out on command (owner's call, 2026-10-03).
-  const EXCEPTIONS = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister", "dawn_quasar", "dusk_butler"]);
+  const EXCEPTIONS = new Set(["gale_tumbleweed", "leaf_oak", "pyro_canister", "dawn_quasar", "dusk_butler",
+    // King Cobra: cost 2 with its Hood Flare kept, by the owner's call (2026-10-08).
+    "bore_kingcobra_tok"]);
 
   it("every Talent sits on a cost-3 Rare", () => {
     const wrong = talented
