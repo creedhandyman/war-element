@@ -29,7 +29,8 @@ describe("firing specials", () => {
     const s = prepState();
     s.players.P1.magicPool = 5;
     const a = place(s, "leaf_sumerose", "P1", 2, 0, { curHp: 8, maxHp: 13 }); // Siphoning Slash cost 1
-    const t = place(s, "bore_armadillo", "P2", 1, 0, { curHp: 15, curShields: 4 });
+    // Ice Wall, not Armadillo: both BLOCK 2, but LEAF beats BORE on the element wheel.
+    const t = place(s, "aqua_icewall", "P2", 1, 0, { curHp: 15, curShields: 4 });
     const next = applyIntent(battleWith(s, a.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",

@@ -1,7 +1,7 @@
-// Element matchups (matchups.ts) — the eight cross-element rules. The DAWN↔DUSK
-// damage swing also has live coverage in the WarPhant / Star Shower / Bird Bomb
-// / Shine tests, which assert the +25% through real attacks; this file pins the
-// rules themselves plus the paths those don't reach.
+// THE ELEMENT WHEEL (matchups.ts, owner 2026-10-08): one rule for every
+// element — +25% DMG to the element it beats, +25% taken from the one that
+// beats it. Replaced seven one-off matchups. BURN's heal penalty is a rule of
+// the BURN status, and BORE's paralysis immunity is part of its aura.
 
 import { describe, expect, it } from "vitest";
 import { applyStatus, basicAttack, defeatCard, directDamage, shieldsBrokenBy, SPECIAL_HANDLERS } from "../combat";
@@ -10,110 +10,83 @@ import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
 import {
   BURN_HEAL_MULT,
-  LEAF_WATER_HEAL,
-  applyMatchupDamage,
-  dodgesByMatchup,
-  matchupImmune,
-  matchupStatusDuration,
+  ELEMENT_BEATS,
   ELEMENT_MATCHUP,
+  applyMatchupDamage,
+  beatenBy,
 } from "../matchups";
+import type { Element } from "../types";
 import { atCleanup, place, prepState, statusOf } from "./helpers";
 
-describe("element matchups — the damage swing", () => {
-  it("DAWN and DUSK each hit the other 25% harder", () => {
-    expect(applyMatchupDamage("DAWN", "DUSK", 4)).toBe(5);
-    expect(applyMatchupDamage("DUSK", "DAWN", 4)).toBe(5);
+const EIGHT: Element[] = ["PYRO", "LEAF", "BORE", "BOLT", "GALE", "AQUA", "DAWN", "DUSK"];
+
+describe("the element wheel", () => {
+  it("every element beats exactly one and is beaten by exactly one", () => {
+    for (const el of EIGHT) {
+      expect(ELEMENT_BEATS[el], el).toBeDefined();
+      expect(EIGHT.filter((x) => ELEMENT_BEATS[x] === el), el).toHaveLength(1);
+      expect(beatenBy(el), el).toBeDefined();
+    }
+  });
+
+  it("the six natural elements make one circle; DAWN and DUSK beat each other", () => {
+    expect(["PYRO", "LEAF", "BORE", "BOLT", "GALE", "AQUA"].map((e) => ELEMENT_BEATS[e as Element]))
+      .toEqual(["LEAF", "BORE", "BOLT", "GALE", "AQUA", "PYRO"]);
+    expect(ELEMENT_BEATS.DAWN).toBe("DUSK");
+    expect(ELEMENT_BEATS.DUSK).toBe("DAWN");
+  });
+
+  it("+25% to the element it beats, floored; nothing the other way or anywhere else", () => {
+    expect(applyMatchupDamage("PYRO", "LEAF", 8)).toBe(10);
+    expect(applyMatchupDamage("BORE", "BOLT", 4)).toBe(5);
     expect(applyMatchupDamage("DAWN", "DUSK", 10)).toBe(12);
-    expect(applyMatchupDamage("DUSK", "DAWN", 8)).toBe(10);
+    expect(applyMatchupDamage("LEAF", "PYRO", 8)).toBe(8); // the weak direction
+    expect(applyMatchupDamage("PYRO", "BOLT", 8)).toBe(8); // not on each other's arc
+    expect(applyMatchupDamage("PYRO", "PYRO", 8)).toBe(8);
+    // Floored: a 1-3 DMG hit is never inflated to a +50% swing.
+    expect(applyMatchupDamage("PYRO", "LEAF", 3)).toBe(3);
+    expect(applyMatchupDamage("PYRO", "LEAF", 0)).toBe(0);
   });
 
-  it("floors the bonus, so a small hit is never inflated", () => {
-    // The reason this is floored rather than rounded: Math.round(2 * 1.25) is 3,
-    // a 50% swing — and a 3-hit volley would compound that into +50% on the
-    // whole attack. Under 4 DMG the matchup simply doesn't bite.
-    expect(applyMatchupDamage("DAWN", "DUSK", 1)).toBe(1);
-    expect(applyMatchupDamage("DAWN", "DUSK", 2)).toBe(2);
-    expect(applyMatchupDamage("DAWN", "DUSK", 3)).toBe(3);
+  it("each element's line names what it beats and what beats it", () => {
+    expect(ELEMENT_MATCHUP.PYRO!.desc).toContain("LEAF");
+    expect(ELEMENT_MATCHUP.PYRO!.desc).toContain("AQUA");
+    expect(ELEMENT_MATCHUP.PYRO!.name).toBe("Strong vs LEAF");
   });
 
-  it("leaves every other pairing alone", () => {
-    expect(applyMatchupDamage("DAWN", "DAWN", 8)).toBe(8);
-    expect(applyMatchupDamage("LEAF", "PYRO", 8)).toBe(8);
-    expect(applyMatchupDamage("BOLT", "GALE", 8)).toBe(8);
-    expect(applyMatchupDamage("DAWN", "DUSK", 0)).toBe(0);
-  });
-});
-
-describe("element matchups — status resistance", () => {
-  it("AQUA halves BURN, rounding up so it still lands", () => {
-    expect(matchupStatusDuration("AQUA", "BURN", 4)).toBe(2);
-    expect(matchupStatusDuration("AQUA", "BURN", 3)).toBe(2);
-    expect(matchupStatusDuration("AQUA", "BURN", 1)).toBe(1);
-  });
-
-  it("BORE earths ELECTRIFIED and PARALYZE — immune, not merely resistant", () => {
-    // Halving was never a counter, it was a rounding error: `halved` never
-    // goes below 1, so a 2-round ELECTRIFIED became a 1-round ELECTRIFIED and
-    // BOLT's +1-vs-statused rider stayed on regardless. Stone either earths a
-    // charge or it does not.
-    expect(matchupImmune("BORE", "ELECTRIFIED")).toBe(true);
-    expect(matchupImmune("BORE", "PARALYZE")).toBe(true);
-    // ...and nothing else, on BORE or anywhere.
-    expect(matchupImmune("BORE", "BURN")).toBe(false);
-    expect(matchupImmune("BORE", "FREEZE")).toBe(false);
-    for (const el of ["LEAF", "PYRO", "AQUA", "DAWN", "GALE", "BOLT", "DUSK"] as const)
-      expect(matchupImmune(el, "ELECTRIFIED"), el).toBe(false);
-    // The duration table no longer has an opinion about it — the immunity gate
-    // in applyStatus returns before this is ever consulted.
-    expect(matchupStatusDuration("BORE", "BURN", 4)).toBe(4);
-  });
-
-  it("the immunity actually stops the status landing", () => {
-    // The gate is in `applyStatus`, not in the duration maths, because a status
-    // that lands with 0 rounds on it is still a status: it sits in the array,
-    // reads as afflicted, and satisfies every hasStatus check for the round.
-    const s = prepState();
-    const stone = place(s, "bore_kobra", "P1", 3, 0);
-    applyStatus(s, stone, "ELECTRIFIED", 3, 0, "BOLT");
-    applyStatus(s, stone, "PARALYZE", 2, 0, "BOLT");
-    expect(stone.statuses, "nothing took").toHaveLength(0);
-    // …and BOLT's damage rider has nothing to key off, which is the point.
-    applyStatus(s, stone, "BURN", 2, 3, "PYRO");
-    expect(stone.statuses.map((x) => x.kind), "other statuses land normally").toEqual(["BURN"]);
-  });
-
-  it("GALE has no status resistance at all", () => {
-    // It used to shed ELECTRIFIED a round early. That was filed under
-    // Untouchable, which is a DODGE matchup against BORE — an unrelated
-    // resistance against BOLT wearing the same name. Asserted as an ABSENCE so
-    // the rider cannot come back unnoticed: BORE is the element that answers
-    // ELECTRIFIED, and it pays for that in the matchup table.
-    expect(matchupStatusDuration("GALE", "ELECTRIFIED", 3)).toBe(3);
-    expect(matchupStatusDuration("GALE", "ELECTRIFIED", 1)).toBe(1);
-    expect(matchupStatusDuration("GALE", "PARALYZE", 3)).toBe(3);
-    expect(ELEMENT_MATCHUP.GALE?.desc ?? "").not.toContain("ELECTRIFIED");
-  });
-
-  it("resistance is real through applyStatus, not just the helper", () => {
+  it("the old one-offs are gone: AQUA takes full BURN, LEAF gains nothing from AQUA hits", () => {
     const s = prepState();
     const aqua = place(s, "aqua_piranha", "P1", 2, 0);
-    const other = place(s, "leaf_hunter", "P1", 2, 1);
     applyStatus(s, aqua, "BURN", 4, 2, "PYRO");
-    applyStatus(s, other, "BURN", 4, 2, "PYRO");
-    expect(statusOf(s.cards[aqua.instanceId], "BURN")?.duration).toBe(2); // quenched
-    expect(statusOf(s.cards[other.instanceId], "BURN")?.duration).toBe(4); // full
+    expect(statusOf(s.cards[aqua.instanceId], "BURN")?.duration).toBe(4);
+    const atk = place(s, "aqua_piranha", "P2", 0, 0);
+    const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 30, maxHp: 40, curShields: 0 });
+    const hits = getDef("aqua_piranha").hits ?? 1;
+    const dmg = effectiveDmg(s, s.cards[atk.instanceId]);
+    basicAttack(s, atk.instanceId, tgt.instanceId);
+    expect(s.cards[tgt.instanceId].curHp).toBe(30 - dmg * hits);
   });
 });
 
-describe("element matchups — GALE's dodge vs BORE", () => {
-  it("is 20% against BORE and nothing against anyone else", () => {
-    expect(dodgesByMatchup("BORE", "GALE")).toBe(20);
-    expect(dodgesByMatchup("GALE", "BORE")).toBe(0); // one-directional
-    expect(dodgesByMatchup("PYRO", "GALE")).toBe(0);
+describe("BORE's aura: stone cannot be PARALYZED", () => {
+  it("PARALYZE does not take on a BORE card; ELECTRIFIED now does", () => {
+    const s = prepState();
+    const stone = place(s, "bore_kobra", "P1", 3, 0);
+    applyStatus(s, stone, "PARALYZE", 2, 0, "BOLT");
+    expect(statusOf(stone, "PARALYZE")).toBeUndefined();
+    applyStatus(s, stone, "ELECTRIFIED", 2, 0, "BOLT");
+    expect(statusOf(stone, "ELECTRIFIED")).toBeDefined();
+  });
+
+  it("other elements are paralyzed as usual", () => {
+    const s = prepState();
+    const c = place(s, "leaf_hunter", "P1", 3, 0);
+    applyStatus(s, c, "PARALYZE", 2, 0, "BOLT");
+    expect(statusOf(c, "PARALYZE")).toBeDefined();
   });
 });
 
-describe("element matchups — healing", () => {
+describe("BURN's heal penalty", () => {
   it("a BURNing card heals at half (2026-10-01; was 75%)", () => {
     const s = prepState();
     const c = place(s, "leaf_hunter", "P1", 2, 0, { curHp: 5, maxHp: 40 });
@@ -127,27 +100,6 @@ describe("element matchups — healing", () => {
     const c = place(s, "leaf_hunter", "P1", 2, 0, { curHp: 5, maxHp: 40 });
     applyStatus(s, c, "BURN", 3, 2, "PYRO");
     expect(healCard(s, c, 1)).toBe(1); // floor would be 0 — clamped to 1
-  });
-
-  it("LEAF drinks in an AQUA attack (Well Watered)", () => {
-    const s = prepState();
-    // Attacker in ITS home row (P2 = row 0) so no King-of-the-Hill bonus muddies
-    // the arithmetic; the LEAF target sits one row up, inside melee reach.
-    const atk = place(s, "aqua_piranha", "P2", 0, 0);
-    const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 30, maxHp: 40, curShields: 0 });
-    const hits = getDef("aqua_piranha").hits ?? 1;
-    const dmg = effectiveDmg(s, s.cards[atk.instanceId]);
-    basicAttack(s, atk.instanceId, tgt.instanceId);
-    // Every landed hit deals its damage and then waters the plant back 1.
-    expect(s.cards[tgt.instanceId].curHp).toBe(30 - dmg * hits + LEAF_WATER_HEAL * hits);
-  });
-
-  it("...but a killing blow doesn't water a corpse back up", () => {
-    const s = prepState();
-    const atk = place(s, "aqua_piranha", "P2", 0, 0);
-    const tgt = place(s, "leaf_hunter", "P1", 1, 0, { curHp: 1, maxHp: 40, curShields: 0 });
-    basicAttack(s, atk.instanceId, tgt.instanceId);
-    expect(s.cards[tgt.instanceId]).toBeUndefined();
   });
 });
 

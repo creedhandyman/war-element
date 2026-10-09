@@ -45,7 +45,8 @@ describe("Mega Icicle (Cryo)", () => {
   function hit(frozen: boolean) {
     const s = prepState();
     const cryo = place(s, "aqua_cryo", "P1", 3, 1);
-    const foe = place(s, "pyro_flamehound", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    // DUSK, not PYRO: AQUA beats PYRO on the element wheel.
+    const foe = place(s, "dusk_harve", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
     if (frozen) s.cards[foe.instanceId].statuses.push({ kind: "FREEZE", duration: 2, power: 0 } as never);
     SPECIAL_HANDLERS.areaBlast(s, s.cards[cryo.instanceId], [s.cards[foe.instanceId]], getDef("aqua_cryo").special!.params!);
     return 30 - s.cards[foe.instanceId].curHp;

@@ -13,10 +13,11 @@
 // the keyword lines in `describeSharedPassives`, ELEMENT_AURA), never retyped,
 // so a balance change to any of them reaches the lesson on its own.
 import {
-  ELEMENT_AURA, ELEMENT_MATCHUP, getDef,
+  ELEMENT_AURA, getDef,
   type CardInstance, type CardDef, type Element, type GameState, type Keyword, type StatusKind,
 } from "../engine";
 import { RANGED_REACH, holdsTheLine, isAirborne, shoveTarget } from "../engine/rules";
+import { ELEMENT_BEATS } from "../engine/matchups";
 import { homeRow } from "../engine/types";
 import { addFreePacks, addShards, type StorySave } from "../data/story";
 import { STATUS_TEXT, TANK_BULWARK_TEXT, describeSharedPassives } from "./card-text";
@@ -200,9 +201,16 @@ export const LESSONS: Lesson[] = [
         when: (g) => fielded(g, (d) => d.element === el),
       })),
       {
-        id: "au-matchup", title: "Day and night",
-        body: `Some elements also have a matchup. DAWN: ${ELEMENT_MATCHUP.DAWN!.desc} DUSK: ${ELEMENT_MATCHUP.DUSK!.desc}`,
-        when: (g) => fielded(g, (d) => d.element === "DAWN") && fielded(g, (d) => d.element === "DUSK"),
+        id: "au-matchup", title: "The element wheel",
+        body: "Every element is strong against one other and weak against one: +25% damage to the element it "
+          + "beats, +25% taken from the one that beats it. PYRO burns LEAF, LEAF roots BORE, BORE grounds BOLT, "
+          + "BOLT strikes GALE, GALE churns AQUA, AQUA douses PYRO, and DAWN and DUSK beat each other. "
+          + "Every card shows its own line.",
+        // As soon as two elements that meet on the wheel share the board.
+        when: (g) => {
+          const els = new Set(Object.values(g.cards).filter((c) => c.pos && c.curHp > 0).map((c) => getDef(c.defId).element));
+          return [...els].some((el) => { const b = ELEMENT_BEATS[el]; return b !== undefined && els.has(b); });
+        },
       },
     ],
   },

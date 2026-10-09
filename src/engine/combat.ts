@@ -19,7 +19,7 @@ import { chance, coin, pctChance, randInt } from "./rng";
 import { RANGED_REACH, acrossOf, aimOf, alongOf, areaBlastCells, areaBlastTieRow, canTarget, onEdge, inBlast, isAirborne, matchesVsTarget, onSummonTargets, rangedReachFor, revealStealth, shoveTarget, zoneAheadCells, slotIsImpassable, specialTargets, validSpecialTargets, validTargets } from "./rules";
 import { VOID_DEFLECT_EVERY, VOID_STEAL_CAP, VOID_STEAL_FLOOR, VOID_STEAL_PER_ATTACK, EXOSTONE_STEAL_CAP, EXOSTONE_STEAL_PER_ROUND } from "./auras";
 import { BLINDING_STAR_MISS_PCT, BOLT_VS_STATUS_DMG, PYRO_BURN_DURATION, DUSK_SHADE_DEATH_DIVISOR, DUSK_SHADE_MAX_STACKS, DUSK_SHADE_PCT, FOG_MISS_PCT, PYRO_BURN_STACK_CAP, WEAKEN_MAX_STACKS, hasElementAura, slipstreamPct } from "./auras";
-import { LEAF_WATER_HEAL, applyMatchupDamage, dodgesByMatchup, matchupImmune, matchupStatusDuration } from "./matchups";
+import { applyMatchupDamage } from "./matchups";
 import { creditDamage, creditDeath, creditDebuff, creditKill, creditShielded } from "./stats";
 import { auraDrainBonus, auraHasPen, auraReflectBonus, boardCards, cardAt, chebyshev, effectiveDmg, effectiveMaxHp, effectiveSp, spGained, fieldBonus, fieldEvasion, fieldFlag, fieldPushBonus, fieldStatusExtend, gainMaxHp, hasStatus, hasTotemSpirit, groundClosed, healCard, isBloodfire, manhattan, notePassive, onHill, removeCard, spawnTokens, summonCard, enemyCards, auraSplashBonus, scaleInstance} from "./state";
 import type {
@@ -210,13 +210,13 @@ export function applyStatus(
     draft.log.push(`${label(draft, target)} is immune to status (${kind} fizzles).`);
     return;
   }
-  // Grounded Stone (BORE): ELECTRIFIED and PARALYZE do not take on stone. Here
+  // Grounded Stone (BORE aura): PARALYZE does not take on stone. Part of the
+  // BORE aura since the element wheel (2026-10-08) — it used to be a matchup
+  // that also blocked ELECTRIFIED, which switched BOLT's whole aura off. Here
   // with the other immunities rather than as a zero in the duration maths,
-  // because a status that lands with 0 rounds on it is still a status — it sits
-  // in the array, reads as "afflicted", and satisfies every `hasStatus` check
-  // in the game for the rest of the round.
-  if (matchupImmune(getDef(target.defId).element, kind)) {
-    draft.log.push(`${label(draft, target)} earths the charge — ${kind} does not take.`);
+  // because a status that lands with 0 rounds on it is still a status.
+  if (kind === "PARALYZE" && hasElementAura(getDef(target.defId), "BORE")) {
+    draft.log.push(`${label(draft, target)} earths the charge — PARALYZE does not take.`);
     return;
   }
   // Equestrian's aura: allies are immune to stat reduction (WEAKEN) while a
@@ -254,12 +254,7 @@ export function applyStatus(
   // extra round on them. Added HERE so it covers every source at once — basics,
   // Specials, spells, walls and round-ticks all funnel through applyStatus.
   const extend = fieldStatusExtend(draft, target, kind);
-  // Element matchup resistances (AQUA vs BURN, BORE vs ELECTRIFIED/PARALYZE,
-  // GALE vs ELECTRIFIED). Applied to the PRINTED duration, before the field
-  // extension, so Lushfield still adds its full round on top of a resisted
-  // status rather than being halved along with it.
-  const resisted = matchupStatusDuration(getDef(target.defId).element, kind, duration);
-  const dur = resisted + extend;
+  const dur = duration + extend;
   const fresh = { kind, duration: dur, power, source };
   const existing = target.statuses.findIndex((s) => s.kind === kind);
   // WEAKEN DEEPENS rather than refreshing. Handled here, in the one funnel every
@@ -334,7 +329,7 @@ export function applyStatus(
   // reflects control that actually landed rather than control attempted.
   if (NEGATIVE_STATUSES.includes(kind)) creditDebuff(draft.stats, target);
   draft.log.push(
-    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${resisted < duration ? " — resisted" : ""}${extend ? " +field" : ""}${note}.`,
+    `${label(draft, target)} is afflicted: ${kind}${power ? ` ${power}` : ""} (${dur}r)${extend ? " +field" : ""}${note}.`,
   );
   // FRIGHTEN is a positioning effect: forced retreat 1 slot back toward the
   // target's own home row, if that slot is open (can also push an invader
@@ -1376,20 +1371,6 @@ export function resolveHit(
       continue;
     }
 
-    // 1a. Untouchable (GALE vs BORE): the wind slips the stone. A matchup dodge
-    // rather than a keyword, so it stacks with nothing and re-rolls per hit.
-    // Reflect isn't an attack, and the usual alwaysHit/neverMiss overrides beat
-    // it like every other dodge above.
-    if (
-      opts.kind !== "reflect" && !aDef.alwaysHit && !opts.alwaysHit && !neverMiss &&
-      pctChance(draft, dodgesByMatchup(aDef.element, tDef.element))
-    ) {
-      result.dodgedHits++;
-      target.fxMiss = (target.fxMiss ?? 0) + 1;
-      draft.log.push(`${label(draft, target)} rides the wind clear of ${aDef.name}'s attack.`);
-      continue;
-    }
-
     // 1b. Rocky Force Field (Rhyolite): coin-flip chance to shrug off a RANGED hit.
     if (
       opts.kind !== "reflect" &&
@@ -1622,14 +1603,6 @@ export function resolveHit(
     noteDamageFx(target, toHp);
     result.landedHits++;
     result.totalToHp += toHp;
-
-    // Well Watered (LEAF vs AQUA): the rain feeds it. Drunk per LANDED hit,
-    // after the damage, and only while it's still standing — a killing blow
-    // doesn't water a corpse back up.
-    if (tDef.element === "LEAF" && aDef.element === "AQUA" && target.curHp > 0) {
-      const drank = healCard(draft, target, LEAF_WATER_HEAL, target);
-      if (drank > 0) draft.log.push(`${label(draft, target)} drinks in ${aDef.name}'s water (+${drank} HP).`);
-    }
 
     // 5 (per landed hit). REFLECT accumulates; resolved after the volley.
     const grantedReflect = (target.reflectRoundsLeft ?? 0) > 0 ? (target.reflectPower ?? 0) : 0;

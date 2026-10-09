@@ -335,10 +335,14 @@ export function RulesBook(props: { onClose: () => void }) {
           </section>
 
           <section>
-            <h3>⚔️ Elemental matchups</h3>
+            <h3>⚔️ The element wheel</h3>
             <p>
-              On top of its own aura, an element answers particular others. These
-              apply automatically — there is nothing to activate.
+              Every element is <b>strong against one</b> element and <b>weak against
+              one</b>: it deals +25% damage to the element it beats and takes +25% from
+              the one that beats it. PYRO burns LEAF, LEAF roots BORE, BORE grounds
+              BOLT, BOLT strikes GALE, GALE churns AQUA, and AQUA douses PYRO. DAWN and
+              DUSK beat each other. It applies automatically, and every card shows its
+              own line.
             </p>
             <ul className="rules-els">
               {ELEMENTS.filter((el) => ELEMENT_MATCHUP[el]).map((el) => (
@@ -347,10 +351,6 @@ export function RulesBook(props: { onClose: () => void }) {
                 </li>
               ))}
             </ul>
-            <p>
-              <i>Bolt</i> has no matchup bonus — Electrify already answers anything
-              carrying a status, whoever put it there.
-            </p>
           </section>
 
           <section>

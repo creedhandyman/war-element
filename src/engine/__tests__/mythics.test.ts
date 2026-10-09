@@ -548,10 +548,11 @@ describe("Pyrogon — Flame Engulf reach", () => {
     const s = prepState();
     s.players.P1.magicPool = 4;
     const pyro = place(s, "pyro_pyrogon", "P1", 3, 1); // own home row
-    const ahead = place(s, "leaf_alpha", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, same col
-    const side = place(s, "leaf_alpha", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, adj col
-    const deep = place(s, "leaf_alpha", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 rows ahead → the row behind
-    const wide = place(s, "leaf_alpha", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // col 3 → too wide
+    // Targets are DUSK, neutral to PYRO on the element wheel (PYRO beats LEAF).
+    const ahead = place(s, "dusk_harve", "P2", 2, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, same col
+    const side = place(s, "dusk_harve", "P2", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // row ahead, adj col
+    const deep = place(s, "dusk_harve", "P2", 1, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // 2 rows ahead → the row behind
+    const wide = place(s, "dusk_harve", "P2", 2, 3, { curHp: 20, maxHp: 20, curShields: 0 }); // col 3 → too wide
     const next = applyIntent(battleWith(s, pyro.instanceId), {
       type: "BATTLE_ACTION",
       player: "P1",

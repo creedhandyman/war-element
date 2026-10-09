@@ -12,7 +12,7 @@
 // status" — an ELECTRIFIED-immune BORE would erase both halves of BOLT's
 // identity rather than answer it. Halving the duration answers it instead.
 
-import type { Element, StatusKind } from "./types";
+import type { Element } from "./types";
 
 export interface MatchupDef {
   name: string;
@@ -22,18 +22,44 @@ export interface MatchupDef {
 /** BOLT is deliberately absent: its edge is already the Electrify aura, which
  *  answers any status-carrying target. Giving it a matchup bonus on top would
  *  push the element the measurements put at the TOP of the ladder. */
-export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = {
-  LEAF: { name: "Well Watered", desc: "Heals +1 HP whenever an AQUA attack lands on it." },
-  PYRO: { name: "Searing", get desc() { return `A BURNing card heals at ${BURN_HEAL_MULT * 100}% — wounds don't close while they cook.`; } },
-  AQUA: { name: "Quenching", desc: "BURN on an AQUA card lasts half as long (rounded up)." },
-  DAWN: { name: "Daybreak", desc: "Deals +25% DMG to DUSK." },
-  DUSK: { name: "Nightfall", desc: "Deals +25% DMG to DAWN." },
-  GALE: { name: "Untouchable", desc: "20% chance to dodge a BORE attack." },
-  BORE: { name: "Grounded Stone", desc: "BORE cards cannot be ELECTRIFIED or PARALYZED at all — stone earths a charge." },
+/** THE ELEMENT WHEEL (owner, 2026-10-08): one rule for every element. Each
+ *  element deals +25% DMG to the one it BEATS and takes +25% from the one
+ *  that beats it — one advantage and one weakness each, so the table is fair
+ *  by construction and a player can read any matchup off the card.
+ *
+ *  The six natural elements make a circle — PYRO burns LEAF, LEAF roots BORE,
+ *  BORE grounds BOLT, BOLT strikes GALE, GALE churns AQUA, AQUA douses PYRO —
+ *  and DAWN and DUSK beat each other, the rivalry they already had.
+ *
+ *  It REPLACES seven one-off matchups (LEAF drinking AQUA hits, AQUA halving
+ *  BURN, GALE dodging BORE, BORE immune to ELECTRIFIED, …): hard to learn, and
+ *  uneven — BOLT had none. Two survivors moved where they belong: BURN's heal
+ *  penalty is a rule of the BURN status (BURN_HEAL_MULT, below), and BORE's
+ *  paralysis immunity is part of its aura (auras.ts). */
+export const ELEMENT_BEATS: Readonly<Partial<Record<Element, Element>>> = {
+  PYRO: "LEAF",
+  LEAF: "BORE",
+  BORE: "BOLT",
+  BOLT: "GALE",
+  GALE: "AQUA",
+  AQUA: "PYRO",
+  DAWN: "DUSK",
+  DUSK: "DAWN",
 };
+/** The element that beats `el`, if any. */
+export const beatenBy = (el: Element): Element | undefined =>
+  (Object.keys(ELEMENT_BEATS) as Element[]).find((k) => ELEMENT_BEATS[k] === el);
 
-/** HP a LEAF card drinks back from each landed AQUA hit. */
-export const LEAF_WATER_HEAL = 1;
+/** The swing, both ways round the wheel. */
+export const WHEEL_DMG_MULT = 1.25;
+
+/** Each element's line, as the rules book and the card panel print it. */
+export const ELEMENT_MATCHUP: Partial<Record<Element, MatchupDef>> = Object.fromEntries(
+  (Object.keys(ELEMENT_BEATS) as Element[]).map((el) => [el, {
+    name: `Strong vs ${ELEMENT_BEATS[el]}`,
+    desc: `Deals +${Math.round((WHEEL_DMG_MULT - 1) * 100)}% DMG to ${ELEMENT_BEATS[el]}, and takes +${Math.round((WHEEL_DMG_MULT - 1) * 100)}% DMG from ${beatenBy(el)}.`,
+  }]),
+);
 
 /** How much a BURNing card heals: HALF since 2026-10-01 (owner: "make the burn
  *  more effective against healing targets"). It was 0.75 to spare LEAF, the
@@ -41,18 +67,9 @@ export const LEAF_WATER_HEAL = 1;
  *  39.6 (about noise) while PYRO went 32.4 -> 38.8. */
 export const BURN_HEAL_MULT = 0.5;
 
-/** The DAWN/DUSK swing. Mutual, so it nets out on the ladder — it's here for
- *  the flavour and to make that matchup decisive, not to move balance. */
-export const OPPOSED_DMG_MULT = 1.25;
-
-/** GALE's chance to slip a BORE attack. */
-export const GALE_DODGE_VS_BORE_PCT = 20;
-
 /** The damage multiplier `attacker` gets against `target` (1 = no matchup). */
 export function matchupDamageMult(attacker: Element, target: Element): number {
-  if (attacker === "DAWN" && target === "DUSK") return OPPOSED_DMG_MULT;
-  if (attacker === "DUSK" && target === "DAWN") return OPPOSED_DMG_MULT;
-  return 1;
+  return ELEMENT_BEATS[attacker] === target ? WHEEL_DMG_MULT : 1;
 }
 
 /** `dmg` after the matchup swing. The bonus is FLOORED, not rounded: damage is
@@ -64,60 +81,4 @@ export function applyMatchupDamage(attacker: Element, target: Element, dmg: numb
   const mult = matchupDamageMult(attacker, target);
   if (mult === 1 || dmg <= 0) return dmg;
   return dmg + Math.floor(dmg * (mult - 1));
-}
-
-/** Statuses an element simply does not take.
- *
- *  GROUNDED STONE, the game's one hard counter, and it is pointed at the top of
- *  the table on purpose. BOLT's whole identity is the pair — every basic leaves
- *  the target ELECTRIFIED, and BOLT hits a statused card for +1 — so a card
- *  that cannot be electrified turns both halves off at once. That is a great
- *  deal of BOLT's kit to switch off, which is exactly why it belongs on the
- *  element that measured FIRST (57.2%) and nowhere else. The mirror of the note
- *  above BURN_HEAL_MULT, which softened an anti-heal because it was aimed at
- *  the element that could least afford one: this is aimed at the one that can.
- *
- *  Halving was the old shape and it was not a counter, it was a rounding
- *  error — `halved` never goes below 1, so a 2-round ELECTRIFIED became a
- *  1-round ELECTRIFIED and BOLT's damage rider stayed on regardless. Stone
- *  either earths a charge or it does not.
- *
- *  Source-agnostic, like every other matchup rule here: Havoc's ThunderShot and
- *  Xilty's Web Trap fizzle on BORE too. "Stone cannot be paralysed" is a fact
- *  about stone, not about who is holding the wire. */
-export function matchupImmune(element: Element, kind: StatusKind): boolean {
-  return element === "BORE" && (kind === "ELECTRIFIED" || kind === "PARALYZE");
-}
-
-/** Does `target`'s element let it slip this attacker entirely? Caller rolls. */
-export function dodgesByMatchup(attacker: Element, target: Element): number {
-  if (target === "GALE" && attacker === "BORE") return GALE_DODGE_VS_BORE_PCT;
-  return 0;
-}
-
-/** Halve a duration but never below 1 — a resisted status still lands, it just
- *  doesn't stick. Rounded UP so a 3-round status resists to 2, not 1. */
-function halved(duration: number): number {
-  return Math.max(1, Math.ceil(duration / 2));
-}
-
-/** The duration `kind` actually gets when applied to a card of `element`. */
-export function matchupStatusDuration(element: Element, kind: StatusKind, duration: number): number {
-  if (duration <= 0) return duration;
-  // Quenching: water puts fires out.
-  if (element === "AQUA" && kind === "BURN") return halved(duration);
-  // Grounded Stone is now IMMUNITY, handled by `matchupImmune` before this is
-  // ever reached — a charge does not last a shorter time in stone, it does not
-  // take at all.
-  // GALE has NO status resistance. It used to shed ELECTRIFIED a round early
-  // under Untouchable — removed, because that half was never meant to be here:
-  // Untouchable is a DODGE matchup against BORE, and a second, unrelated
-  // resistance against BOLT had been filed under the same name.
-  //
-  // It also cut across the design note at the top of this file. BOLT's whole
-  // identity is "basics leave the target ELECTRIFIED, and BOLT hits statused
-  // cards harder"; BORE answers that deliberately and pays for it in the
-  // matchup table. GALE was answering it too, for free, as a rider on a
-  // completely different matchup.
-  return duration;
 }

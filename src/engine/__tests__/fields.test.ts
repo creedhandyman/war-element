@@ -42,7 +42,7 @@ describe("Fields (Cost-6 terrain)", () => {
     const s = prepState();
     arm(s, ["bore_bedrock"]);
     const ally = place(s, "bore_crock", "P1", 2, 0, { curHp: 20, maxHp: 20, curShields: 0 });
-    const foe = place(s, "leaf_alpha", "P2", 1, 0);
+    const foe = place(s, "dawn_glime", "P2", 1, 0); // DAWN: off BORE's arc of the element wheel
     const n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "bore_bedrock" });
     resolveHit(n, n.cards[foe.instanceId], n.cards[ally.instanceId], { kind: "special", dmg: 5, hits: 1, pen: false, crit: false });
     expect(n.cards[ally.instanceId].curHp).toBe(16); // 5 − BLOCK 1 = 4

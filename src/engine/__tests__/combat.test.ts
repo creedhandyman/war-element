@@ -67,7 +67,7 @@ describe("PEN / BLOCK / CRIT", () => {
 
   it("BLOCK reduces before shields, and still applies to PEN", () => {
     const s = duel();
-    const a = place(s, "leaf_alpha", "P1", 2, 0);
+    const a = place(s, "dawn_glime", "P1", 2, 0); // DAWN: off BORE's arc of the element wheel
     const t = place(s, "bore_armadillo", "P2", 2, 1, { curHp: 15, maxHp: 15, curShields: 2 }); // BLOCK 2
     resolveHit(s, a, t, { kind: "special", dmg: 6, hits: 1, pen: false, crit: false });
     // 6 - BLOCK 2 = 4, gate -2 shields = 2 to HP, strip 1

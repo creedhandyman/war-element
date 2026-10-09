@@ -314,7 +314,8 @@ describe("the two handler params that were printed and unread", () => {
     const mortar = place(s, "pyro_mortar", "P1", 4, 0);
     const params = getDef("pyro_mortar").special!.params as Record<string, number>;
     const flier = place(s, "gale_angale", "P2", 3, 0, { curHp: 99, maxHp: 99, curShields: 0 });
-    const ground = place(s, "leaf_stickviper", "P2", 3, 1, { curHp: 99, maxHp: 99, curShields: 0 });
+    // DUSK, not LEAF: PYRO beats LEAF on the element wheel, which would muddy the sum.
+    const ground = place(s, "dusk_harve", "P2", 3, 1, { curHp: 99, maxHp: 99, curShields: 0 });
     expect(getDef("gale_angale").keywords.FLYING, "the control really flies").toBe(true);
     SPECIAL_HANDLERS.barrage(s, s.cards[mortar.instanceId],
       [s.cards[flier.instanceId], s.cards[ground.instanceId]], params);

@@ -365,7 +365,7 @@ describe("double-duty wall ally buffs", () => {
     const plain = place(s, "bore_clubber", "P1", 3, 0, { curHp: 20, maxHp: 20, curShields: 0 }); // no innate BLOCK
     const tanky = place(s, "bore_armadillo", "P1", 3, 1, { curHp: 20, maxHp: 20, curShields: 0 }); // innate BLOCK 2
     expect(wallFlatReduction(s, plain)).toBe(2);
-    const src = place(s, "leaf_alpha", "P2", 1, 0);
+    const src = place(s, "dawn_glime", "P2", 1, 0); // DAWN: off BORE's arc of the element wheel
     directDamage(s, src, plain, 6, false); // 6 − 2 (wall) = 4
     expect(s.cards[plain.instanceId].curHp).toBe(16);
     directDamage(s, src, tanky, 6, false); // 6 − (2 innate + 2 wall) = 2

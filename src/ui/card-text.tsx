@@ -11,6 +11,7 @@
  *  data can carry produces a line. Adding a passive without adding its sentence
  *  here fails that test rather than shipping a blank card panel.
  */
+import { ELEMENT_BEATS, beatenBy } from "../engine/matchups";
 import type { ReactNode } from "react";
 import type { CardDef, CardInstance, StatusKind } from "../engine";
 import { BLINDING_STAR_MISS_PCT, ELEMENT_AURA, MISTY_FOG_MISS_PCT, SP_SLOW_MAX, WEAKEN_MAX_STACKS, WEAKEN_PCT_PER_STACK, getDef, hasArcDischarge } from "../engine";
@@ -272,6 +273,15 @@ export function describeSharedPassives(def: CardDef): SharedPassive[] {
       : a.desc;
     shared.push({ kind: "aura", label: `${el} aura — ${a.name}`, desc });
   }
+  // THE ELEMENT WHEEL (matchups.ts): what this card is strong and weak against.
+  const beats = ELEMENT_BEATS[def.element];
+  const beaten = beatenBy(def.element);
+  if (beats && beaten)
+    shared.push({
+      kind: "aura",
+      label: `Strong vs ${beats} · Weak vs ${beaten}`,
+      desc: `deals +25% DMG to ${beats} cards and takes +25% DMG from ${beaten} cards (the element wheel).`,
+    });
   // The Tank's class rule (rules.ts `tankScreens`). Bosses are giants with their
   // own rules and do not carry it.
   if (holdsTheLine(def))
