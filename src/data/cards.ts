@@ -6606,16 +6606,14 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "AQUA",
     cardClass: "Warrior",
-    // RANGED (owner's call): the tide reaches in from where it stands.
-    //
-    // ...and DMG 4 -> 3, HP 13 -> 14 to pay for it (owner's call): 3 + 14 +
-    // 3x2 + 2 = 25 = 5*3+10, still exact. Going Ranged took it to 1.6 kills a
-    // board, 2.6x a typical cost-3; at 3 it measured 2.2x at no cost in wins.
-    attackType: "Ranged",
+    // MELEE again (owner, 2026-10-08), and the 4/13 line it had before going
+    // Ranged comes back with it — the DMG it gave up paid for the reach:
+    // 4 + 13 + 3x2 + 2 = 25 = 5*3+10.
+    attackType: "Melee",
     cost: 3,
-    dmg: 3,
+    dmg: 4,
     hits: 1,
-    hp: 14,
+    hp: 13,
     sp: 2,
     shields: 3,
     keywords: {},
