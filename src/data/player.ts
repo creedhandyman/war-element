@@ -96,8 +96,8 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_xilty:        { x: 53, y: 30, zoom: 260 },
   boss_permafrost:   { x: 47, y: 22, zoom: 210 },
   boss_overclock:    { x: 50, y: 22, zoom: 300 },
-  boss_nightshrike:  { x: 46, y: 34, zoom: 280 },
-  boss_basilisk:     { x: 44, y: 64, zoom: 250 },
+  boss_nightshrike:  { x: 56, y: 40, zoom: 240 },
+  boss_basilisk:     { x: 62, y: 30, zoom: 230 },
   boss_helion:       { x: 41, y: 18, zoom: 330 },
   boss_hoarfell:     { x: 53, y: 34, zoom: 170 },
   boss_thunderfangs: { x: 27, y: 55, zoom: 210 },
@@ -116,9 +116,10 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
  *  point VERTICALLY, since the art is drawn `zoom`% wide and its height follows. */
 export const PLATE_ASPECT: Record<string, number> = {
-  boss_nightshrike: 1.249, boss_thunderfangs: 1.249, boss_kato: 1.249,
+  boss_thunderfangs: 1.249, boss_kato: 1.249,
   // 2:3 paintings from the 2026-10-08 art pass.
   boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1.5, boss_skeleeze: 1.5,
+  boss_nightshrike: 1.5, boss_basilisk: 1.5,
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders
