@@ -84,7 +84,7 @@ const AVATAR_PLATE: Record<string, string> = { boss_kato: "boss_kato_2" };
  *  `avatarStyle` does the conversion, so what is recorded is what is seen.
  *
  *  `zoom` is `background-size`, so 300 means the art is drawn three frames wide.
- *  It varies because the SUBJECTS vary: Kheiringer's head is a twelfth of her
+ *  It varies because the SUBJECTS vary: Kheiringer's head is an eighth of her
  *  plate's width and Hoarfell's horns fill most of his. Aim for the head to fill
  *  a little over half the frame.
  */
@@ -110,7 +110,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_spindle:      { x: 55, y: 27, zoom: 300 },
   boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
   boss_continental:  { x: 63, y: 25, zoom: 260 },
-  boss_kheiringer:   { x: 52, y: 31, zoom: 600 },
+  boss_kheiringer:   { x: 50, y: 10, zoom: 420 },
 };
 
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
