@@ -92,7 +92,7 @@ export interface AvatarFocus { x: number; y: number; zoom: number }
 
 export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_rotroot:      { x: 52, y: 15, zoom: 300 },
-  boss_skeleeze:     { x: 40, y: 34, zoom: 420 },
+  boss_skeleeze:     { x: 43, y: 21, zoom: 420 },
   boss_xilty:        { x: 53, y: 30, zoom: 260 },
   boss_permafrost:   { x: 47, y: 22, zoom: 210 },
   boss_overclock:    { x: 50, y: 22, zoom: 300 },
@@ -118,7 +118,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
 export const PLATE_ASPECT: Record<string, number> = {
   boss_nightshrike: 1.249, boss_thunderfangs: 1.249, boss_kato: 1.249,
   // 2:3 paintings from the 2026-10-08 art pass.
-  boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1.5,
+  boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1.5, boss_skeleeze: 1.5,
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders
