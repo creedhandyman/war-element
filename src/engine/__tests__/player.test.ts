@@ -1,7 +1,7 @@
 // PLAYER LEVEL and the boss-head trophies.
 import { describe, expect, it } from "vitest";
 import { VOID_BOSSES, trialEventId } from "../../data/void-tower";
-import { AVATAR_FOCUS, activeAvatar, avatarArt, avatarStyle, bossesBeaten, earnedAvatars, ownsAvatar, playerLevel } from "../../data/player";
+import { AVATAR_FOCUS, PLATE_ASPECT, activeAvatar, avatarArt, avatarStyle, bossesBeaten, earnedAvatars, ownsAvatar, playerLevel } from "../../data/player";
 import { newSave, newHero, type StorySave } from "../../data/story";
 
 const save = (over: Partial<StorySave> = {}): StorySave => ({ ...newSave(), ...over });
@@ -103,6 +103,29 @@ describe("boss heads are framed on the head", () => {
       const wide = f.zoom / 100;
       const landsAt = px * (1 - wide) + (f.x / 100) * wide;
       expect(landsAt, `${id} horizontal`).toBeCloseTo(0.5, 1);
+    }
+  });
+
+  it("knows each plate's real shape, so a repainted boss still centres on its head", () => {
+    // Vertical centring needs the plate's height over width. It is typed in by
+    // hand (PLATE_ASPECT), so swapping in a painting of another shape (the 2:3
+    // repaints of 2026-10-08) would frame the head too high or too low without
+    // a sound. Read the real size out of each WebP header instead.
+    const plates = import.meta.glob("../../../public/cards/boss_*.webp", { eager: true, query: "?inline", import: "default" }) as Record<string, string>;
+    const size = (dataUrl: string) => {
+      const b = Uint8Array.from(atob(dataUrl.split(",")[1].slice(0, 64)), (c) => c.charCodeAt(0));
+      const kind = String.fromCharCode(...b.slice(12, 16));
+      if (kind === "VP8X") return { w: 1 + (b[24] | (b[25] << 8) | (b[26] << 16)), h: 1 + (b[27] | (b[28] << 8) | (b[29] << 16)) };
+      if (kind === "VP8L") return { w: 1 + (((b[22] & 0x3f) << 8) | b[21]), h: 1 + (((b[24] & 0xf) << 10) | (b[23] << 2) | ((b[22] & 0xc0) >> 6)) };
+      return { w: (b[26] | (b[27] << 8)) & 0x3fff, h: (b[28] | (b[29] << 8)) & 0x3fff };
+    };
+    expect(Object.keys(plates).length, "found the boss plates").toBeGreaterThan(10);
+    for (const b of VOID_BOSSES) {
+      const name = avatarArt(b.cardId).split("/").pop()!;
+      const file = Object.keys(plates).find((k) => k.endsWith(`/${name}`));
+      expect(file, `${b.cardId} plate`).toBeTruthy();
+      const { w, h } = size(plates[file!]);
+      expect(PLATE_ASPECT[b.cardId] ?? 4 / 3, `${b.cardId} is ${w}x${h}`).toBeCloseTo(h / w, 2);
     }
   });
 });
