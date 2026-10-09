@@ -1617,7 +1617,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .tk-name {
   position: absolute; left: 2px; right: 2px; bottom: calc(var(--tk-st) + 11px); z-index: 1;
   font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; text-align: center;
-  font-size: clamp(6px, calc((94cqw - 4px) / (var(--nl, 8) * 0.74)), var(--tk-st));
+  font-size: clamp(6px, calc((94cqw - 4px) / (var(--nl, 8) * 0.74)), min(var(--tk-st), 12px));
   letter-spacing: 0.03em; line-height: 1.15; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
@@ -10316,11 +10316,13 @@ button.deck-shot { padding: 0; cursor: pointer; }
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 .deck-thumb.carded .dt-cost b, .mull-card.carded .mull-cost b { font-size: clamp(11px, 13cqw, 16px); }
-/* Name and numbers centred over the fade. */
+/* Name and numbers centred over the fade. A long name shrinks to fit; a
+   SHORT one stops at a cap (11px here, 11.5px in the hand, 12px on the board)
+   so "OAK" does not shout over the art (owner, 2026-10-08). */
 .deck-thumb.carded > .dt-name, .mull-card.carded > .hc-name {
   margin-top: auto; min-height: 0; padding: 0 1px;
   font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; text-align: center;
-  font-size: clamp(6px, calc((100cqw - 8px) / (var(--nl, 8) * 0.74)), 13px);
+  font-size: clamp(6px, calc((100cqw - 8px) / (var(--nl, 8) * 0.74)), 11px);
   letter-spacing: 0.03em; line-height: 1.12; color: #fff;
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.95);
@@ -10363,7 +10365,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .hcard { container-type: inline-size; border-color: transparent; }
 .hcard .hc-name {
   font-family: var(--font-ui); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em;
-  font-size: clamp(7px, calc((100cqw - 16px) / (var(--nl, 8) * 0.74)), 13px); line-height: 1.12; color: #fff;
+  font-size: clamp(7px, calc((100cqw - 16px) / (var(--nl, 8) * 0.74)), 11.5px); line-height: 1.12; color: #fff;
 }
 .hcard .hc-name.two { white-space: pre; line-height: 1.05; }
 .hcard .hc-stats > span::before { margin-right: 0.18em; }
