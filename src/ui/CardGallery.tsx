@@ -33,7 +33,7 @@ import { CARDS, TOKENS } from "../data/cards";
 import { cardArtSrc, cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
-  ClassRow, CostRow, ElementRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe,
+  ClassRow, CostRow, ElementRow, FilterPicks, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe,
   type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
@@ -331,14 +331,16 @@ export function CardGallery(props: { onClose: () => void }) {
         {!maps && filtersOpen && (
           <>
             <ElementRow value={el} onChange={setEl} />
-            <ClassRow all={CLASSES} value={cls} onChange={setCls} />
-            <KeywordRow value={kw} onChange={setKw} />
-            {/* No `tribes` narrowing here: the gallery IS every card in the
-                game, tokens and bosses included, so the full list is the
-                right list. */}
-            <TribeRow value={tribe} onChange={setTribe} />
             <RarityRow value={rar} onChange={setRar} />
             <CostRow value={cost} onChange={setCost} />
+            <FilterPicks>
+              <ClassRow all={CLASSES} value={cls} onChange={setCls} />
+              <KeywordRow value={kw} onChange={setKw} />
+              {/* No `tribes` narrowing here: the gallery IS every card in the
+                  game, tokens and bosses included, so the full list is the
+                  right list. */}
+              <TribeRow value={tribe} onChange={setTribe} />
+            </FilterPicks>
           </>
         )}
         {filterSummary.length > 0 && (

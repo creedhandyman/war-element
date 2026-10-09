@@ -18,7 +18,7 @@
 import { useMemo, useState } from "react";
 import type { CardClass, Keyword } from "../engine";
 import {
-  CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  CostRow, FilterToggle, FilterPicks, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
@@ -313,12 +313,14 @@ export function StorySquad(props: {
           {/* Each of these clears the carried SCOPE for the same reason the
               element and class chips do: "Carrying 14" showing two cards
               because a keyword was still on makes its own label a lie. */}
-          <KeywordRow value={kw} onChange={(v) => { setKw(v); setCarriedOnly(false); }} />
-          <TribeRow
-            value={tribe}
-            onChange={(v) => { setTribe(v); setCarriedOnly(false); }}
-            tribes={packableTribes}
-          />
+          <FilterPicks>
+            <KeywordRow value={kw} onChange={(v) => { setKw(v); setCarriedOnly(false); }} />
+            <TribeRow
+              value={tribe}
+              onChange={(v) => { setTribe(v); setCarriedOnly(false); }}
+              tribes={packableTribes}
+            />
+          </FilterPicks>
           <RarityRow value={rar} onChange={(v) => { setRar(v); setCarriedOnly(false); }} />
           <CostRow value={cost} onChange={(v) => { setCost(v); setCarriedOnly(false); }} />
           </>)}

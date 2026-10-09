@@ -3611,6 +3611,29 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   scrollbar-width: thin; scrollbar-color: var(--gold-line) transparent;
 }
 .db-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+/* Class / Keyword / Tribe as three dropdowns on one line (filters.tsx `Pick`). */
+.db-picks { display: flex; flex-wrap: wrap; gap: 6px; }
+.db-pick {
+  flex: 1 1 140px; min-width: 0; display: flex; align-items: center; gap: 6px;
+  padding: 3px 4px 3px 10px; border-radius: 999px; border: 1px solid var(--panel-line);
+  background: var(--void-2); cursor: pointer;
+}
+.db-pick.on { border-color: var(--accent); background: rgba(167, 139, 250, 0.14); }
+.db-pick-lbl {
+  flex: none; font-size: 9px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--ink-faint);
+}
+.db-pick select {
+  flex: 1; min-width: 0; appearance: none; -webkit-appearance: none; border: 0; outline: 0;
+  background: transparent; color: var(--ink-dim); font: inherit; font-size: 11px; font-weight: 700;
+  padding: 2px 18px 2px 2px; cursor: pointer; text-overflow: ellipsis;
+  background-image: linear-gradient(45deg, transparent 50%, currentColor 50%), linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position: calc(100% - 9px) 55%, calc(100% - 5px) 55%;
+  background-size: 4px 4px; background-repeat: no-repeat;
+}
+.db-pick.on select { color: var(--ink); }
+.db-pick select:focus-visible { outline: 1px solid var(--gold-line); border-radius: 6px; }
+.db-pick option { background: #12121a; color: #e8e6f0; }
 
 /* ONE control for the whole filter block.
    Four rows of chrome sat between the search box and the first card, which on a

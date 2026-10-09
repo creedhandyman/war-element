@@ -73,6 +73,50 @@ export function FilterToggle(props: {
   );
 }
 
+/** A DROPDOWN for the long axes — class, keyword, tribe. As pills those three
+ *  were 50-odd chips stacked over the grid (Tribe alone wraps to two lines on a
+ *  PC), "a lot to see at once" (owner, 2026-10-08). One compact menu each, the
+ *  three side by side in `.db-picks`; the short axes (element, rarity, cost)
+ *  stay pills because they are one tap and fit on a line. Options the other
+ *  filters have emptied are disabled with their count, the menu's version of
+ *  the pill row's dimming. */
+function Pick<T extends string>(props: {
+  label: string;
+  all: readonly T[];
+  value: T | "ALL";
+  onChange: (v: T | "ALL") => void;
+  countFor?: (v: T) => number;
+  glyph?: (v: T) => string | undefined;
+}) {
+  const on = props.value !== "ALL";
+  return (
+    <label className={`db-pick ${on ? "on" : ""}`}>
+      <span className="db-pick-lbl">{props.label}</span>
+      <select
+        value={props.value}
+        onChange={(e) => props.onChange(e.target.value as T | "ALL")}
+        aria-label={props.label}
+      >
+        <option value="ALL">Any</option>
+        {props.all.map((v) => {
+          const n = props.countFor?.(v);
+          const g = props.glyph?.(v);
+          return (
+            <option key={v} value={v} disabled={n === 0 && props.value !== v}>
+              {g ? `${g} ` : ""}{v}{n === undefined ? "" : ` (${n})`}
+            </option>
+          );
+        })}
+      </select>
+    </label>
+  );
+}
+
+/** The dropdowns' line. */
+export function FilterPicks(props: { children: React.ReactNode }) {
+  return <div className="db-picks">{props.children}</div>;
+}
+
 /** A row of pills. `countFor` dims an option the other filters have emptied
  *  rather than hiding it — a row that reshuffles as you change element is
  *  harder to hit than one that stays put. */
@@ -161,13 +205,13 @@ export function KeywordRow(props: {
   countFor?: (k: Keyword) => number;
 }) {
   return (
-    <Row
+    <Pick
       label="Keyword"
       all={KEYWORDS}
       value={props.value}
       onChange={props.onChange}
       countFor={props.countFor}
-      style={(k) => ({ color: KEYWORD_STYLE[k]?.color, glyph: KEYWORD_STYLE[k]?.glyph })}
+      glyph={(k) => KEYWORD_STYLE[k]?.glyph}
     />
   );
 }
@@ -320,7 +364,7 @@ export function TribeRow(props: {
   tribes?: string[];
 }) {
   return (
-    <Row
+    <Pick
       label="Tribe"
       all={props.tribes ?? TRIBES}
       value={props.value}
@@ -337,6 +381,6 @@ export function ClassRow(props: {
   countFor?: (c: CardClass) => number;
 }) {
   return (
-    <Row label="Class" all={props.all} value={props.value} onChange={props.onChange} countFor={props.countFor} />
+    <Pick label="Class" all={props.all} value={props.value} onChange={props.onChange} countFor={props.countFor} />
   );
 }

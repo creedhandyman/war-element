@@ -23,7 +23,7 @@ import {
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS, RARITY_STYLE } from "./shared";
 import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
-  ClassRow, CostRow, FilterToggle, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  ClassRow, CostRow, FilterToggle, FilterPicks, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   type TribeFilter,
   cardHasKeyword, matchesCost, useFilterFold, type CostFilter, type RarityFilter,
 } from "./filters";
@@ -281,11 +281,13 @@ export function StoryCollection(props: {
               </button>
             ))}
           </div>
-          <ClassRow all={CLASSES} value={cls} onChange={setCls} />
-          <KeywordRow value={kw} onChange={setKw} />
-          <TribeRow value={tribe} onChange={setTribe} tribes={COLLECTION_TRIBES} />
           <RarityRow value={rar} onChange={setRar} />
           <CostRow value={cost} onChange={setCost} />
+          <FilterPicks>
+            <ClassRow all={CLASSES} value={cls} onChange={setCls} />
+            <KeywordRow value={kw} onChange={setKw} />
+            <TribeRow value={tribe} onChange={setTribe} tribes={COLLECTION_TRIBES} />
+          </FilterPicks>
           {anyFilter && (
             <div className="db-sort">
               <button className="db-fl db-clear" onClick={clearFilters}>Clear filters</button>

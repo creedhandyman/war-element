@@ -21,7 +21,7 @@ import {
 import { BUILDABLE_ELEMENTS, cardThumbSrc, EL_COLOR, EL_ICON, RARITY_STYLE, spellThumbSrc } from "./shared";
 import { EdgeName, EdgeRim, EdgeStats } from "./EdgeFace";
 import {
-  AttackRow, ClassRow, CostRow, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
+  AttackRow, ClassRow, CostRow, FilterPicks, KeywordRow, RarityRow, TribeRow, cardHasTribe, tribesIn,
   cardHasKeyword, matchesCost, useFilterFold, type AttackFilter, type CostFilter, type RarityFilter, type TribeFilter,
 } from "./filters";
 import { CardView } from "./CardView";
@@ -1268,22 +1268,24 @@ export function DeckBuilder(props: {
           shrink, and a box can be told to scroll instead of spilling. */}
       {filtersOpen && (
       <div className="db-filterbox">
-      <ClassRow
-        all={CLASSES}
-        value={classFilter}
-        onChange={setClassFilter}
-        countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
-      />
       <AttackRow value={atk} onChange={setAtk} countFor={(a) => countIf((d) => d.attackType === a, "atk")} />
-      <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
-      <TribeRow
-        value={tribe}
-        onChange={setTribe}
-        tribes={poolTribes}
-        countFor={(t) => countIf((d) => cardHasTribe(d, t), "tribe")}
-      />
       <RarityRow value={rar} onChange={setRar} countFor={(r) => countIf((d) => d.rarity === r, "rar")} />
       <CostRow value={cost} onChange={setCost} countFor={(c) => countIf((d) => matchesCost(d.cost, c), "cost")} />
+      <FilterPicks>
+        <ClassRow
+          all={CLASSES}
+          value={classFilter}
+          onChange={setClassFilter}
+          countFor={(c) => countIf((d) => d.cardClass === c, "cls")}
+        />
+        <KeywordRow value={kw} onChange={setKw} countFor={(k) => countIf((d) => cardHasKeyword(d, k), "kw")} />
+        <TribeRow
+          value={tribe}
+          onChange={setTribe}
+          tribes={poolTribes}
+          countFor={(t) => countIf((d) => cardHasTribe(d, t), "tribe")}
+        />
+      </FilterPicks>
       {/* Only once there is a foil in the pool — an always-empty filter is
           worse than no filter. */}
       {(foils?.size ?? 0) > 0 && (() => {
