@@ -14077,7 +14077,9 @@ export const CARDS: CardDef[] = [
     name: "Divebill",
     rarity: "rare",
     element: "AQUA",
-    cardClass: "Ranger",
+    // A MELEE ASSASSIN since 2026-10-08 (owner): it dives onto its prey rather
+    // than shooting from the back. FLYING stays, so it can still strike other fliers.
+    cardClass: "Assassin",
     // SEAC, not Avian. Divebill was the ONLY AQUA card in Avian, a tribe that is
     // otherwise entirely GALE (Galeon, Vvulture, Goldspur, Falcon) — so the one
     // aura keyed on it, +1 DMG and +3 SP to Avian allies, was a bonus this card
@@ -14089,7 +14091,7 @@ export const CARDS: CardDef[] = [
     // diving seabird; what changes is whose school it belongs to, and a bird
     // that hunts by going underwater belongs to the water.
     tribe: "SeaC",
-    attackType: "Ranged",
+    attackType: "Melee",
     // Rarity is a cost band, so the mix and the curve are one decision: this
     // moved to hit the 2 Rare / 2 Epic / 1 Legendary split every element now
     // carries, and the stat line is re-cut to the budget that comes with it.
