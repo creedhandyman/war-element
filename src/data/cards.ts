@@ -8994,8 +8994,11 @@ export const CARDS: CardDef[] = [
     keywords: {},
     tribe: "Wolf",
     // Flame Eater: heal 3 HP when it strikes a BURNing opponent.
-    passiveNames: { vsStatus: "Flame Eater" },
+    // Ember Howl (On Summon, owner 2026-10-08): 3 DMG + BURN 1 for 2 rounds to
+    // up to 3 opponents in range — which also sets up Flame Eater's heal.
+    passiveNames: { vsStatus: "Flame Eater", onSummon: "Ember Howl" },
     vsStatus: { status: "BURN", healOnHit: 3 },
+    onSummon: { handler: "barrage", params: { dmg: 3, targets: 3, statusKind: "BURN", statusPower: 1, statusDuration: 2 } },
     // Heat Crunch: bite NOW and set the wound alight. Was a loaded buff on the
     // next three basics — a cost-1 special that did nothing the turn you spent
     // it, on a melee body that has to survive to cash it in.
