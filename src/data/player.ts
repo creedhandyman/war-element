@@ -103,14 +103,14 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_thunderfangs: { x: 27, y: 55, zoom: 210 },
   boss_vulcanyx:     { x: 78, y: 18, zoom: 260 },
   boss_umbranova:    { x: 50, y: 40, zoom: 200 },
-  boss_cryovex:      { x: 53, y: 32, zoom: 230 },
+  boss_cryovex:      { x: 62, y: 24, zoom: 300 },
   boss_kazehaya:     { x: 33, y: 27, zoom: 260 },
   boss_kato:         { x: 27, y: 53, zoom: 230 },
   boss_smolder:      { x: 37, y: 30, zoom: 260 },
   boss_spindle:      { x: 55, y: 27, zoom: 300 },
   boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
   boss_continental:  { x: 63, y: 25, zoom: 260 },
-  boss_kheiringer:   { x: 62, y: 17, zoom: 600 },
+  boss_kheiringer:   { x: 52, y: 31, zoom: 600 },
 };
 
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
