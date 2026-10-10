@@ -31,7 +31,9 @@ describe("cleanup phase", () => {
 
   it("different DOTs coexist and BOTH tick (BLEED + BURN)", () => {
     const s = prepState();
-    const t = place(s, "bore_armadillo", "P2", 0, 0, {
+    // Hillbilly: nothing of its own fires at Cleanup. Granite Armadillo regrows
+    // a shield there since Curl Up (2026-10-10), which would muddy the melt.
+    const t = place(s, "bore_hillbilly", "P2", 0, 0, {
       curHp: 15,
       maxHp: 15,
       curShields: 2,
@@ -81,7 +83,7 @@ describe("cleanup phase", () => {
 
   it("BURN is the exception: its tick also melts shields", () => {
     const s = prepState();
-    const t = place(s, "bore_armadillo", "P2", 0, 0, {
+    const t = place(s, "bore_hillbilly", "P2", 0, 0, {
       curHp: 15,
       maxHp: 15,
       curShields: 4,

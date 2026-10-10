@@ -342,10 +342,13 @@ export const VOID_BOSSES: VoidBoss[] = [
     // not stats or tempo: Magmadon is a passive Tank where the other two bring
     // something. The war party was chosen anyway and Vulcanyx's body pays for
     // it — which is why it is the heaviest boss on the tower.
+    // (2026-10-10: Granite Armadillo fell to cost 1 in the owner's swap with
+    // Hillbilly, so the beasts are three of each now — 8 + 8 + 3x3 + 3x1 = 28,
+    // still exact and still only the two Mountain Beasts.)
     summons: [
       "pyro_infernus_rex", "pyro_magmadon",
-      "bore_ankylosaur", "bore_ankylosaur",
-      "bore_armadillo", "bore_armadillo",
+      "bore_ankylosaur", "bore_ankylosaur", "bore_ankylosaur",
+      "bore_armadillo", "bore_armadillo", "bore_armadillo",
     ],
     puzzle: "The apex: every body you feed it comes back as teeth.",
   },

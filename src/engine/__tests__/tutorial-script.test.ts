@@ -128,7 +128,11 @@ describe("the magic battle's script", () => {
     expect(hit, s.log.join(" | ")).toBeTruthy();
     const before = states.find((st) => st.phase === "battle" && st.round === 1)!;
     const arm0 = shieldsOf(before, "bore_armadillo");
-    const arm1 = shieldsOf(s, "bore_armadillo");
+    // Read right AFTER the hit: Curl Up (2026-10-10) regrows a shield at each
+    // round's end, so the end of the battle no longer shows the one worn.
+    const hitAt = states.find((st) =>
+      st.log.some((l) => /^Duster \(P2\) hits Granite Armadillo \(P1\) for 0/.test(l)))!;
+    const arm1 = shieldsOf(hitAt, "bore_armadillo");
     expect(arm1.curHp).toBe(arm0.curHp);
     expect(arm1.curShields).toBe(arm0.curShields - 1);
   });

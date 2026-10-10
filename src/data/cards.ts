@@ -652,15 +652,22 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 3,
+    // Cost swapped with Hillbilly's 3 (owner, 2026-10-10), stats cut to the
+    // cost-1 line: 1 + 9 + 2x2 + 1 = 15 = 5*1+10. Still the slow armoured wall.
+    cost: 1,
     dmg: 1,
     hits: 1,
-    hp: 15,
+    hp: 9,
     sp: 1,
-    shields: 4,
+    shields: 2,
     // Adapted for alpha: Curl Up (+2 shields when melee-targeted) → BLOCK 2.
     tribe: "Mountain Beasts",
     keywords: { BLOCK: 2 },
+    // Curl Up (End of Round): +1 shield, up to 4 — the cost-1 body is small,
+    // so it rebuilds its plating instead (owner's cost swap, 2026-10-10; a
+    // cheap Rare is never a blank body). Coral Golem's Calcify hook.
+    passiveNames: { roundTick: "Curl Up" },
+    roundTick: { selfShields: 1, selfShieldsMax: 4 },
   },
   {
     id: "bore_clubber",
@@ -873,12 +880,14 @@ export const CARDS: CardDef[] = [
     element: "BORE",
     cardClass: "Tank",
     attackType: "Melee",
-    cost: 1,
-    dmg: 2,
+    // Cost swapped with Granite Armadillo's 1 (owner, 2026-10-10), stats raised
+    // to the cost-3 line: 3 + 12 + 4x2 + 2 = 25 = 5*3+10.
+    cost: 3,
+    dmg: 3,
     hits: 1,
-    hp: 5,
+    hp: 12,
     sp: 2,
-    shields: 3,
+    shields: 4,
     keywords: {},
     // Hillside (On an ally being hit, first time): +1 shield to that ally. Was
     // keyed off Hillbilly's OWN landed basic and only reached the row directly

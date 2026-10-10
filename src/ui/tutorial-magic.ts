@@ -15,8 +15,9 @@
 //                    shields, for 5 — the contrast; Lazor's Special is
 //                    recharging, so its basic attack finishes the battle
 //
-// Cards chosen so nothing ELSE fires: the Armadillo has no passives (its BLOCK
-// only deepens the soak), Lazor's Special is plain damage, and the enemies are
+// Cards chosen so nothing ELSE fires mid-battle: the Armadillo's one passive,
+// Curl Up, regrows a shield at the END of each round (its BLOCK only deepens
+// the soak), Lazor's Special is plain damage, and the enemies are
 // GALE Dusters, whose element power only adds speed — no status lands on
 // anything all battle (`tutorial-script.test.ts` checks).
 //
