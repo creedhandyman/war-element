@@ -10455,3 +10455,16 @@ button.deck-shot { padding: 0; cursor: pointer; }
 }
 .cd-h { font-family: var(--font-ui); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; }
 .cd-text { margin-top: 5px; }
+
+/* ── ONE CARD SHAPE in the collection, gallery, deck builder and draft ──────
+   Every thumb is 3:4 like the card on the board (owner, 2026-10-10). The
+   builder's tile was a fixed 118px tall and the gallery's 142px / 132px while
+   their WIDTH followed the grid column (1fr), so the shape changed with the
+   screen — squat on a wide column, tall on a narrow one. The width still
+   comes from the column; the height now follows it. `align-self: start` so a
+   grid row cannot stretch a tile past its ratio, and `min-height: 0` so its
+   content cannot either (it clips, as the art always has). Last in the file
+   so it outranks the per-screen heights above, media queries included. */
+.deck-thumb.db-card, .deck-thumb.gal-card {
+  height: auto; min-height: 0; aspect-ratio: 3 / 4; align-self: start;
+}
