@@ -7957,7 +7957,7 @@ export const CARDS: CardDef[] = [
     // Scoped 50GAL: scope in — the next basic shot spreads across up to 3
     // targets (range = extra shots, replacing the deleted +2 RANGE).
     special: {
-      name: "Scoped 50GAL",
+      name: "50 Gal Vortex Charge", // was "Scoped 50GAL" (owner, 2026-10-10)
       cost: 3,
       handler: "scopeUp",
       params: { hits: 2 },
@@ -10151,8 +10151,10 @@ export const CARDS: CardDef[] = [
     dmg: 2,
     hits: 1,
     hp: 6,
-    sp: 7,
-    shields: 0,
+    // SP 7 -> 3 for +2 shields (owner, 2026-10-10): 2 + 6 + 2x2 + 3 = 15 =
+    // 5*1+10, still exact.
+    sp: 3,
+    shields: 2,
     keywords: {},
     // Kraken's school — the SeaC aura grants its members +4 max HP.
     tribe: "SeaC",

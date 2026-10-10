@@ -1,4 +1,4 @@
-/** CLOUDBURST — Scoped 50GAL. "Your next basic attack fires 3 shots and can
+/** CLOUDBURST — 50 Gal Vortex Charge. "Your next basic attack fires 3 shots and can
  *  aim across up to 3 opponents." It does not aim at one: rain falls on
  *  whatever stands near what it aimed at.
  *

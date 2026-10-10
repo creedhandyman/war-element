@@ -5339,7 +5339,7 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
       draft.log.push(`${label(draft, attacker)} hardens (+${broken} shields from the break).`);
     }
   },
-  /** Scoped 50GAL (Cloudburst): load extra shots onto the NEXT basic so it can spread
+  /** 50 Gal Vortex Charge (Cloudburst): load extra shots onto the NEXT basic so it can spread
    *  across up to N targets (Bleed Out's loaded-darts mechanic). */
   scopeUp(draft, attacker, _targets, params) {
     attacker.loadedHits += num(params, "hits", 2);
