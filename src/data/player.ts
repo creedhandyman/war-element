@@ -67,7 +67,12 @@ export const avatarArt = (cardId: string): string =>
 /** A head painted on a different plate than the card's own. Kato's first form is a
  *  vehicle with no head to frame; its Prowlform is a crystal panther with a
  *  snarling face, so that is the one worn as a profile picture. */
-const AVATAR_PLATE: Record<string, string> = { boss_kato: "boss_kato_2" };
+const AVATAR_PLATE: Record<string, string> = {
+  boss_kato: "boss_kato_2",
+  // Kheiringer is small on her plate (she rides a giant), so a zoomed crop of it
+  // came out blurry; she wears a dedicated square HD head portrait instead.
+  boss_kheiringer: "boss_kheiringer_face",
+};
 
 /** WHERE THE HEAD IS, per boss, and how far to zoom in on it.
  *
@@ -110,7 +115,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
   boss_spindle:      { x: 55, y: 27, zoom: 300 },
   boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
   boss_continental:  { x: 63, y: 25, zoom: 260 },
-  boss_kheiringer:   { x: 40, y: 11, zoom: 380 },
+  boss_kheiringer:   { x: 47, y: 38, zoom: 150 },
 };
 
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
@@ -118,7 +123,7 @@ export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
 export const PLATE_ASPECT: Record<string, number> = {
   boss_thunderfangs: 1.249, boss_kato: 1.249,
   // 2:3 paintings from the 2026-10-08 art pass.
-  boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1.5, boss_skeleeze: 1.5,
+  boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1, boss_skeleeze: 1.5,
   boss_nightshrike: 1.5, boss_basilisk: 1.5,
 };
 
