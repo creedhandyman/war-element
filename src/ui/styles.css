@@ -10468,3 +10468,13 @@ button.deck-shot { padding: 0; cursor: pointer; }
 .deck-thumb.db-card, .deck-thumb.gal-card {
   height: auto; min-height: 0; aspect-ratio: 3 / 4; align-self: start;
 }
+/* ...and the ROWS are as tall as the card. These grids fill a fixed-height
+   panel, and with `min-height: 0` on the tiles an `auto` row is free to
+   shrink: a 360-card gallery on a 1920px screen squeezed 20 rows into the
+   panel at ~33px each and stacked the cards on top of one another.
+   `max-content` sizes each row to the tile's full 3:4 height. */
+.db-grid, .gal-grid { grid-auto-rows: max-content; }
+/* A gallery TOKEN tile carries the class `token` (its kind), which also picks
+   up the board token's `inset: 3%` — on a relatively positioned tile that
+   nudged Acorn and Reptilian a few pixels down and right of their row. */
+.deck-thumb.gal-card.token { inset: auto; }
