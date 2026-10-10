@@ -64,15 +64,36 @@ export function activeAvatar(save: StorySave): string | undefined {
 export const avatarArt = (cardId: string): string =>
   `/cards/${AVATAR_PLATE[cardId] ?? getDef(cardId).art ?? cardId}.webp`;
 
-/** A head painted on a different plate than the card's own. Kato's first form is a
- *  vehicle with no head to frame; its Prowlform is a crystal panther with a
- *  snarling face, so that is the one worn as a profile picture. */
-const AVATAR_PLATE: Record<string, string> = {
-  boss_kato: "boss_kato_2",
-  // Kheiringer is small on her plate (she rides a giant), so a zoomed crop of it
-  // came out blurry; she wears a dedicated square HD head portrait instead.
-  boss_kheiringer: "boss_kheiringer_face",
-};
+/** Every boss wears a dedicated square HD head portrait (`<id>_face.webp`):
+ *  a zoomed crop of a 667x1000 card plate came out blurry. Kato's is painted
+ *  from his Prowlform, since his first form is a vehicle with no head. */
+const FACE_PLATES = [
+  "boss_rotroot",
+  "boss_skeleeze",
+  "boss_xilty",
+  "boss_permafrost",
+  "boss_overclock",
+  "boss_nightshrike",
+  "boss_basilisk",
+  "boss_helion",
+  "boss_hoarfell",
+  "boss_thunderfangs",
+  "boss_vulcanyx",
+  "boss_umbranova",
+  "boss_cryovex",
+  "boss_kazehaya",
+  "boss_kato",
+  "boss_smolder",
+  "boss_spindle",
+  "boss_skybreaker",
+  "boss_continental",
+  "boss_kheiringer",
+];
+
+/** Bosses whose avatar is painted on a plate other than the card's own. */
+const AVATAR_PLATE: Record<string, string> = Object.fromEntries(
+  FACE_PLATES.map((id) => [id, `${id}_face`]),
+);
 
 /** WHERE THE HEAD IS, per boss, and how far to zoom in on it.
  *
@@ -88,43 +109,41 @@ const AVATAR_PLATE: Record<string, string> = {
  *  every head several percent off and the frame on a chest or a shoulder.
  *  `avatarStyle` does the conversion, so what is recorded is what is seen.
  *
- *  `zoom` is `background-size`, so 300 means the art is drawn three frames wide.
- *  It varies because the SUBJECTS vary: Kheiringer's head is an eighth of her
- *  plate's width and Hoarfell's horns fill most of his. Aim for the head to fill
- *  a little over half the frame.
+ *  `zoom` is `background-size`, so 125 means the art is drawn 1.25 frames wide.
+ *  Since the square HD portraits (FACE_PLATES) every boss uses the same zoom,
+ *  and `y` sits just below the eye line so the eyes land at the same height in
+ *  every frame: the row of trophies lines up.
  */
 export interface AvatarFocus { x: number; y: number; zoom: number }
 
 export const AVATAR_FOCUS: Record<string, AvatarFocus> = {
-  boss_rotroot:      { x: 52, y: 15, zoom: 300 },
-  boss_skeleeze:     { x: 43, y: 21, zoom: 420 },
-  boss_xilty:        { x: 53, y: 30, zoom: 260 },
-  boss_permafrost:   { x: 47, y: 22, zoom: 210 },
-  boss_overclock:    { x: 50, y: 22, zoom: 300 },
-  boss_nightshrike:  { x: 56, y: 40, zoom: 240 },
-  boss_basilisk:     { x: 62, y: 30, zoom: 230 },
-  boss_helion:       { x: 41, y: 18, zoom: 330 },
-  boss_hoarfell:     { x: 53, y: 34, zoom: 170 },
-  boss_thunderfangs: { x: 27, y: 55, zoom: 210 },
-  boss_vulcanyx:     { x: 78, y: 18, zoom: 260 },
-  boss_umbranova:    { x: 50, y: 40, zoom: 200 },
-  boss_cryovex:      { x: 62, y: 24, zoom: 300 },
-  boss_kazehaya:     { x: 33, y: 27, zoom: 260 },
-  boss_kato:         { x: 27, y: 53, zoom: 230 },
-  boss_smolder:      { x: 37, y: 30, zoom: 260 },
-  boss_spindle:      { x: 55, y: 27, zoom: 300 },
-  boss_skybreaker:   { x: 47, y: 14, zoom: 280 },
-  boss_continental:  { x: 63, y: 25, zoom: 260 },
-  boss_kheiringer:   { x: 47, y: 38, zoom: 150 },
+  boss_rotroot:      { x: 50, y: 40, zoom: 125 },
+  boss_skeleeze:     { x: 50, y: 49, zoom: 125 },
+  boss_xilty:        { x: 50, y: 50, zoom: 125 },
+  boss_permafrost:   { x: 47, y: 40, zoom: 125 },
+  boss_overclock:    { x: 50, y: 53, zoom: 125 },
+  boss_nightshrike:  { x: 50, y: 54, zoom: 125 },
+  boss_basilisk:     { x: 50, y: 54, zoom: 125 },
+  boss_helion:       { x: 50, y: 53, zoom: 125 },
+  boss_hoarfell:     { x: 48, y: 51, zoom: 125 },
+  boss_thunderfangs: { x: 50, y: 58, zoom: 125 },
+  boss_vulcanyx:     { x: 47, y: 40, zoom: 125 },
+  boss_umbranova:    { x: 50, y: 58, zoom: 125 },
+  boss_cryovex:      { x: 50, y: 54, zoom: 125 },
+  boss_kazehaya:     { x: 50, y: 54, zoom: 125 },
+  boss_kato:         { x: 50, y: 48, zoom: 125 },
+  boss_smolder:      { x: 50, y: 58, zoom: 125 },
+  boss_spindle:      { x: 50, y: 54, zoom: 125 },
+  boss_skybreaker:   { x: 50, y: 46, zoom: 125 },
+  boss_continental:  { x: 52, y: 53, zoom: 125 },
+  boss_kheiringer:   { x: 47, y: 40, zoom: 125 },
 };
 
 /** Plate height over width, where it is not the usual 4:3. Needed to centre a
  *  point VERTICALLY, since the art is drawn `zoom`% wide and its height follows. */
 export const PLATE_ASPECT: Record<string, number> = {
-  boss_thunderfangs: 1.249, boss_kato: 1.249,
-  // 2:3 paintings from the 2026-10-08 art pass.
-  boss_xilty: 1.5, boss_cryovex: 1.5, boss_kheiringer: 1, boss_skeleeze: 1.5,
-  boss_nightshrike: 1.5, boss_basilisk: 1.5,
+  // Every boss portrait is a square HD plate (see FACE_PLATES).
+  ...Object.fromEntries(FACE_PLATES.map((id) => [id, 1])),
 };
 
 /** The focus for a head, with a sane fallback so a boss added tomorrow renders

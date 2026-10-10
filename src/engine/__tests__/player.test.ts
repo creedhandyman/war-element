@@ -48,7 +48,7 @@ describe("boss heads are earned, not set", () => {
     const id = VOID_BOSSES[0].cardId;
     const s = save({ eventsDone: beat(id), hero: { ...newHero(), avatar: id } });
     expect(activeAvatar(s)).toBe(id);
-    expect(avatarArt(id)).toBe(`/cards/${id}.webp`);
+    expect(avatarArt(id)).toBe(`/cards/${id}_face.webp`);
   });
 
   it("every boss's head has art on disk to wear", () => {
@@ -57,7 +57,8 @@ describe("boss heads are earned, not set", () => {
   });
 
   it("Kato wears his Prowlform: the first form is a vehicle with no head to frame", () => {
-    expect(avatarArt("boss_kato")).toBe("/cards/boss_kato_2.webp");
+    // His square portrait was painted from the Prowlform plate (boss_kato_2).
+    expect(avatarArt("boss_kato")).toBe("/cards/boss_kato_face.webp");
   });
 });
 
@@ -80,16 +81,23 @@ describe("boss heads are framed on the head", () => {
     }
   });
 
-  it("they are genuinely different — a shared table would mean a shared guess", () => {
-    const pts = VOID_BOSSES.map((b) => `${AVATAR_FOCUS[b.cardId].x},${AVATAR_FOCUS[b.cardId].y}`);
-    expect(new Set(pts).size, "distinct focal points").toBeGreaterThan(VOID_BOSSES.length * 0.8);
+  it("every boss wears a square HD portrait, framed at one shared zoom", () => {
+    // A 300-400% crop of a 667x1000 card plate came out blurry, so each boss has
+    // its own square head portrait. One zoom for all, with y just below the
+    // eye line, keeps the row of trophies lined up.
+    const zooms = new Set(VOID_BOSSES.map((b) => AVATAR_FOCUS[b.cardId].zoom));
+    expect(zooms.size, "one shared zoom").toBe(1);
+    for (const b of VOID_BOSSES) {
+      expect(avatarArt(b.cardId), b.cardId).toMatch(/_face\.webp$/);
+      expect(PLATE_ASPECT[b.cardId], `${b.cardId} square`).toBe(1);
+    }
   });
 
   it("avatarStyle frames a head from its focal point", () => {
     const st = avatarStyle("boss_basilisk");
     const f = AVATAR_FOCUS.boss_basilisk;
     expect(st.backgroundSize).toBe(`${f.zoom}% auto`);
-    expect(st.backgroundImage).toContain("boss_basilisk.webp");
+    expect(st.backgroundImage).toContain("boss_basilisk_face.webp");
   });
 
   it("puts the recorded head in the MIDDLE of the frame, not merely near it", () => {
