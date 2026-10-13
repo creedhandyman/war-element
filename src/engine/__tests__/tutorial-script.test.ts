@@ -9,6 +9,7 @@ import { advance, applyIntent, needsInput } from "../phases";
 import type { GameState } from "../types";
 import { getDef } from "../../data/cards";
 import { BEATS, beatIndex, type TutorialDef, type TutUi } from "../../ui/tutorial";
+import { soundsForStep } from "../../ui/match-sounds";
 import { TUTORIALS, TUTORIAL_ORDER } from "../../ui/tutorials";
 
 function playThrough(def: TutorialDef = TUTORIALS.basics) {
@@ -52,6 +53,14 @@ describe("the first battle's script", () => {
     expect(s.phase).toBe("gameover");
     expect(s.win).toEqual({ winner: "P1", by: "elimination" });
     expect(s.round).toBe(3);
+  });
+
+  it("sounds like a battle: cards land, blows fall, the Grills break", () => {
+    const { states } = playThrough();
+    const heard = states.slice(1).flatMap((s, i) => soundsForStep(states[i], s).map((x) => x.kind));
+    expect(heard.filter((k) => k === "place").length, "Birch, Forest Deer and the enemy's cards land").toBeGreaterThanOrEqual(3);
+    expect(heard.filter((k) => k === "break").length, "both Grills fall").toBe(2);
+    expect(soundsForStep(null, states[0])).toEqual([]);
   });
 
   it("captures the square Birch stepped onto", () => {

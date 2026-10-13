@@ -248,6 +248,9 @@ import { tipMark } from "./struggle";
 import { LessonCoach } from "./LessonCoach";
 import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
+import { tapWords } from "./pointer";
+import { useMatchSounds } from "./match-sounds";
+import { playSfx } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
 import { TUTORIALS } from "./tutorials";
 import { track } from "../net/telemetry";
@@ -903,6 +906,12 @@ export function App() {
    *  started from: the first-run screen, or the Training Ground's Basics. */
   const [tutorialRun, setTutorialRun] = useState<{ id: TutorialId; from: "first" | "training" } | null>(null);
   const tutDef = tutorialRun ? TUTORIALS[tutorialRun.id] : null;
+  // THE SOUND OF A MATCH: a thud when a card lands, a crack when one is hit, glass
+  // when one falls — read off the state diff (match-sounds.ts), so it covers the
+  // player, the AI, an online opponent and the scripted lessons alike.
+  useMatchSounds(game, started);
+  // ...and a soft tick when you pick something up, so a tap always answers.
+  useEffect(() => { if (started && sel) playSfx("tap"); }, [sel, started]);
   // ANONYMOUS PLAY EVENTS (net/telemetry.ts): a device's first open — a fresh
   // save or one from before — and one open a day. Read once, at launch.
   useEffect(() => {
@@ -5358,7 +5367,7 @@ export function App() {
               {/* ...and "tap again to open it" is load-bearing too: without it a
                   phone's first tap next to the ring would seem to do nothing. */}
               {(pending !== null || hint.startsWith("⚠") || linedUp !== null) && (
-                <div className="bp-text bp-hint" dangerouslySetInnerHTML={{ __html: hint }} />
+                <div className="bp-text bp-hint" dangerouslySetInnerHTML={{ __html: tapWords(hint) }} />
               )}
             </div>
           ) : null}
@@ -5375,7 +5384,7 @@ export function App() {
                 every single action and came back between them, which during the
                 Battle phase — the one phase its last lesson is about — is a
                 flicker rather than a sentence. See the mount site below. */}
-            <div className="hint" dangerouslySetInnerHTML={{ __html: hint }} />
+            <div className="hint" dangerouslySetInnerHTML={{ __html: tapWords(hint) }} />
             {/* Portrait: surface the spellbook right in the action panel (desktop
                 keeps its own tray in the right rail; this one is CSS-hidden there).
                 Prep-only — otherwise the book shows behind the pre-game menu and

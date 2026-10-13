@@ -7,6 +7,7 @@
  *  pays out. `RewardText` lives here for the same reason — both use it. */
 import { useEffect, useRef } from "react";
 import { achievementById, type AchievementReward } from "../data/achievements";
+import { playSfx } from "./sfx";
 
 /** "+30◆ · 1 pack", the way every achievement reward is written. */
 export function RewardText({ r }: { r: AchievementReward }) {
@@ -35,6 +36,7 @@ export function AchievementToast(props: {
   const done = useRef(props.onDone);
   done.current = props.onDone;
   const key = props.ids.join(",");
+  useEffect(() => { playSfx("claim"); }, [key]);
   useEffect(() => {
     const t = setTimeout(() => done.current(), TOAST_MS);
     return () => clearTimeout(t);

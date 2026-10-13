@@ -3,6 +3,7 @@ import type { Element, GameState, PlayerId } from "../engine";
 import { MatchReport, hasMatchReport } from "./MatchReport";
 import { EL_COLOR, EL_ICON } from "./shared";
 import { TrainingNudge } from "./TrainingGround";
+import { Celebration } from "./Celebration";
 
 /** The fight already lined up behind this one.
  *
@@ -76,6 +77,7 @@ export function WinScreen(props: {
 
   return (
     <div className="overlay on-top">
+      <Celebration kind={drawn ? "none" : youWon ? "win" : "lose"} />
       <div className="modal">
         <div className={`win-title ${drawn ? "" : youWon ? "win" : "lose"}`}>
           {drawn ? "DRAW" : youWon ? "VICTORY" : "DEFEAT"}

@@ -39,6 +39,7 @@ import { CardView } from "./CardView";
 import { TIER_LABEL, type PremadeDeck } from "../data/custom-decks";
 import { saveSquad, type Squad } from "../data/squads";
 import { track } from "../net/telemetry";
+import { buzz, playSfx } from "./sfx";
 
 /** "3d 4h", "5h 12m", "9m": the time left on the weekly deck shelf. */
 function untilText(ms: number): string {
@@ -350,6 +351,7 @@ export function Shop(props: {
     setDrag(0);
     setLastRefund(Object.values(result.refund).reduce((a, b) => a + b, 0));
     props.onSave(applyPack(save, result));
+    playSfx("tear");
 
     const still = typeof window !== "undefined"
       && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -395,7 +397,16 @@ export function Shop(props: {
     const top = reveal[shown];
     if (!top || face || charging) return;
     const ms = tellMs(top.id, opened?.shiny.includes(top.id) ?? false);
-    const go = () => { chargeTimer.current = null; setCharging(false); setFace(true); setBurst((b) => b + 1); };
+    const go = () => {
+      chargeTimer.current = null; setCharging(false); setFace(true); setBurst((b) => b + 1);
+      // The turn has a voice that climbs with the card: a whisper for a Rare,
+      // a chord for a Mythic. A foil is never less than an Epic's.
+      const r = getDef(top.id).rarity;
+      const foil = opened?.shiny.includes(top.id) ?? false;
+      const kind = r === "mythic" ? "mythic" : r === "legendary" ? "legend" : r === "epic" || foil ? "epic" : "rare";
+      playSfx(kind);
+      if (kind !== "rare") buzz(kind === "mythic" ? [60, 40, 120] : kind === "legend" ? [40, 30, 70] : 25);
+    };
     if (ms === 0) { go(); return; }
     setCharging(true);
     chargeTimer.current = window.setTimeout(go, ms);
@@ -944,7 +955,7 @@ export function Shop(props: {
       )}
 
       {opened && !tearing && (
-        <div className="overlay on-top" data-guide-suppress onClick={() => setOpened(null)}>
+        <div className="overlay on-top pack-overlay" data-guide-suppress onClick={() => setOpened(null)}>
           <div
             key={face && reveal[shown] && getDef(reveal[shown].id).rarity === "mythic" ? `quake${burst}` : "sheet"}
             className={`modal pack-reveal ${allShown ? "" : "revealing"} ${face && reveal[shown] && getDef(reveal[shown].id).rarity === "mythic" ? "quake" : ""}`}

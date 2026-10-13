@@ -15,6 +15,7 @@ import { getDef } from "../data/cards";
 import { isGate, type StoryNode } from "../data/story";
 import { MatchReport, hasMatchReport } from "./MatchReport";
 import { TrainingNudge } from "./TrainingGround";
+import { Celebration } from "./Celebration";
 
 export function StoryResult(props: {
   node: StoryNode;
@@ -60,8 +61,9 @@ export function StoryResult(props: {
 
   return (
     <div className="overlay on-top">
+      <Celebration kind={lost ? "lose" : "win"} />
       <div className={`modal story-result ${showReport ? "wide" : ""}`}>
-        <h1 className={lost ? "sr-lost" : undefined}>
+        <h1 className={lost ? "sr-lost" : "sr-won"}>
           {lost ? `${bossName ?? node.name} held` : isGate(node) ? "Border crossed" : `${node.name} cleared`}
         </h1>
 
@@ -101,10 +103,10 @@ export function StoryResult(props: {
           <>
             <div className="sr-label">Recruited</div>
             <ul className="sr-list">
-              {won.map((id) => {
+              {won.map((id, i) => {
                 const d = getDef(id);
                 return (
-                  <li key={id} className={props.foils?.has(id) ? "sr-foil" : undefined}>
+                  <li key={id} className={props.foils?.has(id) ? "sr-foil" : undefined} style={{ "--i": i } as React.CSSProperties}>
                     <span className="sr-name">
                       {props.foils?.has(id) && <i className="foil-tag inline" title="Foil">✦</i>}
                       {d.name}

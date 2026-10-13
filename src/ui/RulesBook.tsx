@@ -10,6 +10,7 @@ import {
 import { OPENING_CHEAP_COST, OPENING_CHEAP_MIN, SP_MID_MAX } from "../engine/state";
 import { DOMINATION_7X7, POI_GOLD } from "../data/domination";
 import { EL_COLOR, ELEMENTS } from "./shared";
+import { tapVerb } from "./pointer";
 
 /** The Well's numbers, off the map that places it — the 7x7 is the only board
  *  with one. Read rather than typed for the same reason as every other figure
@@ -21,6 +22,7 @@ const WELL = DOMINATION_7X7.well;
 const title = (el: string) => el.charAt(0) + el.slice(1).toLowerCase();
 
 export function RulesBook(props: { onClose: () => void }) {
+  const { tap, Tap } = tapVerb();
   return (
     <div className="overlay" onClick={props.onClose}>
       <div className="modal rules-book" onClick={(e) => e.stopPropagation()}>
@@ -124,7 +126,7 @@ export function RulesBook(props: { onClose: () => void }) {
             <h3>🔁 The round loop</h3>
             <ul>
               <li>
-                <b>Mulligan</b> (first round): click opening-hand cards to send back,
+                <b>Mulligan</b> (first round): {tap} opening-hand cards to send back,
                 confirm, and redraw.
               </li>
               <li>
@@ -138,8 +140,8 @@ export function RulesBook(props: { onClose: () => void }) {
                 straight on the Gold ramp.
               </li>
               <li>
-                <b>Prep</b>: glowing hand cards are affordable — click one, then a
-                glowing Home slot to summon (any number per turn). Click a board card,
+                <b>Prep</b>: glowing hand cards are affordable — {tap} one, then a
+                glowing Home slot to summon (any number per turn). {Tap} a board card,
                 then a glowing slot to move (one move per priority turn). Cast Spells
                 here too. <b>Pass Priority</b> when done — once every seat has passed in
                 a row, the battle starts.
@@ -147,7 +149,7 @@ export function RulesBook(props: { onClose: () => void }) {
               <li>
                 <b>Battle</b>: cards act in <b>SP order</b> (fastest first, {GALE_SP_CAP} → 0;
                 ties broken by a seeded coin). When one of yours is up, choose
-                <b> Basic / Special / Skip</b>, then click glowing targets.
+                <b> Basic / Special / Skip</b>, then {tap} glowing targets.
               </li>
               <li>
                 <b>Cleanup</b>: damage-over-time ticks, statuses count down, end-of-round
@@ -566,7 +568,7 @@ export function RulesBook(props: { onClose: () => void }) {
               </li>
               <li>
                 <b>Battle — fastest first.</b> Cards act in SP order ({GALE_SP_CAP} → 0). Your
-                SP-11 Ranger acts early: choose <b>Basic</b>, click a glowing enemy, it
+                SP-11 Ranger acts early: choose <b>Basic</b>, {tap} a glowing enemy, it
                 fires. Later your Tank (SP 5) comes up — choose <b>Special</b> to spend
                 Magic on a barrage, spreading picks across two foes, then <b>Fire</b>.
               </li>

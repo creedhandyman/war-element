@@ -13,6 +13,7 @@
  */
 import { useEffect, useLayoutEffect, useState } from "react";
 import type { Beat, TutorialDef, TutTarget } from "./tutorial";
+import { Celebration } from "./Celebration";
 
 type Rect = { x: number; y: number; w: number; h: number };
 
@@ -127,6 +128,7 @@ export function TutorialDone(props: { def: TutorialDef; firstRun: boolean; onCon
   const { result } = props.def;
   return (
     <div className="overlay on-top">
+      <Celebration kind="win" />
       <div className="modal tut-done">
         <div className="win-title win">VICTORY</div>
         <p className="tut-done-lead">{result.lead}</p>

@@ -2550,7 +2550,36 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 .win-title { font-size: 30px; font-weight: 900; margin-bottom: 4px; }
 .win-title.lose { color: var(--threat); }
-.win-title.win { color: var(--legal); }
+.win-title.win { color: var(--legal); text-shadow: 0 0 22px rgba(0, 230, 118, 0.35); animation: win-pop 520ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+/* The result titles land rather than appear: a quick overshoot, once. */
+@keyframes win-pop { 0% { opacity: 0; transform: scale(0.55); } 60% { opacity: 1; transform: scale(1.14); } 100% { opacity: 1; transform: scale(1); } }
+
+/* CONFETTI — the burst behind a winning result card (Celebration.tsx). One
+   origin, thirty pieces each flung on its own vector with a little fall at the
+   end. transform + opacity only, finite, and gone for reduced motion. */
+.confetti { position: absolute; left: 50%; top: 32%; width: 0; height: 0; pointer-events: none; }
+.cf {
+  position: absolute; left: 0; top: 0; width: 8px; height: 12px; border-radius: 2px;
+  background: var(--gold-lit); opacity: 0;
+  animation: confetti-burst 1.7s cubic-bezier(0.15, 0.7, 0.3, 1) var(--delay, 0s) both;
+}
+.cf.long { width: 5px; height: 16px; }
+.cf.c0 { background: var(--gold-lit); }
+.cf.c1 { background: var(--legal); }
+.cf.c2 { background: #5aa0ff; }
+.cf.c3 { background: #b07cff; }
+.cf.c4 { background: #ff7a90; }
+.cf.c5 { background: #f4efe2; }
+@keyframes confetti-burst {
+  0%   { opacity: 0; transform: translate(-50%, -50%) scale(0.3); }
+  10%  { opacity: 1; }
+  58%  { opacity: 1; transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) rotate(var(--rot)) scale(1); }
+  100% { opacity: 0; transform: translate(calc(-50% + var(--dx) * 1.12), calc(-50% + var(--dy) + 150px)) rotate(calc(var(--rot) * 1.7)) scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .confetti { display: none; }
+  .win-title.win, .story-result h1.sr-won, .story-result .sr-list li { animation: none; }
+}
 
 /* Post-match report (WinScreen) — MVP + per-side damage/heal/kills/captures. */
 .mr { margin: 6px 0 16px; text-align: left; border-top: 1px solid var(--panel-line); padding-top: 12px; }
@@ -6212,6 +6241,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .sp-packview .lockin { margin-top: 8px; padding: 8px; }
 }
 .story-result h1.sr-lost { color: var(--illegal); }
+/* A cleared node announces itself like a win does, and its recruits arrive one
+   after another instead of as a finished list. */
+.story-result h1.sr-won { color: var(--gold-hi); text-shadow: 0 0 24px rgba(201, 162, 75, 0.4); animation: win-pop 520ms cubic-bezier(0.2, 1.4, 0.4, 1) both; }
+.story-result .sr-list li { animation: sr-in 380ms cubic-bezier(0.2, 0.9, 0.3, 1) calc(280ms + var(--i, 0) * 110ms) both; }
+@keyframes sr-in { from { opacity: 0; transform: translateX(-14px); } to { opacity: 1; transform: none; } }
 /* Widens only once the report is open, so the two side columns and the 9-column
    roster table are not fighting over 460px on a phone. */
 .story-result.wide { max-width: min(560px, 94vw); }
@@ -7394,6 +7428,12 @@ button.deck-shot { padding: 0; cursor: pointer; }
 }
 
 .pack-reveal { max-width: 560px; }
+/* The reveal is the one moment the screen belongs to the card: the shop behind it
+   (prices, odds, "250 more shards") was reading through the dim at 18%. A vignette
+   keeps a little life at the edges and goes near-black behind the card. */
+.overlay.pack-overlay {
+  background: radial-gradient(ellipse at 50% 46%, rgba(22, 20, 36, 0.95), rgba(3, 4, 8, 0.985) 78%);
+}
 .pack-reveal h2 { font-family: var(--head); font-size: 19px; margin: 0 0 12px; }
 .pack-cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
 .pack-card {
@@ -8938,7 +8978,10 @@ button.deck-shot { padding: 0; cursor: pointer; }
   width: 320px; max-width: calc(100vw - 24px);
   padding: 12px 14px 13px; border-radius: 13px; text-align: left;
   border: 1px solid color-mix(in srgb, var(--gold-lit) 42%, var(--panel-line));
-  background: linear-gradient(160deg, rgba(201, 162, 75, 0.16), rgba(10, 10, 17, 0.94));
+  /* The gold wash sits on a SOLID base. The gradient alone starts at 16% alpha, so
+     the page behind (an event card, a shop row) showed straight through the first
+     sentence a new player has to read. */
+  background: linear-gradient(160deg, rgba(201, 162, 75, 0.16), rgba(10, 10, 17, 0.94)), #0a0a11;
   box-shadow: 0 0 0 1px rgba(201, 162, 75, 0.12), 0 12px 34px rgba(0, 0, 0, 0.6);
   animation: gd-rise 220ms ease-out both;
 }
