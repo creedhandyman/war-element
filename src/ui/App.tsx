@@ -5572,6 +5572,8 @@ export function App() {
             // Same set the board gets. A foil that shines on the field and not
             // in the hand is the same card looking like two.
             foils={foilIds}
+            // The scripted lessons speak in their own voice; the cue would talk over it.
+            cue={!tutDef && !trainingRun}
             onPick={onPickHand}
             onDragStartCard={onDragStartCard}
             onDragEndCard={onDragEndCard}

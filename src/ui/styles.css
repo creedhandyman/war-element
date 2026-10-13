@@ -2041,6 +2041,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The highlighted hand card's readout (Hand.tsx `HandReadout`). Phones and
    tablets only — see the portrait block. */
 .hand-readout { display: none; }
+/* The one-line "what now?" cue (Hand.tsx, turn-cue.ts): phones and tablets only. */
+.turn-cue { display: none; }
 /* Multi-attack readability: the DAMAGE value sits right next to the sword and
    is red like it (⚔4 reads as one all-red unit), while the "×N" hit-count
    trails off to the side in white so the two numbers never blur (⚔[4][ ×2]). */
@@ -4771,6 +4773,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .queue-rail .qname, .queue-rail .qtag { display: none; }
   .queue-rail .qsp { font-size: var(--fs-2); font-variant-numeric: tabular-nums; }
   .queue-rail .el-dot { width: 6px; height: 6px; flex: none; }
+  /* "Board is empty." is a sentence for the desktop rail; here the strip is a row of
+     speed pips and the line floated, faint, over the board's corner. */
+  .queue-rail .queue-scale > div:not(.qrow) { display: none; }
 
   /* The LOG edge tab is retired — the log is a strip in the flow now, and that
      strip is its own tap target. Two ways in would be two things to keep in
@@ -4923,6 +4928,21 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   .hr-stat b { display: inline-flex; align-items: baseline; font-size: 15.5px; font-weight: 800; text-shadow: 0 1px 2px #000; }
   .hr-stat b small { font-size: 11.5px; margin-left: 1px; }
   .hr-stat .icon-sp, .hr-stat svg { width: 11px; height: 11px; margin-right: 2px; align-self: center; }
+  /* THE TURN CUE: one line in the same band as the readout, for the moments no
+     card is up. A status pill, not a card — it takes no taps (the board under it
+     stays live) and it is gone as soon as a card is picked up. */
+  .turn-cue {
+    position: absolute; left: 50%; bottom: calc(100% + 10px); transform: translateX(-50%); z-index: 56;
+    display: inline-flex; align-items: center; gap: 8px; max-width: calc(100vw - 24px); box-sizing: border-box;
+    padding: 6px 14px 7px 11px; border-radius: 999px; pointer-events: none; white-space: nowrap;
+    font-size: 13.5px; font-weight: 700; letter-spacing: 0.01em; line-height: 17px;
+    background: rgba(10, 9, 15, 0.9); color: var(--ink);
+    border: 1px solid color-mix(in srgb, var(--gold-lit) 45%, #0d0c14);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+  }
+  .turn-cue i { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--gold-lit); box-shadow: 0 0 8px var(--gold-lit); }
+  .turn-cue.wait { color: var(--ink-dim); border-color: var(--panel-line); box-shadow: none; }
+  .turn-cue.wait i { background: var(--ink-faint); box-shadow: none; }
   /* COMPACT, for a gap too short for the full readout (Hand.tsx measures it):
      the same three lines, tighter — still well above the card's own type. */
   .hand-readout.compact { bottom: calc(100% + 8px); padding: 3px 9px 4px 7px; row-gap: 0; column-gap: 8px; }

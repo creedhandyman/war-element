@@ -4,6 +4,7 @@ import { getDef, effectiveSummonCost } from "../engine";
 import { cardThumbSrc, EL_ICON } from "./shared";
 import { EdgeName, EdgeRim } from "./EdgeFace";
 import { SpIcon } from "./icons";
+import { turnCue } from "./turn-cue";
 
 /** True on phone-width viewports (≤760px wide) OR short viewports (≤540px tall,
  *  i.e. a landscape phone). Mirrors the CSS mobile + landscape breakpoints — both
@@ -202,6 +203,9 @@ export function Hand(props: {
   onPick: (handId: string) => void;
   onDragStartCard?: (handId: string) => void;
   onDragEndCard?: () => void;
+  /** Show the one-line "what now?" cue when no card is being looked at. Off while
+   *  a scripted lesson is speaking in its own voice. */
+  cue?: boolean;
 }) {
   const { game, player } = props;
   const me = game.players[player];
@@ -457,6 +461,17 @@ export function Hand(props: {
           compact={compact}
         />
       )}
+
+      {/* THE GAP BETWEEN TAPS: whose move it is, and the obvious thing to do. Phones
+          hide the hint line, and the readout above only speaks once a card is up. */}
+      {!lookId && props.cue !== false && (() => {
+        const cue = turnCue({
+          game, player, summonable: props.summonableHandIds.size, handSize: n, homeRowOpen: props.homeRowOpen,
+        });
+        return cue ? (
+          <div className={`turn-cue ${cue.tone}`} role="status" aria-live="polite"><i aria-hidden="true" />{cue.text}</div>
+        ) : null;
+      })()}
 
       {/* Say it once, up front. A full Home row makes the whole hand unplayable,
           and the player shouldn't have to tap a card to find that out. */}
