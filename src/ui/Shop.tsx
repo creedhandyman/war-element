@@ -1038,6 +1038,16 @@ export function Shop(props: {
                     {rar && <span className="pack-rar" style={{ color: rar.color, borderColor: rar.color }}>{rar.label}</span>}
                     {foil && <i className="foil-tag" title="Foil">✦</i>}
                     <span className="pack-name">{d.name}</span>
+                    {/* WHAT YOU PULLED, not just what it is called: the three numbers in the
+                        colours the board uses (red damage, green health, blue speed), then
+                        its class, how it hits and what it costs to put down. Every pull
+                        teaches the stat language a little more. */}
+                    <span className="pack-stats">
+                      <i>DMG</i><b className="s-dmg">{d.dmg}{d.hits > 1 ? `×${d.hits}` : ""}</b>
+                      <i>HP</i><b className="s-hp">{d.hp}</b>
+                      <i>SP</i><b className="s-sp">{d.sp}</b>
+                    </span>
+                    <span className="pack-class">{d.cardClass} · {d.attackType} · {d.cost} Gold</span>
                     {/* Both facts, because a foil duplicate has two: it is a
                         foil AND it paid essence. The tag used to print one and
                         drop the other whichever way it went. */}

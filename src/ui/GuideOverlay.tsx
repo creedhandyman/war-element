@@ -208,6 +208,18 @@ export function GuideOverlay(props: {
    *  so it earns one showing. */
   const [minimised, setMinimised] = useState(false);
   useEffect(() => { setMinimised(false); }, [props.title]);
+  /** NOTHING TO POINT AT = NOTHING TO LINGER ON. With a ring on screen the card is
+   *  the caption for it and stays. Without one (the player wandered to the Tower
+   *  or the Shop while the step lives on the map) it is a card sitting over the
+   *  bottom third of a screen that has nothing to do with it, so it reads once
+   *  and tucks itself into the pill. The step is still live; one tap brings it
+   *  back, and a NEW step always opens in full (the effect above). */
+  const pointing = !!hole;
+  useEffect(() => {
+    if (pointing || minimised) return;
+    const t = window.setTimeout(() => setMinimised(true), 9000);
+    return () => window.clearTimeout(t);
+  }, [pointing, minimised, props.title]);
   const [bubble, setBubble] = useState<HTMLDivElement | null>(null);
   const [above, setAbove] = useState(false);
 
