@@ -2989,6 +2989,64 @@ and sends a few milestones:
   must declare it: device or other IDs + app interactions, collected, not
   shared, not linked to the user, used for analytics.
 
+## Game feel — sound, the win moment, the turn cue (2026-10-13)
+
+Owner asked for the game to be as intuitive and as fun as it can be. A new
+player played the first ten minutes at 375x812 (real taps, headless Edge over
+CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
+7-12): 18 new devices, 5 finished the scripted first battle.
+
+- **Sound** (`ui/sfx.ts`): the game had music and ONE chime. `playSfx(kind)`
+  now covers tap, place, hit, break, win, lose, claim, turn and the pack's tear
+  plus a flip that climbs with rarity (rare < epic < legend < mythic). All
+  synthesized (no files), one limiter bus, per-sound min gaps, muted by the
+  existing music toggle (`we_music_muted`), never throws. `renderSfx(ctx, kind,
+  t)` draws onto ANY context, so a level check is an OfflineAudioContext render
+  (peaks 0.05-0.45, no NaN). Phone speakers give up below ~150 Hz, so the
+  thud is built from a mid-range knock; do not retune it on a desktop speaker.
+  `buzz()` = short vibration (Android only), off for reduced motion.
+- **What a step sounds like** (`ui/match-sounds.ts`): `soundsForStep(prev, next)`
+  is a pure state diff (card arrived -> place, toughness fell -> hit scaled by
+  damage, card gone -> break; a fresh board dealt at once, a lower round or a
+  rematch = silence). `yourMoveReturned` = the soft two-note cue when
+  `needsInput` hands the move back to you. `useMatchSounds(game, started,
+  me !== null)` is called in App right after `me`. Tested, incl. against the
+  real scripted battle (3+ places, exactly 2 breaks).
+- **The win moment** (`ui/Celebration.tsx`): confetti (30 transform/opacity
+  pieces, one burst, none for reduced motion) + fanfare + buzz on a win;
+  just the low three-note sigh on a loss. Mounted INSIDE the `.overlay`, beside
+  the modal (the modal scrolls and would clip it), in WinScreen, StoryResult
+  and TutorialDone. Titles pop (`win-pop`), story recruits arrive one by one.
+- **Turn cue** (`ui/turn-cue.ts`, `.turn-cue` in Hand.tsx): phones hide the
+  hint line in every phase and the readout only speaks once a card is tapped,
+  so the band above the hand was blank between taps. One pill there: "Lead
+  with a card - your first is free" (opening deploy), "Your move - tap a
+  glowing card to play it", "Not enough Gold yet - move a card, or Pass",
+  "Their move...". Prep only; off in the scripted lessons and Training Ground
+  (`cue={!tutDef && !trainingRun}`); quiet when the Home row is full (the hand
+  already says so).
+- **Tap, not click** (`ui/pointer.ts`): `tapWords(html)` rewrites click->tap on a
+  coarse pointer; App's two `hint` render sites use it, RulesBook uses
+  `tapVerb()`. Hover `title` tooltips keep "click" (desktop only).
+- **Two see-through panels**: `.gd-tip` (the first-run guide card) had a 16%-
+  alpha gradient and nothing under it, so the page behind collided with the
+  first sentence a new player reads — it has a solid base now. The pack reveal
+  (`.overlay.pack-overlay`) is a near-black vignette so the shop's prices do
+  not read through. Gradient-over-nothing is the thing to grep for.
+- **Pack pulls show what they do**: the reveal card carries DMG/HP/SP in the
+  board's colours and "class - attack type - N Gold" (`.pack-stats`).
+- **The guide tucks itself away** (`GuideOverlay.tsx`): with no spotlight on
+  screen (the step lives on another tab) the card minimises to its pill after
+  9 s; a new step always opens in full.
+- **Testing this on a phone-size pane**: the Browser pane's clicks land at 1/4
+  scale under mobile emulation (and `computer` coordinates are 2x), so use a
+  CDP driver (headless Edge, `Emulation.setDeviceMetricsOverride` 375x812 @2x,
+  real `Input.dispatchMouseEvent`, and `--disable-renderer-backgrounding` +
+  `Emulation.setFocusEmulationEnabled` or the rail's rAF stalls). To catch a
+  CSS animation mid-flight, pause `document.getAnimations()` and set
+  `currentTime`; do not race the clock. Never run two driver loops against one
+  browser (they toggle each other's selections).
+
 ## The boss panel's ✕ was under the mute button, and three bugs deep
 
 Reported as "the mute button is bigger than the x button in the boss menu".

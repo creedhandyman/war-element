@@ -2,7 +2,7 @@
 // (ui/pointer.ts). Both are pure, so both are tested on plain states / strings.
 import { describe, expect, it } from "vitest";
 import { advance, applyIntent, needsInput, type GameState } from "..";
-import { soundsForStep } from "../../ui/match-sounds";
+import { soundsForStep, yourMoveReturned } from "../../ui/match-sounds";
 import { tapWords } from "../../ui/pointer";
 import { createTutorialState, enemyStep } from "../../ui/tutorial";
 
@@ -77,6 +77,27 @@ describe("soundsForStep", () => {
     expect(soundsForStep(earlier, full)).toEqual([]);
   });
 
+});
+
+describe("yourMoveReturned", () => {
+  const s = deal();
+
+  it("fires on the step the move comes back to the player, and only then", () => {
+    expect(yourMoveReturned(false, true, s, clone(s))).toBe(true);
+    expect(yourMoveReturned(true, true, s, clone(s))).toBe(false); // still theirs
+    expect(yourMoveReturned(true, false, s, clone(s))).toBe(false); // just handed away
+    expect(yourMoveReturned(false, false, s, clone(s))).toBe(false);
+    expect(yourMoveReturned(false, true, null, s)).toBe(false); // the first state ever seen
+  });
+
+  it("is not the mulligan, a finished game, or a new match over an old one", () => {
+    const mull = clone(s); mull.phase = "mulligan";
+    expect(yourMoveReturned(false, true, s, mull)).toBe(false);
+    const over = clone(s); over.win = { winner: "P1", by: "elimination" };
+    expect(yourMoveReturned(false, true, s, over)).toBe(false);
+    const later = clone(s); later.round = 5;
+    expect(yourMoveReturned(false, true, later, s)).toBe(false);
+  });
 });
 
 describe("tapWords", () => {

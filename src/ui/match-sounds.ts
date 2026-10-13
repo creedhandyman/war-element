@@ -48,18 +48,33 @@ export function soundsForStep(prev: GameState | null, next: GameState): MatchSou
   return out;
 }
 
+/** Did the move just come back to the player? True on the step where it was not
+ *  theirs and now is, in Prep or Battle — the soft two-note cue for anyone who
+ *  looked away while the AI thought. Not the mulligan (a match opening is not a
+ *  turn coming back) and not a new match dealt over an old one. */
+export function yourMoveReturned(wasMine: boolean, isMine: boolean, prev: GameState | null, next: GameState): boolean {
+  if (!prev || wasMine || !isMine) return false;
+  if (next.phase !== "prep" && next.phase !== "battle") return false;
+  return next.round >= prev.round && !next.win;
+}
+
 /** Play the sounds each game step earns. `on` is false off the board (menus,
- *  the replay viewer) so nothing speaks to an empty room. */
-export function useMatchSounds(game: GameState, on: boolean): void {
+ *  the replay viewer) so nothing speaks to an empty room. `myTurn` is whether the
+ *  game is waiting on the player right now. */
+export function useMatchSounds(game: GameState, on: boolean, myTurn: boolean): void {
   const last = useRef<GameState | null>(null);
+  const wasMine = useRef(false);
   useEffect(() => {
     const prev = last.current;
     last.current = game;
+    const was = wasMine.current;
+    wasMine.current = myTurn;
     if (!on || !prev) return;
+    if (yourMoveReturned(was, myTurn, prev, game)) playSfx("turn");
     for (const s of soundsForStep(prev, game)) {
       playSfx(s.kind, s.power);
+      // A card falling is the one beat worth a buzz; a placement is too small to feel.
       if (s.kind === "break") buzz(18);
-      else if (s.kind === "place") buzz(8);
     }
-  }, [game, on]);
+  }, [game, on, myTurn]);
 }
