@@ -1281,14 +1281,15 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
           mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
           mask-composite: exclude;
 }
-/* The element notch, hanging from the top edge. Sized off the tile so a 7x7
-   phone board gets a small one and a PC board a readable one. */
+/* The element badge, riding the top edge: lifted so it pokes out above the
+   card (owner, 2026-10-14) instead of hanging inside as a notch. Sized off the
+   tile so a 7x7 phone board gets a small one and a PC board a readable one. */
 .tk-tab {
-  position: absolute; top: 0; left: 50%; z-index: 3; translate: -50% 0; pointer-events: none;
+  position: absolute; top: 0; left: 50%; z-index: 3; translate: -50% -45%; pointer-events: none;
   width: clamp(12px, 27cqw, 36px); height: clamp(8px, 17cqw, 22px);
   display: grid; place-items: center;
-  background: #0b0c12; border: 1.5px solid var(--el-rim, #888); border-top: 0;
-  border-radius: 0 0 7px 7px;
+  background: #0b0c12; border: 1.5px solid var(--el-rim, #888);
+  border-radius: 7px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.7);
 }
 .tk-tab > img { width: 82%; height: 82%; object-fit: contain; display: block; }
