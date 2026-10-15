@@ -7591,7 +7591,7 @@ export const CARDS: CardDef[] = [
     cardClass: "Warrior",
     attackType: "Melee",
     cost: 1,
-    dmg: 2,
+    dmg: 3, // 2 -> 3 (owner, 2026-10-14): 16 on a 15 budget, inside the band
     hits: 1,
     hp: 8,
     sp: 5,
