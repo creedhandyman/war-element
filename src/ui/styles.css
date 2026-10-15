@@ -2185,7 +2185,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: radial-gradient(circle at 35% 30%, #7d92e8, #26307a); border: 1.5px solid #b9c8ff;
   color: #fff; font-size: 11px; font-weight: 800; box-shadow: 0 0 8px rgba(130, 160, 255, 0.6);
 }
-.spellchip-art { width: 100%; height: 24px; border-radius: 4px; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
+/* Spells are round medallions (owner, 2026-10-14): every spell picture shows
+   as a circle so a spell never reads as a unit card. The art is painted for it. */
+.spellchip-art { width: 24px; height: 24px; margin-inline: auto; border-radius: 50%; overflow: hidden; background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 55%, #0d0c14), #0b0d18); box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.5); }
 .spellchip-art img { width: 100%; height: 100%; object-fit: cover; display: block; border-radius: inherit; }
 .spellchip-name { font-size: 9.5px; font-weight: 700; color: #d8d2c0; text-align: center; line-height: 1.1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 /* Name + rules. The narrow horizontal tray has no room for rules text, so it
@@ -3961,7 +3963,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-spell.on { border-color: var(--gold-lit); box-shadow: 0 0 0 1px var(--gold-lit), 0 0 12px rgba(201,162,75,0.35); }
 .db-spell:disabled { opacity: 0.45; cursor: default; }
 .db-spell-art {
-  flex: none; width: 46px; height: 46px; border-radius: 7px; overflow: hidden; align-self: flex-start;
+  flex: none; width: 46px; height: 46px; border-radius: 50%; overflow: hidden; align-self: flex-start;
   background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 45%, #0b0d16), #0b0d18);
 }
 .db-spell-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
@@ -4030,7 +4032,10 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   84% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1.05); opacity: 0; }
 }
-.castflash-art { display: block; width: 100%; aspect-ratio: 1 / 1; object-fit: cover; }
+.castflash-art {
+  display: block; width: calc(100% - 32px); margin: 16px auto 0; aspect-ratio: 1 / 1; object-fit: cover;
+  border-radius: 50%; box-shadow: 0 0 0 2px var(--el, var(--gold-lit)), 0 0 24px color-mix(in srgb, var(--el, #7d92e8) 50%, transparent);
+}
 .castflash-noart {
   display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
   background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
@@ -9981,7 +9986,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
   flex: none; flex-direction: row; align-items: center; gap: 12px;
   padding: 8px 12px 8px 8px;
 }
-.dr-spell .spellchip-art { width: 96px; height: 96px; flex: none; border-radius: 7px; }
+.dr-spell .spellchip-art { width: 96px; height: 96px; flex: none; border-radius: 50%; }
 .dr-spell .spellchip-cost { top: 4px; left: 4px; transform: none; }
 .dr-spell .spellchip-body { flex: 1; align-items: flex-start; gap: 4px; }
 .dr-spell .spellchip-name { font-size: 13.5px; text-align: left; white-space: normal; }
@@ -10191,7 +10196,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
   background: linear-gradient(150deg, color-mix(in srgb, var(--el) 18%, transparent), rgba(0, 0, 0, .3));
 }
 .rv-cast.fresh { box-shadow: 0 0 18px color-mix(in srgb, var(--el) 45%, transparent); }
-.rv-cast-art { flex: 0 0 64px; height: 86px; border-radius: 8px; overflow: hidden; display: grid; place-items: center;
+.rv-cast-art { flex: 0 0 64px; height: 64px; align-self: center; border-radius: 50%; overflow: hidden; display: grid; place-items: center;
   background: rgba(0, 0, 0, .35); font-size: 30px; }
 .rv-cast-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .rv-cast-body { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
