@@ -4018,10 +4018,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   100% { transform: scale(1.5); opacity: 0; }
 }
 .castflash-card {
-  position: relative; width: min(72vw, 300px); border-radius: 16px; overflow: hidden;
-  border: 2px solid var(--el, var(--gold-lit));
-  background: linear-gradient(180deg, #12131f, #0a0b12);
-  box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.7), 0 0 46px color-mix(in srgb, var(--el, #7d92e8) 55%, transparent);
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  width: min(84vw, 330px);
   opacity: 0;
   animation: castflash-card var(--flash, 2s) cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
@@ -4032,27 +4030,59 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   84% { transform: scale(1); opacity: 1; }
   100% { transform: scale(1.05); opacity: 0; }
 }
+/* The medallion: round art in a layered element ring (bright band, dark
+   gap, pale outer hairline) with the element's glow behind it. */
+.castflash-medal {
+  position: relative; width: min(66vw, 270px); aspect-ratio: 1 / 1; border-radius: 50%;
+  box-shadow:
+    0 0 0 4px var(--el, var(--gold-lit)),
+    0 0 0 7px rgba(6, 6, 12, 0.85),
+    0 0 0 9px color-mix(in srgb, var(--el, #7d92e8) 55%, #fff),
+    0 18px 50px rgba(0, 0, 0, 0.7),
+    0 0 60px color-mix(in srgb, var(--el, #7d92e8) 65%, transparent);
+}
+/* A dashed rune ring just outside the rim, turning slowly while the flash
+   is up (transform-only, per the infinite-animation rule). */
+.castflash-runes {
+  position: absolute; inset: -20px; border-radius: 50%; pointer-events: none;
+  border: 2px dashed color-mix(in srgb, var(--el, #7d92e8) 75%, #fff);
+  opacity: 0.7;
+  animation: castflash-spin 9s linear infinite;
+}
+.castflash-runes::after {
+  content: ""; position: absolute; inset: 6px; border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--el, #7d92e8) 45%, transparent);
+}
+@keyframes castflash-spin { to { transform: rotate(360deg); } }
 .castflash-art {
-  display: block; width: calc(100% - 32px); margin: 16px auto 0; aspect-ratio: 1 / 1; object-fit: cover;
-  border-radius: 50%; box-shadow: 0 0 0 2px var(--el, var(--gold-lit)), 0 0 24px color-mix(in srgb, var(--el, #7d92e8) 50%, transparent);
+  display: block; width: 100%; height: 100%; object-fit: cover; border-radius: 50%;
+  background: #0a0b12;
 }
 .castflash-noart {
   display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
   background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
   text-shadow: 0 0 30px var(--el, #7d92e8);
 }
+/* The cost is a gem set into the rim at ten o'clock. */
 .castflash-cost {
-  position: absolute; top: 10px; left: 10px; width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-  font-size: 17px; font-weight: 800; color: #fff;
-  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--el, #7d92e8) 80%, #fff), var(--el, #26307a));
-  border: 2px solid rgba(255,255,255,0.85); box-shadow: 0 0 12px color-mix(in srgb, var(--el, #7d92e8) 70%, transparent);
+  position: absolute; top: 4%; left: 4%; width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center;
+  font-size: 21px; font-weight: 900; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.7);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--el, #7d92e8) 70%, #fff), var(--el, #26307a) 60%, color-mix(in srgb, var(--el, #26307a) 60%, #000));
+  border: 3px solid #0b0c12; box-shadow: 0 0 0 2px color-mix(in srgb, var(--el, #7d92e8) 55%, #fff), 0 0 16px color-mix(in srgb, var(--el, #7d92e8) 80%, transparent);
 }
-.castflash-meta { padding: 10px 12px 14px; text-align: center; }
+/* The plaque hangs from the bottom of the ring, overlapping it slightly. */
+.castflash-meta {
+  position: relative; margin-top: -16px; width: 100%; padding: 12px 16px 13px; text-align: center;
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(20, 20, 32, 0.96), rgba(10, 11, 18, 0.96));
+  border: 1.5px solid color-mix(in srgb, var(--el, #7d92e8) 70%, transparent);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.65), 0 0 22px color-mix(in srgb, var(--el, #7d92e8) 30%, transparent);
+}
 .castflash-name {
-  font-family: var(--head, inherit); font-size: 19px; font-weight: 800; letter-spacing: 0.02em; color: #f2ede0;
-  text-shadow: 0 0 14px color-mix(in srgb, var(--el, #7d92e8) 60%, transparent);
+  font-family: var(--head, inherit); font-size: 21px; font-weight: 800; letter-spacing: 0.03em; color: #f2ede0;
+  text-shadow: 0 0 14px color-mix(in srgb, var(--el, #7d92e8) 70%, transparent);
 }
-.castflash-text { margin-top: 4px; font-size: 11.5px; line-height: 1.35; color: var(--ink-dim, #a9a99c); }
+.castflash-text { margin-top: 5px; font-size: 12px; line-height: 1.4; color: var(--ink-dim, #a9a99c); }
 
 /* ── Modal "choice" spell picker (Chill: strike a foe vs shield an ally) ── */
 .spellchoice-overlay { z-index: var(--z-modal); }
@@ -8029,7 +8059,7 @@ button.deck-shot { padding: 0; cursor: pointer; }
      flash announces still gets its beat. No animation at all: at rest they are
      invisible (opacity 0). The old 0.01s run was FULLY DARK from 0.9 to 8.2ms,
      and a 120Hz screen's second frame lands at 8.3ms — one black frame. */
-  .castflash, .castflash-burst, .castflash-card { animation: none; }
+  .castflash, .castflash-burst, .castflash-card, .castflash-runes { animation: none; }
   /* The attack telegraphs are motion and nothing else; drop them rather than
      jolt the board. */
   .token.lunging, .token.recoiling { animation: none; }

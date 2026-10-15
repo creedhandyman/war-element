@@ -16,21 +16,27 @@ export function SpellCastFlash({ spellId, ms }: { spellId: string; ms?: number }
   return (
     <div className="castflash" data-el={spell.element} style={ms ? { ["--flash" as string]: `${ms}ms` } : undefined}>
       <div className="castflash-burst" />
+      {/* A round medallion, to match the spell art (painted for a circle):
+          the picture in an element ring, a slow rune ring around it, the cost
+          as a gem on the rim, and the name on a plaque hung beneath. */}
       <div className="castflash-card">
-        {artOk ? (
-          <img
-            className="castflash-art"
-            src={spellArtSrc(spellId)}
-            alt={spell.name}
-            draggable={false}
-            onError={() => setArtOk(false)}
-          />
-        ) : (
-          <div className="castflash-art castflash-noart">
-            <span>{EL_SIGIL[spell.element]}</span>
-          </div>
-        )}
-        <div className="castflash-cost">{spell.cost}</div>
+        <div className="castflash-medal">
+          <span className="castflash-runes" aria-hidden="true" />
+          {artOk ? (
+            <img
+              className="castflash-art"
+              src={spellArtSrc(spellId)}
+              alt={spell.name}
+              draggable={false}
+              onError={() => setArtOk(false)}
+            />
+          ) : (
+            <div className="castflash-art castflash-noart">
+              <span>{EL_SIGIL[spell.element]}</span>
+            </div>
+          )}
+          <div className="castflash-cost">{spell.cost}</div>
+        </div>
         <div className="castflash-meta">
           <div className="castflash-name">{spell.name}</div>
           <div className="castflash-text">{spell.text}</div>
