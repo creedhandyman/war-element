@@ -2693,6 +2693,12 @@ export function canAoeSpellRow(
   spell: SpellDef,
   row: number,
 ): boolean {
+  // TWO-ROW SWEEPS MAY REACH THE ENEMY HOME ROW (owner, 2026-10-14) — picked or
+  // spilled into, from either seat, so the old P1/P2 asymmetry cannot come
+  // back. A single-row sweep keeps the gate: it is the cheap way onto the
+  // summon row, and the two-row spells are the expensive ones.
+  if (spell.area === "tworows")
+    return aoeRowsHit(spell, row).every((r) => r >= 0 && r < state.boardSize);
   return aoeRowsHit(spell, row).every((r) => canAoeRow(state, player, r));
 }
 export function canSpellHitEnemy(

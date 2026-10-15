@@ -519,7 +519,7 @@ export function RulesBook(props: { onClose: () => void }) {
               <li>
                 <b>Their Home row is out of a spell's aim</b> — no spell can be aimed at a
                 card or a row there, a spell's splash stops short of it, and no wall can
-                be laid on it. Only board-wide sweeps and traps still reach it.
+                be laid on it. Only board-wide sweeps, two-row sweeps and traps still reach it.
               </li>
               <li>
                 <b>Home defence</b> — a ranged card standing on its own Home row can shoot

@@ -43,15 +43,21 @@ describe("the enemy summon row is spell-proof", () => {
     expect(canCastSpell(s, "P2", boardWide!.id, {}).ok, "no row to forbid").toBe(true);
   });
 
-  it("a two-row sweep cannot use its SPILL to reach the summon row either", () => {
-    const s = prepState(7, "P2");
+  it("a two-row sweep CAN reach the summon row, from either seat (owner, 2026-10-14)", () => {
     const two = SPELLS.find((sp) => sp.area === "tworows");
-    if (!two) return;
-    const theirHome = homeRow("P1", s.boardSize);
-    // The pick that would spill INTO their home row is refused as well.
-    if (theirHome - 1 >= 0)
-      expect(canAoeRow(s, "P2", theirHome) || canCastSpell(s, "P2", two.id, { row: theirHome - 1 }).ok)
-        .not.toBe(true);
+    expect(two, "the set has a two-row sweep").toBeTruthy();
+    // P2: the enemy Home is the far edge, so the spill row lands on it.
+    const s2 = prepState(7, "P2");
+    arm(s2, two!.id);
+    const p1Home = homeRow("P1", s2.boardSize);
+    expect(canCastSpell(s2, "P2", two!.id, { row: p1Home - 1 }).ok, "P2 spilling into P1's home").toBe(true);
+    // P1: the enemy Home is row 0, so the PICK is the Home row.
+    const s1 = prepState(7, "P1");
+    s1.players.P1.spellbook = [{ defId: two!.id, used: false }];
+    s1.players.P1.magicPool = 10;
+    expect(canCastSpell(s1, "P1", two!.id, { row: homeRow("P2", s1.boardSize) }).ok, "P1 picking P2's home").toBe(true);
+    // ...while a single-row sweep is still refused it.
+    expect(canAoeRow(s2, "P2", p1Home)).toBe(false);
   });
 });
 

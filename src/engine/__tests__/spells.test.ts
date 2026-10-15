@@ -529,68 +529,43 @@ describe("AoE spells (row / two-row)", () => {
     return s;
   }
 
-  it("P2's two-row sweep can't spill onto P1's Home row without a beachhead", () => {
+  it("P2's two-row sweep CAN spill onto P1's Home row (owner, 2026-10-14)", () => {
     const s = armP2Wave(prepState(42, "P2")); // 4x4: P1 Home = row 3, P2 Home = row 0
     place(s, "dusk_gool", "P2", 0, 0); // everything still on P2's own Home row
     const king = place(s, "leaf_alpha", "P1", 3, 1, { curHp: 20, maxHp: 20 });
-
-    // Aiming AT P1's Home was always refused, and still is.
+    // Row 2 spills onto P1's Home row 3, and that is allowed now…
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(true);
+    // …but row 3 has nothing behind it, which is still a refusal.
     expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok).toBe(false);
-    // Row 2 is a legal row on its own — but the sweep also lands on row 3, so
-    // the whole cast is refused. This is the line that used to return true.
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(false);
-    // ...and the reducer refuses it too, not just the pre-check.
-    expect(() =>
-      applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 2 }),
-    ).toThrow();
-    expect(statusOf(s.cards[king.instanceId], "FREEZE"), "never touched").toBeFalsy();
-
-    // ...and committing forward no longer buys it either. The spill gate is the
-    // part that still matters and it is now absolute: a pick whose spill lands
-    // on the enemy Home row is refused however the board looks.
-    place(s, "dusk_crow", "P2", 1, 0);
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok).toBe(false);
-    expect(statusOf(s.cards[king.instanceId], "FREEZE"), "still never touched").toBeFalsy();
-    // Row 1 spills onto row 2 — both Mid, and legal, so the sweep is not simply
-    // dead. A fix that refused every row would pass the line above and fail here.
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 1 }).ok).toBe(true);
+    // …and the reducer lands it on the Home row.
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P2", spellId: "aqua_glacial_wave", row: 2 });
+    expect(statusOf(next.cards[king.instanceId], "FREEZE"), "the Home row was in the blast").toBeTruthy();
   });
 
-  it("P1's two-row sweep spills toward P1's own side, so it stays legal", () => {
+  it("P1's two-row sweep can be aimed AT P2's Home row (owner, 2026-10-14)", () => {
     const s = prepState(); // P1 has priority
     armSpell(s, "aqua_glacial_wave", 8);
-    place(s, "leaf_alpha", "P1", 3, 0); // everything still on P1's own Home row
+    place(s, "leaf_alpha", "P1", 3, 0);
     const foe = place(s, "dusk_gool", "P2", 0, 1, { curHp: 20, maxHp: 20 });
-
-    // P2's Home is row 0, and no pick can spill INTO it (the spill is row+1),
-    // so the only way P1 reaches it is by aiming at it — still refused.
-    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 0 }).ok).toBe(false);
-    // Row 1 spills onto row 2, both Mid: legal before the fix and legal after.
+    // P2's Home is row 0 and the spill runs toward +1, so P1 reaches it by
+    // picking it — allowed now, the same reach P2 gets by spilling.
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 0 }).ok).toBe(true);
     expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 1 }).ok).toBe(true);
-    // Row 2 spills onto row 3 — P1's OWN Home, which nothing gates.
     expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 2 }).ok).toBe(true);
-    // The last row has nothing behind it, so it is refused for a different
-    // reason entirely, and that reason has to survive the fix.
-    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 3 }).reason).toBe(
-      "No row behind that one",
-    );
-    const next = applyIntent(s, {
-      type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 1,
-    });
-    expect(statusOf(next.cards[foe.instanceId], "FREEZE"), "row 0 was never in the blast").toBeFalsy();
+    expect(canCastSpell(s, "P1", "aqua_glacial_wave", { row: 3 }).reason).toBe("No row behind that one");
+    const next = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "aqua_glacial_wave", row: 0 });
+    expect(statusOf(next.cards[foe.instanceId], "FREEZE"), "row 0 was in the blast").toBeTruthy();
   });
 
-  it("the spill gate follows the board's edges, not row numbers (5x5)", () => {
-    // The large board has a third row between the homes, so a rule that names
-    // rows by number rather than by their relation to the edges is right on the
-    // 4x4 and wrong here. P1 Home = row 4, P2 Home = row 0.
+  it("on the 5x5 too, a two-row sweep reaches the enemy Home row", () => {
+    // P1 Home = row 4, P2 Home = row 0.
     const s = armP2Wave(bigPrepState(42, "P2"));
     place(s, "dusk_gool", "P2", 0, 0);
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "spills onto row 4").toBe(false);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "spills onto row 4").toBe(true);
     expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 2 }).ok, "spills onto row 3").toBe(true);
-    place(s, "dusk_crow", "P2", 1, 0);
-    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 3 }).ok, "and a beachhead does not earn it").toBe(false);
+    expect(canCastSpell(s, "P2", "aqua_glacial_wave", { row: 4 }).ok, "nothing behind the edge").toBe(false);
   });
+
 });
 
 describe("cleanse + board wipes", () => {
