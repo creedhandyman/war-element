@@ -1669,6 +1669,13 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 @container (max-width: 70px) {
   .tk-stats > span::before { display: none; }
 }
+/* A long row (a hit multiplier plus two-digit numbers) ran past the card's
+   edges: drop the glyphs and tighten the gaps, and on the longest also step
+   the numerals down a little. The multiplier shrinks with it. */
+.tk-stats[data-fit] { gap: clamp(2px, 4cqw, 7px); padding: 0 2px; }
+.tk-stats[data-fit] > span::before { display: none; }
+.tk-stats[data-fit="xlong"] { font-size: calc(var(--tk-st) * 0.86); }
+.tk-stats .atk-x { font-size: 0.74em; margin-left: 1px; }
 .tk-name.two, .ef-name.two { white-space: pre; line-height: 1.05; }
 /* HP + shields, 3px, the full width of the card. The bar is what replaced the
    "/max" text: it carries the ratio, and it does not change the row's width

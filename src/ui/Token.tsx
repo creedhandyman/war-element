@@ -507,6 +507,9 @@ export function Token(props: {
   ]
     .filter(Boolean)
     .join(" ");
+  const statChars =
+    String(effectiveDmg(game, card)).length + (hits > 1 ? 1 + String(hits).length : 0) +
+    String(card.curHp).length + String(effectiveSp(game, card)).length;
   // Card art renders as a real <img> (best downsampling quality) beneath a
   // bottom scrim (::after) so the top art stays clear and the stat row stays
   // readable. Drop a PNG named <defId>.png into public/cards/; a missing file
@@ -670,7 +673,10 @@ export function Token(props: {
           HP, blue speed — which is what the canonical stat colours were for,
           and each icon cost about 8px of a row that has roughly 40 to spend.
           Shields left the row entirely: they are the bar's grey head now. */}
-      <div className="tk-stats">
+      {/* How many characters the row prints. A hit multiplier ("×7") plus
+          two-digit HP and speed did not fit the card (owner, 2026-10-15), so
+          a long row drops the glyphs and tightens, and the longest shrinks. */}
+      <div className="tk-stats" data-fit={statChars >= 8 ? "xlong" : statChars >= 7 ? "long" : undefined}>
         <span
           className="st-dmg"
           title={`Damage${hits > 1 ? ` ×${hits} hits` : ""} (printed ${def.dmg}/hit; live value includes Mid-row control and statuses)`}
