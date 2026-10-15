@@ -3580,7 +3580,10 @@ export function App() {
       }
     }
     return [];
-  }, [game, sel, view]);
+    // spellPicks: the reroute glow above flips between "pick a card" and "pick
+    // its square" on every pick, so it must recompute on one. It was missing,
+    // and Flanking Order / Full Reroute lit no destinations after a card pick.
+  }, [game, sel, view, spellPicks]);
 
   // Which SIDE the armed spell is asking the caster to click, if it wants a card
   // at all. Three separate things read this — which cards glow, what colour they
@@ -3599,6 +3602,11 @@ export function App() {
       default: return null; // row / slot / nothing — not a card pick
     }
   }, [sel]);
+
+  // A reroute spell with at least one card already given its new square — the
+  // Pass button becomes "Move N" and casts what has been placed so far.
+  const rerouteReady = sel?.kind === "spell" && !!getSpell(sel.spellId).rerouteCount
+    && spellPicks.slots.length > 0;
 
   const awaitingId = game.battle?.awaitingInput ?? null;
   const legalTargetIds: string[] = useMemo(() => {
@@ -4194,7 +4202,7 @@ export function App() {
         const done = slots.length >= (spell.rerouteCount ?? 1) || boardCards(game, me).length <= slots.length;
         if (!done) {
           setSpellPicks({ ids, slots });
-          setHint(`Placed. Pick another card to move, or <b>Pass Priority</b> to stop.`);
+          setHint(`Placed. Pick another card to move, or <b>Move ${slots.length}</b> to cast it now.`);
           return;
         }
         const chk = canCastSpell(game, me, sel.spellId, { targetIds: ids, slots });
@@ -5426,10 +5434,32 @@ export function App() {
               className={`lockin pass-btn ${myPrep && !staged && sel === null && !hasAnyPlay ? "nudge" : ""}`}
               disabled={!myPrep || staged !== null}
               title={staged ? "Confirm or cancel your placement before passing" : undefined}
-              onClick={() => me && !staged && dispatch({ type: "PASS", player: me })}
+              onClick={() => {
+                if (!me || staged) return;
+                // A reroute (Flanking Order, Full Reroute) with at least one
+                // card placed: this button casts the moves made so far instead
+                // of passing — "stop placing" must not throw them away.
+                if (rerouteReady && sel?.kind === "spell") {
+                  const slots = spellPicks.slots;
+                  const ids = spellPicks.ids.slice(0, slots.length);
+                  const spell = getSpell(sel.spellId);
+                  const chk = canCastSpell(game, me, sel.spellId, { targetIds: ids, slots });
+                  setSpellPicks({ ids: [], slots: [] });
+                  if (chk.ok)
+                    castSpell(
+                      { type: "CAST_SPELL", player: me, spellId: sel.spellId, targetIds: ids, slots },
+                      `${spell.name} cast. Keep going, or <b>Pass Priority</b>.`,
+                    );
+                  else setHint(`⚠ ${chk.reason}`);
+                  return;
+                }
+                dispatch({ type: "PASS", player: me });
+              }}
             >
               {!myPrep ? (
                 "Waiting…"
+              ) : rerouteReady ? (
+                `Move ${spellPicks.slots.length}`
               ) : staged ? (
                 // Same width as "Pass Priority" on purpose: the phone rule is
                 // `white-space: nowrap; overflow: hidden`, so a longer label
