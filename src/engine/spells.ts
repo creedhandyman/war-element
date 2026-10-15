@@ -1021,9 +1021,10 @@ export const SPELLS: SpellDef[] = [
     cost: 5,
     kind: "aoe",
     area: "board",
-    text: "Deal 3 DMG to every opponent. Anything you kill for the rest of this round rises next round as a Risen (3 DMG / 3 HP / SP 4) under your control.",
+    text: "Deal 3 DMG to every opponent. Anything you kill for the rest of this round rises next round as a Skeleton (3 DMG / 2 HP / SP 6) under your control.",
     dmg: 3,
-    reviveAsToken: "dusk_risen_tok",
+    // Skeletons, not Risen (owner, 2026-10-14).
+    reviveAsToken: "dusk_skeleton_tok",
   },
 
 ];

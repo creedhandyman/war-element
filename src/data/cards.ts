@@ -15465,7 +15465,8 @@ export const TOKENS: CardDef[] = [
     tribe: "Zombie",
   },
   {
-    // Wake of the Dead's payout. A separate token from Specter (3/1/SP7) because
+    // Was Wake of the Dead's payout until that spell raised Skeletons instead
+    // (2026-10-14); still fielded by the story. A separate token from Specter (3/1/SP7) because
     // the spec prints this one at 3/3/SP4 — sturdier, slower, and raised from a
     // corpse rather than summoned by a Wraith.
     id: "dusk_risen_tok",

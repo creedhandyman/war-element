@@ -1031,10 +1031,10 @@ describe("the last three: Rewire, Full Reroute, Wake of the Dead", () => {
     place(s, "dusk_spider", "P2", 1, 2, { curHp: 2, maxHp: 2, curShields: 0 });
     let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_wake_of_the_dead" });
     // Nothing yet — the dead get up NEXT round, not on the cast.
-    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok")).toHaveLength(0);
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_skeleton_tok")).toHaveLength(0);
     expect(n.players.P1.wakePending).toBeTruthy();
     n = advance(atCleanup(n));
-    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok").length).toBeGreaterThan(0);
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_skeleton_tok").length).toBeGreaterThan(0);
     expect(n.players.P1.wakePending).toBeUndefined(); // spent
   });
 
@@ -1044,7 +1044,7 @@ describe("the last three: Rewire, Full Reroute, Wake of the Dead", () => {
     place(s, "dusk_vamp", "P2", 1, 1, { curHp: 99, maxHp: 99, curShields: 0 }); // survives
     let n = applyIntent(s, { type: "CAST_SPELL", player: "P1", spellId: "dusk_wake_of_the_dead" });
     n = advance(atCleanup(n));
-    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_risen_tok")).toHaveLength(0);
+    expect(boardCards(n, "P1").filter((c) => c.defId === "dusk_skeleton_tok")).toHaveLength(0);
   });
 });
 

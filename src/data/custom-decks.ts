@@ -295,7 +295,7 @@ const STANDARD_DECKS: PremadeDeck[] = [
     // push is the answer: Gust shoves an invader off the home slot, Squall Line
     // is a push-wall on the home row. Bone Snare traps the move-in (FRIGHTEN),
     // Chill Touch is cheap removal, and Wake of the Dead (3-to-all, and kills
-    // rise as Risen under your control) both clears invaders AND hands the deck
+    // rise as Skeletons under your control) both clears invaders AND hands the deck
     // the bodies it needs to contest home. Out: the value field (Nightfall), the
     // soft WEAKEN (Downdraft), and Phantom Spikes.
     spells: ["gale_gust", "dusk_chill_touch", "dusk_bone_snare", "gale_squall_line", "dusk_wake_of_the_dead"],
