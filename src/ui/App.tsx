@@ -250,7 +250,7 @@ import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
 import { tapWords } from "./pointer";
 import { useMatchSounds } from "./match-sounds";
-import { playSfx } from "./sfx";
+import { playLevelUp, playSfx } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
 import { TUTORIALS } from "./tutorials";
 import { track } from "../net/telemetry";
@@ -297,7 +297,7 @@ import { initialStoryNav, storyNav } from "./story-nav";
 import { StoryResult } from "./StoryResult";
 import { BottomNav, type Tab } from "./BottomNav";
 import { HomeScreen } from "./HomeScreen";
-import { AchievementToast } from "./AchievementToast";
+import { AchievementToast, LevelToast } from "./AchievementToast";
 import { claimAchievement, claimAllAchievements, claimableAchievements, tallyMatch } from "../data/achievements";
 import { claimDaily } from "../data/daily";
 import { VersusIntro } from "./VersusIntro";
@@ -1270,6 +1270,20 @@ export function App() {
    *  reveal, and for the match and its result screen to be closed. It used to
    *  land on top of the story result the moment a fight was won. */
   const showLevelUp = Boolean(levelUp && !packBusy && !started && !storyResult);
+  /** THE FIRST ONE IS A LINE, NOT A CARD. Between the first win and the first story
+   *  fight a new player met a victory card, the pack tally and then a level-up card
+   *  for the five levels the pack itself paid (owner asked for fewer popups in a
+   *  row). On a save that has never cleared a node the level-up is paid and
+   *  announced as a toast (`LevelToast`); every later one keeps its full card, and
+   *  one that carries a free pack always does. */
+  const quietLevel = Boolean(levelUp && levelUp.packs === 0 && everCleared(story).length === 0 && !tutorialRun);
+  const [levelNote, setLevelNote] = useState<{ to: number; shards: number } | null>(null);
+  useEffect(() => {
+    if (!showLevelUp || !levelUp || !quietLevel) return;
+    claimLevel();
+    playLevelUp();
+    setLevelNote({ to: levelUp.to, shards: levelUp.shards });
+  }, [showLevelUp, quietLevel]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /** ACHIEVEMENTS EARNED WHILE PLAYING, queued for the toast.
    *
@@ -1948,6 +1962,13 @@ export function App() {
     spellId: sel?.kind === "spell" ? sel.spellId : castFlash?.spellId ?? null,
   };
   const tutBeat = tutDef ? beatIndex(game, tutUi, 0, tutDef.beats) : 0;
+  // WHERE A NEW PLAYER STOPS (net/telemetry.ts): each beat the first-run lesson
+  // reaches is noted once per device, so the furthest beat reached is the exit.
+  const tutBeatId = tutDef && tutorialRun?.from === "first" && started && game.phase !== "gameover"
+    ? tutDef.beats[tutBeat]?.id ?? null : null;
+  useEffect(() => { if (tutBeatId) track("tutorial_beat", tutBeatId); }, [tutBeatId]);
+  // ...and the fight after it: started, not necessarily finished.
+  useEffect(() => { if (started && storyNode) track("story_start", storyNode.id); }, [started, storyNode?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   /** A save that has done nothing yet opens on the title and one Play button. */
   const showFirstRun = !started && !tutorialRun && needsFirstRun(story);
   // Spell effects on the WebGL effects layer, held while any flash covers the
@@ -2701,6 +2722,7 @@ export function App() {
 
   /** Deal a scripted battle (ui/tutorials.ts). */
   function startTutorial(id: TutorialId, from: "first" | "training") {
+    if (from === "first") track("tutorial_start");
     setArenaMode("ai");
     setTrainingRun(null);
     setTutorialRun({ id, from });
@@ -5883,7 +5905,10 @@ export function App() {
           <button className="lockin" onClick={() => setMarketNotes([])}>OK</button>
         </div>
       )}
-      {achToastIds.length > 0 && !started && !levelUp && !packBusy && !builderOpen && !nav.builder
+      {levelNote && !started && (
+        <LevelToast to={levelNote.to} shards={levelNote.shards} onDone={() => setLevelNote(null)} />
+      )}
+      {achToastIds.length > 0 && !started && !levelUp && !levelNote && !packBusy && !builderOpen && !nav.builder
         && !(draftRun && !draftComplete(draftRun)) && !(tab === "home" && homeAchievements) && (
         <AchievementToast
           ids={achToastIds}
@@ -7069,7 +7094,7 @@ export function App() {
           celebrating. It waits for the pack to finish and then says its piece.
           Nothing is lost by waiting: the levels are owed on the save, not held
           in this component. */}
-      {showLevelUp && levelUp && (
+      {showLevelUp && levelUp && !quietLevel && (
         <LevelUpModal
           reward={levelUp}
           onClose={claimLevel}

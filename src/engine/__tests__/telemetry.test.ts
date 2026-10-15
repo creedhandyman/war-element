@@ -6,6 +6,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
 import { PLAY_EVENTS, cleanDetail, track } from "../../net/telemetry";
+import { BASICS, BEATS } from "../../ui/tutorial";
 
 const read = (...p: string[]) => readFileSync(join(__dirname, "..", "..", ...p), "utf8").replace(/\r\n/g, "\n");
 
@@ -18,6 +19,13 @@ describe("the play log", () => {
     expect(cleanDetail("a b-c")).toBe("a_b_c");
     expect(cleanDetail(undefined)).toBeUndefined();
     expect(cleanDetail("x".repeat(40))).toHaveLength(24);
+  });
+
+  it("every beat of the first battle makes its own, valid detail (so the funnel can say where a player stopped)", () => {
+    const ids = BEATS.map((b) => cleanDetail(b.id));
+    for (const d of ids) expect(d, String(d)).toMatch(/^[a-z0-9_]{1,24}$/);
+    expect(new Set(ids).size, "two beats cleaned to the same detail").toBe(BEATS.length);
+    expect(BASICS.beats).toBe(BEATS);
   });
 
   it("is a plain fetch: no Supabase SDK on the first frame", () => {
@@ -37,6 +45,7 @@ describe("the play log", () => {
     for (const call of [
       'track("first_open"', 'track("day_open")', 'track("story_win", storyNode.id)', 'track("story_loss", storyNode.id)',
       'track(tutDef.id === "magic" ? "magic_done" : "tutorial_done"', 'track("tutorial_skip", "mid")', 'track("tutorial_skip", "start")',
+      'track("tutorial_start")', 'track("tutorial_beat", tutBeatId)', 'track("story_start", storyNode.id)',
     ]) expect(app, call).toContain(call);
     expect(read("ui", "Shop.tsx")).toContain('track("first_pack")');
   });

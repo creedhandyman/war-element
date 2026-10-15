@@ -25,6 +25,35 @@ export function RewardText({ r }: { r: AchievementReward }) {
 /** How long a toast stays up untouched. */
 const TOAST_MS = 5000;
 
+/** THE FIRST LEVEL-UP, AS A LINE INSTEAD OF A WALL. A brand-new save crosses
+ *  five levels the moment its free pack is applied, and the modal for that was the
+ *  third thing in a row to dismiss between the first win and the first story
+ *  fight (victory, pack tally, level-up). The shards are paid either way; on a
+ *  first run this just says so, takes no tap, and goes. Every later level-up keeps
+ *  its full card. */
+export function LevelToast(props: { to: number; shards: number; onDone: () => void }) {
+  const done = useRef(props.onDone);
+  done.current = props.onDone;
+  useEffect(() => {
+    const t = setTimeout(() => done.current(), 3600);
+    return () => clearTimeout(t);
+  }, []);
+  return (
+    <div className="ach-toast lvl-toast" role="status">
+      <span className="ach-medal" aria-hidden="true">{props.to}</span>
+      <span className="ach-toast-text">
+        <small>LEVEL UP</small>
+        <b>You reached level {props.to}</b>
+      </span>
+      {props.shards > 0 && (
+        <span className="ach-toast-cta">
+          <span className="ach-shards">+{props.shards}<i className="shard" aria-hidden="true" /><span className="sr-only"> shards</span></span>
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function AchievementToast(props: {
   /** Newly earned, oldest first. The first is named; the rest are counted. */
   ids: string[];

@@ -13,7 +13,12 @@
  *  one), `day_open` (once a day: daily players), `tutorial_done` /
  *  `tutorial_skip` / `magic_done` (the scripted battles), `first_pack`, and
  *  `story_win` / `story_loss` with the node id as detail (how far through the
- *  campaign players get, and where they lose).
+ *  campaign players get, and where they lose). THE FIRST BATTLE, STEP BY STEP
+ *  (2026-10-15): `tutorial_start`, then `tutorial_beat` with the beat id as
+ *  detail each time the lesson reaches a new beat, so the furthest beat per
+ *  device is where that player stopped; and `story_start` (node id) for the
+ *  step after it — who tried the first fight and never finished it. Only the
+ *  first-run lesson counts, not a replay from the Training Ground.
  *
  *  ONCE EACH. Every event but `day_open` is sent once per device per detail,
  *  ever; `day_open` once per day. The database refuses a same-day repeat too.
@@ -32,6 +37,7 @@ export const PLAY_EVENTS = [
   "first_open", "day_open",
   "tutorial_done", "tutorial_skip", "magic_done",
   "first_pack", "story_win", "story_loss",
+  "tutorial_start", "tutorial_beat", "story_start",
 ] as const;
 export type PlayEvent = (typeof PLAY_EVENTS)[number];
 

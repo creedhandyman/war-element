@@ -95,12 +95,22 @@ describe("the wiring", () => {
     // landed on top of the tear, over cards not yet turned over, and stole the
     // reveal it was celebrating.
     // One named condition drives both the modal and its back-button layer.
-    expect(APP).toContain("{showLevelUp && levelUp && (");
+    expect(APP).toContain("{showLevelUp && levelUp && !quietLevel && (");
     expect(APP).toMatch(/const showLevelUp = Boolean\(levelUp && !packBusy && /);
     expect(APP).toContain("onBusy={setPackBusy}");
     // Reported by the Shop, not inferred from "the shop is open" — you can
     // stand in there for a minute after the cards are turned.
     expect(SHOP).toContain("const packBusy = tearing || opened !== null;");
+  });
+
+  it("a first run's level-up is a toast, and waits for the same gate before it pays", () => {
+    // Owner asked for fewer popups in a row after the first win: a save that has
+    // never cleared a node is paid and told by a toast instead of a card. It must
+    // wait for the pack exactly as the card does (else it pays mid-tear), must not
+    // swallow a level-up that carries a free pack, and must not fire in a lesson.
+    expect(APP).toContain("const quietLevel = Boolean(levelUp && levelUp.packs === 0 && everCleared(story).length === 0 && !tutorialRun);");
+    expect(APP).toMatch(/if \(!showLevelUp \|\| !levelUp \|\| !quietLevel\) return;\s+claimLevel\(\);/);
+    expect(APP).toContain("<LevelToast to={levelNote.to}");
   });
 
   it("waits for the match and its result screen to close", () => {

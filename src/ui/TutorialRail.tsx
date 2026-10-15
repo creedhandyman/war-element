@@ -79,6 +79,19 @@ export function TutorialRail(props: {
   useEffect(() => setAskSkip(false), [beat?.id]);
 
   const live = !!(beat && actionable && rect);
+  const skipRow = (
+    <div className="tut-skip">
+      {askSkip ? (
+        <>
+          <em>Skip the tutorial?</em>
+          <button className="ghost sm" onClick={props.onSkip}>Skip</button>
+          <button className="ghost sm" onClick={() => setAskSkip(false)}>Keep going</button>
+        </>
+      ) : (
+        <button className="tut-skip-link" onClick={() => setAskSkip(true)}>Skip tutorial</button>
+      )}
+    </div>
+  );
   // The `pre` step speaks for itself while its target is the one on screen.
   const say = beat && usedPre && beat.pre ? beat.pre : beat;
   const big = beat ? (actionable ? say!.big : beat.wait ?? "Watch the board.") : "";
@@ -101,24 +114,21 @@ export function TutorialRail(props: {
         <div className="tut-dim tut-hold" />
       )}
 
-      {big && (
+      {/* THE WAY OUT RIDES WITH THE SENTENCE. It used to be a pill fixed to the top
+          right corner, which is exactly where the phase ribbon's "PRIORITY ● YOU"
+          lives — so it sat on top of it, cropping the one piece of match chrome a
+          new player will need next. Inside the banner it can never overlap
+          anything, because the banner is already placed clear of what it points
+          at. Quiet on purpose: the lesson is meant to be finished. */}
+      {big ? (
         <div className={`tut-say${low ? " low" : ""}`} role="status">
           <b>{big}</b>
           {small && <span>{small}</span>}
+          {skipRow}
         </div>
+      ) : (
+        <div className="tut-rail-skip">{skipRow}</div>
       )}
-
-      <div className="tut-rail-skip">
-        {askSkip ? (
-          <>
-            <span>Skip the tutorial?</span>
-            <button className="ghost sm" onClick={props.onSkip}>Skip</button>
-            <button className="ghost sm" onClick={() => setAskSkip(false)}>Keep going</button>
-          </>
-        ) : (
-          <button className="ghost sm" onClick={() => setAskSkip(true)}>Skip tutorial</button>
-        )}
-      </div>
     </div>
   );
 }

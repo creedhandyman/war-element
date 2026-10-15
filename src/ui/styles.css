@@ -6931,6 +6931,8 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   font-size: 12px; font-weight: 700; color: #bfe6ff;
 }
 .ach-toast-cta em { font-style: normal; font-size: 9.5px; font-weight: 500; color: var(--ink-dim); }
+/* The first-run level-up line: a notice, not a button — it takes no tap. */
+.ach-toast.lvl-toast { cursor: default; pointer-events: none; }
 @media (prefers-reduced-motion: reduce) {
   .ach-toast { animation: none; }
 }
@@ -8406,6 +8408,15 @@ button.deck-shot { padding: 0; cursor: pointer; }
   padding: 4px; border-radius: 10px; background: rgba(10, 10, 16, 0.85);
 }
 .tut-rail-skip .ghost.sm { font-size: 13px; padding: 6px 10px; }
+/* The skip row inside the banner (TutorialRail.tsx): a small quiet link, or the
+   two-button confirm. The banner swallows taps, so this takes them back. */
+.tut-skip { display: flex; align-items: center; justify-content: center; gap: 8px; margin: -4px 0 -6px; pointer-events: auto; }
+.tut-skip em { font-style: normal; font-size: 13px; color: var(--ink-dim); }
+.tut-skip .ghost.sm { font-size: 13px; padding: 6px 12px; }
+.tut-skip-link {
+  background: none; border: 0; padding: 4px 10px; cursor: pointer; line-height: 1.2;
+  font-size: 12.5px; color: var(--ink-faint); text-decoration: underline; text-underline-offset: 3px;
+}
 
 .tut-done { max-width: min(460px, 94vw); }
 /* `.modal p` sets a smaller size; the summary is read, so it keeps its own. */

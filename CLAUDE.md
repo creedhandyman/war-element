@@ -2970,6 +2970,14 @@ and sends a few milestones:
   day), `tutorial_done` (detail first|training) / `tutorial_skip`
   (start|mid) / `magic_done`, `first_pack`, `story_win` / `story_loss`
   (detail = node id, lower-case: how far players get, where they lose).
+- **The first battle, step by step (2026-10-15):** `tutorial_start`, then
+  `tutorial_beat` with the beat id as detail (`hand_birch`, `place_birch`,
+  ... `hit_3`; hyphens become underscores) each time the first-run lesson reaches a
+  new beat, and `story_start` (node id) when a story fight begins. A device's
+  furthest `tutorial_beat` is where it stopped. Training Ground replays do not
+  count (`from === "first"` only). Query: `select detail, count(distinct
+  device_id) from play_events where event='tutorial_beat' group by 1;` read in
+  `BEATS` order.
 - Each is sent ONCE per device per detail (`day_open` once a day); queued in
   `we_events_pending` and retried on the next call / `online` event if a send
   fails; the queue drains fully per flush (capped at 50). 409 = already there.
@@ -3028,6 +3036,12 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
 - **Tap, not click** (`ui/pointer.ts`): `tapWords(html)` rewrites click->tap on a
   coarse pointer; App's two `hint` render sites use it, RulesBook uses
   `tapVerb()`. Hover `title` tooltips keep "click" (desktop only).
+- **Fewer popups after the first win (2026-10-15)**: the first level-up of a save
+  that has never cleared a node is paid and shown as a toast (`LevelToast`,
+  `quietLevel` in App) instead of a third card to dismiss after the victory card
+  and the pack tally; one that carries a free pack, and every later one, keeps
+  its full card. The tutorial's Skip is a quiet link INSIDE the instruction
+  banner (`.tut-skip`), no longer a corner pill sitting on the phase ribbon.
 - **Two see-through panels**: `.gd-tip` (the first-run guide card) had a 16%-
   alpha gradient and nothing under it, so the page behind collided with the
   first sentence a new player reads — it has a solid base now. The pack reveal
