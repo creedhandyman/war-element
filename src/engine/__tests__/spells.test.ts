@@ -330,12 +330,19 @@ describe("Cost-4 walls", () => {
     expect(next.walls).toHaveLength(0);
   });
 
-  it("Stone Wall can only be laid on the caster's own Home row", () => {
+  it("Stone Wall is laid on the same rows as every other wall", () => {
+    // It was locked to the caster's own Home row; since 2026-10-14 (owner) it
+    // places like Firewall and the rest.
     const s = prepState();
-    s.players.P1.spellbook = [{ defId: "bore_stone_wall", used: false }];
+    s.players.P1.spellbook = [
+      { defId: "bore_stone_wall", used: false },
+      { defId: "pyro_firewall", used: false },
+    ];
     s.players.P1.magicPool = 5;
-    expect(canCastSpell(s, "P1", "bore_stone_wall", { row: 3 }).ok).toBe(true); // P1 home
-    expect(canCastSpell(s, "P1", "bore_stone_wall", { row: 2 }).ok).toBe(false); // a Mid row
+    const rows = (id: string) =>
+      [0, 1, 2, 3].filter((row) => canCastSpell(s, "P1", id, { row }).ok);
+    expect(rows("bore_stone_wall")).toEqual(rows("pyro_firewall"));
+    expect(rows("bore_stone_wall")).toContain(2); // a Mid row, no longer refused
   });
 
   it("Stone Wall entry strips a shield before dealing its damage", () => {

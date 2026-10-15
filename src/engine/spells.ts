@@ -189,8 +189,10 @@ export const SPELLS: SpellDef[] = [
     element: "BORE",
     cost: 4,
     kind: "wall",
-    text: "Wall of stone across your OWN Home row for 3 rounds. A card that MOVES in loses 1 shield then takes 3 DMG. BORE allies in the row gain BLOCK 2. Ranged attacks and FLYING cards pass over.",
-    wall: { dmg: 3, stripShields: 1, ownHomeOnly: true, allyBuff: { block: 2 }, rounds: 3 },
+    // Placed on any row like the other walls, and 4 DMG (owner, 2026-10-14):
+    // it was locked to the caster's own Home row at 3.
+    text: "Wall of stone across a row for 3 rounds. A card that MOVES in loses 1 shield then takes 4 DMG. BORE allies in the row gain BLOCK 2. Ranged attacks and FLYING cards pass over.",
+    wall: { dmg: 4, stripShields: 1, allyBuff: { block: 2 }, rounds: 3 },
   },
   {
     id: "dusk_veil_of_shadows",
