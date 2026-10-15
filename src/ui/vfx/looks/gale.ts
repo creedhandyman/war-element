@@ -5,13 +5,18 @@
  *   - the gust glyph (a long thin run that ends in a curl),
  *   - the whirl (streaks bent round a centre, spiralling in or out),
  *   - the dust-devil (a side-on funnel of spinning rings).
- *  Warm, not white: cream -> peach -> amber, sand and sunset, with dust in it
- *  that curls round where it was blown off rather than drifting like smoke. */
+ *  BLUE: ice-white -> sky -> azure -> deep blue, and every hook leans on the
+ *  SPIRAL — streaks that wind more than a full turn round a centre, so the air
+ *  reads as a vortex rather than a puff. The motes in it curl round where they
+ *  were blown off rather than drifting like smoke. */
 import type { Graphics } from "pixi.js";
 import { centre, rand } from "./base";
 import type { ElementLook, FxTools, Pt, SparkStyle, Throw } from "./types";
 
-const CREAM = 0xfffaf0, PEACH = 0xffd9a0, APRICOT = 0xffc070, AMBER = 0xffa040, RUST = 0xd9701a;
+// Blue wind (owner, 2026-10-15: "blue wind spirals"): ice-white -> sky -> azure
+// -> deep blue. The names are the old warm roles, kept so every hook below
+// reads the same — CREAM is the brightest, RUST the deepest.
+const CREAM = 0xf2fbff, PEACH = 0xbfe6ff, APRICOT = 0x7cc8ff, AMBER = 0x3d9bff, RUST = 0x2f7be0;
 const TAU = Math.PI * 2;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -65,16 +70,26 @@ function galeBlade(g: Graphics, x: number, y: number, r: number, rot: number, sp
 function galeArc(g: Graphics, x: number, y: number, rt: number, rh: number, a: number, len: number,
   width: number, color: number, alpha: number) {
   if (alpha <= 0.01) return;
-  const n = 10;
+  // Enough points to stay round when it winds past a full turn (a spiral).
+  const n = Math.max(10, Math.ceil(Math.abs(len) * 7));
   const all: number[] = [], head: number[] = [];
   for (let i = 0; i <= n; i++) {
     const f = i / n, r = rt + (rh - rt) * f, th = a + len * f;
     const px = x + Math.cos(th) * r, py = y + Math.sin(th) * r;
     all.push(px, py);
-    if (i >= 6) head.push(px, py);
+    if (f >= 0.6) head.push(px, py);
   }
   g.poly(all, false).stroke({ width: width * 0.5, color, alpha: alpha * 0.55, cap: "round" });
   g.poly(head, false).stroke({ width, color, alpha, cap: "round" });
+}
+
+/** A WIND SPIRAL: `arms` streaks winding `turns` times round (x, y), from
+ *  `r0` to `r1` (r0 > r1 spirals in, r0 < r1 unwinds out), turned by `rot`.
+ *  The signature shape of the blue wind — a vortex, not a puff. */
+function galeSpiral(g: Graphics, x: number, y: number, r0: number, r1: number, rot: number, turns: number,
+  arms: number, width: number, alpha: number) {
+  for (let i = 0; i < arms; i++)
+    galeArc(g, x, y, r0, r1, rot + (i * TAU) / arms, turns * TAU, width, i % 2 ? APRICOT : PEACH, alpha);
 }
 
 /** The wind glyph as a local point list: a run along +x of `len` (with one
@@ -193,6 +208,7 @@ function galeBladeShot(t: FxTools, s: Throw) {
         .stroke({ width: i === 1 ? 2 : 1.4, color: PEACH, alpha: 0.55 * fade });
     }
     const rot = a0 + k * turns * TAU;
+    galeSpiral(g, x, y, R * 1.7, R * 0.5, -rot * 0.8, 0.9, 2, 1.6, 0.6 * fade);
     // Pinned at its middle, so it spins about itself rather than wobbling.
     galeBlade(g, x + Math.cos(rot) * R * 0.35, y + Math.sin(rot) * R * 0.35, R, rot, 2.5, R * 0.6, 0, 1, AMBER, fade);
     acc += 55 * dt;
@@ -223,6 +239,7 @@ function galeTwister(t: FxTools, s: Throw) {
     if (trail.length > 28) { trail.shift(); trail.shift(); }
     if (trail.length >= 4) g.poly(trail, false).stroke({ width: 3, color: AMBER, alpha: 0.4 * fade, cap: "round" });
     galeFunnel(g, x, y + h * 0.35, h, w, spin0 + k * 34, S * 0.07, fade, 5);
+    galeSpiral(g, x, y + h * 0.35, w * 0.9, w * 0.2, spin0 + k * 22, 1.1, 3, 2, 0.55 * fade);
     // Dust whipped off its foot, curling away.
     acc += 90 * dt;
     while (acc >= 1) {
@@ -236,8 +253,8 @@ function galeTwister(t: FxTools, s: Throw) {
 // ── The look ────────────────────────────────────────────────────────────────
 
 export const GALE: ElementLook = {
-  // Apricot, not the old pale peach: a warm orange X, GALE's rim colour,
-  // that cannot be mistaken for DAWN's gold or a white hit.
+  // A clear sky-blue X: blue enough to be GALE's own, light enough not to read
+  // as AQUA's deeper water or a white hit.
   markColor: APRICOT,
 
   windUp(t, d) {
@@ -256,7 +273,7 @@ export const GALE: ElementLook = {
       const a = a0 + spin * k * k;
       const al = peak * env(k, 0.2, 0.2);
       for (let i = 0; i < n; i++)
-        galeArc(g, x, y, r * 1.3, r, a + (i * TAU) / n, 1.4, d.special ? 3.2 : 2.2, i % 2 ? PEACH : CREAM, al);
+        galeArc(g, x, y, r * 1.6, r * 0.45, a + (i * TAU) / n, 3.4, d.special ? 3.2 : 2.2, i % 2 ? APRICOT : PEACH, al);
     });
     if (d.special) {
       t.emit({ count: 22, palette: [CREAM, PEACH, AMBER], from: d.rect, at: "ring", speed: [120, 200], gravity: 0,
@@ -336,8 +353,13 @@ export const GALE: ElementLook = {
       at: [0.03, 0, 0.06][i],
     }));
     const D = 0.5;
+    const vRot = rand(0, TAU);
     t.draw(D, (g, k) => {
       const age = k * D;
+      // The vortex the blow leaves: three arms unwinding out of the card.
+      const ve = out2(k);
+      galeSpiral(g, c.x, c.y, reach * (0.1 + 0.15 * ve), reach * (0.6 + 0.7 * ve), vRot + ve * 5, 1.2, 3, 2.8,
+        0.9 * env(k, 0.08, 0.5));
       for (const gu of gusts) {
         const [u0, u1] = galeWindow(age - gu.at, 0.26, 0.12);
         galeGust(g, gu.path, u0, u1, gu.x, gu.y, m.angle, 3, PEACH, 0.9);
@@ -383,8 +405,8 @@ export const GALE: ElementLook = {
       galeFunnel(g, c.x, c.y + S * 0.35, S * 0.75 * (1 - e), S * (0.7 + 0.5 * e), rot + k * 20, S * 0.05,
         0.9 * (1 - clamp01(k * 2.2)), 5);
       for (let i = 0; i < 4; i++)
-        galeArc(g, c.x, c.y, S * (0.1 + 0.25 * e), S * (0.3 + 0.5 * e), rot + e * 3 + (i * TAU) / 4, 1.5,
-          3, i % 2 ? PEACH : CREAM, 0.9 * (1 - k));
+        galeArc(g, c.x, c.y, S * (0.05 + 0.2 * e), S * (0.35 + 0.55 * e), rot + e * 4 + (i * TAU) / 4, 3.6,
+          3, i % 2 ? APRICOT : PEACH, 0.9 * (1 - k));
     });
     for (let i = 0; i < 34; i++) {
       const a = rand(0, TAU), v = rand(170, 320);
@@ -401,9 +423,7 @@ export const GALE: ElementLook = {
     const R = 30 * k, rot = rand(0, TAU);
     t.draw(0.35, (g, q) => {
       const e = out2(q);
-      for (let i = 0; i < 3; i++)
-        galeArc(g, at.x, at.y, R * (0.3 + 0.4 * e), R * (0.8 + 0.7 * e), rot + e * 3 + (i * TAU) / 3, 1.6,
-          2.6, PEACH, 0.85 * (1 - q));
+      galeSpiral(g, at.x, at.y, R * (0.1 + 0.3 * e), R * (0.8 + 0.8 * e), rot + e * 4, 1.1, 3, 2.6, 0.85 * (1 - q));
     });
     const n = Math.min(14, Math.round(8 * k));
     for (let i = 0; i < n; i++) {
@@ -423,7 +443,7 @@ export const GALE: ElementLook = {
       const al = env(k, 0.1, 0.35);
       g.circle(c.x, c.y, Ro).stroke({ width: 1, color: AMBER, alpha: 0.2 * al });
       for (let i = 0; i < 3; i++) {
-        galeArc(g, c.x, c.y, Ro, Ro, a0 + k * TAU * 1.5 + (i * TAU) / 3, 1.6, 3.2, PEACH, 0.9 * al);
+        galeArc(g, c.x, c.y, Ro, Ro, a0 + k * TAU * 1.5 + (i * TAU) / 3, 1.6, 3.2, APRICOT, 0.9 * al);
         galeArc(g, c.x, c.y, Ri, Ri, a0 + 1 + k * TAU * 2.3 + (i * TAU) / 3, 1.1, 2, CREAM, 0.6 * al);
       }
     });
@@ -436,7 +456,7 @@ export const GALE: ElementLook = {
 
   heal(t, r, k) {
     // A warm breeze lifting off the card: two curls of air rising up its
-    // sides and folding in over it, motes spiralling up — GALE's peach over
+    // sides and folding in over it, motes spiralling up — GALE's sky blue over
     // a living green, so it still reads as a heal.
     const kk = Math.max(0.7, Math.min(2.2, k));
     const c = centre(r), S = Math.min(r.w, r.h);
@@ -529,7 +549,7 @@ export const GALE: ElementLook = {
       t.draw(0.4, (g, q) => {
         const e = out2(q);
         for (let i = 0; i < 3; i++)
-          galeArc(g, b.x, b.y, S * (0.7 - 0.35 * e), S * (0.55 - 0.3 * e), rot + e * 4 + (i * TAU) / 3, 1.3, 2.4,
+          galeArc(g, b.x, b.y, S * (0.75 - 0.35 * e), S * (0.2 - 0.1 * e), rot + e * 4 + (i * TAU) / 3, 3.2, 2.4,
             PEACH, 0.8 * (1 - q));
       });
       t.emit({ count: 16, palette: [CREAM, PEACH, AMBER], from: to, at: "ring", speed: [100, 170], gravity: 0, drag: 0.9,

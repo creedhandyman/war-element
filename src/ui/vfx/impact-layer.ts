@@ -173,7 +173,7 @@ const STYLES: Record<Element, Style> = {
           gravity: 0, drag: 0.02, life: [0.15, 0.4], size: [12, 2], streak: true, arcs: 6 },
   LEAF: { palette: [0xf4ffe6, 0xb6f27a, 0x4caf6d, 0x2c7a45], sparks: 110, speed: [120, 380],
           gravity: 120, drag: 0.3, life: [0.6, 1.3], size: [15, 8], streak: false, swirl: 140 },
-  GALE: { palette: [0xfffaf0, 0xffd9a0, 0xffa040, 0xd9701a], sparks: 160, speed: [160, 460],
+  GALE: { palette: [0xf2fbff, 0xbfe6ff, 0x3d9bff, 0x2f7be0], sparks: 160, speed: [160, 460],
           gravity: -40, drag: 0.2, life: [0.45, 1.0], size: [13, 3], streak: true, swirl: 900 },
   // Grit, not glow: the solid chunks and dust of BORE's look (looks/bore.ts)
   // carry the hit, and big pale blobs over them read as light, not stone.
@@ -934,7 +934,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
       }
       case "GALE":
         vortex(R, T, el);
-        charge(mid, big, 0xffa040, 0.18 * k, T);
+        charge(mid, big, 0x3d9bff, 0.18 * k, T);
         return;
       case "BORE":
         // Rocks, heavy and accelerating, onto each card.
@@ -1035,7 +1035,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
         return;
       case "GALE":
         // The gust bursts outward from the eye.
-        glow(R, 0xffd9a0, 0.3 * k, 0.6, 1.3);
+        glow(R, 0xbfe6ff, 0.3 * k, 0.6, 1.3);
         emit({ count: Math.round(120 * k), palette: el.palette, from: { x: mid.x - 12, y: mid.y - 12, w: 24, h: 24 },
           speed: [300, 700], gravity: 0, drag: 0.2, life: [0.4, 0.8], size: [12, 3], streak: true, swirl: 700 });
         return;

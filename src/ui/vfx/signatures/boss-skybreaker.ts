@@ -33,7 +33,7 @@ import type { Signature } from "./types";
 type Box = { x: number; y: number; w: number; h: number };
 
 const TAU = Math.PI * 2;
-const CREAM = 0xfffaf0, PEACH = 0xffd9a0, APRICOT = 0xffc070, AMBER = 0xffa040;
+const CREAM = 0xf2fbff, PEACH = 0xbfe6ff, APRICOT = 0x7cc8ff, AMBER = 0x3d9bff;
 /** The storm's lightning: BOLT's own white core and violet halo. */
 const WHITE = 0xffffff, LAV = 0xe3d8ff, VIO = 0x9575ff;
 /** The eye, and the dark sky — only ever on the dark layer. */
