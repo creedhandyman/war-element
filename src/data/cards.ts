@@ -9877,16 +9877,15 @@ export const CARDS: CardDef[] = [
     rarity: "rare",
     element: "GALE",
     cardClass: "Support",
-    attackType: "Melee",
+    // RANGED, and 2 DMG moved onto SP (owner, 2026-10-15): 3x1 + 8 + 0x2 + 9
+    // = 20, still exactly a cost-2's budget (5c + 10). It was a 5-DMG melee
+    // drainer with SP 7.
+    attackType: "Ranged",
     cost: 2,
-    // 5x1 + 8 + 0x2 + 7 = 20, which is exactly a cost-2's budget (5c + 10) —
-    // the same 20 Breeze spent, moved off SP and onto damage. It was a 2-DMG
-    // blinder with 10 SP; it is now a 5-DMG drainer with 7, which is a real
-    // card rather than a faster one.
-    dmg: 5,
+    dmg: 3,
     hits: 1,
     hp: 8,
-    sp: 7,
+    sp: 9,
     shields: 0,
     // DRAIN and FLYING, replacing Dust Gust's 30% BLIND. The chance goes with
     // it, which is no loss: a coin-flip blind on a 2-cost was the kind of
