@@ -6,6 +6,7 @@
  *  into the main bundle. */
 import type { Element } from "../../engine";
 import type { LayerFx } from "./impact-layer";
+import { isTouch } from "../pointer";
 import type { LookVariant } from "./looks/types";
 
 /** The layer's pixel density: 2x is the ceiling on purpose — a 3x phone would
@@ -36,14 +37,30 @@ export type FromWorker =
  *
  *  `?vfx=page` in the address, or `we_vfx_page` = "1" in storage, keeps the
  *  effects on the page's thread: the way back if a device ever draws them
- *  wrong from a worker. */
+ *  wrong from a worker.
+ *
+ *  A TOUCH DEVICE DEFAULTS TO THE PAGE (owner, 2026-10-15: black frames on a
+ *  phone after opening the action wheel, after moves and after spells). The
+ *  worker's canvas was measured and pixel-checked in an emulated phone in a
+ *  desktop browser, never on a real one, and the symptom is the one this layer's
+ *  `wake` note describes for a full-screen WebGL canvas on phones. The page's own
+ *  layer is what shipped on phones before, with that guard in it. `?vfx=worker`,
+ *  or `we_vfx_worker` = "1", puts a phone back on the worker to compare. */
 export function workerLayerSupported(): boolean {
+  let force: "page" | "worker" | null = null;
   try {
-    if (new URLSearchParams(location.search).get("vfx") === "page") return false;
-    if (localStorage.getItem("we_vfx_page") === "1") return false;
+    const q = new URLSearchParams(location.search).get("vfx");
+    if (q === "page") force = "page";
+    else if (q === "worker") force = "worker";
+    else if (localStorage.getItem("we_vfx_page") === "1") force = "page";
+    else if (localStorage.getItem("we_vfx_worker") === "1") force = "worker";
   } catch {
     // Storage unavailable (private mode, blocked): no override, decide below.
   }
-  return typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined" &&
+  if (force === "page") return false;
+  const capable = typeof Worker !== "undefined" && typeof OffscreenCanvas !== "undefined" &&
     typeof HTMLCanvasElement !== "undefined" && "transferControlToOffscreen" in HTMLCanvasElement.prototype;
+  if (!capable) return false;
+  if (force === "worker") return true;
+  return !isTouch();
 }

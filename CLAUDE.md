@@ -3606,7 +3606,7 @@ Worker:
   worker saying `fail` (an older Safari: no WebGL on an OffscreenCanvas, or no
   rAF in a worker), a script error, no `ready` within 10 s, a canvas that
   cannot be handed over. After a good start a crash only logs; the effects
-  stop and the game plays on. **Kill switch:** `?vfx=page`, or localStorage
+  stop and the game plays on. **Phones default to the page** (`isTouch()`, 2026-10-17: black frames on a real phone, the worker having only ever been checked in an emulated one); `?vfx=worker` / `we_vfx_worker` = "1" puts one back. **Kill switch:** `?vfx=page`, or localStorage
   `we_vfx_page` = "1".
 - `vite.config.ts` `worker: { format: "es" }`: Pixi loads its renderer as a
   separate chunk, and only ES worker output can split.

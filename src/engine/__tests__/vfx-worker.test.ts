@@ -172,14 +172,15 @@ describe("the effects worker, from the page's side", () => {
 });
 
 describe("which thread the effects draw on", () => {
-  function browser({ search = "", stored = null as string | null, storageThrows = false, worker = true, offscreen = true, transfer = true } = {}) {
+  function browser({ search = "", stored = null as string | null, storedWorker = null as string | null, storageThrows = false, worker = true, offscreen = true, transfer = true, touch = false } = {}) {
     vi.stubGlobal("location", { search });
     vi.stubGlobal("localStorage", {
       getItem: (k: string) => {
         if (storageThrows) throw new Error("storage is blocked");
-        return k === "we_vfx_page" ? stored : null;
+        return k === "we_vfx_page" ? stored : k === "we_vfx_worker" ? storedWorker : null;
       },
     });
+    vi.stubGlobal("window", { matchMedia: (q: string) => ({ matches: touch && q === "(pointer: coarse)" }) });
     vi.stubGlobal("Worker", worker ? class {} : undefined);
     vi.stubGlobal("OffscreenCanvas", offscreen ? class {} : undefined);
     class Canvas {}
@@ -208,6 +209,27 @@ describe("which thread the effects draw on", () => {
     expect(workerLayerSupported()).toBe(false);
     browser({ stored: "1" });
     expect(workerLayerSupported()).toBe(false);
+  });
+
+  it("a phone draws on the page by default, and ?vfx=worker puts it back on the worker", () => {
+    browser({ touch: true });
+    expect(workerLayerSupported()).toBe(false);
+    browser({ touch: true, search: "?vfx=worker" });
+    expect(workerLayerSupported()).toBe(true);
+    browser({ touch: true, storedWorker: "1" });
+    expect(workerLayerSupported()).toBe(true);
+    // ...but forcing the worker cannot conjure one the browser lacks, and the
+    // page override still wins over a stored worker choice.
+    browser({ touch: true, search: "?vfx=worker", worker: false });
+    expect(workerLayerSupported()).toBe(false);
+    browser({ touch: true, search: "?vfx=page", storedWorker: "1" });
+    expect(workerLayerSupported()).toBe(false);
+  });
+
+  it("a browser with no matchMedia is decided on features alone", () => {
+    browser();
+    vi.stubGlobal("window", {});
+    expect(workerLayerSupported()).toBe(true);
   });
 
   it("one density rule wherever the layer runs", () => {
