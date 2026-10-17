@@ -15,7 +15,7 @@ import { useEffect } from "react";
 
 export const AUTOSAVE_EVERY_MS = 60_000;
 
-const signedIn = (): boolean => {
+export const signedIn = (): boolean => {
   try {
     return Object.keys(localStorage).some((k) => k.startsWith("sb-") && k.endsWith("-auth-token"));
   } catch {

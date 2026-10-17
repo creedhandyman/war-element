@@ -24,7 +24,7 @@
  *  buy a card. When none of that is true it renders nothing at all, which is
  *  the honest state of a fresh save and one of the cases the design asks for.
  */
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BLIGHT_MAX, PACK_COST, PLACED_CARDS, REGIONS, blightLevel, canCraft, craftCostOf,
   deckCapFor, freePacks, isCleared, isHard, isOpen, type StoryRegion, type StorySave,
@@ -39,6 +39,9 @@ import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
 import { ACHIEVEMENTS, achievementState } from "../data/achievements";
 import { DailyReward } from "./DailyReward";
+import { dismissBackupNudge, readNudgeState, shouldShowBackupNudge } from "./backup-nudge";
+import { signedIn as hasCloudSession } from "./cloud-autosave";
+import { track } from "../net/telemetry";
 import { LESSONS, lessonDone } from "./training";
 
 /** One row in the middle band. `feature` promotes it to the big card at the
@@ -116,6 +119,16 @@ export function HomeScreen(props: {
   const totalEssence = Object.values(essence).reduce((a, b) => a + b, 0);
 
   const region = REGIONS.find((r) => r.id === props.regionId) ?? REGIONS[0];
+
+  /** THE BACKUP CARD (backup-nudge.ts): once the first fight is won and nothing is
+   *  signed in, say that the collection lives only on this device. Read once on
+   *  mount; the account email resolves a beat later, so it also hides the card
+   *  the moment one arrives. */
+  const [nudge, setNudge] = useState(() => shouldShowBackupNudge({
+    signedIn: hasCloudSession(), cleared: save.cleared.length, state: readNudgeState(), now: Date.now(),
+  }));
+  const showBackup = nudge && !props.accountEmail;
+  useEffect(() => { if (showBackup) track("backup_shown"); }, [showBackup]);
 
   /** Where you actually are in this region: how much is done, and the next
    *  thing you can walk into. `isOpen` is the map's own predicate, so the node
@@ -274,6 +287,20 @@ export function HomeScreen(props: {
         </button>
 
         <DailyReward save={save} onClaim={props.onClaimDaily} />
+
+        {showBackup && (
+          <section className="home-backup">
+            <span className="home-backup-ico" aria-hidden="true">{"\u2601\uFE0F"}</span>
+            <span className="home-backup-text">
+              <b>Back up your cards</b>
+              <em>{save.collection.length} cards, level {level} — kept only on this device. Sign in and a new phone can't lose them.</em>
+            </span>
+            <span className="home-backup-acts">
+              <button className="home-backup-go" onClick={() => { track("backup_tap"); props.onAccount(); }}>Sign in</button>
+              <button className="home-backup-no" onClick={() => { dismissBackupNudge(); setNudge(false); }}>Not now</button>
+            </span>
+          </section>
+        )}
 
         {live.length > 0 && (
           <>

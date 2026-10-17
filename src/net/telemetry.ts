@@ -38,6 +38,7 @@ export const PLAY_EVENTS = [
   "tutorial_done", "tutorial_skip", "magic_done",
   "first_pack", "story_win", "story_loss",
   "tutorial_start", "tutorial_beat", "story_start",
+  "backup_shown", "backup_tap",
 ] as const;
 export type PlayEvent = (typeof PLAY_EVENTS)[number];
 
@@ -47,9 +48,16 @@ const PENDING_KEY = "we_events_pending";
 
 interface Pending { key: string; event: PlayEvent; detail?: string }
 
+/** A browser driven by automation says so (`navigator.webdriver`). Headless test
+ *  runs and crawlers are not players, and until now they counted as such: the
+ *  funnel showed 130 "new" devices that never tapped Play. (Real phones and the
+ *  Play Store's own device-farm runs are not flagged, so the DB's `play_humans`
+ *  view — devices that did more than open the app — is the other half.) */
+const automated = (): boolean => typeof navigator !== "undefined" && navigator.webdriver === true;
+
 const enabled = (): boolean =>
   typeof window !== "undefined" && typeof fetch === "function" && !!URL && !!ANON
-  && !import.meta.env.DEV && import.meta.env.MODE !== "test";
+  && !import.meta.env.DEV && import.meta.env.MODE !== "test" && !automated();
 
 const today = () => new Date().toISOString().slice(0, 10);
 

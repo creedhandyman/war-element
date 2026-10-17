@@ -6789,6 +6789,27 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: linear-gradient(160deg, rgba(74, 163, 232, 0.12), rgba(10, 10, 17, 0.6));
 }
 .home-daily.done { border-color: rgba(233, 226, 210, 0.1); background: rgba(233, 226, 210, 0.03); }
+/* The backup card (backup-nudge.ts): a notice under the daily reward, not an alarm —
+   gold-edged like the account chip it points at, and put-off-able. */
+.home-backup {
+  flex: none; margin: 0 16px 14px; padding: 11px 12px; border-radius: 12px;
+  display: grid; grid-template-columns: auto 1fr; gap: 4px 11px; align-items: center;
+  border: 1px solid rgba(201, 162, 75, 0.4);
+  background: linear-gradient(160deg, rgba(201, 162, 75, 0.12), rgba(10, 10, 17, 0.7)), #0b0b12;
+}
+.home-backup-ico { font-size: 26px; line-height: 1; }
+.home-backup-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.home-backup-text b { font-size: 14px; font-weight: 800; color: var(--ink); }
+.home-backup-text em { font-style: normal; font-size: 12px; line-height: 1.35; color: var(--ink-dim); }
+.home-backup-acts { grid-column: 1 / -1; display: flex; gap: 8px; justify-content: flex-end; margin-top: 4px; }
+.home-backup-go {
+  padding: 7px 16px; border-radius: var(--r-chip, 8px); cursor: pointer; font-weight: 800; font-size: 13px;
+  border: 1px solid var(--gold-lit); background: rgba(201, 162, 75, 0.2); color: var(--gold-hi);
+}
+.home-backup-no {
+  padding: 7px 12px; border: 0; background: none; cursor: pointer; font-size: 12.5px; color: var(--ink-faint);
+  text-decoration: underline; text-underline-offset: 3px;
+}
 .home-daily-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 9px; }
 .home-daily-title { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .home-daily-title b { font-size: 10px; font-weight: 700; letter-spacing: 0.11em; color: #bfe6ff; }

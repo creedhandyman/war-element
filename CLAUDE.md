@@ -3063,6 +3063,20 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
   link anywhere in the game (Play's Data safety form needs one; telemetry is
   device id + app interactions), and the play_events funnel is polluted by
   automated opens (bursts of 20-30 devices an hour with zero engagement).
+- **Retention pass (2026-10-17, from the retention review)**: (1) the daily
+  reward no longer resets to day 1 on a missed day: a miss steps back one day
+  (day 5 -> 4; a finished week just starts over; `LAPSE_DAYS` = 14 missed in a
+  row starts the calendar from the top) — `dailyStatus` carries `steppedBack`,
+  Home says "Welcome back — day N". (2) Once the first story node is cleared and
+  nobody is signed in, Home shows a gold "Back up your cards" card
+  (`ui/backup-nudge.ts`; "Not now" hides it a week, three refusals stop it,
+  device-local `we_backup_nudge`, not in SAVE_KEYS) pointing at the account
+  panel; telemetry `backup_shown` / `backup_tap`. (3) Analytics without the
+  bots: telemetry skips `navigator.webdriver` browsers, and Supabase has views
+  `play_humans` (devices that did more than open the app), `play_funnel_humans`
+  and `play_retention` (cohort D1/D3/D7 among humans) — read those, not
+  `play_funnel`, which counts the automated opens (169 devices ever vs 9 humans
+  on 2026-10-17).
 - **Two see-through panels**: `.gd-tip` (the first-run guide card) had a 16%-
   alpha gradient and nothing under it, so the page behind collided with the
   first sentence a new player reads — it has a solid base now. The pack reveal

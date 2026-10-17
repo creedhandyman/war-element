@@ -1,7 +1,11 @@
-// DAILY LOGIN (owner, 2026-09-28): a 7-day calendar that resets on a missed
-// day — 10, 15, 20, 25, 30, 40 shards, then a free pack on day 7.
+// DAILY LOGIN (owner, 2026-09-28): a 7-day calendar — 10, 15, 20, 25, 30, 40
+// shards, then a free pack on day 7. A missed day steps the week BACK one day
+// instead of ending it (retention review, 2026-10-17); only a long absence
+// starts over.
 import { describe, expect, it } from "vitest";
-import { DAILY_REWARDS, claimDaily, dailyRecord, dailyStatus, dayBefore, localDay } from "../../data/daily";
+import {
+  DAILY_REWARDS, LAPSE_DAYS, claimDaily, dailyRecord, dailyStatus, dayBefore, daysBetween, localDay,
+} from "../../data/daily";
 import { newSave, type StorySave } from "../../data/story";
 
 const fresh = (): StorySave => ({ ...newSave(), hero: { ...newSave().hero!, shards: 0, freePacks: 0 } });
@@ -27,10 +31,47 @@ describe("the week", () => {
     expect(dailyStatus(week, "2026-09-08")).toMatchObject({ claimed: false, day: 1, reset: false });
   });
 
-  it("a missed day starts the week over", () => {
+  it("a missed day steps the week back one day instead of ending it", () => {
+    // Took days 1-3, missed the 4th, back on the 5th: day 3 was the last taken, so day 2 is on offer.
     const s = run(["2026-09-01", "2026-09-02", "2026-09-03"]);
-    expect(dailyStatus(s, "2026-09-05")).toMatchObject({ claimed: false, day: 1, reset: true });
-    expect(dailyRecord(claimDaily(s, "2026-09-05"))).toEqual({ date: "2026-09-05", day: 1 });
+    expect(dailyStatus(s, "2026-09-05")).toMatchObject({ claimed: false, day: 2, reset: false, steppedBack: true });
+    expect(dailyRecord(claimDaily(s, "2026-09-05"))).toEqual({ date: "2026-09-05", day: 2 });
+    // ...and the week carries on from there on consecutive days.
+    expect(dailyStatus(claimDaily(s, "2026-09-05"), "2026-09-06")).toMatchObject({ day: 3, reset: false });
+  });
+
+  it("a longer slip costs the same one step, not more", () => {
+    const s = run(["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05"]);
+    expect(dailyStatus(s, "2026-09-09")).toMatchObject({ day: 4, reset: false, steppedBack: true });
+  });
+
+  it("never steps below day 1, and day 1 or 2 are not 'stepped back' from a streak", () => {
+    const one = run(["2026-09-01"]);
+    expect(dailyStatus(one, "2026-09-04")).toMatchObject({ day: 1, reset: false });
+    expect(dailyStatus(one, "2026-09-04").steppedBack).toBeFalsy();
+    const two = run(["2026-09-01", "2026-09-02"]);
+    expect(dailyStatus(two, "2026-09-05")).toMatchObject({ day: 1, steppedBack: true });
+  });
+
+  it("a finished week just starts the next one after a gap", () => {
+    const days = ["2026-09-01", "2026-09-02", "2026-09-03", "2026-09-04", "2026-09-05", "2026-09-06", "2026-09-07"];
+    const week = run(days);
+    expect(dailyStatus(week, "2026-09-12")).toMatchObject({ day: 1, reset: false });
+  });
+
+  it("only a long absence starts the calendar over", () => {
+    const s = run(["2026-09-01", "2026-09-02", "2026-09-03"]);
+    // LAPSE_DAYS missed in a row: the 3rd + 1 + 14 = the 18th is the first day that counts as a lapse.
+    const justShort = `2026-09-${String(3 + LAPSE_DAYS).padStart(2, "0")}`;
+    const lapsed = `2026-09-${String(3 + LAPSE_DAYS + 1).padStart(2, "0")}`;
+    expect(dailyStatus(s, justShort)).toMatchObject({ day: 2, reset: false });
+    expect(dailyStatus(s, lapsed)).toMatchObject({ day: 1, reset: true });
+  });
+
+  it("counts whole calendar days across month and year ends", () => {
+    expect(daysBetween("2026-12-30", "2027-01-02")).toBe(3);
+    expect(daysBetween("2028-02-28", "2028-03-01")).toBe(2);
+    expect(daysBetween("2026-09-05", "2026-09-05")).toBe(0);
   });
 
   it("pays once a day, however many times it is pressed", () => {

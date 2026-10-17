@@ -30,7 +30,9 @@ export function DailyReward(props: { save: StorySave; onClaim: () => void }) {
   const next = st.day % DAILY_REWARDS.length + 1;
   const note = st.claimed
     ? `Back tomorrow for day ${next}`
-    : st.reset ? "A missed day started the week over" : `Day ${st.day} of ${DAILY_REWARDS.length}`;
+    : st.reset ? "It has been a while — a fresh week starts"
+    : st.steppedBack ? `Welcome back — day ${st.day} of ${DAILY_REWARDS.length}`
+    : `Day ${st.day} of ${DAILY_REWARDS.length}`;
 
   return (
     <section className={`home-daily${st.claimed ? " done" : ""}`}>
