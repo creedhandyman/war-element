@@ -90,6 +90,12 @@ function checkTip(c: CheckResult, full: boolean): string {
 export interface StoryBuildMode {
   /** Card ids the player owns. The pool is filtered to these. */
   owned: string[];
+  /** Recruited but not yet looked at — the same NEW the Collection shows. A card
+   *  just pulled is exactly what you go to the builder to find, and the grid here
+   *  never said which one it was. */
+  unseen?: ReadonlySet<string>;
+  /** The player engaged with this card (added it, or opened it): no longer NEW. */
+  onSeen?: (id: string) => void;
   /** Spell ids the hero has actually UNLOCKED. The Arena offers every spell of
    *  a deck's elements; the campaign hands them out for walking a region, so
    *  offering the rest here would be showing the player a book they cannot
@@ -1364,8 +1370,8 @@ export function DeckBuilder(props: {
               tabIndex={0}
               aria-pressed={on}
               title={on ? `${d.name} — tap to remove` : `${d.name} — tap to add`}
-              onClick={() => toggle(d.id)}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(d.id); } }}
+              onClick={() => { toggle(d.id); story?.onSeen?.(d.id); }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggle(d.id); story?.onSeen?.(d.id); } }}
             >
               <img
                 className="card-art"
@@ -1391,10 +1397,15 @@ export function DeckBuilder(props: {
                   className="dt-info"
                   title={`${d.name} — see the card`}
                   aria-label={`${d.name} — see the card`}
-                  onClick={(e) => { e.stopPropagation(); setDetailId(d.id); }}
+                  onClick={(e) => { e.stopPropagation(); setDetailId(d.id); story?.onSeen?.(d.id); }}
                 >
                   ⓘ
                 </button>
+                {/* NEW until you have touched it. The in-deck tick wins when both apply:
+                    a card already in your squad is not news. */}
+                {!on && story?.unseen?.has(d.id) && (
+                  <span className="dt-new" title="Recruited — you have not looked at this one yet">NEW</span>
+                )}
                 {foils?.has(d.id) && <i className="foil-tag" title="Foil">✦</i>}
               </div>
               {/* Rarity is absolutely positioned as a vertical strip in the

@@ -5933,6 +5933,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: var(--void-2); border: 1px solid var(--panel-line); border-radius: 7px; transition: .12s;
 }
 .sq-pick img { width: 100%; aspect-ratio: 3 / 4; object-fit: cover; display: block; }
+.sq-new {
+  position: absolute; top: 3px; left: 3px; padding: 1px 4px; border-radius: 4px; line-height: 1.3;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.08em; color: var(--legal);
+  border: 1px solid var(--legal); background: rgba(6, 12, 9, 0.82);
+}
 /* Rarity BEFORE selection, deliberately: both are one class on `.sq-pick`, so
    whichever is written last wins, and a mythic that is carried must not look
    the same as a mythic that is not. Selection is the state you act on. */
@@ -6357,7 +6362,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   padding: 1px 5px; border-radius: 4px; font-size: 10px; font-weight: 800;
   letter-spacing: 0.08em; line-height: 1.3;
   color: var(--legal); border: 1px solid var(--legal);
-  background: color-mix(in srgb, var(--legal) 18%, transparent);
+  /* Solid under the tint: sitting on card art, 18% green over transparent was
+     unreadable against anything bright. */
+  background: color-mix(in srgb, var(--legal) 18%, #07100b);
 }
 .col-card.unseen { border-color: color-mix(in srgb, var(--legal) 55%, var(--panel-line)); }
 

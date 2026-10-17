@@ -24,7 +24,7 @@ import {
 } from "./filters";
 import { getDef } from "../data/cards";
 import {
-  autoSquad, isHard, localCards, packSquad, packableFor, squadFor, squadLimitFor,
+  autoSquad, isHard, localCards, markSeen, packSquad, packableFor, squadFor, squadLimitFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
@@ -335,6 +335,7 @@ export function StorySquad(props: {
             {shown.map((id) => {
               const d = getDef(id);
               const on = draft.includes(id);
+              const fresh = !on && (save.unseen ?? []).includes(id);
               return (
                 <button
                   key={id}
@@ -342,10 +343,13 @@ export function StorySquad(props: {
                   data-el={d.element}
                   disabled={!on && full}
                   title={on ? `${d.name} — carried` : full ? "Squad is full" : `${d.name} — carry`}
-                  onClick={() => toggle(id)}
+                  // Touching a card is looking at it: it stops being NEW (same rule as the
+                  // Collection and the Deck Builder).
+                  onClick={() => { toggle(id); if ((save.unseen ?? []).includes(id)) props.onSave(markSeen(save, id)); }}
                 >
                   <img src={cardThumbSrc(d)} alt="" loading="lazy"
                     onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                  {fresh && <span className="sq-new">NEW</span>}
                   <span className="sq-pick-name">{d.name}</span>
                   {on && <i className="sq-tick" aria-hidden="true">✓</i>}
                 </button>

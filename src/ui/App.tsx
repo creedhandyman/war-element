@@ -236,7 +236,7 @@ import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { FOIL_STATS, foilStatsFromLedger, type FoilStat } from "../data/foils";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
-import { newHero, rawStoredLoadouts } from "../data/story";
+import { markSeen, newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
 import { seatTamedAlly, seatVoidBoss } from "./void-seat";
@@ -250,6 +250,7 @@ import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
 import { tapWords } from "./pointer";
 import { navAttention } from "./nav-attention";
+import { shouldConfirmPass } from "./pass-guard";
 import { useMatchSounds } from "./match-sounds";
 import { playLevelUp, playSfx } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
@@ -969,6 +970,7 @@ export function App() {
   };
   const storyPool = poolForRegion(story, region);
   const storyBuilderOwned = storyPool.length ? storyPool : story.collection;
+  const storyUnseen = useMemo(() => new Set(story.unseen ?? []), [story.unseen]);
   // Clamped by the POOL, not by the squad limit. The squad counts only what
   // you carry from ELSEWHERE — the region's own element travels free and is
   // already in the pool — so clamping deck size by it capped a deck at the
@@ -4766,6 +4768,17 @@ export function App() {
       if (!s.used && game.players[me].magicPool >= getSpell(s.defId).cost) return true;
     return false;
   }, [game, myPrep, me]);
+  // PASSING WITH AN EMPTY BOARD AND A PLAYABLE HAND asks first (pass-guard.ts): the
+  // button turns to "Pass anyway?" for four seconds and the second tap goes
+  // through. Once a round, never in the scripted lessons.
+  const [passAsk, setPassAsk] = useState(false);
+  const passAskedRound = useRef(-1);
+  useEffect(() => {
+    if (!passAsk) return;
+    const t = window.setTimeout(() => setPassAsk(false), 4000);
+    return () => window.clearTimeout(t);
+  }, [passAsk]);
+  useEffect(() => { setPassAsk(false); }, [game.round, game.phase, sel]);
   // I may drive the battle action panel ONLY when the card that's up is mine —
   // never the opponent's (online) or the AI's. This is the single gate that
   // stops "attacking as the opponent's card".
@@ -5477,6 +5490,13 @@ export function App() {
                   else setHint(`⚠ ${chk.reason}`);
                   return;
                 }
+                // PASSING INTO AN EMPTY BOARD (pass-guard.ts): ask once a round.
+                if (!passAsk && !tutDef && !trainingRun && passAskedRound.current !== game.round && shouldConfirmPass(game, me)) {
+                  passAskedRound.current = game.round;
+                  setPassAsk(true);
+                  return;
+                }
+                setPassAsk(false);
                 dispatch({ type: "PASS", player: me });
               }}
             >
@@ -5492,7 +5512,7 @@ export function App() {
                 "Confirm first"
               ) : (
                 <>
-                  Pass Priority
+                  {passAsk ? "Pass anyway?" : "Pass Priority"}
                   <span className="pass-dots" title="Two consecutive passes → Battle">
                     <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 1 ? "on" : ""}`} />
                     <span className={`pd ${(game.prep?.consecutivePasses ?? 0) >= 2 ? "on" : ""}`} />
@@ -7162,6 +7182,15 @@ export function App() {
         foilStats={myFoilStats}
         story={{
           owned: storyBuilderOwned,
+          unseen: storyUnseen,
+          // Through `prev`, like the level-up claim: two quick taps read the save the
+          // first one wrote.
+          onSeen: (id) => setStory((prev) => {
+            const next = markSeen(prev, id);
+            if (next === prev) return prev;
+            saveStory(next);
+            return next;
+          }),
           cap: builderCap,
           forNode: prepNode?.name,
           element: region.element,

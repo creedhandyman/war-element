@@ -3050,7 +3050,16 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
   claimable achievements; Shop = free packs; the old rainbow dot still means
   unspent essence). The pack tally shows five full cards WITH NAMES (a title
   attribute does not exist on a phone); 54px so all five fit one row and the
-  sheet keeps its gutters. NOT done, needs the owner: there is NO privacy-policy
+  sheet keeps its gutters. **Pass guard (2026-10-16)**: `ui/pass-guard.ts`
+  `shouldConfirmPass` — passing with NO card of yours on the board while a card
+  in hand is summonable turns the button to "Pass anyway?" (4 s) and the second
+  tap passes; once per round, never in the scripted lessons / Training Ground.
+  Anyone with a card out, or nothing playable, passes silently. **NEW tags** were
+  already in the Collection (`save.unseen`, `markUnseen` on every acquisition
+  path, count on the Home tile); they now also show in the Deck Builder
+  (`StoryBuildMode.unseen/onSeen`) and the story squad picker (`.sq-new`), and
+  touching a card there clears it like opening it in the Collection. The badge
+  background is solid (it was unreadable over bright art). NOT done, needs the owner: there is NO privacy-policy
   link anywhere in the game (Play's Data safety form needs one; telemetry is
   device id + app interactions), and the play_events funnel is polluted by
   automated opens (bursts of 20-30 devices an hour with zero engagement).
