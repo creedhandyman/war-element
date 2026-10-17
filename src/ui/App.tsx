@@ -236,7 +236,7 @@ import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { FOIL_STATS, foilStatsFromLedger, type FoilStat } from "../data/foils";
 import { deckCodeFromUrl } from "../data/deck-code";
 import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
-import { markSeen, newHero, rawStoredLoadouts } from "../data/story";
+import { STORY_DEADLOCK_ROUNDS, STORY_ROUND_CAP, markSeen, newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
 import { seatTamedAlly, seatVoidBoss } from "./void-seat";
@@ -6196,6 +6196,9 @@ export function App() {
             // rung is the EARNED one, never a hand-picked one: the campaign is
             // not a sandbox, it hands out cards.
             fresh.aiSkill = autoRung;
+            // A story fight is decided on the board when it stalls (see STORY_ROUND_CAP).
+            fresh.deadlockRounds = STORY_DEADLOCK_ROUNDS;
+            fresh.roundCap = STORY_ROUND_CAP;
             // THE THRONE'S DEBT. Its Mythic stands on the board below before
             // round one, outside the economy — the same thing a Void Tower boss
             // does, and Void Tower pays the player for it. This path did not,

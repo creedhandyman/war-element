@@ -3077,6 +3077,27 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
   and `play_retention` (cohort D1/D3/D7 among humans) — read those, not
   `play_funnel`, which counts the automated opens (169 devices ever vs 9 humans
   on 2026-10-17).
+- **Stalled fights (2026-10-17)**: a simulated first run had 13-27% of its story
+  fights past round 30 (boards where both sides had played everything and sat at
+  full health, or one card was slowly chipped down) — round 45 on a phone is
+  not a game. Two OPT-IN engine rules (off unless set, so every other mode is
+  byte-identical): `GameState.deadlockRounds` (the end-of-round board —
+  `boardSignature`: who stands where at what HP, locked slots, hand/deck sizes,
+  walls/traps/fields; NOT gold, Magic or round — unchanged that many rounds
+  ends it on the board, `win.by = "deadlock"`) and `GameState.roundCap` (a
+  shorter limit than `MAX_ROUNDS`; `decideOnTime`, same ladder: Home slots
+  captured, then cards standing, then HP; a battle-log warning 5 rounds before).
+  Both ignore Void Tower fights. Story fights set `STORY_DEADLOCK_ROUNDS = 4` and
+  `STORY_ROUND_CAP = 30` in App's `fresh` state (data/story.ts has the
+  measurement); StoryResult says "The fight stalled, and was decided on the
+  board" instead of "won by elimination". Measured on 240 simulated fights
+  (L2-L12, beginner dial on P2 via `weSetSkillSeat`): deadlock alone = 0 winner
+  changes but catches only ~1 in 4 long fights (most are SLOW grinds, not
+  frozen boards — LEAF regen and spawners keep the signature moving); with the
+  cap, 2 fights changed hands (enemy win -> player win, a late landmark), mean
+  20.4 -> 17.3 rounds, longest 50 -> 30. Arena/Quick Match vs AI were NOT
+  measured and NOT changed. The harness: a scratch AUDIT_RUN test (starter +
+  5-card pack + 2 recruits per cleared node, P1 default AI, P2 `learning`).
 - **Two see-through panels**: `.gd-tip` (the first-run guide card) had a 16%-
   alpha gradient and nothing under it, so the page behind collided with the
   first sentence a new player reads — it has a solid base now. The pack reveal

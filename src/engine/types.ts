@@ -2817,7 +2817,7 @@ export interface SlotState {
 export interface WinInfo {
   /** null only on a timeout that nothing could separate — a genuine draw. */
   winner: PlayerId | null;
-  by: "capture" | "elimination" | "surrender" | "timeout" | "slain" | "overrun" | "domination";
+  by: "capture" | "elimination" | "surrender" | "timeout" | "deadlock" | "slain" | "overrun" | "domination";
 }
 
 /** Post-match analytics, accumulated live in the reducer. `dmg` is HP damage
@@ -2906,6 +2906,22 @@ export interface GameState {
    *  Absent = `sharp`, the opponent that shipped, so every saved game, replay
    *  and test fixture faces exactly what it always faced. */
   aiSkill?: AiSkill;
+  /** END A DEAD BOARD EARLY. When set (> 0), a match whose board is exactly the same
+   *  at the end of this many rounds in a row — nobody hit, moved, summoned, healed
+   *  net or captured anything — is decided on the board at once instead of being
+   *  played out to `MAX_ROUNDS`, with the same ladder the round limit uses (captures,
+   *  then bodies, then HP). Absent = off, so every mode that does not ask for it is
+   *  byte-identical to before. See `boardSignature` in phases.ts. */
+  deadlockRounds?: number;
+  /** A SHORTER ROUND LIMIT than `MAX_ROUNDS` for this match (> 0 and below it). At that
+   *  round the fight is decided on the board with the same ladder. For fights a phone
+   *  player should not still be playing at round 40: a board that is not frozen but
+   *  is only slowly grinding (one card chipped down by its neighbour, a spawner
+   *  adding a body every other round) never trips `deadlockRounds`. Absent = off. */
+  roundCap?: number;
+  /** The deadlock detector's memory: last round's end-of-round board and how many
+   *  rounds in a row it has repeated. Engine-owned; absent until the rule is on. */
+  deadlock?: { sig: string; idle: number };
   firstPlayer: PlayerId; // coin-flip winner; preps first on ODD rounds (initiative alternates)
   players: Record<PlayerId, PlayerState>;
   /** All living board cards, keyed by instanceId. Board layout derived from pos. */

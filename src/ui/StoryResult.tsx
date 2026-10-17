@@ -82,9 +82,16 @@ export function StoryResult(props: {
           <p>
             {/* Every roll is a foil roll as well (`withFoils` in story.ts), and
                 this line is where the player learns what the capture bought. */}
+            {/* A stalled fight is decided on the board (STORY_ROUND_CAP / deadlock),
+                so "won by elimination" would be a lie for it. */}
+            {(game.win?.by === "deadlock" || game.win?.by === "timeout") && (
+              <>The fight stalled, and was decided on the board on round {game.round}. </>
+            )}
             {captured > 0
               ? <>You padlocked <b>{captured}</b> {captured === 1 ? "slot" : "slots"} — {rolls} recruit {rolls === 1 ? "roll" : "rolls"}, {rolls === 1 ? "also a " : "each also a "}{foilOdds}.</>
-              : <>Won by elimination — no slots padlocked, so one roll, also a {foilOdds}.</>}
+              : game.win?.by === "deadlock" || game.win?.by === "timeout"
+                ? <>No slots padlocked, so one roll, also a {foilOdds}.</>
+                : <>Won by elimination — no slots padlocked, so one roll, also a {foilOdds}.</>}
           </p>
         )}
 

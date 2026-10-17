@@ -1470,11 +1470,28 @@ function nextSeat(state: GameState, player: PlayerId): PlayerId {
   return order[(i + 1) % order.length] ?? player;
 }
 
+/** Everything that makes one end-of-round board different from another: who stands
+ *  where at what health, which Home slots are locked, and what is left to play.
+ *  Gold and Magic are left out on purpose — they tick up every round on a frozen
+ *  board — and so is the round number. Two identical signatures in a row mean a
+ *  whole round passed in which nothing that matters changed (including chip damage
+ *  that a heal undid exactly, the loop `MAX_ROUNDS` was written for). */
+export function boardSignature(draft: GameState): string {
+  const cards = Object.values(draft.cards)
+    .filter((c) => c.pos)
+    .map((c) => `${c.owner}${c.defId}@${c.pos!.row},${c.pos!.col}:${c.curHp}/${c.curShields}`)
+    .sort()
+    .join("|");
+  const slots = draft.slots.flat().map((s) => s.capturedBy ?? "-").join("");
+  const stock = seatsOf(draft).map((p) => `${draft.players[p].hand.length}.${draft.players[p].deck.length}`).join(",");
+  return `${cards}#${slots}#${stock}#${draft.walls.length}.${draft.traps.length}.${draft.fields.length}`;
+}
+
 /** The match hit MAX_ROUNDS. Decide it on progress toward the real win
  *  conditions rather than calling it off: home slots captured first (that IS
  *  the win condition), then cards left standing, then total HP. A null winner
  *  means all three were level — a true draw, and the UI says so. */
-function decideOnTime(draft: GameState): void {
+function decideOnTime(draft: GameState, by: "timeout" | "deadlock" = "timeout"): void {
   const captured = (p: PlayerId) =>
     draft.slots.flat().filter((s) => s.capturedBy === p).length;
   const standing = (p: PlayerId) => boardCards(draft, p).length;
@@ -1524,12 +1541,13 @@ function decideOnTime(draft: GameState): void {
     }
   }
 
-  draft.win = { winner, by: "timeout" };
+  draft.win = { winner, by };
   draft.phase = "gameover";
+  const what = by === "deadlock" ? "stalemate" : "time";
   draft.log.push(
     winner
-      ? `Round ${draft.round} — time. ${winner} takes it on ${reason}.`
-      : `Round ${draft.round} — time. Dead level`
+      ? `Round ${draft.round} — ${what}. ${winner} takes it on ${reason}.`
+      : `Round ${draft.round} — ${what}. Dead level`
         + (field.length > 1 && field.length < table.length ? ` between ${field.join(", ")}` : "")
         + ": the match is a draw.",
   );
@@ -4414,9 +4432,30 @@ function doCleanupPhase(draft: GameState): void {
     return;
   }
 
+  // 7b. A DEAD BOARD (opt-in, `deadlockRounds`): the same board for that many
+  //     rounds running ends the fight on the board now. Never in a Void Tower
+  //     fight, whose clock is the boss's win condition.
+  if (draft.deadlockRounds && draft.deadlockRounds > 0 && !draft.voidTower) {
+    const sig = boardSignature(draft);
+    const idle = draft.deadlock && draft.deadlock.sig === sig ? draft.deadlock.idle + 1 : 0;
+    draft.deadlock = { sig, idle };
+    if (idle >= draft.deadlockRounds) {
+      decideOnTime(draft, "deadlock");
+      return;
+    }
+  }
+
+  // 7c. Said out loud five rounds before a shortened limit, so a decision on the
+  //     board is never a surprise.
+  if (draft.roundCap && draft.roundCap > 5 && !draft.voidTower && draft.round === draft.roundCap - 5) {
+    draft.log.push(
+      `Round ${draft.round} — the fight is dragging on. At round ${draft.roundCap} it is decided on the board: Home slots captured, then cards standing, then HP.`,
+    );
+  }
+
   // 7. Time limit. Nothing else in the engine bounds a match, so this is what
   //    stops a frozen board running forever.
-  if (draft.round >= MAX_ROUNDS) {
+  if (draft.round >= MAX_ROUNDS || (draft.roundCap && draft.roundCap > 0 && !draft.voidTower && draft.round >= draft.roundCap)) {
     decideOnTime(draft);
     return;
   }

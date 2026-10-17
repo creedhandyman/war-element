@@ -2796,6 +2796,24 @@ export const formationSize = (cap: number): number => cap;
  *  Mechanically the AI simply finds no legal opening summon (`canSummon` fails
  *  on zero slots), so `aiPrepIntent` falls through to PASS and deployment ends
  *  on the usual two consecutive passes. No phase logic changes. */
+/** STORY FIGHTS DO NOT RUN FOREVER (retention review, 2026-10-17). A simulated first run
+ *  had 13-27% of its fights still going past round 30 — boards where both sides had
+ *  played everything and stood at full health, or one card was being chipped down
+ *  at one HP a round — and a phone player should not still be playing round 45.
+ *  Two opt-in engine rules, set on every story fight (not the Void Tower trials, whose
+ *  clock is the boss's win condition):
+ *    - `STORY_DEADLOCK_ROUNDS`: the end-of-round board unchanged this many rounds
+ *      running ends it on the board;
+ *    - `STORY_ROUND_CAP`: the round at which a fight is decided on the board, in place
+ *      of `MAX_ROUNDS` (50). Same ladder either way: Home slots captured, then cards
+ *      standing, then HP.
+ *  Measured on 240 simulated fights (8 nodes, the beginner dial on the enemy): 0 winner
+ *  changes from the deadlock rule alone; with the cap, 2 fights changed hands (both
+ *  enemy wins that became player wins, in a late landmark), mean length 20.4 -> 17.3
+ *  rounds, longest 50 -> 30. */
+export const STORY_DEADLOCK_ROUNDS = 4;
+export const STORY_ROUND_CAP = 30;
+
 export const PLAYER_DEPLOY = 1;
 export const ENEMY_DEPLOY = 0;
 

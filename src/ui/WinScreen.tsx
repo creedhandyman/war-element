@@ -87,6 +87,18 @@ export function WinScreen(props: {
             win.winner === me
               ? <>The opponent surrendered on round {game.round}.</>
               : <>You surrendered the match on round {game.round}.</>
+          ) : drawn && win.by === "deadlock" ? (
+            <>
+              Round {game.round} — a stalemate with{" "}
+              <b style={{ color: "var(--ink)" }}>nothing to separate you</b>.
+            </>
+          ) : win.by === "deadlock" ? (
+            <>
+              Round {game.round} — nobody could break the stalemate.{" "}
+              {youWon ? "You take it" : `${them} takes it`} on{" "}
+              <b style={{ color: "var(--ink)" }}>the board</b> —{" "}
+              {game.domination ? "Points held first" : "captures first"}, then cards standing, then HP.
+            </>
           ) : drawn && win.by === "timeout" ? (
             <>
               Time ran out on round {game.round} with{" "}
