@@ -3077,6 +3077,22 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
   and `play_retention` (cohort D1/D3/D7 among humans) — read those, not
   `play_funnel`, which counts the automated opens (169 devices ever vs 9 humans
   on 2026-10-17).
+- **Daily goals (2026-10-17)**: three goals a day (`data/goals.ts`), shown as a
+  Home card under the daily reward once the first node is cleared
+  (`ui/DailyGoals.tsx`). WHICH three is a pure function of the date (one easy /
+  medium / hard, never two on the same event; pool = play 2, win 1, win a story
+  fight, win an Arena match, win 2, win 3, win 2 story, win 2 Arena), so nothing
+  is stored or rolled. Progress and claims are ledgered in `save.gifts` for
+  today only (`gc:<day>:<event>:<n>`, `gk:<day>:<goalId|bonus>`, other days swept
+  on the next write) so an older build rewriting the save keeps them. Rewards
+  10 / 15 / 20 (by tier) + `GOAL_BONUS` 15 once all three are claimed = 55 a day,
+  about one pack — tune `GOAL_POOL` / `GOAL_BONUS`. Events come from ONE App effect
+  on game-over (`goalSettled`), not the three settle paths; `goalEventsFor`
+  decides what counts: nothing for a concession or a match under 3 rounds, never
+  the tutorial / Training Ground / hot-seat; a story win is also `story_won`; an
+  Arena win vs AI (not online, Void Tower or an event) is also `arena_won`. A
+  claimable goal lights the Home tab dot (`navAttention`). Not done: goals about
+  packs or crafting (they need shards to be possible), a streak across days.
 - **Stalled fights (2026-10-17)**: a simulated first run had 13-27% of its story
   fights past round 30 (boards where both sides had played everything and sat at
   full health, or one card was slowly chipped down) — round 45 on a phone is

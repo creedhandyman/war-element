@@ -11,10 +11,13 @@ import type { StorySave } from "../data/story";
 import { freePacks } from "../data/story";
 import { dailyStatus, localDay } from "../data/daily";
 import { claimableAchievements } from "../data/achievements";
+import { goalsToday } from "../data/goals";
 
 export function navAttention(save: StorySave, today: string = localDay()): { home: boolean; shop: boolean } {
   return {
-    home: !dailyStatus(save, today).claimed || claimableAchievements(save).length > 0,
+    // A finished goal only counts once its card is on Home (after the first node is cleared).
+    home: !dailyStatus(save, today).claimed || claimableAchievements(save).length > 0
+      || (save.cleared.length > 0 && goalsToday(save, today).claimable),
     shop: freePacks(save) > 0,
   };
 }

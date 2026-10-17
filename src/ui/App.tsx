@@ -250,6 +250,7 @@ import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
 import { tapWords } from "./pointer";
 import { navAttention } from "./nav-attention";
+import { claimGoal, goalEventsFor, recordGoalEvent } from "../data/goals";
 import { shouldConfirmPass } from "./pass-guard";
 import { useMatchSounds } from "./match-sounds";
 import { playLevelUp, playSfx } from "./sfx";
@@ -1936,6 +1937,34 @@ export function App() {
       dealStreakFight(tierForStreak(climbed.ladder.streak, boardSize), boardSize, p2DeckId);
     }
   }, [started, storyNode, game, p2DeckId, boardSize, arenaGame, story, online, trainingRun]);
+
+  // DAILY GOALS (data/goals.ts): what a finished match adds to today's goals. Its own
+  // effect rather than another branch of the three settle paths above, so story,
+  // arena, tower and online all count the same way and once per match. Not the
+  // tutorial or a lesson, not hot-seat (one player can win both sides), and not a
+  // match that was conceded or never got going — conceding on round 1 must not be
+  // the fastest way to a goal.
+  const goalSettled = useRef<GameState | null>(null);
+  useEffect(() => {
+    if (!started || game.phase !== "gameover" || goalSettled.current === game) return;
+    goalSettled.current = game;
+    if (tutorialRun || trainingRun || twoPlayer || !game.win) return;
+    const events = goalEventsFor({
+      won: game.win.winner === (online ? online.myId : "P1"),
+      by: game.win.by,
+      round: game.round,
+      story: !!storyNode,
+      online: !!online,
+      tower: !!game.voidTower,
+      event: !!eventForDeck(p2DeckId),
+    });
+    if (!events.length) return;
+    setStory((prev) => {
+      const next = events.reduce((s, ev) => recordGoalEvent(s, ev), prev);
+      saveStory(next);
+      return next;
+    });
+  }, [started, game, tutorialRun, trainingRun, twoPlayer, online, storyNode, p2DeckId]);
 
   useEffect(() => {
     if (me) setViewSide(me);
@@ -4990,6 +5019,7 @@ export function App() {
   const claimAch = (id: string) => payOut((s) => claimAchievement(s, id));
   const claimAllAch = () => payOut(claimAllAchievements);
   const claimToday = () => payOut((s) => claimDaily(s));
+  const claimGoalNow = (id: string) => payOut((s) => claimGoal(s, id));
   const shownTab: Tab = storyOpen ? "story" : tab;
   const shownTabRef = useRef(shownTab);
   const goTabRef = useRef(goTab);
@@ -7019,6 +7049,7 @@ export function App() {
           onRules={() => setRulesOpen(true)}
           onAchievements={() => setHomeAchievements(true)}
           onClaimDaily={claimToday}
+          onClaimGoal={claimGoalNow}
           accountEmail={accountEmail}
         />
       )}

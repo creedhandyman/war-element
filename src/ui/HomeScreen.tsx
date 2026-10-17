@@ -39,6 +39,7 @@ import { deckArtUrl, finisherOf } from "./DeckPickerSheet";
 import { EL_COLOR, EL_ICON } from "./shared";
 import { ACHIEVEMENTS, achievementState } from "../data/achievements";
 import { DailyReward } from "./DailyReward";
+import { DailyGoals } from "./DailyGoals";
 import { dismissBackupNudge, readNudgeState, shouldShowBackupNudge } from "./backup-nudge";
 import { signedIn as hasCloudSession } from "./cloud-autosave";
 import { track } from "../net/telemetry";
@@ -105,6 +106,8 @@ export function HomeScreen(props: {
   onTraining: () => void;
   /** Take today's login reward. */
   onClaimDaily: () => void;
+  /** Take a finished daily goal's reward (or the all-three bonus, id "bonus"). */
+  onClaimGoal: (id: string) => void;
   /** Signed-in address, or null. Only used to label the button, so the home
    *  screen never has to know how any of that works. */
   accountEmail: string | null;
@@ -287,6 +290,10 @@ export function HomeScreen(props: {
         </button>
 
         <DailyReward save={save} onClaim={props.onClaimDaily} />
+
+        {/* Goals wait for the first win: the first session is already full of things
+            to do, and a goal about a fight needs a player who has had one. */}
+        {save.cleared.length > 0 && <DailyGoals save={save} onClaim={props.onClaimGoal} />}
 
         {showBackup && (
           <section className="home-backup">
