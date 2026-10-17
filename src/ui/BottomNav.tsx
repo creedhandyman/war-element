@@ -31,6 +31,8 @@ export function BottomNav(props: {
    *  currency exists without a tutorial — it is earned in Story and spent here,
    *  and nothing else in the UI connects those two places. */
   spendable?: number;
+  /** Tabs with something waiting to be collected (nav-attention.ts): a dot, no number. */
+  attention?: Partial<Record<Tab, boolean>>;
 }) {
   return (
     <nav className="bnav" aria-label="Main">
@@ -49,7 +51,9 @@ export function BottomNav(props: {
           >
             <span className="bnav-ico">
               <Icon size={22} strokeWidth={on ? 2.4 : 1.9} aria-hidden="true" />
-              {id === "shop" && (props.spendable ?? 0) > 0 && <i className="bnav-dot" />}
+              {props.attention?.[id]
+                ? <i className="bnav-dot attn" />
+                : id === "shop" && (props.spendable ?? 0) > 0 && <i className="bnav-dot" />}
             </span>
             <span className="bnav-lbl">{label}</span>
           </button>

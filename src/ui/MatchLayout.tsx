@@ -62,6 +62,13 @@ function LogList(props: { children: ReactNode }) {
 
 export type MobilePanel = "log" | "spells" | null;
 
+/** What the speaker button will do next, since the glyph alone cannot say. */
+const SOUND_LABEL = {
+  all: "Sound on — tap for effects only",
+  effects: "Effects only — tap to silence",
+  off: "Sound off — tap to turn on",
+} as const;
+
 export function MatchLayout(props: {
   /** `.wrap` modifiers. Kept as three booleans rather than a className string
    *  so a caller cannot quietly invent a fourth state the CSS has never seen. */
@@ -82,6 +89,8 @@ export function MatchLayout(props: {
   onToggleLogRail: () => void;
 
   musicMuted: boolean;
+  /** All / effects only / silent. Absent = derived from `musicMuted`. */
+  soundMode?: "all" | "effects" | "off";
   onToggleMusic: () => void;
 
   /** Slots, in render order. */
@@ -100,6 +109,7 @@ export function MatchLayout(props: {
   children?: ReactNode;
 }) {
   const { mobilePanel, setMobilePanel, logIsStrip } = props;
+  const soundMode = props.soundMode ?? (props.musicMuted ? "off" : "all");
 
   return (
     // Hidden by class rather than unmounted before a match: things that measure
@@ -116,10 +126,10 @@ export function MatchLayout(props: {
       <button
         className="music-toggle"
         onClick={props.onToggleMusic}
-        title={props.musicMuted ? "Unmute music" : "Mute music"}
-        aria-label={props.musicMuted ? "Unmute music" : "Mute music"}
+        title={SOUND_LABEL[soundMode]}
+        aria-label={SOUND_LABEL[soundMode]}
       >
-        {props.musicMuted ? "🔇" : "🔊"}
+        {soundMode === "off" ? "🔇" : soundMode === "effects" ? "🔉" : "🔊"}
       </button>
 
       {props.ribbon}

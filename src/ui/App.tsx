@@ -249,6 +249,7 @@ import { LessonCoach } from "./LessonCoach";
 import { TrainingGround } from "./TrainingGround";
 import { FirstRun, TutorialDone, TutorialRail } from "./TutorialRail";
 import { tapWords } from "./pointer";
+import { navAttention } from "./nav-attention";
 import { useMatchSounds } from "./match-sounds";
 import { playLevelUp, playSfx } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
@@ -1438,7 +1439,7 @@ export function App() {
     (started && game.phase !== "gameover"
       ? battlePlaylist(resolveDeckCards(p1DeckId), resolveDeckCards(p2DeckId))
       : "menu");
-  const { muted: musicMuted, toggle: toggleMusic } = useGameMusic(musicTrack);
+  const { muted: musicMuted, mode: soundMode, toggle: toggleMusic } = useGameMusic(musicTrack);
   /** The deck the LOCAL player holds. Online, a guest sits in the P2 seat, so
    *  "your deck" is not always P1's — the versus card must not show the host's
    *  deck as yours. */
@@ -5124,6 +5125,7 @@ export function App() {
       logIsStrip={logIsStrip}
       onToggleLogRail={() => setLogCollapsed((v) => !v)}
       musicMuted={musicMuted}
+      soundMode={soundMode}
       onToggleMusic={toggleMusic}
       ribbon={<PhaseRibbon game={game} />}
       logEntries={logEntries}
@@ -7229,6 +7231,7 @@ export function App() {
         <BottomNav
           tab={storyOpen ? "story" : tab}
           spendable={Object.values(story.hero?.essence ?? {}).reduce((a, b) => a + b, 0)}
+          attention={navAttention(story)}
           // Tapping Arena while already in it returns to the list. Here and
           // not in `goTab`, which the back button also calls to restore a tab —
           // that must land on the screen it left, not reset it.

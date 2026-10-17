@@ -1116,10 +1116,14 @@ export function Shop(props: {
                   const foil = opened.shiny.includes(id);
                   const isNew = opened.fresh.includes(id) && opened.pulled.indexOf(id) === i;
                   return (
-                    <span key={i} className={`pack-chip r-${d.rarity ?? "rare"} ${isNew ? "new" : ""} ${foil ? "foil" : ""}`}
-                      title={`${d.name}${isNew ? " — new" : ""}${foil ? " — foil" : ""}`}>
-                      <img src={cardThumbSrc(d)} alt=""
-                        onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                    <span key={i} className={`pack-chipcol ${isNew || foil ? "new" : ""}`}>
+                      <span className={`pack-chip r-${d.rarity ?? "rare"} ${isNew ? "new" : ""} ${foil ? "foil" : ""}`}
+                        title={`${d.name}${isNew ? " — new" : ""}${foil ? " — foil" : ""}`}>
+                        <img src={cardThumbSrc(d)} alt=""
+                          onError={(e) => { e.currentTarget.style.visibility = "hidden"; }} />
+                      </span>
+                      {/* A tooltip does not exist on a phone: the name is printed. */}
+                      <i className="pack-chipname">{d.name}</i>
                     </span>
                   );
                 })}

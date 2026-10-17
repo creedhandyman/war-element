@@ -3042,6 +3042,18 @@ CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
   and the pack tally; one that carries a free pack, and every later one, keeps
   its full card. The tutorial's Skip is a quiet link INSIDE the instruction
   banner (`.tut-skip`), no longer a corner pill sitting on the phase ribbon.
+- **Review pass (2026-10-16)**: the speaker button is three states now — all /
+  effects only (🔉) / silent — via `we_music_muted` + `we_sfx_muted`
+  (`nextSoundMode`, `useGameMusic`); a device that never set the effects key
+  follows the music mute, as before. The tab bar shows a plain RED dot when
+  something is waiting (`ui/nav-attention.ts`: Home = unclaimed daily reward or
+  claimable achievements; Shop = free packs; the old rainbow dot still means
+  unspent essence). The pack tally shows five full cards WITH NAMES (a title
+  attribute does not exist on a phone); 54px so all five fit one row and the
+  sheet keeps its gutters. NOT done, needs the owner: there is NO privacy-policy
+  link anywhere in the game (Play's Data safety form needs one; telemetry is
+  device id + app interactions), and the play_events funnel is polluted by
+  automated opens (bursts of 20-30 devices an hour with zero engagement).
 - **Two see-through panels**: `.gd-tip` (the first-run guide card) had a 16%-
   alpha gradient and nothing under it, so the page behind collided with the
   first sentence a new player reads — it has a solid base now. The pack reveal

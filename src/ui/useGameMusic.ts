@@ -79,10 +79,26 @@ export function battlePlaylist(...decks: string[][]): MusicTrack[] {
   return out.length ? out : ["battle"];
 }
 
-export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean; toggle: () => void } {
+/** The speaker button's three states: everything, effects without the soundtrack
+ *  (the usual wish of someone listening to a podcast), and silence. */
+export type SoundMode = "all" | "effects" | "off";
+
+export function nextSoundMode(musicMuted: boolean, sfxMuted: boolean): { music: boolean; sfx: boolean } {
+  // Returns the NEW (muted) flags for music and effects.
+  if (!musicMuted) return { music: true, sfx: false };   // all -> effects only
+  if (!sfxMuted) return { music: true, sfx: true };      // effects only -> silent
+  return { music: false, sfx: false };                   // silent -> all
+}
+
+export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean; sfxMuted: boolean; mode: SoundMode; toggle: () => void } {
   const [muted, setMuted] = useState<boolean>(
     () => typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1",
   );
+  const [sfxMuted, setSfxMuted] = useState<boolean>(() => {
+    if (typeof localStorage === "undefined") return false;
+    const own = localStorage.getItem("we_sfx_muted");
+    return own === "1" ? true : own === "0" ? false : localStorage.getItem("we_music_muted") === "1";
+  });
   const [unlocked, setUnlocked] = useState(false);
   // The mixer (music-mixer.ts) owns the elements, the fades and the bass
   // filter. Its elements are still built on demand rather than up front: the
@@ -136,12 +152,16 @@ export function useGameMusic(track: MusicTrack | MusicTrack[]): { muted: boolean
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [current, key, muted, unlocked]);
 
-  const toggle = () =>
-    setMuted((v) => {
-      const next = !v;
-      try { localStorage.setItem("we_music_muted", next ? "1" : "0"); } catch { /* ignore */ }
-      return next;
-    });
+  const toggle = () => {
+    const next = nextSoundMode(muted, sfxMuted);
+    setMuted(next.music);
+    setSfxMuted(next.sfx);
+    try {
+      localStorage.setItem("we_music_muted", next.music ? "1" : "0");
+      localStorage.setItem("we_sfx_muted", next.sfx ? "1" : "0");
+    } catch { /* ignore */ }
+  };
+  const mode: SoundMode = !muted ? "all" : !sfxMuted ? "effects" : "off";
 
-  return { muted, toggle };
+  return { muted, sfxMuted, mode, toggle };
 }

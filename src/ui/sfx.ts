@@ -16,7 +16,14 @@
  *  toggle, and a player who muted the soundtrack did not ask to be chimed at. */
 function muted(): boolean {
   try {
-    return typeof localStorage !== "undefined" && localStorage.getItem("we_music_muted") === "1";
+    if (typeof localStorage === "undefined") return false;
+    // Effects have their own switch (`we_sfx_muted`). A device that has never set it
+    // follows the music mute, as it always did, so nobody who muted the game before
+    // this existed is suddenly chimed at.
+    const own = localStorage.getItem("we_sfx_muted");
+    if (own === "1") return true;
+    if (own === "0") return false;
+    return localStorage.getItem("we_music_muted") === "1";
   } catch {
     return false; // private mode can throw on read; silence is not the default
   }
