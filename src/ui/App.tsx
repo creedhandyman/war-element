@@ -252,8 +252,7 @@ import { tapWords } from "./pointer";
 import { navAttention } from "./nav-attention";
 import { claimGoal, goalEventsFor, recordGoalEvent } from "../data/goals";
 import { shouldConfirmPass } from "./pass-guard";
-import { useMatchSounds } from "./match-sounds";
-import { playLevelUp, playSfx } from "./sfx";
+import { playLevelUp } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
 import { TUTORIALS } from "./tutorials";
 import { track } from "../net/telemetry";
@@ -910,7 +909,6 @@ export function App() {
   const [tutorialRun, setTutorialRun] = useState<{ id: TutorialId; from: "first" | "training" } | null>(null);
   const tutDef = tutorialRun ? TUTORIALS[tutorialRun.id] : null;
   // ...and a soft tick when you pick something up, so a tap always answers.
-  useEffect(() => { if (started && sel) playSfx("tap"); }, [sel, started]);
   // ANONYMOUS PLAY EVENTS (net/telemetry.ts): a device's first open — a fresh
   // save or one from before — and one open a day. Read once, at launch.
   useEffect(() => {
@@ -1687,7 +1685,6 @@ export function App() {
   // when one falls, two soft notes when the move comes back to you — read off the
   // state diff (match-sounds.ts), so it covers the player, the AI, an online
   // opponent and the scripted lessons alike.
-  useMatchSounds(game, started, me !== null);
 
   /** TELL THE DIAL HOW THAT WENT — see `recordSkillMatch` in engine/skill.ts.
    *

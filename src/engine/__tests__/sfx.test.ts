@@ -10,6 +10,8 @@
 // browsers, suspended until a gesture in most, and refused outright in a few,
 // and none of that is worth an exception on a screen celebrating something.
 import { afterEach, describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { playLevelUp } from "../../ui/sfx";
 
 interface Made { freq: number; started: number }
@@ -100,5 +102,24 @@ describe("the level-up chime", () => {
       getItem() { throw new Error("denied"); },
     };
     expect(() => playLevelUp()).not.toThrow();
+  });
+});
+
+describe("effects are kept for moments, not actions", () => {
+  // The first sound pass answered every tap, card landing, blow, turn and claim, and
+  // the owner found it far too much. Pin the shape so it doesn't creep back.
+  // Every file that used to play something; a new call site belongs in this list.
+  const UI = ["App", "Celebration", "Shop", "DailyGoals", "DailyReward", "AchievementToast", "LevelUpModal", "WinScreen", "StoryResult"]
+    .map((f) => join(__dirname, "..", "..", "ui", f + ".tsx"));
+
+  it("only a win and a big pull have a sound", () => {
+    const src = readFileSync(join(__dirname, "..", "..", "ui", "sfx.ts"), "utf8");
+    expect(src).toContain('export type Sfx = "win" | "epic" | "legend" | "mythic";');
+  });
+
+  it("nothing plays on a tap, a placement, a hit, a turn or a claim", () => {
+    const used = UI.flatMap((p) => [...readFileSync(p, "utf8").matchAll(/playSfx\(([^)]*)\)/g)].map((m) => m[1]));
+    for (const arg of used) expect(arg, `playSfx(${arg})`).toMatch(/^("win"|kind)$/);
+    expect(used.length).toBeLessThanOrEqual(3);
   });
 });

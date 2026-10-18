@@ -3004,22 +3004,19 @@ player played the first ten minutes at 375x812 (real taps, headless Edge over
 CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
 7-12): 18 new devices, 5 finished the scripted first battle.
 
-- **Sound** (`ui/sfx.ts`): the game had music and ONE chime. `playSfx(kind)`
-  now covers tap, place, hit, break, win, lose, claim, turn and the pack's tear
-  plus a flip that climbs with rarity (rare < epic < legend < mythic). All
-  synthesized (no files), one limiter bus, per-sound min gaps, muted by the
-  existing music toggle (`we_music_muted`), never throws. `renderSfx(ctx, kind,
-  t)` draws onto ANY context, so a level check is an OfflineAudioContext render
-  (peaks 0.05-0.45, no NaN). Phone speakers give up below ~150 Hz, so the
-  thud is built from a mid-range knock; do not retune it on a desktop speaker.
-  `buzz()` = short vibration (Android only), off for reduced motion.
-- **What a step sounds like** (`ui/match-sounds.ts`): `soundsForStep(prev, next)`
-  is a pure state diff (card arrived -> place, toughness fell -> hit scaled by
-  damage, card gone -> break; a fresh board dealt at once, a lower round or a
-  rematch = silence). `yourMoveReturned` = the soft two-note cue when
-  `needsInput` hands the move back to you. `useMatchSounds(game, started,
-  me !== null)` is called in App right after `me`. Tested, incl. against the
-  real scripted battle (3+ places, exactly 2 breaks).
+- **Sound** (`ui/sfx.ts`) — **deliberately sparse (2026-10-17)**. The first pass
+  (2026-10-13) answered every tap, card landing, blow, turn and claim with a
+  synthesized sound and the owner found it "very bad... just too much". Now
+  only moments get one: the win fanfare (`Celebration`), and a pack card that is
+  Epic/foil, Legendary or Mythic (`Shop`), each a soft bell phrase (sine + quiet
+  octave, 30 ms attack, long fall, mid-range only). A loss, a Rare, a pack tear,
+  taps, placements, hits, breaks, the turn cue and every claim are SILENT; the
+  pre-existing level-up chime stays. `playSfx` has a 700 ms global gap. Do not add
+  a per-action sound — `sfx.test.ts` pins the `Sfx` type and the call sites.
+  Muted by the speaker toggle (`we_music_muted` / `we_sfx_muted`), never throws,
+  `renderSfx(ctx, kind, t)` draws onto any context. `buzz()` = Android vibration
+  on a win and big pulls only, off for reduced motion. The old per-step
+  `match-sounds.ts` diff was deleted.
 - **The win moment** (`ui/Celebration.tsx`): confetti (30 transform/opacity
   pieces, one burst, none for reduced motion) + fanfare + buzz on a win;
   just the low three-note sigh on a loss. Mounted INSIDE the `.overlay`, beside

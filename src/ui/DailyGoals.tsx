@@ -10,7 +10,6 @@ import { useEffect, useState } from "react";
 import { GOAL_BONUS, goalsToday } from "../data/goals";
 import { localDay } from "../data/daily";
 import type { StorySave } from "../data/story";
-import { buzz, playSfx } from "./sfx";
 
 export function DailyGoals(props: { save: StorySave; onClaim: (id: string) => void }) {
   const [today, setToday] = useState(localDay);
@@ -27,7 +26,7 @@ export function DailyGoals(props: { save: StorySave; onClaim: (id: string) => vo
   const st = goalsToday(props.save, today);
   const claimedCount = st.goals.filter((g) => g.claimed).length;
   const allDone = st.bonusOpen && st.bonusClaimed;
-  const claim = (id: string) => { playSfx("claim"); buzz(15); props.onClaim(id); };
+  const claim = (id: string) => props.onClaim(id);
 
   return (
     <section className={`home-goals${allDone ? " done" : ""}`}>

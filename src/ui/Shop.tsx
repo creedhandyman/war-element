@@ -351,7 +351,6 @@ export function Shop(props: {
     setDrag(0);
     setLastRefund(Object.values(result.refund).reduce((a, b) => a + b, 0));
     props.onSave(applyPack(save, result));
-    playSfx("tear");
 
     const still = typeof window !== "undefined"
       && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
@@ -403,9 +402,8 @@ export function Shop(props: {
       // a chord for a Mythic. A foil is never less than an Epic's.
       const r = getDef(top.id).rarity;
       const foil = opened?.shiny.includes(top.id) ?? false;
-      const kind = r === "mythic" ? "mythic" : r === "legendary" ? "legend" : r === "epic" || foil ? "epic" : "rare";
-      playSfx(kind);
-      if (kind !== "rare") buzz(kind === "mythic" ? [60, 40, 120] : kind === "legend" ? [40, 30, 70] : 25);
+      const kind = r === "mythic" ? "mythic" : r === "legendary" ? "legend" : r === "epic" || foil ? "epic" : null;
+      if (kind) { playSfx(kind); buzz(kind === "mythic" ? [60, 40, 120] : kind === "legend" ? [40, 30, 70] : 25); }
     };
     if (ms === 0) { go(); return; }
     setCharging(true);
