@@ -2047,7 +2047,7 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 /* The SP stat carries an inline SVG icon (1em tall) where its siblings use text
    glyphs; flex-centering each stat span keeps the icon + number on the same
    centerline instead of riding higher than the rest. */
-.hc-stats span, .dt-stats span, .announce-stats span, .cd-val { display: inline-flex; align-items: center; }
+.hc-stats span, .dt-stats span, .cd-val { display: inline-flex; align-items: center; }
 /* The highlighted hand card's readout (Hand.tsx `HandReadout`). Phones and
    tablets only — see the portrait block. */
 .hand-readout { display: none; }
@@ -5310,8 +5310,11 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   position: fixed; inset: 0; z-index: var(--z-toast); display: grid; place-items: center; pointer-events: auto;
   background: radial-gradient(circle at 50% 45%, color-mix(in srgb, var(--el, #26307a) 30%, rgba(4,4,8,0.84)), rgba(4,4,8,0.94));
   opacity: 0;
-  animation: castflash-scrim 2s ease-out both;
+  animation: announce-scrim 2s ease-out both;
 }
+/* Clears EARLY — by the time the card is halfway down, the square it is
+   heading for has to be visible, or it is being lowered into a dark pane. */
+@keyframes announce-scrim { 0% { opacity: 0; } 9% { opacity: 1; } 56% { opacity: 1; } 86% { opacity: 0; } 100% { opacity: 0; } }
 .announce-burst {
   position: absolute; width: min(86vw, 520px); aspect-ratio: 1; border-radius: 50%; pointer-events: none;
   background: radial-gradient(circle, rgba(255,255,255,0.9), color-mix(in srgb, var(--rar, #ffb02e) 62%, transparent) 44%, transparent 70%);
@@ -5319,17 +5322,52 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 }
 /* Badge + card scale in together — the entrance animation lives on the stack,
    not the card, now that the two are siblings. */
+/* THE ENTRANCE, not the spell flash's. `castflash-card` ends by puffing up and
+   fading — right for a spell's art, wrong for a card that is now going to be
+   LOWERED somewhere: it would fade out before it got there. This holds. */
 .announce-stack {
   display: flex; flex-direction: column; align-items: center; gap: 12px;
   opacity: 0;
-  animation: castflash-card 2s cubic-bezier(0.2, 0.9, 0.25, 1) both;
+  animation: announce-in 620ms cubic-bezier(0.2, 0.9, 0.25, 1) both;
 }
-.announce-card {
-  position: relative; width: min(72vw, 300px); border-radius: 16px; overflow: hidden;
-  border: 2px solid var(--rar, var(--gold-lit));
+@keyframes announce-in {
+  0% { transform: scale(0.4) rotate(-6deg); opacity: 0; }
+  62% { transform: scale(1.06) rotate(1deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+/* The badge goes out with the scrim while the card flies on without it. */
+.announce.dropping .announce-rar,
+.announce.dropping .announce-who,
+.announce.dropping .announce-burst { opacity: 0; transition: opacity 260ms ease-out; }
+
+/* The card is the BATTLE CARD (`.hcard .carded` + BattleFace), at entrance
+   size. `.hcard` is a container query, so every number and the name scale with
+   this width — which is the whole reason the hand's face can be reused at 4x
+   its size without a second set of rules. The fan's own geometry is undone:
+   this one is not in a hand. */
+.announce-card.hcard {
+  width: min(66vw, 268px); height: auto; aspect-ratio: 112 / 154;
+  margin: 0; transform: none; transition: none; cursor: default;
+  border-radius: 16px; border: 2px solid var(--rar, var(--gold-lit));
   background: linear-gradient(180deg, #12131f, #0a0b12);
   box-shadow: 0 0 0 1px rgba(255,255,255,0.08), 0 22px 60px rgba(0,0,0,0.72),
               0 0 54px color-mix(in srgb, var(--rar, #ffb02e) 60%, transparent);
+}
+.announce-card.hcard .card-art { border-radius: 13px; }
+/* LOWERED ONTO THE FIELD. React measures the square and hands over the delta;
+   this is the flight. Ease-IN rather than out — a thing being set down gathers
+   speed and then arrives, where ease-out reads as being thrown. The card thins
+   out only at the very end so it is still solid while it is travelling, and the
+   board is already clear behind it by then (the scrim is going too). */
+.announce-card.hcard[style*="--dx"] {
+  transition: transform var(--drop-ms, 760ms) cubic-bezier(0.5, 0, 0.75, 0.3),
+              opacity 200ms linear var(--drop-ms, 760ms);
+  transform: translate(var(--dx), var(--dy)) scale(var(--k));
+  opacity: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .announce-stack { animation-duration: 1ms; }
+  .announce-card.hcard[style*="--dx"] { transition: none; }
 }
 .announce-rar {
   font-family: var(--head); font-size: 12px; font-weight: 900; letter-spacing: 0.2em;
@@ -5337,26 +5375,9 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   background: var(--rar, var(--gold-lit));
   box-shadow: 0 0 22px color-mix(in srgb, var(--rar, #ffb02e) 80%, transparent);
 }
-/* Top-biased, like every other card-art surface in the sheet (10-22%). This
-   one was left at the default 50%, and centring a portrait painting in a square
-   frame takes the crop off BOTH ends — which on a card whose subject is its
-   head meant the entrance shot arrived decapitated. Anchoring near the top
-   spends the whole crop on the bottom instead. */
-.announce-art {
-  display: block; width: 100%; aspect-ratio: 1 / 1;
-  object-fit: cover; object-position: 50% 12%;
-}
-.announce-noart {
-  display: grid; place-items: center; font-size: 120px; color: var(--el, #7d92e8);
-  background: linear-gradient(160deg, color-mix(in srgb, var(--el, #3a4258) 40%, #0b0d16), #0b0d18);
-  text-shadow: 0 0 30px var(--el, #7d92e8);
-}
-.announce-meta { padding: 10px 12px 14px; text-align: center; }
-.announce-name { font-family: var(--head); font-size: 21px; font-weight: 900; color: #f4efe2; letter-spacing: 0.02em; }
-.announce-sub { margin-top: 2px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.07em;
-  text-transform: uppercase; color: var(--ink-dim); }
-.announce-stats { display: flex; justify-content: center; gap: 12px; margin-top: 7px;
-  font-size: 13px; font-weight: 800; color: var(--ink); font-variant-numeric: tabular-nums; }
+/* The art/meta/stat rules that used to live here are gone with the layout they
+   dressed: the entrance wears the battle card's own face now (`.hcard` +
+   BattleFace), which brings its own. */
 .announce-who {
   position: absolute; bottom: max(9vh, 54px); font-family: var(--head); font-size: 12px;
   font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: var(--ink-dim);

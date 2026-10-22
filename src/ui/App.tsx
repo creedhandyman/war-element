@@ -631,7 +631,13 @@ export function App() {
   // full-screen. My own summon holds the intent and dispatches AFTER the
   // announcement (a true preview); the opponent's resolves outside our dispatch,
   // so those are detected on arrival — see the effect below.
-  const [announce, setAnnounce] = useState<{ defId: string; mine: boolean } | null>(null);
+  // `at` is the square it is landing on — the entrance is LOWERED onto it (see
+  // SummonAnnounce). Known in all three paths: my own summon resolves the same
+  // landing row the engine will, and an opponent's is already placed by the
+  // state the announcement is being played against.
+  const [announce, setAnnounce] = useState<
+    { defId: string; mine: boolean; at?: { row: number; col: number } | null } | null
+  >(null);
   const announceTimerRef = useRef<number | null>(null);
   const seenBigRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
@@ -2119,7 +2125,12 @@ export function App() {
       // Marked seen BEFORE it lands, so the opponent-announce effect does not
       // announce it a second time once it is on the board.
       seenBigRef.current.add(show.instanceId);
-      setAnnounce({ defId: show.summonDefId, mine: false });
+      setAnnounce({
+        defId: show.summonDefId, mine: false,
+        // Where it is about to be standing — `next` is the state this
+        // announcement is holding back, so the square is already decided.
+        at: stagedCast.next.cards[show.instanceId]?.pos ?? null,
+      });
     }
     timers.push(window.setTimeout(() => {
       if (isSpell) setCastFlash(null);
@@ -2942,7 +2953,7 @@ export function App() {
     const opps: PlayerId[] = online
       ? seatsOf(game).filter((p) => p !== online.myId)
       : twoPlayer ? [] : ["P2"];
-    let fresh: string | null = null;
+    let fresh: { defId: string; at: { row: number; col: number } | null } | null = null;
     for (const c of Object.values(game.cards)) {
       if (!c.pos) continue;
       // Keyed by instanceId (unique per summon), so a card sitting on the board
@@ -2951,10 +2962,11 @@ export function App() {
       // preview in confirmSummon, and the owner check below skips it regardless.
       if (seenBigRef.current.has(c.instanceId)) continue;
       seenBigRef.current.add(c.instanceId);
-      if (opps.includes(c.owner) && announces(c.defId) && fresh === null) fresh = c.defId;
+      if (opps.includes(c.owner) && announces(c.defId) && fresh === null)
+        fresh = { defId: c.defId, at: c.pos ?? null };
     }
     if (fresh && announceTimerRef.current === null && castTimerRef.current === null) {
-      setAnnounce({ defId: fresh, mine: false });
+      setAnnounce({ defId: fresh.defId, mine: false, at: fresh.at });
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
         setAnnounce(null);
@@ -3465,7 +3477,12 @@ export function App() {
       const defId = card.defId;
       setStaged(null);
       setSel(null);
-      setAnnounce({ defId, mine: true });
+      // The same three-step resolve as the SUMMON reducer (phases.ts): the row
+      // asked for, else the first open one up the column, else the home row.
+      // Reading it here rather than guessing the home row means the card is
+      // lowered onto the square it actually takes when the home row is full.
+      const landing = row ?? summonLandingRow(game, me, col) ?? homeRow(me, game.boardSize);
+      setAnnounce({ defId, mine: true, at: { row: landing, col } });
       setHint(`Summoning <b>${getDef(defId).name}</b>…`);
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
@@ -5921,7 +5938,7 @@ export function App() {
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} ms={castFlash.ms} />}
       {delivering && <div className="input-shield" aria-hidden="true" />}
-      {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
+      {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} at={announce.at} />}
 
       {/* REJOIN. A match this device was in when the app closed, offered on
           whatever screen the player lands on — an app reopens where it starts,

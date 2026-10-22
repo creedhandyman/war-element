@@ -1398,12 +1398,28 @@ engine runtime and no React, so it stays testable headlessly
   MAP, not the picker: continuing is the common case. A battle takes its board
   size and Blight from the NODE's own region (`regionOfNode`), never from
   whichever map is on screen.
-- **The squad lives under the map** (`StorySquad.tsx`), not only inside prep.
-  It used to surface one tap from a battle, which is the worst moment to learn
-  your only healer is in another region. Locals fight free, so the editor only
-  chooses what you CARRY; at home (`squadCapInRegion` returns null) everything
-  fights and the strip says so instead of showing an editor that can't change
-  anything. It writes through `packSquad`, the same call prep uses.
+- **THE PACKING STEP IS GONE — the collection travels** (owner, 2026-10-22:
+  play Story the way Hard already did, "just to simplify the process").
+  `squadLimitFor(save, region)` returns **null for everyone, everywhere**, and
+  every reader funnels through it: `poolForRegion` is the whole collection,
+  `autoSquad` packs nothing, `squadIsOfferable` is false (so StoryPrep's Squad
+  menu item, its "N/12 carried" readout and the pack panel never render) and
+  `packSquad` is a no-op. The strip under the map (`StorySquad.tsx`) renders
+  its home branch everywhere: "every card you own fights, in every region".
+  What it removes is a WHOLE STEP, not a number — a question asked at every
+  border, before you knew what you were walking into, answered through a second
+  screen, paid for by the one card you forgot. Every softening already made to
+  it said the same thing: it stopped blocking fights, it started packing
+  itself, it moved out of prep and under the map.
+  **The ladder is dormant, not deleted**: `squadCapFor` / `squadCapInRegion`
+  still describe the first run's progression (12 + 2 per Throne, none at home,
+  none once DUSK falls) and are still tested, so bringing the step back is one
+  function. Saves that hold `squads` keep them; they are not consulted, and a
+  test pins that a stale one does not quietly bench the collection.
+  **NOT the deck cap**: `deckCapFor` / `fightCap` still decide how many cards a
+  fight is, for both sides — Hard never lifted that either, and the test "the
+  fight is sized by the ladder" is what keeps the simplification from widening
+  the fight itself.
 - **There is no Leave button on the map.** The bottom nav is on that screen and
   all three of its other tabs already leave; a fifth exit was one more thing in
   a header that had run out of room.
@@ -1530,13 +1546,13 @@ engine runtime and no React, so it stays testable headlessly
   "Back to Hard mode?" banner on the map that puts it back on Hard WITHOUT
   resetting `cleared`. **Any new field that must outlive old builds needs the
   same treatment** — a copy in a list old loaders pass through.
-  **The whole collection plays everywhere** (owner, same day): `squadLimitFor(
-  save, region)` is null on a Hard run, so every region is home ground from the
-  first node — what the first run only gets once DUSK's Throne falls.
-  `poolForRegion`, `autoSquad`, `packSquad`, `squadIsOfferable`, StoryPrep and
-  StorySquad all read it. `squadCapInRegion(cleared, region)` is the first
-  run's ladder alone: never call it with a save in hand. The deck-size ladder
-  (`deckCapFor`, 6 up to 30) still resets and still applies.
+  **The whole collection plays everywhere** (owner, same day — and since
+  2026-10-22 this is true of the FIRST run too, see "the packing step is gone"
+  above, so it no longer separates the two modes). `squadCapInRegion(cleared,
+  region)` is the dormant first-run ladder: never call it with a save in hand —
+  `squadLimitFor` is what play asks. The deck-size ladder (`deckCapFor`, 6 up
+  to 30) still resets and still applies. What still makes Hard hard: that
+  ladder, the border bosses, the enemy squads and the foils.
   **...and every spell** (owner, same day): `spellsUnlockedIn` treats every
   region as fully walked on a Hard run, so `heroSpellShelf` is all 80 — the
   deck builder's campaign offer (`spellPool`), the automatic book and team
@@ -3004,6 +3020,29 @@ player played the first ten minutes at 375x812 (real taps, headless Edge over
 CDP) and these came out of it. The funnel that prompted it (play_funnel, Oct
 7-12): 18 new devices, 5 finished the scripted first battle.
 
+- **The legendary entrance IS the battle card, and it is lowered onto the
+  field** (owner, 2026-10-22). `SummonAnnounce.tsx` used to show the art square
+  with its own name/stat layout under it — a card face the player saw nowhere
+  else in the game, for two seconds, about a card they were about to be
+  holding. It now wears `BattleFace` (`ui/BattleFace.tsx`): the exact markup of
+  the hand card, extracted so there is ONE card face and the hand renders it
+  too. `.hcard` is a container query, so the same markup is a 112px hand card
+  and a 268px entrance with no second set of rules.
+  Then it flies: at `HOLD_MS` (1.12s of the 2s `ANNOUNCE_MS`) the card is
+  measured against the square it is landing on and transformed into it —
+  centre to centre, scaled by the SMALLER axis ratio so it lands inside the
+  slot. The maths is `dropOnto(card, slot)`, pure and exported because this
+  repo has no DOM in its tests (`summon-announce.test.ts`). The square comes
+  from App: my own summon resolves the landing row the same three-step way the
+  SUMMON reducer does (`intent.row ?? summonLandingRow ?? homeRow`, so a full
+  home row is handled), a staged opponent summon reads `next.cards[id].pos`,
+  and a late-detected arrival is already standing on it. `data-pos` is LOGICAL,
+  so the lookup is right on a flipped P2 board. No square, no board or reduced
+  motion → it just fades, which is what it always did. The scrim clears at 56%
+  of the run so the card is not being lowered into a dark pane, and the
+  announce keyframes are its own now (`announce-in` / `announce-scrim`):
+  `castflash-card` ends by puffing up and fading, which is right for a spell's
+  art and wrong for a card that is about to go somewhere.
 - **Sound** (`ui/sfx.ts`) — **deliberately sparse (2026-10-17)**. The first pass
   (2026-10-13) answered every tap, card landing, blow, turn and claim with a
   synthesized sound and the owner found it "very bad... just too much". Now
