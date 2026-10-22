@@ -17,7 +17,7 @@ import {
   borderBossFor, buildFormation, campaignComplete, canStartHard, capForNode, deckCapFor,
   everCleared, fightBoardFor, fightCap, gateCheck, hardFormationSize, heroSpellShelf, isGate,
   isHard, isOpen, loadStory, newSave, packSquad, poolForRegion, regionOfNode, saveStory,
-  SQUAD_BASE, bookForLoadout, heroBookFor, spellsUnlockedIn, squadIsOfferable, squadLimitFor,
+  bookForLoadout, heroBookFor, spellsUnlockedIn, squadIsOfferable, squadLimitFor,
   startHardMode, HARD_MARK, THRONE_MYTHICS, canResumeHard, resumeHardMode,
   HARD_BORDER_SCALE, borderBossScale,
   type StoryNode, type StorySave,
@@ -111,12 +111,15 @@ describe("starting Hard mode", () => {
       expect(squadIsOfferable(hard, region), region.id).toBe(false);
       expect(packSquad(hard, region, owned.slice(0, 3)), `${region.id}: nothing to pack`).toBe(hard);
     }
-    // The first run keeps its limit: away from home, before any Throne, the
-    // twelve it packed and nothing else from abroad.
+    // AND SO DOES THE FIRST RUN, since 2026-10-22 — this stopped being what
+    // separates a Hard run from a first one. What still does: the ladder, the
+    // border bosses, the enemy squads, the foils. Asserted here rather than
+    // dropped, because "Hard plays with everything" must not quietly come to
+    // mean "Hard is the only mode that does" again.
     const firstRun: StorySave = { ...finished(), cleared: [] };
     const away = REGIONS[1];
-    expect(squadLimitFor(firstRun, away)).toBe(SQUAD_BASE);
-    expect(poolForRegion(firstRun, away).length).toBeLessThan(firstRun.collection.length);
+    expect(squadLimitFor(firstRun, away)).toBeNull();
+    expect([...poolForRegion(firstRun, away)].sort()).toEqual([...firstRun.collection].sort());
   });
 
   it("keeps every spell the hero earned — spells unlock off clears, and the map reset", () => {

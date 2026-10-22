@@ -1194,14 +1194,30 @@ export function squadCapInRegion(
   return squadCapFor(cleared);
 }
 
-/** The squad limit THIS SAVE plays under in `region`: `squadCapInRegion`,
- *  except in Hard mode, where there is none anywhere (owner, 2026-09-27). A
- *  Hard run is played with the whole collection from its first node: every
- *  region is home ground, as the first run only makes it once DUSK falls.
- *  Every reader that holds a save goes through this; `squadCapInRegion` is the
- *  first run's ladder alone. */
-export function squadLimitFor(save: StorySave, region: StoryRegion): number | null {
-  return isHard(save) ? null : squadCapInRegion(save.cleared, region);
+/** The squad limit THIS SAVE plays under in `region`. THERE IS NONE, ANYWHERE
+ *  (owner, 2026-10-22: play the whole collection in Story the way Hard already
+ *  did, "just to simplify the process").
+ *
+ *  What that deletes is a WHOLE STEP, not a number. The packing ladder asked
+ *  the player, every time they crossed a border, which twelve of their foreign
+ *  cards to carry — a question posed before they knew what they were walking
+ *  into, answered through a second screen, and paid for by the one card they
+ *  forgot. Every softening this file has already made to it says the same
+ *  thing: it stopped blocking fights (`squadIsOfferable`), it started packing
+ *  itself (`autoSquad`), it was moved out of prep and under the map. Each of
+ *  those made the step cheaper without making it worth its own screen.
+ *
+ *  The ladder itself is KEPT, dormant: `squadCapFor` / `squadCapInRegion` are
+ *  still here, still tested, and still describe the first run's progression —
+ *  so bringing it back is this function, not an excavation. Saves that already
+ *  hold `squads` keep them; they are simply not consulted.
+ *
+ *  NOT the deck cap. How many cards you FIELD in a fight is `deckCapFor` /
+ *  `fightCap`, which both sides answer to and which is the campaign's
+ *  difficulty curve — Hard mode never lifted that either. This is only about
+ *  which of your own cards are available to build that deck from. */
+export function squadLimitFor(_save: StorySave, _region: StoryRegion): number | null {
+  return null;
 }
 
 /** The cards actually available to build a deck from in `region`.
