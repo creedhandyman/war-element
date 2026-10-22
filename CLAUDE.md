@@ -4340,6 +4340,82 @@ What holds it together (all pinned in `arena-flow.test.ts`):
 - On a phone the header's back pill and the list's ribbon step past the floating
   mute button — the collision `.story-head` clears with its 44px.
 
+## One builder, one pool — what you build with is what you battle with
+
+Two screens asked the player to build a squad: Home's collection screen and the
+Arena's "Build a squad". Same component (`DeckBuilder.tsx`) mounted twice, but
+with different props, which made them two different games — the Arena's was
+bounded by the collection, Home's offered **every card in the set**. A squad
+built at the entrance could therefore hold cards the player had never earned,
+and nothing said so until the start button refused the fight. Unified in
+October 2026 (owner, 2026-10-22: "the squad builder of the home page and the
+other builder in the arena need to become one so that the player is not
+confused").
+
+They were never merged into a third screen. What was unified is the **pool and
+the rules**:
+
+- **`DeckBuilder` takes `owned`** (a plain id list) next to the existing
+  `story.owned`. `ownedList = story?.owned ?? props.owned`, and when either is
+  present the pool, the deck-code import and the squad library are all filtered
+  through it. App passes `owned={story.collection}` at the Home entrance, so
+  neither mount can offer a card the player does not have.
+- **Your seat fields your squads; the premades are the opposition's.** The
+  refusal lives in one pure function, `seatRefusal` in `data/squads.ts` — a
+  premade is not yours whatever your collection covers, a squad with unearned
+  cards names them ("3 cards in this squad are not yours — Emberwing, …"), an
+  empty seat asks for a squad — and `startGate` calls it **before** the size
+  check, so the reason you cannot start is the real one.
+- **A draft and an event are exempt, by premise.** A draft deals you cards you
+  do not own; that is the mode. An event brings its own deck. `exempt` carries
+  both, and `twoPlayer` / online / story seats are not asked at all (one device,
+  one collection; the other side of an online match is a person).
+- **`DeckPickerSheet` grew `mine` and `unfieldable`.** `mine` drops the PREMADE
+  fold entirely and says "Built from the cards you own." `unfieldable` is a
+  Map id→reason built in App from `squadUsableIn`: those rows still appear,
+  `disabled`, with the missing cards named in the note (`.dp-row.blocked`).
+  Shown, marked, refused — deleting somebody's team to enforce a new rule is
+  worse than explaining it.
+- **A saved premade pick migrates.** `ArenaPrefs.deck` from before this change
+  can hold one; an effect moves P1 onto the first fieldable custom squad. Only
+  when there IS one — with no squad at all, the refusal is the honest state and
+  "Build a new squad" sits one tap from it.
+
+### The counter stopped being a wall and became a guide
+
+The builder used to hold the player at whichever format was toggled: exactly 18
+or exactly 30, nothing in between saveable. But one squad is fielded in three
+places that measure it differently — 18 on a 4x4, 30 on a 5x5, and whatever a
+campaign node caps its fight at. So the ceiling is now the largest
+(`BUILD_CEILING` = 30, or the node's cap when standing on one) and the formats
+are **marks on the way there**, not gates.
+
+`sizeGuide(count, { nodeCap?, node? })` in `custom-decks.ts` is the whole of the
+counter, pure and tested (`deck-size-guide.test.ts`), so the surfaces that show
+a count cannot drift into three different answers:
+
+- **marks** — the node's cap first when there is one (it is the fight in front
+  of you), then `4×4 · 18` and `5×5 · 30`, and only those that fit under the
+  ceiling. `met` is EXACT for a format (28 has not "met" 18 — it has overshot
+  it) and at-or-under for a node cap.
+- **note** — one sentence: "Pick your first card", "6 more for a 5×5 squad — 6
+  over a 4×4 one", "Ready for 4×4 — add 12 more for a 5×5 squad", "4 more will
+  fit this fight", "2 over the 30-card ceiling — take 2 out".
+- **over** — the only thing that blocks a save now. `validateDeck`'s exact-size
+  check is gone from the builder; a squad saves at any size that fits, and the
+  marks are what tell you what it is ready for.
+
+Rendered in `.db-counter` (cells take `on / target / cap / met / over`) with
+`.db-guide` under it. On a story node the cap moved OFF the format line and
+onto the counter, where the count it constrains already is.
+
+**Two deliberate non-changes.** The exact-size rule still stands in the SCORED
+modes — Gauntlet, Streak and Draft refuse a squad that is not exactly the
+format's size (`myDeckCheck`), which is what the 18/30 marks are guidance
+toward; casual and story take what you bring. And `customDecksFor` still drops
+only squads sized *exactly* for the other format, so an in-between squad (24,
+say) lists in both lobbies rather than vanishing from each.
+
 ## Domination in Streak and Gauntlet — `data/dom-ladder.ts`
 
 Either scored mode can be played on the 7x7 now. Two rules, both in

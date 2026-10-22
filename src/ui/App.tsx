@@ -235,7 +235,7 @@ import { autoPrefFor } from "./auto-prefs";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { FOIL_STATS, foilStatsFromLedger, type FoilStat } from "../data/foils";
 import { deckCodeFromUrl } from "../data/deck-code";
-import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
+import { absorbLegacy, loadSquads, seatRefusal, squadUsableIn, type Squad } from "../data/squads";
 import { STORY_DEADLOCK_ROUNDS, STORY_ROUND_CAP, markSeen, newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
@@ -1405,6 +1405,26 @@ export function App() {
    *  A deck that is merely UNFINISHED for THIS board still shows — see
    *  `customDecksFor`. */
   const modeCustoms = customDecksFor(customDecks, boardSize);
+  /** YOUR SIDE FIELDS WHAT YOU OWN (owner, 2026-10-22).
+   *
+   *  The premades are the opposition's decks — every rung the Arena, the
+   *  Gauntlet and the matchmaker pit you against — and they stay exactly that.
+   *  What changed is your seat: it lists your squads, and a squad built before
+   *  the collection was the pool says which cards are not yours instead of
+   *  failing at the start button.
+   *
+   *  A DRAFT is the deliberate exception and always was: its whole premise is
+   *  fielding cards you were dealt rather than ones you own, so a draft seat
+   *  never asks this question (see `ownedGate`). */
+  const unfieldableSquads = useMemo(() => {
+    const owned = story.collection;
+    const out = new Map<string, string>();
+    for (const d of customDecks) {
+      const r = squadUsableIn({ id: d.id, name: d.name, cards: d.cards }, { owned });
+      if (!r.ok && r.missing.length) out.set(d.id, `${r.reason} — ${r.missing.slice(0, 3).map((id: string) => getDef(id).name).join(", ")}${r.missing.length > 3 ? "…" : ""}`);
+    }
+    return out;
+  }, [customDecks, story.collection]);
   // Selectable decks = those + the player's own custom decks. Custom decks have
   // no board size of their own and are offered in both modes; the engine never
   // enforces deck length at match start, so a short deck simply runs out sooner.
@@ -1496,10 +1516,34 @@ export function App() {
    *    nothing against a deck you picked.
    *
    *  Online and hot-seat are neither: the other seat is a person. */
+  /** A SAVED PREMADE IS NOT A SQUAD ANY MORE. Arena prefs from before this
+   *  change hold one, and the player should find their own team selected rather
+   *  than a refusal they did not cause. Only when they have a fieldable squad
+   *  to move to: with none, the refusal is the honest state and the picker's
+   *  "Build a new squad" is one tap from it. */
+  useEffect(() => {
+    if (onlineMode || storyNode || draftSeat || eventRun) return;
+    if (!PREMADE_DECKS.some((d) => d.id === p1DeckId)) return;
+    const mine = modeCustoms.find((d) => d.cards.length > 0 && !unfieldableSquads.has(d.id));
+    if (mine) setP1DeckId(mine.id);
+  }, [p1DeckId, modeCustoms, unfieldableSquads, onlineMode, storyNode, draftSeat, eventRun]);
   const myDeckCheck = validateDeck(resolveDeckCards(mySeatDeckId), boardSize);
   const startGate: { ok: boolean; why?: string; warn?: string } = (() => {
     if (onlineMode || twoPlayer || storyNode) return { ok: true };
     const challenge = arenaGame === "gauntlet" || arenaGame === "streak" || arenaGame === "draft";
+    // OWNERSHIP, BEFORE SIZE. The rule is pure (`seatRefusal`): a premade is
+    // the opposition's deck whatever your collection covers, and a squad
+    // holding cards you have not earned NAMES them — which is the difference
+    // between a rule and a wall. A draft is dealt cards you do not own (that
+    // is the mode) and an event is a designed encounter, so neither is asked.
+    const refusal = seatRefusal({
+      cards: resolveDeckCards(mySeatDeckId),
+      owned: story.collection,
+      premade: PREMADE_DECKS.some((d) => d.id === mySeatDeckId),
+      exempt: !!draftSeat || !!eventRun,
+      nameOf: (id) => getDef(id).name,
+    });
+    if (refusal) return { ok: false, why: refusal };
     if (challenge && !myDeckCheck.ok) {
       return {
         ok: false,
@@ -6996,8 +7040,13 @@ export function App() {
                   : (onlineMode ? "Your squad" : twoPlayer ? "Player 2 squad" : "Opponent squad")
               }
               boardSize={boardSize}
+              // YOUR seat, or the other human's in hot-seat — one device, one
+              // collection, so both are yours. An AI seat still fields the
+              // premades: they are the opposition, and that never changed.
+              mine={pickSeat === "p1" || (twoPlayer && pickSeat === "p2")}
               premades={modePremades}
               customs={modeCustoms}
+              unfieldable={unfieldableSquads}
               value={pickSeat === "p1" ? p1DeckId
                 : pickSeat === "p2" ? p2DeckId
                 : pickSeat === "p3" ? p3DeckId : p4DeckId}
@@ -7272,6 +7321,12 @@ export function App() {
         // foil set used to ride on that prop, which is the whole reason a foil
         // went plain here.
         foils={foilIds}
+        // ...AND THE SAME POOL (owner, 2026-10-22). This entrance used to offer
+        // every card in the game, which is what made it a second builder rather
+        // than the same one: a squad built here could hold cards the player had
+        // never earned, and nothing said so until the start button refused it.
+        // What you build with is what you can battle with.
+        owned={story.collection}
         foilStats={myFoilStats}
         incomingCode={linkedDeck}
         onIncomingConsumed={() => setLinkedDeck(null)}

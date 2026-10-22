@@ -3579,13 +3579,43 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
 .db-cell.on { background: var(--gold); }
 /* The marks are TALLER, not differently coloured: height survives the cell
    being filled or empty, so a target tick still reads at 18 of 18. */
-.db-cell.min, .db-cell.target, .db-cell.max { height: 12px; }
-.db-cell.min { background: rgba(233, 226, 210, 0.3); }
-.db-cell.min.on { background: var(--gold); }
+.db-cell.target, .db-cell.cap { height: 12px; }
 .db-cell.target { background: rgba(255, 233, 176, 0.35); }
 .db-cell.target.on { background: var(--gold-hi); box-shadow: 0 0 6px rgba(255, 233, 176, 0.55); }
-.db-cell.max { background: rgba(233, 226, 210, 0.22); }
-.db-cell.max.on { background: var(--gold-lit); }
+/* The CAP is the campaign node's, and it is the one mark that is a wall rather
+   than a goal — so it is the element colour of a limit, not the gold of a
+   target you are working toward. */
+.db-cell.cap { background: color-mix(in srgb, var(--accent) 45%, transparent); }
+.db-cell.cap.on { background: var(--accent); box-shadow: 0 0 6px color-mix(in srgb, var(--accent) 60%, transparent); }
+/* Reached: the exact count that makes a format legal, or a cap this squad fits
+   inside. A tick the player has actually HIT reads differently from one they
+   are merely walking toward. */
+.db-cell.met { box-shadow: 0 0 8px rgba(255, 233, 176, 0.7); }
+
+/* A squad built before the collection became the pool: shown, named, refused. */
+.dp-row.blocked { opacity: 0.5; cursor: not-allowed; }
+.dp-row.blocked .dp-note { color: var(--threat); font-weight: 700; }
+
+/* ── the counter: the ruler's sentence ───────────────────────────────────
+   The shape above answers "how many more"; this answers "more for WHAT". One
+   squad is now built for three measurements — 18 on a 4x4, 30 on a 5x5, and a
+   campaign node's own cap — so the sizes that mean something are named here
+   instead of being a format the builder was silently toggled to. */
+.db-counter { display: flex; flex-direction: column; }
+.db-guide {
+  display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+  font-size: 10.5px; font-weight: 700; color: var(--ink-faint); letter-spacing: 0.02em;
+}
+.db-guide > b { font-family: var(--head); font-size: 13px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.db-mark {
+  padding: 1px 6px; border-radius: 999px; border: 1px solid var(--panel-line);
+  color: var(--ink-dim); white-space: nowrap;
+}
+.db-mark.met { border-color: var(--gold-hi); color: var(--gold-hi); background: rgba(255, 233, 176, 0.1); }
+.db-mark.cap { border-color: color-mix(in srgb, var(--accent) 60%, transparent); color: var(--accent); }
+.db-mark.cap.met { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+.db-guide > em { font-style: normal; color: var(--ink-dim); }
+.db-guide.over > em { color: var(--threat); font-weight: 800; }
 /* Past the ceiling the whole filled run turns red — the deck is not merely
    incomplete, it is illegal, and that is a different state. */
 .db-cell.over { background: var(--threat); }
