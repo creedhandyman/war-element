@@ -8,6 +8,7 @@ import { applyStatus, basicAttack, defeatCard, directDamage, shieldsBrokenBy, SP
 import { advance, applyIntent } from "../phases";
 import { boardCards, effectiveDmg, healCard } from "../state";
 import { getDef } from "../../data/cards";
+import { describePassives } from "../../ui/card-text";
 import {
   BURN_HEAL_MULT,
   ELEMENT_BEATS,
@@ -221,12 +222,60 @@ describe("Magnetite's Magnetic Shield", () => {
 });
 
 describe("Venomarch's Toxic Contagion — the death burst", () => {
-  /** Infect `victim` with Venomarch's Special, straight through the handler. */
+  /** Infect `victim` with Venomarch's Special, straight through the handler.
+   *
+   *  THE CARD'S OWN PARAMS, not a copy of them: these were written out here,
+   *  so the day the poison's length changed on the card this suite went on
+   *  testing the old one and passing. */
   function infect(s: ReturnType<typeof prepState>, score: { instanceId: string }, victim: { instanceId: string }) {
-    SPECIAL_HANDLERS.toxicContagion(s, s.cards[score.instanceId], [s.cards[victim.instanceId]], {
-      sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3,
-    });
+    SPECIAL_HANDLERS.toxicContagion(
+      s, s.cards[score.instanceId], [s.cards[victim.instanceId]],
+      getDef("bore_score").special!.params!,
+    );
   }
+
+  it("rots for five rounds, and sleeps for one", () => {
+    // Owner, 2026-10-22. The sleep is short on purpose — cast in BATTLE, a
+    // status is ticked away at that round's Cleanup, so one round is all it can
+    // land; the poison is what the card is really for.
+    const spec = getDef("bore_score").special!;
+    expect(spec.params!.dotDuration).toBe(5);
+    expect(spec.params!.dotPower).toBe(3);
+    expect(spec.params!.sleep).toBe(1);
+    // ...and the card SAYS both, which it did not before: the printed text
+    // never mentioned how long the sleep was at all.
+    expect(spec.text).toContain("for 1 round");
+    expect(spec.text).toContain("for 5 rounds");
+  });
+
+  it("the poison it applies is the poison the card promises", () => {
+    const s = prepState();
+    const score = place(s, "bore_score", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    infect(s, score, victim);
+    const dot = s.cards[victim.instanceId].statuses.find((x) => x.kind === "DOT")!;
+    expect(dot.duration).toBe(5);
+    expect(dot.power).toBe(3);
+    expect(s.cards[victim.instanceId].statuses.find((x) => x.kind === "SLEEP")!.duration).toBe(1);
+  });
+
+  it("...and five rounds of it is fifteen damage, if nothing cleanses", () => {
+    // The point of the change: 6 damage from one cast became 15, and the death
+    // burst stays armed for all of it.
+    const s = prepState();
+    const score = place(s, "bore_score", "P1", 3, 0);
+    const victim = place(s, "dusk_gool", "P2", 1, 1, { curHp: 40, maxHp: 40, curShields: 0 });
+    infect(s, score, victim);
+    let cur: ReturnType<typeof prepState> = s;
+    let ticks = 0;
+    while (cur.cards[victim.instanceId]?.statuses.some((x) => x.kind === "DOT") && ticks < 12) {
+      cur.prep = { priority: "P1", consecutivePasses: 0, movedThisTurn: false };
+      cur = advance(atCleanup(cur));
+      ticks++;
+    }
+    expect(ticks, "five ticks, then it wears off").toBe(5);
+    expect(40 - cur.cards[victim.instanceId].curHp).toBe(15);
+  });
 
   it("bursts for 3 onto the victim's OWN neighbours when it dies poisoned", () => {
     const s = prepState();
@@ -265,6 +314,60 @@ describe("Venomarch's Toxic Contagion — the death burst", () => {
     const next = advance(atCleanup(s));
     expect(next.cards[victim.instanceId]).toBeUndefined(); // poisoned to death
     expect(20 - next.cards[neighbour.instanceId].curHp).toBe(3);
+  });
+});
+
+describe("Venomarch's Sand Trap — the melee answer", () => {
+  /** One melee swing into Venomarch, on a given seed. Returns the attacker. */
+  function swing(seed: number) {
+    const s = prepState();
+    s.rngState = seed;
+    const score = place(s, "bore_score", "P1", 2, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    const brute = place(s, "bore_clubber", "P2", 1, 1, { curHp: 30, maxHp: 30, curShields: 0 });
+    basicAttack(s, brute.instanceId, score.instanceId);
+    return s.cards[brute.instanceId];
+  }
+
+  it("is what the card now says it is: rot 3 for 2, and half a sleep", () => {
+    // Owner, 2026-10-22. It used to be a guaranteed SLEEP and nothing else —
+    // a strange answer from a card whose whole kit is venom.
+    const m = getDef("bore_score").onHitByMelee!;
+    expect(m.status).toEqual({ kind: "DOT", duration: 2, power: 3 });
+    expect(m.chanceStatus).toEqual({ kind: "SLEEP", duration: 2, power: 0, chance: 50 });
+  });
+
+  it("bites back EVERY time, whatever the coin does", () => {
+    // The two rolls are separate on purpose: putting the odds on the shared
+    // `chance` would have made the damage half a coin flip too.
+    for (let seed = 0; seed < 24; seed++) {
+      const dot = swing(seed).statuses.find((x) => x.kind === "DOT");
+      expect(dot, `seed ${seed}`).toBeTruthy();
+      expect(dot!.power).toBe(3);
+      expect(dot!.duration).toBe(2);
+    }
+  });
+
+  it("...and the sleep is a coin, not a promise", () => {
+    const slept = new Set<boolean>();
+    for (let seed = 0; seed < 24; seed++)
+      slept.add(swing(seed).statuses.some((x) => x.kind === "SLEEP"));
+    expect(slept, "both outcomes happen across seeds").toEqual(new Set([true, false]));
+  });
+
+  it("...and when it lands it is two rounds, like the card says", () => {
+    for (let seed = 0; seed < 24; seed++) {
+      const sleep = swing(seed).statuses.find((x) => x.kind === "SLEEP");
+      if (sleep) { expect(sleep.duration).toBe(2); return; }
+    }
+    throw new Error("no seed in 24 ever slept the attacker");
+  });
+
+  it("the card face prints both halves, odds and durations", () => {
+    // This file's own history: a passive that said "retaliate — SLEEP." could
+    // not tell you whether that was one round or four.
+    const line = describePassives(getDef("bore_score")).find((l) => l.startsWith("Sand Trap"))!;
+    expect(line).toContain("DOT 3 for 2 rounds");
+    expect(line).toContain("50% chance of SLEEP for 2 rounds");
   });
 });
 

@@ -1,5 +1,6 @@
-/** VENOMARCH — Toxic Contagion. "SLEEP a target and POISON 3 for 2 rounds. If
- *  it dies while poisoned, it bursts for 3 DMG to every adjacent card."
+/** VENOMARCH — Toxic Contagion. "SLEEP a target for 1 round and apply POISON 3
+ *  (DOT) for 5 rounds. If it dies while poisoned, it bursts for 3 DMG to every
+ *  adjacent card."
  *  Venom on the march.
  *
  *  Venomarch's art is a giant armoured SCORPION in gold plate, a glowing green

@@ -150,10 +150,15 @@ export interface OnHitByMeleeDef {
   /** Answer RANGED attackers too (Windsor's Right Through Me, Jolt's
    *  Electrifying). Default false keeps the classic melee-only thorns. */
   anyAttacker?: boolean;
-  chance?: number; // 0–100; omit = always
+  chance?: number; // 0–100; omit = always — gates the WHOLE retaliation
   dmg?: number; // direct damage back to the attacker
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
+  /** A SECOND status with its own roll (Sand Trap: the rot always, the sleep
+   *  half the time). Deliberately not `chance` + `status`: that one gates the
+   *  entire retaliation, so putting the odds there would have made the damage
+   *  a coin flip too — which is a different card. */
+  chanceStatus?: { kind: StatusKind; duration: number; power: number; chance: number };
   doubleBurn?: boolean; // Hot Hot (Ingit): double the attacker's BURN power
   burnRounds?: number; // Hot Hot (Ingit): ...and add N rounds to that BURN
   spDrain?: number; // Fountain (Oxin): sap N SP from the melee attacker

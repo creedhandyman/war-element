@@ -3395,6 +3395,15 @@ function applyOnHitByMelee(
   if (def.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
     applyStatus(draft, attacker, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
   }
+  // Sand Trap's second half: rolled on its own, so the certain part of the
+  // retaliation stays certain. Rolled only when there is still somebody to
+  // affect — the roll is state-derived at the same point on both sides of an
+  // online match, which is what keeps the replay identical.
+  if (def.chanceStatus && attacker.curHp > 0 && draft.cards[attacker.instanceId]
+      && pctChance(draft, def.chanceStatus.chance)) {
+    const cs = def.chanceStatus;
+    applyStatus(draft, attacker, cs.kind, cs.duration, cs.power, getDef(defender.defId).element);
+  }
   // Fountain (Oxin): the spring saps the attacker's momentum.
   if (def.spDrain && attacker.curHp > 0) {
     attacker.spBonus -= def.spDrain;

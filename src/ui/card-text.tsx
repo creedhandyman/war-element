@@ -459,7 +459,18 @@ export function describePassives(def: CardDef): string[] {
   }
   if (def.onHitByMelee) {
     const m = def.onHitByMelee;
-    const bits = [m.dmg && `${m.dmg} DMG`, m.status && m.status.kind, m.spDrain && `−${m.spDrain} SP`].filter(Boolean).join(" + ");
+    // THE DURATIONS ARE PRINTED NOW. This listed the status by KIND alone —
+    // "retaliate — SLEEP." — so a card could not tell you whether that was one
+    // round or four, and a DOT's power did not appear at all.
+    const st = (x: { kind: string; duration: number; power: number }) =>
+      `${x.kind}${x.power ? ` ${x.power}` : ""} for ${rounds(x.duration)}`;
+    const bits = [
+      m.dmg && `${m.dmg} DMG`,
+      m.status && st(m.status),
+      // Its own odds, beside the part that always happens (Sand Trap).
+      m.chanceStatus && `a ${m.chanceStatus.chance}% chance of ${st(m.chanceStatus)}`,
+      m.spDrain && `−${m.spDrain} SP`,
+    ].filter(Boolean).join(" + ");
     // anyAttacker cards (Jolt, Windsor) answer shooters too — saying "by melee"
     // there would be a straight lie on the card face.
     //

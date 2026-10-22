@@ -8477,22 +8477,53 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: {},
     tribe: "Cavernous",
-    // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
-    // the killer poisoned. Toxic Contagion: Venomarch's own basics spread POISON.
+    // Sand Trap (On Hit by melee): the rot ALWAYS, the sleep half the time
+    // (owner, 2026-10-22). It used to be a guaranteed SLEEP 2 and nothing else,
+    // which is a strange thing for a scorpion to be: the whole card is venom,
+    // and the one place it answers a sword it answered with a nap. Now it bites
+    // back — DOT 3 for 2 rounds, every time — and sometimes the venom also puts
+    // the attacker under. Two separate rolls (`chanceStatus`), so the certain
+    // half stays certain.
+    //
+    // 50% is also the honest number for a sleep applied in BATTLE: it ticks
+    // away at that round's Cleanup, so even when it lands it buys one skipped
+    // turn from an attacker that has not acted yet. A guaranteed one read as
+    // stronger than it played.
+    //
+    // On Death: leave the killer poisoned. Toxic Contagion: Venomarch's own
+    // basics spread POISON.
     passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap", onHitStatus: "Toxic Contagion" },
-    onHitByMelee: { status: { kind: "SLEEP", duration: 2, power: 0 } },
+    onHitByMelee: {
+      status: { kind: "DOT", duration: 2, power: 3 },
+      chanceStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 50 },
+    },
     onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
     onHitStatus: { kind: "DOT", duration: 2, power: 2 },
-    // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds. If it
-    // dies while still poisoned, the body bursts for 3 to everything adjacent.
+    // Toxic Contagion: SLEEP a target 1 round and rot it for 5. If it dies
+    // while still poisoned, the body bursts for 3 to everything adjacent.
+    //
+    // THE POISON IS THE CARD (owner, 2026-10-22: five rounds, sleep one).
+    // 2 -> 5 rounds is 6 damage -> 15 from one cast, and it buys more than the
+    // damage: the death burst is ARMED for as long as the poison lasts (the
+    // `toxicSplash` mark is only spent if the body drops while still carrying
+    // it), so a five-round rot is the difference between a burst that needs the
+    // kill to land in the next two rounds and one that is simply waiting.
+    //
+    // The SLEEP stays at 1 and is now PRINTED — the text never said how long it
+    // was. One round is also all it can usefully be here: this is cast in
+    // BATTLE and statuses tick away at that round's Cleanup, so the skip only
+    // ever lands on a target still waiting its turn in the speed queue, and
+    // never carries into Prep. A longer sleep would also fight the poison it
+    // comes with — waking on a hit is how a sleeper is meant to be dug out, and
+    // the DOT is what is supposed to be doing the digging.
     special: {
       name: "Toxic Contagion",
       cost: 3,
       handler: "toxicContagion",
-      params: { sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3 },
+      params: { sleep: 1, dotDuration: 5, dotPower: 3, deathSplash: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "SLEEP a target and apply POISON 3 (DOT) for 2 rounds. If it dies while poisoned, it bursts for 3 DMG to every adjacent card.",
+      text: "SLEEP a target for 1 round and apply POISON 3 (DOT) for 5 rounds. If it dies while poisoned, it bursts for 3 DMG to every adjacent card.",
     },
   },
   {
