@@ -3198,7 +3198,19 @@ h1, h2, h3 { font-family: var(--head); letter-spacing: 0.02em; }
   flex: none; padding: 8px 16px 0; position: sticky; bottom: 0; z-index: 2;
   background: linear-gradient(180deg, rgba(13, 12, 24, 0) 0%, var(--void) 28%);
 }
-.ar-start { width: 100%; height: 52px; font-size: 17px; }
+/* MIN-height, not height. This button carries the REFUSAL as its label —
+   "Your squad is not a 4×4 squad — a 4×4 deck is exactly 18 cards" — and at a
+   fixed 52px that sentence wrapped to three lines and the last one fell out
+   through the bottom of the gold border, over the screen beneath it. A label
+   that explains itself has to be allowed to be as tall as it reads. Short
+   labels (every ready state) still measure exactly 52. */
+.ar-start {
+  width: 100%; min-height: 52px; height: auto;
+  padding: 11px 18px; font-size: 17px; line-height: 1.22;
+  display: grid; place-items: center;
+  /* Whole phrases per line instead of "…is exactly / 18 cards". */
+  text-wrap: balance; white-space: normal;
+}
 /* A gauntlet seat and a throwaway single fight used to commit through one
    identical button. The label now names which — and this carries the same gold
    the gauntlet panel above it wears, so the two read apart at a glance as well
