@@ -318,6 +318,60 @@ hit", and there is nothing to charge at on an empty board. And **Peel Out
 exit rather than the approach — so that primitive now lives or dies with one
 talent, which `specials.test.ts` pins so the next person tidying it finds out.
 
+## BOLT's red eyes — the thread the art wrote by itself
+
+Owner's note, 2026-10-27: BOLT is the region closest to being able to field a
+robotic AI force; most BOLT card art has a red-eyed machine in it that nobody
+asked the generator for; **ARC** is the faction trying to build the *good* bots.
+
+Checked against all 49 BOLT paintings before writing any of it, and the art says
+something more precise — and more useful — than "evil robot":
+
+- **It is a colour convention, not a character.** ARC's own frames run purple,
+  gold and cyan (the ARC mythic, Jack Arc, GigaVolt, the Police units). RED is
+  what Bolt City fits to the things it issues by the crate and does not expect
+  back — every Drone has one — and to **everything lying in the gutter behind
+  the subject**. Nearly every BOLT painting has a dead machine in it with its
+  optic still lit. The ARC mythic's own card is a sleek cyan-headed frame
+  standing on a floor of red-eyed wrecks, under an ARC INDUSTRIES sign.
+- **So you cannot tell by looking**, which is the actual story. Sentry is an ARC
+  turret wearing the same red optic as the thing it is pointed at.
+- **The city is a corporate state and the art says so**: ARC INDUSTRIES towers,
+  "BUILDING BOLT CITY BETTER", "POWER THE FUTURE" over Voltis Plaza, ARC POLICE
+  cruisers, "DRONE PERIMETER ACTIVE". GEARHOLLOW and the BOLT CITY CASINO are
+  the districts that are not ARC's.
+
+Written up as **VOICE RULE 7** in `src/data/lore/bolt.ts`, stated as a
+specification rather than an omen because that is BOLT's whole register — and
+deliberately as a SECOND thread beside rule 6's Core crack, not a breach of it:
+the Core is something BOLT *admits*, the red eyes are something BOLT has simply
+never been asked about. **Five lines carry it and no more** (`bolt_elecdroid`
+the anchor, then `bolt_sentry`, `bolt_junker`, `bolt_scrapper`,
+`bolt_drone_tok`), the same restraint rule 6 already runs on. `boss_overclock`
+("the line does not stop for losses") and `bolt_static_wisp_tok` ("what is left
+when a Core body fails") were left exactly as they were — they already carry it
+without help, and editing them would have been the thread announcing itself.
+
+The **story node lore in `story.ts` was deliberately not touched.** Those lines
+are each doing a different job (the Scrapyard's "magic is just power no one has
+bothered to wire up yet", the Breaker Yard as an address the city agreed to
+hand its failures) and the thread belongs on the cards, which is where the art
+is.
+
+**The open arc, recorded and NOT built.** It joins up on its own: the Core crack
+is "nobody has explained why ARC draws more power than its conduits should
+allow", and the red eyes in the scrap are still lit. Where that power is going
+is a story BOLT is one step away from. Nothing in the data commits to it yet.
+
+**Loose end found while reading this.** `filters.tsx` says the one-card tribe
+`"Bot"` "has since been folded into the real tribe it was flavour for, or
+replaced by a mechanic that did not need a tribe at all" — the MECHANIC was
+moved (Keeper's Hive Command is `scope: "card"` on the Beebot now), but
+`bolt_keeper` still carries `tribe: "Bot"` and is its only member, so the dead
+pill is still in the tribe filter. Not changed here: retagging Keeper `ARC`
+would put it under Jack Arc's +2 SP and the ARC mythic's +2 DMG / +2 SP auras,
+which is a balance decision, not a cleanup.
+
 ## Domination — the third and fourth seats are the player's to choose
 
 The 7x7 is the only mode that deals more than two seats, and the extra ones used

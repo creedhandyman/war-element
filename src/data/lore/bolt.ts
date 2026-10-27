@@ -18,6 +18,20 @@
  *   5. 1-2 sentences. Under ~150 chars where possible — card frames are small.
  *   6. ONE crack in the confidence, used twice and no more: nobody has explained
  *      the Core. BOLT admits that quietly, and only around the Core itself.
+ *   7. THE RED EYES ARE A PART NUMBER, not an omen (owner's note, 2026-10-27:
+ *      the art kept painting them without being asked). So the lore READS the
+ *      paintings rather than inventing over them, and what they actually show
+ *      is not one villain — it is a colour convention. ARC's own frames run
+ *      purple, gold and cyan; RED is what it fits to the things it issues by
+ *      the crate and does not expect back, and to everything lying in the
+ *      gutter BEHIND the subject of half these cards. Nearly every BOLT
+ *      painting has a dead machine in it with its optic still lit.
+ *      BOLT states this as a specification, because BOLT states everything as
+ *      a specification. What it does not say is that the eyes in the scrap are
+ *      still on. This is a SECOND thread rather than a breach of rule 6: the
+ *      Core crack is an admission BOLT makes, and this one is a thing BOLT has
+ *      simply not been asked about. Five lines carry it, below, and the
+ *      restraint is the effect — the same discipline as the Core.
  *
  * Coverage: 46 cards (bosses included) + 5 tokens + 10 spells = 61 entries, which is all of BOLT.
  */
@@ -29,7 +43,10 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_velvolt_knight:
     "Plate that reports its own faults. Everything that enters is electrified for the match, and whoever first breaks the armour is paralyzed.",
   bolt_elecdroid:
-    "ARC itself. One strike of fifteen, a four-hit combo that carries on to the next enemy on a kill, and a quarter of it leaking to all in reach each round.",
+    // The thread's anchor (rule 7). ARC is the good one — the one built to a
+    // specification instead of to a budget — and the floor it is standing on is
+    // the argument against its makers, in the same painting.
+    "ARC itself: the one built to a specification rather than to a budget. One strike of fifteen, a combo that carries to the next enemy on a kill, and a quarter of it leaking to all in reach each round. It is standing on the others.",
 
   // ------------------------------------------------------------- LEGENDARY
 
@@ -61,7 +78,7 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_storm:
     "Cheap, and it marks everything it touches. Thunder Strike then reaches every marked enemy anywhere, and it outgrows its price within a few rounds.",
   bolt_sentry:
-    "It does not aim at people, only at what has stopped moving, which is a simpler specification. Its Special hits every paralyzed enemy in range.",
+    "It does not aim at people, only at what has stopped moving, which is a simpler specification. Its Special hits every paralyzed enemy in range — and it wears the same red optic as the things it is pointed at.",
   bolt_thundercat:
     "It lands on the target rather than approaching it, and what the claws leave behind keeps ticking.",
   bolt_shoksa: // Dynamo
@@ -90,7 +107,7 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_stingray:
     "Armour stops being part of the calculation once the target is already electrified.",
   bolt_junker:
-    "Scrap welded into a shape that objects to being touched. Melee hits on it come straight back.",
+    "Scrap welded into a shape that objects to being touched, and melee hits on it come straight back. Nothing in the heap it was built from had finished glowing.",
   bolt_rodd:
     "A rod in the ground. It pings the nearest enemy each round, and the BOLT ally beside it hits harder.",
   bolt_zipp:
@@ -102,7 +119,7 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_jolt:
     "It charges the whole room before the first round, and anything that hits it gets topped up.",
   bolt_scrapper:
-    "Half its hits paralyze, and it builds its own armour out of whatever it has put down.",
+    "Half its hits paralyze, and it builds its own armour out of whatever it has put down. The yard sorts intake by what still holds a charge, which is most of it.",
   bolt_ning: // Twinbolt
     "A crit is specified to produce a second, at the same target. Once a round and no more; Arc is strict about duty cycles.",
   bolt_staticcloud: // Static Cloud
@@ -119,7 +136,7 @@ export const BOLT_LORE: Record<string, string> = {
   bolt_static_wisp_tok: // Static Wisp
     "What is left when a Core body fails. It drifts forward, zapping one enemy and paralyzing another, until it doesn't.",
   bolt_drone_tok: // Drone
-    "Arc issues them by the crate: a 1-HP flyer that melee cannot reach.",
+    "Arc issues them by the crate: a 1-HP flyer that melee cannot reach. Red optic, no serial — nothing shipped by the crate is expected back.",
   bolt_beebot: // Beebot
     "A sting that keeps hurting, and then the bot is done. The hive was built expecting that.",
 
