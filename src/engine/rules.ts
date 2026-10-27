@@ -47,6 +47,59 @@ export function slotIsImpassable(state: GameState, row: number, col: number): bo
   return !!m && isImpassable(m, row, col);
 }
 
+/** THE SQUARES THE WIND MAY TAKE IT TO — every free square one king-step from
+ *  where a `driftEachRound` card stands, in board order.
+ *
+ *  Pure, and separate from the roll that picks one, so the RULE is testable
+ *  without a seed: what the drift may do is a legality question, and which of
+ *  those it does is the dice.
+ *
+ *  EIGHT NEIGHBOURS, diagonals included, whatever the card's own gait. A
+ *  tumbleweed is not walking — it does not keep to the lanes, and a drift that
+ *  obeyed `movesLikeKing` would have the wind respecting a card's footwork.
+ *
+ *  THREE EXCLUSIONS, and the third is the one that matters:
+ *
+ *    - Closed ground (`groundClosed`): a captured Home slot or a Domination
+ *      citadel. The single terrain question every placement path asks.
+ *    - An occupied square: a drift shoves nobody. It is weather, not a charge.
+ *    - AN ENEMY HOME SLOT, wherever capture is live. Standing on one at Cleanup
+ *      captures it permanently, which is a win condition — so leaving it in
+ *      would let a die roll hand over the game's objective for free, to a
+ *      player who did nothing and an opponent who could not have stopped it.
+ *      Reaching the enemy's line is supposed to be a thing you DO. Off in Void
+ *      Tower and Domination for the same reason the capture loop is: neither
+ *      mode settles that way (see `doCleanupPhase`). */
+export function driftSquares(state: GameState, card: CardInstance): Pos[] {
+  if (!card.pos || card.curHp <= 0) return [];
+  // Pinned is pinned. ROOT and FREEZE put `effectiveSp` at 0, which is the
+  // engine's existing way of saying a card does not move — borrowing it here
+  // means a status whose whole text is "cannot move" needs no second mention.
+  // PARALYZE caps a move at one step and so does a drift; it is no bar.
+  if (moveReachFor(state, card) <= 0) return [];
+  // EMPLACED: its gait is its whole movement (see `canMove`). Nothing drifts
+  // and holds position both, but a card that declared both should hold.
+  if (getDef(card.defId).holdsPosition) return [];
+  const mine = homeRow(card.owner, state.boardSize);
+  // Seat-agnostic: the home rows are the two edges, so a home row that is not
+  // mine belongs to somebody else. Stated this way rather than through
+  // `enemyOf`, which assumes the match has exactly two seats in it.
+  const captures = !state.voidTower && !state.domination;
+  const out: Pos[] = [];
+  for (let row = card.pos.row - 1; row <= card.pos.row + 1; row++) {
+    for (let col = card.pos.col - 1; col <= card.pos.col + 1; col++) {
+      if (row === card.pos.row && col === card.pos.col) continue;
+      if (row < 0 || row >= state.boardSize || col < 0 || col >= state.boardSize) continue;
+      if (groundClosed(state, row, col)) continue;
+      if (cardAt(state, row, col)) continue;
+      const edge = row === 0 || row === state.boardSize - 1;
+      if (captures && edge && row !== mine && !isCaptured(state, row, col)) continue;
+      out.push({ row, col } as Pos);
+    }
+  }
+  return out;
+}
+
 // ── prep phase ──────────────────────────────────────────────────────────────
 
 /** WHAT THIS SUMMON ACTUALLY COSTS — the printed price, less a Seek voucher
@@ -2424,10 +2477,11 @@ export const TALENT_NEEDS_NO_TARGET: ReadonlySet<string> = new Set([
  *  Two params override the handler, because both build their own victim list
  *  and neither is a mistake:
  *
- *    `rollThrough` — Tumbleweed's Roll Through. `strike` uses its targets, but
- *    it has an explicit path for an empty list and the card prints "roll even
- *    with nothing to hit". Gating it would delete the half of the ability its
- *    own text promises.
+ *    `rollThrough` — Peel Out (Chopper). `barrage` and `strike` both use their
+ *    targets, but both have an explicit path for an empty list: the roll is the
+ *    half of the ability that needs nobody, and gating it would delete it.
+ *    (Tumbleweed used to be the example here. Its Roll Through charges AT a
+ *    target now, so it needs one and is gated like everything else.)
  *
  *    `nearby` / `inRange` — Patch Job. `grantShield` recomputes its crew from
  *    the caster's OWN side and never reads the list it was handed, so an empty

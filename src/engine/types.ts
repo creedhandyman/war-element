@@ -1246,6 +1246,16 @@ export interface CardDef {
   /** Rolling Start (Rumbler): after each basic attack it rolls this many slots
    *  further toward the enemy home. */
   advanceOnBasic?: number;
+  /** Wind-Driven (Tumbleweed): the wind owns it. At the TOP of every round it
+   *  stumbles this many king-steps to a random free square beside it — no
+   *  direction, no intent, and nothing the player spends to stop it.
+   *
+   *  Start of round, not Cleanup, where `roundTick.advance` lives. Both are one
+   *  moment apart on the clock and a world apart to play against: drifting at
+   *  the END of a round moves the card after its owner has committed to where
+   *  it stood, so every plan is undone by a die roll they never saw. Drifting
+   *  FIRST means the board you are looking at is the board you are playing. */
+  driftEachRound?: number;
   /** False Head (Thorny Ripper): ONE free dodge for the whole game, against a
    *  BASIC attack — melee or ranged. Specials go straight through: a cost-2
    *  blocker should turn away a swing, not someone's once-a-game payoff.

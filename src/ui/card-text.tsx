@@ -1021,6 +1021,11 @@ export function describePassives(def: CardDef): string[] {
       + `${def.roundTick.advanceWhenWallsDown ? `${def.roundTick.advanceFromRound ? "," : " —"} and not at all while any of your walls still stand` : ""}.`);
   if (def.advanceOnBasic)
     named("advanceOnBasic", `after each basic attack it rolls ${def.advanceOnBasic} slot${def.advanceOnBasic === 1 ? "" : "s"} further toward the enemy home.`);
+  // "In a random direction" is the whole point, so it is said plainly — a
+  // passive that moves your card without saying it is unpredictable reads as a
+  // bug the first time it happens.
+  if (def.driftEachRound)
+    named("driftEachRound", `Start of each round: the wind rolls it ${def.driftEachRound} space${def.driftEachRound === 1 ? "" : "s"} in a random direction.`);
   if (def.summonAdvance)
     named("summonAdvance", `On summon: rolls ${def.summonAdvance} slot${def.summonAdvance === 1 ? "" : "s"} forward toward the enemy home (until blocked).`);
   if (def.healReceivedMult && def.healReceivedMult !== 1)

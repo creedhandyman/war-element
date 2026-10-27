@@ -5400,23 +5400,35 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Nothing lands cleanly on something that never stops rolling.
     keywords: { EVASION: true },
+    // Wind-Driven: it does not hold ground, it is BLOWN across it. One random
+    // king-step at the top of every round, which is as often a nuisance as a
+    // gift — the wind has no opinion about where you wanted it. See
+    // `driftEachRound` in types.ts for why it is the START of the round.
+    passiveNames: { driftEachRound: "Wind-Driven" },
+    driftEachRound: 1,
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     talent: {
       name: "Roll Through",
       handler: "strike",
-      // TWO spaces, not one. `rollThrough` is a MINIMUM step count, so this
-      // clears the slot in front rather than settling into it, and keeps going
-      // if that landing is occupied.
-      params: { dmg: 5, rollThrough: 2 },
-      // Hits, THEN rolls THROUGH — past the struck body toward the enemy home.
-      // Plain charge stalled on the target it just hit, which made a talent
-      // named Roll Through do nothing in the common case.
+      // IT ROLLS AT SOMETHING NOW, not past it (owner, 2026-10-27). The old
+      // version struck whatever was already touching it and then rolled two
+      // spaces on (`rollThrough`), which made the movement a flourish after
+      // the fact — the talent could not reach anything it was not already
+      // standing next to, so the "roll" never took it anywhere it mattered.
       //
-      // AND IT ROLLS WITH NOTHING TO HIT. The `strike` handler used to return
-      // the moment it had no target, so a Tumbleweed with an empty board ahead
-      // of it burned its once-per-game Talent standing still — the case where
-      // rolling is the only thing you wanted from it.
-      text: "Once per game: deal 5 DMG, then roll two spaces toward the enemy home — and roll even with nothing to hit.",
+      // `chargeFirst` + `charge: 2` inverts that: the charge is how it ARRIVES,
+      // and `validSpecialTargets` reads the charge as reach, so the talent may
+      // now aim at any opponent within two spaces and close the gap itself.
+      // `chargeDiagonal` because a tumbleweed does not keep to the lanes —
+      // without it a diagonal target inside that radius costs steps the charge
+      // has not got, and the hit lands from one square short.
+      //
+      // `push: 1` is the collision: 180 pounds of dry brush at wind speed moves
+      // what it hits. Through `applyDebuffRiders`, so it is the same shove every
+      // other pushing ability uses and `pushImmune` (Braced Stance) still turns
+      // it away.
+      params: { dmg: 4, charge: 2, chargeFirst: 1, chargeDiagonal: 1, push: 1 },
+      text: "Once per game: roll up to two spaces at an opponent, hit it for 4 DMG and blow it back a space.",
     },
   },
   {
@@ -14009,10 +14021,11 @@ export const CARDS: CardDef[] = [
       // ignore the depth.
       handler: "barrage",
       // ...and it does not stop where it burned. `rollThrough: 2` carries the
-      // bike two slots up its own column afterwards — the same primitive
-      // Tumbleweed rolls on, and the same one `advanceOnBasic` already gives
-      // this card on every ordinary swing. A talent called Peel Out that left
-      // the bike parked was the odd part.
+      // bike two slots up its own column afterwards — the same one
+      // `advanceOnBasic` already gives this card on every ordinary swing. A
+      // talent called Peel Out that left the bike parked was the odd part.
+      // (Tumbleweed shared this primitive until 2026-10-27; Peel Out is the
+      // last card on it, so `rollThrough` lives or dies with this talent.)
       params: {
         dmg: 4, targets: 99, spread: 0, forwardDepth: 2,
         statusKind: "BURN", statusPower: 3, statusDuration: 3, rollThrough: 2,

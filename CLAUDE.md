@@ -256,6 +256,68 @@ the ladder.
 **Not yet done:** the matchup table isn't surfaced in the card inspector the
 way `ELEMENT_AURA` is. Players feel these rules without being told them.
 
+## A card that moves itself — `driftEachRound` (Wind-Driven)
+
+Tumbleweed is the first card the board moves FOR you (owner, 2026-10-27:
+"a passive ability that makes it move one space randomly starting each
+round"). `driftEachRound: n` on a `CardDef` is n random king-steps, and
+there are two halves to it, deliberately apart:
+
+- **`driftSquares(state, card)` in `rules.ts` — WHERE it may go.** Pure, no
+  dice, so the legality is testable without a seed. All eight neighbours,
+  diagonals included, *regardless of the card's own gait*: a drift that
+  respected `movesLikeKing` would have the weather honouring a card's
+  footwork. Excluded: closed ground (`groundClosed` — a captured Home slot or
+  a Domination citadel), an occupied square (a drift shoves nobody; it is
+  weather, not a charge), and **any enemy Home slot wherever capture is live**.
+  That last one is the rule that matters: standing on an enemy home slot at
+  Cleanup captures it permanently, which is a win condition, so without the
+  guard a die roll could hand over the objective to a player who did nothing
+  against an opponent who could not have stopped it. Reaching the enemy's line
+  is supposed to be a thing you DO. Off in Void Tower and Domination for the
+  same reason `doCleanupPhase`'s capture loop is off there.
+  ROOT and FREEZE pin it, expressed as `moveReachFor(...) <= 0` — the engine's
+  existing way of saying a card does not move, so a status whose whole text is
+  "cannot move" needs no second mention. PARALYZE caps a move at one step and
+  so does a drift, so it is no bar.
+
+- **`driftWithTheWind(draft)` in `phases.ts` — WHEN, and the roll.** Called
+  from `startRound`, at the TOP of the round, *not* from Cleanup where
+  `roundTick.advance` lives. One moment apart on the clock and a world apart
+  to play against: drifting at the END of a round moves the card after its
+  owner has committed to where it stood, so every plan is undone by a die roll
+  they never saw. Drifting first means the board you are looking at is the
+  board you are playing. It rolls once PER STEP, so a multi-step drift can
+  turn a corner instead of committing to a line it chose before it set off,
+  and it fires `triggerTrapOnMove` + `triggerWallsOnMove` per step from THAT
+  step's origin row — the card genuinely arrives somewhere, and a two-step
+  wander ending on a wall's row is charged for crossing it once.
+
+Nothing drifts on the round it arrives: a summon resolves in the Resource
+phase, long after `startRound` has run. That falls out of the ordering rather
+than being checked for, which is why there is no `summonedThisRound` guard.
+Replays are unaffected — `randInt` advances the one shared cursor.
+
+**Roll Through became a charge, same day.** It was `strike` + `rollThrough: 2`:
+hit whatever was already touching it, then roll two spaces on. The movement
+was a flourish after the fact, and the talent could not reach anything it was
+not already standing next to — so the "roll" never took it anywhere worth
+going. It is `dmg: 4, charge: 2, chargeFirst: 1, chargeDiagonal: 1, push: 1`
+now: the charge is the APPROACH, and because `validSpecialTargets` reads
+`chargeFirst` + `charge` as melee reach, "an opponent within two spaces" is
+the enforced rule rather than a comment. `chargeDiagonal` because a tumbleweed
+does not keep to the lanes — without it a diagonal target inside that radius
+costs steps the charge has not got and the hit lands from a square short.
+`push: 1` rides `applyDebuffRiders`, so `pushImmune` (Braced Stance) still
+turns it away.
+
+Two knock-ons worth knowing. The talent now **needs a target**: it used to be
+exempt from `talentNeedsTarget` because it printed "roll even with nothing to
+hit", and there is nothing to charge at on an empty board. And **Peel Out
+(`pyro_chopper`) is the last card on `rollThrough`** — its roll really is the
+exit rather than the approach — so that primitive now lives or dies with one
+talent, which `specials.test.ts` pins so the next person tidying it finds out.
+
 ## Domination — the third and fourth seats are the player's to choose
 
 The 7x7 is the only mode that deals more than two seats, and the extra ones used

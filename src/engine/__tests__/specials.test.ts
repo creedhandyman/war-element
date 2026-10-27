@@ -1441,23 +1441,26 @@ describe("Rumbler — Rover rolls in FIRST, then bashes", () => {
     }
   });
 
-  it("...but the two cards whose text says otherwise still hit FIRST", () => {
-    // Tumbleweed's reads "deal 5 DMG, THEN roll two spaces", and Ash Boar's
-    // charge is an ON-SUMMON that tramples through. Both deliberately skip
-    // chargeFirst, so this pins the divergence as a choice rather than an
-    // oversight.
+  it("...but the card whose text says otherwise still hits FIRST", () => {
+    // Peel Out reads "4 DMG and BURN to everything ahead, THEN roll two spaces
+    // forward" — the roll is the exit, not the approach — so it deliberately
+    // skips `chargeFirst` and rides `rollThrough` instead. It is the LAST card
+    // on that primitive: Tumbleweed shared it until 2026-10-27, when Roll
+    // Through became a charge AT a target (see added-cards-fire).
+    //
+    // Pinned so the divergence stays a choice rather than an oversight, and so
+    // the next person to tidy `rollThrough` away finds out that something
+    // still needs it.
     const s = prepState();
-    s.players.P1.magicPool = 9;
-    // Its roll rides a TALENT, not a Special — hence the different action here.
-    const weed = place(s, "gale_tumbleweed", "P1", 3, 1, { autoMode: "manual" });
+    const bike = place(s, "pyro_chopper", "P1", 3, 1, { autoMode: "manual" });
     const doomed = place(s, "dusk_gool", "P2", 2, 1, { curHp: 2, maxHp: 2, curShields: 0 });
-    const n = applyIntent(battleWith(s, weed.instanceId), {
+    const n = applyIntent(battleWith(s, bike.instanceId), {
       type: "BATTLE_ACTION", player: "P1", action: "talent", targetId: doomed.instanceId,
     });
-    expect(n.cards[doomed.instanceId]).toBeUndefined();
+    expect(n.cards[doomed.instanceId], "the volley killed it").toBeUndefined();
     // TWO spaces, so it rolls PAST the square it just emptied rather than
     // settling into it — `rollThrough` is a minimum step count.
-    expect(n.cards[weed.instanceId].pos).toEqual({ row: 1, col: 1 });
+    expect(n.cards[bike.instanceId].pos).toEqual({ row: 1, col: 1 });
   });
 });
 
