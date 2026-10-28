@@ -13,10 +13,13 @@ import type { Graphics } from "pixi.js";
 import { centre, rand } from "./base";
 import type { ElementLook, FxTools, Pt, SparkStyle, Throw } from "./types";
 
-// Blue wind (owner, 2026-10-15: "blue wind spirals"): ice-white -> sky -> azure
-// -> deep blue. The names are the old warm roles, kept so every hook below
-// reads the same — CREAM is the brightest, RUST the deepest.
-const CREAM = 0xf2fbff, PEACH = 0xbfe6ff, APRICOT = 0x7cc8ff, AMBER = 0x3d9bff, RUST = 0x2f7be0;
+// Blue wind (owner, 2026-10-15: "blue wind spirals"), kept APART from AQUA
+// (owner, 2026-10-28: "needs to look more different from the water"): bright
+// sky / cerulean, a cyan-leaning blue — AQUA's water is royal-to-navy
+// (#4d94e8, #1f4fa8) and round (drops, ripples), GALE's air is lighter and all
+// thin lines (streaks, spirals). The names are the old warm roles, kept so
+// every hook below reads the same — CREAM is the brightest, RUST the deepest.
+const CREAM = 0xf2fffe, PEACH = 0xb8f4ff, APRICOT = 0x6fe2ff, AMBER = 0x22c4f0, RUST = 0x16a2d0;
 const TAU = Math.PI * 2;
 
 const clamp01 = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -420,10 +423,14 @@ export const GALE: ElementLook = {
     // The hit spins: three arms whirling off the burst, and a little sand
     // thrown sideways out of it. One draw and a handful of sparks — it plays
     // on every spell hit.
-    const R = 30 * k, rot = rand(0, TAU);
-    t.draw(0.35, (g, q) => {
-      const e = out2(q);
-      galeSpiral(g, at.x, at.y, R * (0.1 + 0.3 * e), R * (0.8 + 0.8 * e), rot + e * 4, 1.1, 3, 2.6, 0.85 * (1 - q));
+    // It IS the hit for GALE (no glare, no ring — that is AQUA's splash): a
+    // vortex of air whirling out of the point, two layers turning at
+    // different speeds, and a few gust lines whipped off tangent to it.
+    const R = 44 * k, rot = rand(0, TAU);
+    t.draw(0.5, (g, q) => {
+      const e = out2(q), a = 1 - q * q;
+      galeSpiral(g, at.x, at.y, R * (0.05 + 0.25 * e), R * (0.7 + 0.8 * e), rot + e * 5, 1.4, 4, 3, 0.95 * a);
+      galeSpiral(g, at.x, at.y, R * (0.1 + 0.2 * e), R * (0.45 + 0.5 * e), rot + 1 - e * 3, 0.9, 3, 1.6, 0.6 * a);
     });
     const n = Math.min(14, Math.round(8 * k));
     for (let i = 0; i < n; i++) {

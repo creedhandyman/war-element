@@ -35,7 +35,7 @@ import type { Signature, SigMoment } from "../types";
 
 const TAU = Math.PI * 2;
 // The sunset in it: cream to peach to amber to burnt orange; steel on the blades.
-const CREAM = 0xfff4e0, PEACH = 0xbfe6ff, AMBER = 0x3d9bff, SUNSET = 0xff7426, STEEL = 0xeef6ff;
+const CREAM = 0xfff4e0, PEACH = 0xb8f4ff, AMBER = 0x22c4f0, SUNSET = 0xff7426, STEEL = 0xeef6ff;
 /** The track it scores (dark layer) and the dust lit along it. */
 const SCAR = 0x1a0e06, SCAR_LIT = 0xe0a060;
 const RIBBONS = [PEACH, AMBER, CREAM, SUNSET];

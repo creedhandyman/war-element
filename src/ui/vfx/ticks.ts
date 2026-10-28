@@ -75,7 +75,7 @@ const FLECK: SparkStyle = { palette: [0xe8dca0, 0xb8a060, 0x7a6a3a], gravity: 26
 const GOLD: SparkStyle = { palette: [0xffffff, 0xfff1b3, 0xffd54f, 0xe0a41c], gravity: -160, drag: 0.4, size: [7, 2], streak: false };
 const LEAFY: SparkStyle = { palette: [0xf4ffe6, 0xb6f27a, 0x4caf6d], gravity: -90, drag: 0.5, size: [6, 2], streak: false, swirl: 80 };
 const DROP: SparkStyle = { palette: [0xffffff, 0xbfeaff, 0x4d94e8], gravity: 700, drag: 0.6, size: [6, 3], streak: false };
-const GUST: SparkStyle = { palette: [0xf2fbff, 0xbfe6ff, 0x3d9bff], gravity: -60, drag: 0.4, size: [8, 2], streak: true, swirl: 700 };
+const GUST: SparkStyle = { palette: [0xf2fffe, 0xb8f4ff, 0x22c4f0], gravity: -60, drag: 0.4, size: [8, 2], streak: true, swirl: 700 };
 const WISP: SparkStyle = { palette: [0xf0e0ff, 0xb080e0, 0x6a3a9a], gravity: 0, drag: 0.5, size: [8, 3], streak: false };
 const LIFT: SparkStyle = { palette: [0xf6eee6, 0xc8b8a8, 0x8a7a6a], gravity: -260, drag: 0.5, size: [6, 2], streak: true };
 
@@ -306,7 +306,7 @@ function zephyr(t: FxTools, r: Rect) {
         const q = i / 16, ang = q * TAU * 1.2 + u * 9 + j * Math.PI, y = r.y + r.h * (0.95 - 0.8 * q * clamp01(u * 2));
         pts.push(c.x + Math.cos(ang) * s * 0.42 * (1 - q * 0.3), y + Math.sin(ang) * s * 0.08);
       }
-      g.poly(pts, false).stroke({ width: 2, color: 0xbfe6ff, alpha: 0.7 * a });
+      g.poly(pts, false).stroke({ width: 2, color: 0xb8f4ff, alpha: 0.7 * a });
     }
   });
   t.emit({ count: 6, palette: GUST.palette, from: { x: c.x - s * 0.3, y: r.y + r.h * 0.6, w: s * 0.6, h: s * 0.3 }, dir: [-110, -70],
