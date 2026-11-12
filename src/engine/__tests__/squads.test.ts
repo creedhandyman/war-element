@@ -5,7 +5,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import {
   absorbLegacy, deleteSquad, loadSquads, missingNames, packFromSquad, preferredSquad, saveSquad, squadNamed,
-  squadUsableIn, squadsFor, type Squad,
+  seatRefusal, squadUsableIn, squadsFor, type Squad,
 } from "../../data/squads";
 import { loadStory, rawStoredLoadouts } from "../../data/story";
 import { deckLimits, premadeDecksFor } from "../../data/custom-decks";
@@ -251,5 +251,48 @@ describe("filling a region's pack from a saved squad", () => {
   it("never carries the same card twice, and never more than the limit", () => {
     expect(packFromSquad([mid, mid, mid], [mid], 5)).toEqual([mid]);
     expect(packFromSquad([dear, mid, cheap], [dear, mid, cheap], 0)).toEqual([]);
+  });
+});
+
+describe("your side fields the cards you own", () => {
+  const owned = ["leaf_oak", "leaf_python", "leaf_birch"];
+  const name = (id: string) => id.replace("leaf_", "").replace("dusk_", "");
+
+  it("lets a squad of your own cards through", () => {
+    expect(seatRefusal({ cards: ["leaf_oak", "leaf_python"], owned })).toBeNull();
+  });
+
+  it("refuses a premade because of WHOSE it is, not what is in it", () => {
+    // A late-game collection could cover a premade entirely and it would still
+    // not be a squad the player built — so this is stated, never inferred.
+    expect(seatRefusal({ cards: owned, owned, premade: true })).toBe("That is a premade — field a squad of your own");
+  });
+
+  it("names the cards that are not yours", () => {
+    const why = seatRefusal({ cards: ["leaf_oak", "dusk_vamp", "dusk_gool"], owned, nameOf: name })!;
+    expect(why).toContain("2 cards");
+    expect(why).toContain("vamp");
+    expect(why).toContain("gool");
+  });
+
+  it("...and counts one as one", () => {
+    const why = seatRefusal({ cards: ["leaf_oak", "dusk_vamp"], owned, nameOf: name })!;
+    expect(why).toContain("1 card in this squad is not yours");
+  });
+
+  it("asks for a squad when none of it is yours, or there is nothing there", () => {
+    expect(seatRefusal({ cards: ["dusk_vamp"], owned })).toBe("Pick a squad of your own to play");
+    expect(seatRefusal({ cards: [], owned })).toBe("Pick a squad of your own to play");
+  });
+
+  it("never asks a draft or a designed encounter", () => {
+    // A draft deals you cards you do not own. That IS the mode.
+    expect(seatRefusal({ cards: ["dusk_vamp", "dusk_gool"], owned, exempt: true })).toBeNull();
+    expect(seatRefusal({ cards: ["dusk_vamp"], owned, premade: true, exempt: true })).toBeNull();
+  });
+
+  it("counts a duplicate id once", () => {
+    const why = seatRefusal({ cards: ["leaf_oak", "dusk_vamp", "dusk_vamp"], owned, nameOf: name })!;
+    expect(why).toContain("1 card");
   });
 });

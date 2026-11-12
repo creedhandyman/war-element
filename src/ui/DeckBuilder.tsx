@@ -4,11 +4,13 @@ import type { CardClass, Element, Keyword } from "../engine";
 import { getDef, getSpell, legalSpellIds, SPELLS, spellbookFor, spellCostCap } from "../engine";
 import {
   buildableCards,
+  BUILD_CEILING,
   deckLimits,
+  deckSizeFor,
   premadeDecksFor,
+  sizeGuide,
   sanitizeSpells,
   TIER_LABEL,
-  validateDeck,
   type PremadeDeck,
 } from "../data/custom-decks";
 import { STANDARD_CAP, autoDeck } from "../data/story";
@@ -133,6 +135,18 @@ export function DeckBuilder(props: {
   boardSize?: number;
   /** Present = building a campaign team, not a custom deck. */
   story?: StoryBuildMode;
+  /** THE COLLECTION. Every card the player owns — the pool, at both entrances.
+   *
+   *  There used to be two builders in the player's head: this one off the menu,
+   *  which offered all 360 cards, and the campaign's, which offered what you
+   *  had earned. Same screen, same filters, two different answers to "which
+   *  cards are mine" — and a squad built in the first was unfieldable in the
+   *  second without saying so. One pool now (owner, 2026-10-22), and what you
+   *  build with is what you can battle with.
+   *
+   *  `story.owned` still wins when a campaign team is being built: away from
+   *  home that pool is narrower than the collection. */
+  owned?: readonly string[];
   /** Card ids the player holds in foil.
    *
    *  TOP LEVEL, not inside `story`, because a foil is a fact about the PLAYER
@@ -178,12 +192,23 @@ export function DeckBuilder(props: {
     // illegal one across — same rule the manual toggle applies.
     setPickedSpells((cur) => sanitizeSpells(cur, props.boardSize!) ?? []);
   }, [props.boardSize]);
-  // Story Mode's ceiling is the campaign's, not the format's. `min` stays 1 —
-  // `loadoutLegal` deliberately treats the cap as a ceiling, not a quota, so a
-  // twelve-card team is a legal choice and the builder must not call it broken.
-  const limits = story
-    ? { ...deckLimits(buildSize), min: 1, max: story.cap, target: story.cap }
-    : deckLimits(buildSize);
+  /** THE SQUAD'S CEILING, and the sizes marked along the way.
+   *
+   *  One builder, one ruler (owner, 2026-10-22). The format no longer walls the
+   *  player in at 18: a squad is built to the biggest board and the two format
+   *  sizes are MARKS on the counter — because the same squad is fielded at 18
+   *  on a 4x4, at 30 on a 5x5, and under a campaign node's own cap, and a tool
+   *  that refuses every count but one cannot be the tool for all three.
+   *
+   *  `min` stays 1 at both entrances: a short squad is a legal thing to own and
+   *  to save; where it may be FIELDED is the start button's question, and it
+   *  answers it in a sentence rather than by hiding the save. */
+  const limits = {
+    ...deckLimits(buildSize),
+    min: 1,
+    max: story ? story.cap : BUILD_CEILING,
+    target: story ? story.cap : deckSizeFor(buildSize),
+  };
   // ONE library, whichever screen opened the builder. What changes between the
   // Arena and the campaign is which squads you can FIELD, not which you can see —
   // that is `squadUsableIn`, applied per row below.
@@ -263,10 +288,14 @@ export function DeckBuilder(props: {
   // and turned sideways lands on the cards.
   const shownView: View = !phone && view === "squad" ? "cards" : view;
 
-  const ownedSet = useMemo(() => new Set(story?.owned ?? []), [story?.owned]);
+  /** The cards this build may draw from: the campaign's pool when one is given
+   *  (it is narrower than the collection away from home), else the collection.
+   *  Absent only in a test harness — then the whole set, as before. */
+  const ownedList = story?.owned ?? props.owned;
+  const ownedSet = useMemo(() => new Set(ownedList ?? []), [ownedList]);
   const pool = useMemo(
-    () => (story ? buildableCards().filter((c) => ownedSet.has(c.id)) : buildableCards()),
-    [story, ownedSet],
+    () => (ownedList ? buildableCards().filter((c) => ownedSet.has(c.id)) : buildableCards()),
+    [ownedList, ownedSet],
   );
   // Only the tribes this pool can actually contain. A story save that owns nine
   // cards should not be offered 33 pills, 32 of which match nothing.
@@ -341,13 +370,20 @@ export function DeckBuilder(props: {
       // would promise cards the grid then refuses to show.
       && (skip === "foil" || !foilOnly || isFoil(c.id))).length;
   const pickedSet = new Set(picked);
-  const check = story
-    ? picked.length === 0
-      ? { ok: false as const, reason: "Empty squad" }
-      : picked.length > story.cap
-        ? { ok: false as const, reason: `${picked.length} cards — the cap is ${story.cap}` }
-        : { ok: true as const, reason: undefined }
-    : validateDeck(picked, buildSize);
+  /** What the counter says: the count, the sizes that mean something, and the
+   *  one line about what this squad is ready for. Pure (`sizeGuide`), so the
+   *  ruler, the save gate and the start button cannot disagree about it. */
+  const guide = sizeGuide(picked.length, story ? { nodeCap: story.cap, node: story.forNode } : {});
+  /** ONE rule for saving, at both entrances: something, and not more than the
+   *  ceiling. It used to be `validateDeck` out here — exactly 18 or exactly 30
+   *  — so the menu builder refused to SAVE the 24-card squad it had just let
+   *  you build. Where a squad is legal to FIELD is a different question, asked
+   *  at the start button and answered by `guide.note` on the counter. */
+  const check = picked.length === 0
+    ? { ok: false as const, reason: "Empty squad" }
+    : guide.over > 0
+      ? { ok: false as const, reason: guide.note }
+      : { ok: true as const, reason: undefined };
 
   // Live composition of the deck being built — shared with the campaign
   // collection, which shows the same readout in its deck rail.
@@ -495,7 +531,7 @@ export function DeckBuilder(props: {
       // Cards this collection does not own are dropped rather than refused: in
       // Story you can legitimately be sent a deck holding cards you have not
       // earned, and silently loading them would let you field them.
-      const allowed = story?.owned ? new Set(story.owned) : null;
+      const allowed = ownedList ? new Set(ownedList) : null;
       const usable = allowed ? deck.cards.filter((c: string) => allowed.has(c)) : deck.cards;
       const dropped = deck.cards.length - usable.length;
       // Adopt the deck's battlefield first: the legal deck size and the spell cap
@@ -809,29 +845,38 @@ export function DeckBuilder(props: {
    *  "how many do I have" but "how many more, and when does this become legal".
    *  Legality is a shape here, not a sentence you have to parse. */
   const ruler = (
-    <div
-      className="db-ruler"
-      role="img"
-      aria-label={
-        limits.min === limits.max
-          ? `${picked.length} of ${limits.max} cards; a legal deck is exactly ${limits.max}`
-          : `${picked.length} of ${limits.target} cards; legal from ${limits.min} to ${limits.max}`
-      }
-    >
-      {Array.from({ length: limits.max }, (_, i) => {
-        const n = i + 1;
-        const marks = [
-          n <= picked.length ? "on" : "",
-          // Only mark the band when there IS one — story teams have min 1,
-          // where a "minimum" tick is noise. With an exact format min, target
-          // and max are the SAME cell, so the target mark alone carries it.
-          limits.min > 1 && limits.min !== limits.max && n === limits.min ? "min" : "",
-          n === limits.target ? "target" : "",
-          limits.min !== limits.max && n === limits.max ? "max" : "",
-          n <= picked.length && picked.length > limits.max ? "over" : "",
-        ].filter(Boolean).join(" ");
-        return <i key={n} className={`db-cell ${marks}`} />;
-      })}
+    <div className="db-counter">
+      <div
+        className="db-ruler"
+        role="img"
+        aria-label={`${picked.length} cards. ${guide.marks.map((m) => `${m.label}${m.met ? ", reached" : ""}`).join(". ")}. ${guide.note}.`}
+      >
+        {Array.from({ length: guide.ceiling }, (_, i) => {
+          const n = i + 1;
+          const mark = guide.marks.find((m) => m.at === n);
+          const marks = [
+            n <= picked.length ? "on" : "",
+            // EVERY size that means something is a tick now, not just the one
+            // format the builder was toggled to: 18 and 30 are where a squad
+            // becomes legal to field, and a node's cap is where this fight
+            // stops. The old ruler marked min/target/max of a single format.
+            mark ? (mark.cap ? "cap" : "target") : "",
+            mark?.met ? "met" : "",
+            n <= picked.length && guide.over > 0 ? "over" : "",
+          ].filter(Boolean).join(" ");
+          return <i key={n} className={`db-cell ${marks}`} title={mark?.label} />;
+        })}
+      </div>
+      {/* THE LINE THE PLAYER READS. The ruler is the shape; this is the
+          sentence — what the count is ready for, or what it still needs, and
+          on a campaign node what THAT fight will take. */}
+      <div className={`db-guide${guide.over > 0 ? " over" : ""}`}>
+        <b>{picked.length}</b>
+        {guide.marks.map((m) => (
+          <span key={m.at} className={`db-mark${m.met ? " met" : ""}${m.cap ? " cap" : ""}`}>{m.label}</span>
+        ))}
+        <em>{guide.note}</em>
+      </div>
     </div>
   );
 
@@ -841,8 +886,10 @@ export function DeckBuilder(props: {
    *  team is worth building and how many spells the book holds. */
   const formatControl = story ? (
     <div className="db-storycap">
-      <b>{buildSize}×{buildSize}</b> · carry up to <b>{story.cap}</b>
-      {" "}· <b>{limits.spells}</b> spells
+      {/* The CAP moved to the counter, where every other size the squad is
+          measured against now lives — saying it twice, in two wordings, was
+          how the campaign entrance came to feel like a different tool. */}
+      <b>{buildSize}×{buildSize}</b> · <b>{limits.spells}</b> spells
       {story.cap > STANDARD_CAP && <span> · set-piece size</span>}
       {/* Opened from prep these are THAT NODE's numbers, not the region's
           biggest — a ceiling that changes between entrances has to say which
@@ -1133,7 +1180,12 @@ export function DeckBuilder(props: {
         // Shown everywhere, fieldable where it is legal. A campaign squad
         // holding cards you have not earned is greyed and says which ones,
         // rather than disappearing and leaving you wondering where it went.
-        const usable = squadUsableIn(sq, story ? { owned: story.owned, cap: story.cap } : {});
+        // The collection applies here too now: a squad holding cards you do not
+        // own is SHOWN, with what is missing named, and refuses to be fielded —
+        // rather than quietly loading and failing at the start button.
+        const usable = squadUsableIn(sq, story
+          ? { owned: story.owned, cap: story.cap }
+          : ownedList ? { owned: ownedList } : {});
         return { id: sq.id, name: sq.name, cards: sq.cards, spells: sq.spells, tag: sq.element, usable };
       }).map((d) => (
         <div key={d.id} className={`db-saved-row ${editingId === d.id ? "on" : ""} ${d.usable.ok ? "" : "locked"}`}>

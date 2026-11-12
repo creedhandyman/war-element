@@ -69,7 +69,6 @@ describe("...but a Talent that needs nothing is still offered", () => {
     ["bolt_buzz", "Electro Surge — electroSurge"],
     ["leaf_oak", "Reroot — reposition"],
     ["leaf_dartfrog", "Bleed Out — loadHits, dispatched inline"],
-    ["gale_tumbleweed", "Roll Through — prints 'roll even with nothing to hit'"],
     ["bolt_handyman", "Patch Job — grantShield builds its crew from allies"],
   ])("%s: %s", (id) => {
     const { s, id: inst } = alone(id);
@@ -146,10 +145,27 @@ describe("the no-target list is derived, not remembered", () => {
 });
 
 describe("the card's own text agrees with the gate", () => {
-  it("Roll Through is exempt because it says so out loud", () => {
+  it("Peel Out is exempt because it says so out loud", () => {
+    // The roll is the half of the ability that needs nobody, and the card says
+    // so — the gate reads `rollThrough` for exactly this.
+    const t = getDef("pyro_chopper").talent!;
+    expect(Number(t.params?.rollThrough ?? 0)).toBeGreaterThan(0);
+    expect(talentNeedsTarget(getDef("pyro_chopper"))).toBe(false);
+  });
+
+  it("Roll Through is NOT exempt any more — it charges AT something", () => {
+    // Tumbleweed carried the exemption while its talent printed "roll even
+    // with nothing to hit". Owner, 2026-10-27: it rolls two spaces AT an
+    // opponent now, so there is nothing to do on an empty board and the gate
+    // should refuse rather than spend the one charge the card gets.
     const t = getDef("gale_tumbleweed").talent!;
-    expect(t.text.toLowerCase()).toContain("nothing to hit");
-    expect(talentNeedsTarget(getDef("gale_tumbleweed"))).toBe(false);
+    expect(Number(t.params?.rollThrough ?? 0), "off the roll-through primitive").toBe(0);
+    expect(Number(t.params?.chargeFirst ?? 0), "the charge is the approach").toBeGreaterThan(0);
+    expect(talentNeedsTarget(getDef("gale_tumbleweed"))).toBe(true);
+    const { s, id } = alone("gale_tumbleweed");
+    expect(canFireTalent(s, id).ok, "nothing to roll at").toBe(false);
+    place(s, "leaf_alpha", "P2", 1, 1); // two spaces from (3,1)
+    expect(canFireTalent(s, id).ok, "and now there is").toBe(true);
   });
 });
 

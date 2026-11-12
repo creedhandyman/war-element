@@ -210,18 +210,18 @@ needs.
   Sections: Measuring balance.
 - **`docs/claude/ai.md`** — before touching `engine/ai.ts` or anything about how the AI picks Specials, targets or rows.
   Sections: The AI could not fire 38 of its own Specials · The AI weighed a Special on its damage number alone · The AI did not farm its home row.
-- **`docs/claude/cards.md`** — before editing card text/describers, spells or spellbooks, or anything that used to involve heroes.
-  Sections: The card text was lying in four places — and how they got there · Spells — copies are legal now, and everything treated a book as a SET · Spells — the "written but never read" bug class · Heroes are gone; suits stay.
+- **`docs/claude/cards.md`** — before editing card text/describers, spells or spellbooks, a card that moves itself (`driftEachRound`), or anything that used to involve heroes.
+  Sections: A card that moves itself — `driftEachRound` (Wind-Driven) · The card text was lying in four places — and how they got there · Spells — copies are legal now, and everything treated a book as a SET · Spells — the "written but never read" bug class · Heroes are gone; suits stay.
 - **`docs/claude/modes.md`** — before working on Domination, the Arena ladder/screens, Streak or Gauntlet.
   Sections: Domination — the third and fourth seats are the player's to choose · Arena ladder — four three-element decks, one per rung · The Arena is two levels — `ui/arena-nav.ts`, `ui/ArenaScreens.tsx` · Domination in Streak and Gauntlet — `data/dom-ladder.ts`.
-- **`docs/claude/story.md`** — before working on Story Mode, campaign nodes, formations, opening deployment, the story save, or repo size / git gc / LFS cleanup (the "Repo size" section is filed here together with the campaign notes that followed it).
-  Sections: Story Mode · Repo size.
+- **`docs/claude/story.md`** — before working on Story Mode, lore (BOLT's red eyes / ARC), campaign nodes, formations, opening deployment, the story save, or repo size / git gc / LFS cleanup (the "Repo size" section is filed here together with the campaign notes that followed it).
+  Sections: BOLT's red eyes — the thread the art wrote by itself · Story Mode · Repo size.
 - **`docs/claude/tower.md`** — before working on the Void Tower, any boss, boss taming, Floor 5, or tower difficulty. Holds the owner's difficulty targets and Floor 5's two standing rules.
   Sections: Void Tower (boss framework — data + engine only; NO mode yet) · BOSS TAMING — the tower's first loop that points BACKWARD · TOWER DIFFICULTY TARGETS (owner's, and the tower is NOT there yet) · The boss panel's ✕ was under the mute button, and three bugs deep · FLOOR 5's TWO STANDING RULES — the giants, and three elements · FLOOR 5 — Continental, the one you cannot out-damage · Floor 5 came into band on two bug fixes, not on a nerf · FLOOR 5 — Skybreaker, the boss whose Special is its movement.
 - **`docs/claude/tutorial.md`** — before touching onboarding, the scripted first/second battles, struggle tips or the Training Ground.
   Sections: The tutorial had the wrong half — `Onboarding.tsx` · The first battle on rails — `ui/tutorial.ts`, `ui/TutorialRail.tsx` · The second scripted battle — `ui/tutorial-magic.ts` · After the first battle: no lectures, one-line tips when stuck — `ui/struggle.ts` · Training Ground — `ui/training.ts`, `ui/LessonCoach.tsx`, `ui/TrainingGround.tsx`.
-- **`docs/claude/ui.md`** — before UI work on the match screen, phone layout, back button, Card Gallery, sound / win moment / turn cue, big-board rendering performance, or bundle size.
-  Sections: Game feel — sound, the win moment, the turn cue (2026-10-13) · A big board lags on the GPU, not the engine — what repaints every frame · The bundle — what is in it, and what is NOT in the first chunk · Card Gallery — the screen that shows what the other grids hide · The UI after the mobile redesign · The phone's back button — `ui/back-stack.ts`.
+- **`docs/claude/ui.md`** — before UI work on the match screen, phone layout, back button, Card Gallery, the squad builder (`DeckBuilder.tsx`, one builder / one pool), sound / win moment / turn cue, big-board rendering performance, or bundle size.
+  Sections: Game feel — sound, the win moment, the turn cue (2026-10-13) · A big board lags on the GPU, not the engine — what repaints every frame · The bundle — what is in it, and what is NOT in the first chunk · Card Gallery — the screen that shows what the other grids hide · The UI after the mobile redesign · The phone's back button — `ui/back-stack.ts` · One builder, one pool — what you build with is what you battle with.
 - **`docs/claude/art.md`** — before adding or converting card art or thumbnails.
   Sections: Card art — the convention is HEIGHT 1000, not a fixed 750x1000 · Art is drawn from a SMALL COPY — `tools/make-thumbs.py`.
 - **`docs/claude/economy.md`** — before changing essence, foil rerolls, packs, earnings against the AI, achievements or the daily login reward.

@@ -142,6 +142,39 @@ export function squadUsableIn(
   return { ok: true, missing };
 }
 
+/** WHY THIS SEAT CANNOT START, in the player's words — or null when it can.
+ *
+ *  Your side fields the cards you own (owner, 2026-10-22). Three refusals, in
+ *  the order they are worth hearing: a premade is the opposition's deck and no
+ *  amount of collection makes it yours; a squad holding cards you have not
+ *  earned names them; an empty seat asks for a squad.
+ *
+ *  `exempt` is the draft and the designed encounter — a draft deals you cards
+ *  you do not own, which is the whole mode, and an event brings its own deck.
+ *  Pure so the gate, the picker and any future seat ask the same question. */
+export function seatRefusal(opts: {
+  cards: readonly string[];
+  owned: readonly string[];
+  /** This seat holds a premade (the AI's decks). */
+  premade?: boolean;
+  /** Draft / event seats are not asked. */
+  exempt?: boolean;
+  /** Names for the cards, for the sentence. Falls back to ids. */
+  nameOf?: (id: string) => string;
+}): string | null {
+  if (opts.exempt) return null;
+  if (opts.premade) return "That is a premade — field a squad of your own";
+  if (opts.cards.length === 0) return "Pick a squad of your own to play";
+  const owned = new Set(opts.owned);
+  const strangers = [...new Set(opts.cards)].filter((id) => !owned.has(id));
+  if (strangers.length === 0) return null;
+  const name = opts.nameOf ?? ((id: string) => id);
+  const shown = strangers.slice(0, 2).map(name).join(", ");
+  return strangers.length === opts.cards.length
+    ? "Pick a squad of your own to play"
+    : `${strangers.length} card${strangers.length === 1 ? "" : "s"} in this squad ${strangers.length === 1 ? "is" : "are"} not yours — ${shown}${strangers.length > 2 ? "…" : ""}`;
+}
+
 /** Squads most likely to be wanted against `element`, best first. One tagged
  *  for this element leads; everything else keeps its own order. */
 export function squadsFor(squads: readonly Squad[], element?: string): Squad[] {

@@ -11,7 +11,6 @@
 import { useEffect, useState } from "react";
 import { DAILY_REWARDS, dailyStatus, localDay } from "../data/daily";
 import type { StorySave } from "../data/story";
-import { buzz, playSfx } from "./sfx";
 
 export function DailyReward(props: { save: StorySave; onClaim: () => void }) {
   const [today, setToday] = useState(localDay);
@@ -44,7 +43,7 @@ export function DailyReward(props: { save: StorySave; onClaim: () => void }) {
         {st.claimed
           ? <span className="home-daily-got">✓ Claimed</span>
           : (
-            <button className="home-daily-claim" onClick={() => { playSfx("claim"); buzz(15); props.onClaim(); }}>
+            <button className="home-daily-claim" onClick={props.onClaim}>
               Claim {reward.packs ? `${reward.packs} pack` : <>+{reward.shards}<i className="shard" aria-hidden="true" /><span className="sr-only"> shards</span></>}
             </button>
           )}

@@ -38,6 +38,73 @@ const DECK_LIMITS: Record<number, DeckLimits> = {
 /** The one number a board's deck must be. Prefer this where the old code said
  *  `target` or `max` and meant "the size". */
 export const deckSizeFor = (boardSize = 4): number => deckLimits(boardSize).target;
+/** THE CEILING ON A SQUAD, whatever it is being built for: the biggest board's
+ *  deck. A squad is built ONCE now and fielded in three places that measure it
+ *  differently — 18 on a 4x4, 30 on a 5x5, and whatever a campaign node caps
+ *  its fight at — so the builder stopped walling the player in at whichever
+ *  format was toggled and lets them build to the largest, with the others
+ *  marked (owner, 2026-10-22). */
+export const BUILD_CEILING = DECK_LIMITS[5].target;
+
+export interface SizeMark {
+  /** The card count this mark sits at. */
+  at: number;
+  label: string;
+  /** Reached: an exact format size is MET, never merely passed; a cap is met
+   *  by anything at or under it. */
+  met: boolean;
+  /** A campaign node's ceiling rather than a format's size. */
+  cap?: boolean;
+}
+
+export interface SizeGuide {
+  count: number;
+  /** The most this squad may hold — the node's cap when there is one. */
+  ceiling: number;
+  /** Every size worth marking on the counter, in order. */
+  marks: SizeMark[];
+  /** The one line under it: what this count is ready for, or what it needs. */
+  note: string;
+  /** Cards past the ceiling; 0 when it fits. */
+  over: number;
+}
+
+/** What the card counter says — the whole of it, in one place.
+ *
+ *  The player asked for this as one sentence: how many cards I have, what 18
+ *  and 30 mean, and — standing on a campaign node — what THAT fight will take.
+ *  It is pure so the three surfaces that show a count cannot drift into three
+ *  different answers, and so the wording is testable. */
+export function sizeGuide(count: number, opts: { nodeCap?: number; node?: string } = {}): SizeGuide {
+  const small = DECK_LIMITS[4].target;   // 18 — a 4x4 squad
+  const large = DECK_LIMITS[5].target;   // 30 — a 5x5 squad
+  const ceiling = opts.nodeCap ?? BUILD_CEILING;
+  const marks: SizeMark[] = [];
+  // The node first when there is one: it is the fight in front of you, and the
+  // formats behind it are what the squad is worth keeping for.
+  if (opts.nodeCap != null)
+    marks.push({ at: opts.nodeCap, label: opts.node ? `${opts.node} · ${opts.nodeCap}` : `node cap ${opts.nodeCap}`, met: count > 0 && count <= opts.nodeCap, cap: true });
+  for (const [at, label] of [[small, "4×4"], [large, "5×5"]] as const)
+    if (at <= ceiling) marks.push({ at, label: `${label} · ${at}`, met: count === at });
+  const over = Math.max(0, count - ceiling);
+  const note = (() => {
+    if (over > 0)
+      return opts.nodeCap != null
+        ? `${over} over this fight's cap of ${opts.nodeCap} — take ${over} out`
+        : `${over} over the ${BUILD_CEILING}-card ceiling — take ${over} out`;
+    if (count === 0) return "Pick your first card";
+    if (opts.nodeCap != null)
+      return count === opts.nodeCap
+        ? `Full for this fight — ${count} of ${opts.nodeCap}`
+        : `${opts.nodeCap - count} more will fit this fight`;
+    if (count === small) return "Ready for 4×4 — add 12 more for a 5×5 squad";
+    if (count === large) return "Ready for 5×5";
+    if (count < small) return `${small - count} more for a 4×4 squad`;
+    return `${large - count} more for a 5×5 squad — ${count - small} over a 4×4 one`;
+  })();
+  return { count, ceiling, marks, note, over };
+}
+
 /** Limits for a board size; anything unrecognised falls back to the standard. */
 export function deckLimits(boardSize = 4): DeckLimits {
   return DECK_LIMITS[boardSize] ?? DECK_LIMITS[4];

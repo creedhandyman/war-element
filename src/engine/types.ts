@@ -150,10 +150,15 @@ export interface OnHitByMeleeDef {
   /** Answer RANGED attackers too (Windsor's Right Through Me, Jolt's
    *  Electrifying). Default false keeps the classic melee-only thorns. */
   anyAttacker?: boolean;
-  chance?: number; // 0–100; omit = always
+  chance?: number; // 0–100; omit = always — gates the WHOLE retaliation
   dmg?: number; // direct damage back to the attacker
   pen?: boolean;
   status?: { kind: StatusKind; duration: number; power: number };
+  /** A SECOND status with its own roll (Sand Trap: the rot always, the sleep
+   *  half the time). Deliberately not `chance` + `status`: that one gates the
+   *  entire retaliation, so putting the odds there would have made the damage
+   *  a coin flip too — which is a different card. */
+  chanceStatus?: { kind: StatusKind; duration: number; power: number; chance: number };
   doubleBurn?: boolean; // Hot Hot (Ingit): double the attacker's BURN power
   burnRounds?: number; // Hot Hot (Ingit): ...and add N rounds to that BURN
   spDrain?: number; // Fountain (Oxin): sap N SP from the melee attacker
@@ -1241,6 +1246,16 @@ export interface CardDef {
   /** Rolling Start (Rumbler): after each basic attack it rolls this many slots
    *  further toward the enemy home. */
   advanceOnBasic?: number;
+  /** Wind-Driven (Tumbleweed): the wind owns it. At the TOP of every round it
+   *  stumbles this many king-steps to a random free square beside it — no
+   *  direction, no intent, and nothing the player spends to stop it.
+   *
+   *  Start of round, not Cleanup, where `roundTick.advance` lives. Both are one
+   *  moment apart on the clock and a world apart to play against: drifting at
+   *  the END of a round moves the card after its owner has committed to where
+   *  it stood, so every plan is undone by a die roll they never saw. Drifting
+   *  FIRST means the board you are looking at is the board you are playing. */
+  driftEachRound?: number;
   /** False Head (Thorny Ripper): ONE free dodge for the whole game, against a
    *  BASIC attack — melee or ranged. Specials go straight through: a cost-2
    *  blocker should turn away a swing, not someone's once-a-game payoff.

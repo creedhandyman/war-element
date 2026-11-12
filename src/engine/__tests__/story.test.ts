@@ -13,11 +13,11 @@ import {
   demandMet, doublesEpics, gateCheck, isGate, regionOfNode, boardForNode, BIG_BATTLE_KINDS,
   capForNode, STANDARD_CAP, BIG_BOARD_CAP,
   formationSize, isRegionCleared, isRegionOpen,
-  SQUAD_BASE, SQUAD_PER_THRONE, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
+  SQUAD_BASE, SQUAD_PER_THRONE, squadLimitFor, guaranteedDrops, isRegionConquered, squadCapFor, squadCapInRegion,
   isOpeningNode, autoSquad, newHero, canCraft, craftCard, craftCostOf, CRAFT_COST,
   openPack, applyPack, canOpenPack, awardShards, dupeEssenceFor, PACK_COST, PACK_SIZE, SHARDS_PER_WIN,
   BOX_COST, BOX_PACKS, BOX_PAID_PACKS, BOX_BONUS_PACKS, BOX_SAVING, buyBox, canBuyBox, addShards, addFreePacks,
-  SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, packableFor, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
+  SHINY_CHANCE, rollShiny, isShiny, addShiny, spellsUnlockedIn, heroSpellShelf, heroBookFor, ESSENCE_PER_CLEAR, deckForRegion, rememberDeck, squadIsExplicit, squadIsOfferable, packSquad, poolForRegion, loadStory, saveStory, fightCap, isFirstBattle,
   newSave, nodeById, recruitChance, recruitablePool, rollRecruits, sourcesOf,
   autoDeck, terrainContested, type StoryNode, type StorySave, bookForLoadout, fieldedBy,
   THRONE_HOLD_ROUNDS, throneSeatedCard,
@@ -584,42 +584,45 @@ describe("story: the deck cap ladder", () => {
     } finally { g.localStorage = prior; }
   });
 
-  it("never blocks a fight — an unpacked region auto-packs instead", () => {
-    // The worst thing the campaign did: standing in LEAF holding eighteen LEAF
-    // cards, it stopped and demanded you choose twelve FOREIGN ones before you
-    // could play, and it did that the first time you entered every region.
+  it("every card you own fights, in every region", () => {
+    // THE PACKING STEP IS GONE (owner, 2026-10-22). It asked, at every border,
+    // which twelve of your foreign cards to carry — before you knew what you
+    // were walking into, through a second screen, and the price of answering
+    // wrong was the one card you forgot. Story plays the way Hard already did.
     const pyro = REGIONS.find((r) => r.id === "pyro")!;
     const leafAll = ofElement("LEAF");
     const save: StorySave = { ...newSave(), cleared: ["L14"], collection: leafAll };
-    expect(save.squads?.pyro).toBeUndefined();       // nothing chosen
-    expect(squadIsExplicit(save, pyro)).toBe(false);
-    // ...and yet there is a full squad to field, without touching a picker.
-    const pool = poolForRegion(save, pyro);
-    expect(pool.length).toBe(squadCapInRegion(save.cleared, pyro));
-    expect(pool).toEqual(autoSquad(save, pyro));
+    expect(squadLimitFor(save, pyro), "no limit, anywhere").toBeNull();
+    expect([...poolForRegion(save, pyro)].sort()).toEqual([...leafAll].sort());
+    expect(squadIsOfferable(save, pyro), "and so nothing to offer").toBe(false);
+    expect(autoSquad(save, pyro), "nothing to pack for you either").toEqual([]);
+    expect(packSquad(save, pyro, leafAll.slice(0, 3)), "packing is a no-op").toBe(save);
   });
 
-  it("...auto-pack takes the strongest foreign cards, and is stable", () => {
-    const pyro = REGIONS.find((r) => r.id === "pyro")!;
+  it("...and the pool is the same on both sides of a border", () => {
+    // The old rule's whole point was that it was NOT: a team built in LEAF
+    // arrived in PYRO missing everything it had not packed for. Walking is free
+    // now, so the only thing a border changes is which element is local.
     const leafAll = ofElement("LEAF");
     const save: StorySave = { ...newSave(), cleared: ["L14"], collection: leafAll };
-    const a = autoSquad(save, pyro);
-    expect(a).toEqual(autoSquad(save, pyro)); // deterministic, not a shuffle
-    const costs = a.map((id) => getDef(id).cost);
-    expect(costs).toEqual([...costs].sort((x, y) => y - x)); // strongest first
-    expect(Math.min(...costs)).toBeGreaterThanOrEqual(
-      Math.max(...packableFor(save, pyro).filter((id) => !a.includes(id)).map((id) => getDef(id).cost)),
-    );
+    const pools = REGIONS.map((r) => [...poolForRegion(save, r)].sort().join(","));
+    expect(new Set(pools).size, "one pool, everywhere").toBe(1);
+    expect(pools[0]).toBe([...leafAll].sort().join(","));
   });
 
-  it("...and an explicit squad always beats the automatic one", () => {
+  it("...and a save that still carries packed squads is ignored, not obeyed", () => {
+    // Every save made before this change holds `squads`. Reading them would
+    // hand a returning player the twelve cards their last run packed and leave
+    // the rest of the collection on the bench — the exact thing being removed.
     const pyro = REGIONS.find((r) => r.id === "pyro")!;
     const leafAll = ofElement("LEAF");
-    const base: StorySave = { ...newSave(), cleared: ["L14"], collection: leafAll };
-    const mine = leafAll.slice(-3); // deliberately NOT the auto pick
-    const packed = packSquad(base, pyro, mine);
-    expect(squadIsExplicit(packed, pyro)).toBe(true);
-    expect(poolForRegion(packed, pyro).sort()).toEqual([...mine].sort());
+    const stale: StorySave = {
+      ...newSave(), cleared: ["L14"], collection: leafAll,
+      squads: { pyro: leafAll.slice(0, 2) },
+    };
+    expect([...poolForRegion(stale, pyro)].sort()).toEqual([...leafAll].sort());
+    // The field itself is KEPT — it is what the dormant ladder would read again.
+    expect(stale.squads!.pyro).toHaveLength(2);
   });
 
   it("a region remembers the team you last fought there with", () => {
@@ -660,50 +663,27 @@ describe("story: the deck cap ladder", () => {
     } finally { g.localStorage = prior; }
   });
 
-  it("the region's own element always fights for you, packed or not", () => {
-    // You are in their homeland. Every card of theirs you have unlocked answers
-    // the call, so the squad is only ever a question about what you bring from
-    // ELSEWHERE — and the picker only offers those.
+  it("the region's own element fights for you, and so does everything else", () => {
+    // Locals never needed carrying — that half of the rule was always true and
+    // is now the whole of it.
     const pyro = REGIONS.find((r) => r.id === "pyro")!;
     const pyroOwned = ofElement("PYRO").slice(0, 9);
     const leafOwned = ofElement("LEAF").slice(0, 20);
     const save: StorySave = { ...newSave(), cleared: ["L14"], collection: [...pyroOwned, ...leafOwned] };
-    // Nothing packed, yet every PYRO card is already available here — and the
-    // picker only ever offers the FOREIGN ones, because locals never need
-    // carrying.
-    for (const id of pyroOwned) expect(poolForRegion(save, pyro)).toContain(id);
-    expect(packableFor(save, pyro).sort()).toEqual([...leafOwned].sort());
-    // Packing adds the foreign cards on top rather than replacing the locals.
-    const packed = packSquad(save, pyro, leafOwned.slice(0, 5));
-    expect(poolForRegion(packed, pyro)).toHaveLength(pyroOwned.length + 5);
+    for (const id of [...pyroOwned, ...leafOwned]) expect(poolForRegion(save, pyro)).toContain(id);
+    expect(poolForRegion(save, pyro)).toHaveLength(pyroOwned.length + leafOwned.length);
   });
 
-  it("...and you are only asked to pack once per region, ever", () => {
-    // The picker used to reopen on every return, because one travelling squad
-    // meant arriving anywhere else overwrote it. Squads are per region now.
+  it("...and the ladder it replaced is dormant, not deleted", () => {
+    // `squadCapFor` / `squadCapInRegion` still describe the first run's
+    // progression, so restoring the step is one function (`squadLimitFor`)
+    // rather than an excavation.
     const pyro = REGIONS.find((r) => r.id === "pyro")!;
-    const aqua = REGIONS.find((r) => r.id === "aqua")!;
-    const leafAll = ofElement("LEAF");
-    let save: StorySave = { ...newSave(), cleared: ["L14"], collection: leafAll };
-    expect(squadIsOfferable(save, pyro)).toBe(true);
-    save = packSquad(save, pyro, leafAll.slice(0, 14));
-    save = packSquad(save, aqua, leafAll.slice(4, 18)); // a trip somewhere else
-    // Coming back to PYRO finds it exactly as it was left.
-    expect(squadIsExplicit(save, pyro)).toBe(true);
-    expect(save.squads!.pyro).toEqual(leafAll.slice(0, 14));
-    expect(save.squads!.aqua).toEqual(leafAll.slice(4, 18));
+    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: ofElement("LEAF") };
+    expect(squadCapInRegion(save.cleared, pyro), "the ladder still answers").toBe(SQUAD_BASE + SQUAD_PER_THRONE);
+    expect(squadLimitFor(save, pyro), "...and play no longer asks it").toBeNull();
   });
 
-  it("...and an empty squad still counts as answered", () => {
-    // Deliberately crossing with nothing but the locals must not re-open the
-    // picker every time you step back in.
-    const pyro = REGIONS.find((r) => r.id === "pyro")!;
-    const save = packSquad(
-      { ...newSave(), cleared: ["L14"], collection: ofElement("LEAF") }, pyro, [],
-    );
-    expect(save.squads!.pyro).toEqual([]);
-    expect(squadIsExplicit(save, pyro)).toBe(true);
-  });
 
   it("the free opening placement is the campaign's first fight and nothing else", () => {
     // A head start for one Sakuroot against three. Everywhere else it is an
@@ -720,37 +700,7 @@ describe("story: the deck cap ladder", () => {
     expect(firsts).toEqual(["L1"]);
   });
 
-  it("the squad is a commitment — away, you may only field what you packed", () => {
-    // Capping the SIZE alone would let a player re-pick from the whole
-    // collection at every node, which makes "choose twelve and live with it"
-    // mean nothing. The pool itself has to narrow.
-    const pyro = REGIONS.find((r) => r.id === "pyro")!;
-    const leafAll = ofElement("LEAF");
-    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: leafAll };
-    expect(squadIsOfferable(save, pyro)).toBe(true);
-    // Unpacked, the pool is whatever auto-pack chose — never empty, never more
-    // than the limit.
-    expect(poolForRegion(save, pyro)).toHaveLength(squadCapInRegion(save.cleared, pyro)!);
-    const packed = packSquad(save, pyro, leafAll.slice(0, 20));
-    expect(packed.squads!.pyro).toHaveLength(14); // clamped to the limit
-    expect(poolForRegion(packed, pyro)).toEqual(packed.squads!.pyro);
-    expect(squadIsExplicit(packed, pyro)).toBe(true);
-  });
 
-  it("...a squad packed for one region does not travel to another", () => {
-    const pyro = REGIONS.find((r) => r.id === "pyro")!;
-    const aqua = REGIONS.find((r) => r.id === "aqua")!;
-    const leafAll = ofElement("LEAF");
-    const chosen = leafAll.slice(-14); // deliberately not what auto-pack would take
-    const save = packSquad({ ...newSave(), cleared: ["L14"], collection: leafAll }, pyro, chosen);
-    expect(poolForRegion(save, pyro).sort()).toEqual([...chosen].sort());
-    // AQUA gets its own auto-pack, NOT the team chosen for PYRO.
-    expect(poolForRegion(save, aqua).sort()).not.toEqual([...chosen].sort());
-    expect(poolForRegion(save, aqua)).toEqual(autoSquad(save, aqua));
-    expect(squadIsOfferable(save, aqua)).toBe(true);
-    // ...and PYRO's squad is still remembered, untouched by the trip to AQUA.
-    expect(save.squads!.pyro).toHaveLength(14);
-  });
 
   it("...but home is the whole collection, and packing there is a no-op", () => {
     const leaf = REGIONS.find((r) => r.id === "leaf")!;
@@ -770,12 +720,6 @@ describe("story: the deck cap ladder", () => {
     expect(poolForRegion(start, leaf)).toEqual(["leaf_sakuroot"]);
   });
 
-  it("...and never lets an unowned card into a packed squad", () => {
-    const pyro = REGIONS.find((r) => r.id === "pyro")!;
-    const save: StorySave = { ...newSave(), cleared: ["L14"], collection: ["leaf_oak", "leaf_python", "leaf_birch"] };
-    const packed = packSquad(save, pyro, ["leaf_oak", "ghost", "leaf_python", "leaf_oak"]);
-    expect(packed.squads!.pyro).toEqual(["leaf_oak", "leaf_python"]); // de-duped, unowned dropped
-  });
 
   it("...and a packed squad survives a round-trip through storage", () => {
     // Caught in the live app, not by the unit tests above: packSquad wrote the
@@ -784,11 +728,14 @@ describe("story: the deck cap ladder", () => {
     // reconstructed by hand on load, so a new one is invisible until listed.
     const pyro = REGIONS.find((r) => r.id === "pyro")!;
     const coll = ["leaf_oak", "leaf_python", "leaf_birch"];
-    const packed = packSquad(
-      { ...newSave(), cleared: ["L14"], collection: coll },
-      pyro,
-      ["leaf_oak", "leaf_python"],
-    );
+    // Written by hand: `packSquad` is a no-op now. What is under test is that
+    // LOAD still reconstructs the field — every StorySave field is rebuilt by
+    // hand on load, so one left off the list is invisible until something reads
+    // it, and the dormant ladder would read this one.
+    const packed: StorySave = {
+      ...newSave(), cleared: ["L14"], collection: coll,
+      squads: { pyro: ["leaf_oak", "leaf_python"] },
+    };
     const store = new Map<string, string>();
     const g = globalThis as { localStorage?: unknown };
     const prior = g.localStorage;
@@ -803,6 +750,8 @@ describe("story: the deck cap ladder", () => {
       expect(back.squads).toBeDefined();
       expect(back.squads!.pyro).toEqual(["leaf_oak", "leaf_python"]);
       expect(squadIsExplicit(back, pyro)).toBe(true);
+      // ...and it still changes nothing about what may be fielded.
+      expect([...poolForRegion(back, pyro)].sort()).toEqual([...coll].sort());
     } finally {
       g.localStorage = prior;
     }

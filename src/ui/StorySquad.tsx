@@ -24,7 +24,7 @@ import {
 } from "./filters";
 import { getDef } from "../data/cards";
 import {
-  autoSquad, isHard, localCards, markSeen, packSquad, packableFor, squadFor, squadLimitFor,
+  autoSquad, localCards, markSeen, packSquad, packableFor, squadFor, squadLimitFor,
   type StoryRegion, type StorySave,
 } from "../data/story";
 import { cardThumbSrc, EL_COLOR, EL_ICON, ELEMENTS } from "./shared";
@@ -115,11 +115,10 @@ export function StorySquad(props: {
       <section className="squad-strip home">
         <div className="sq-head">
           <span className="sq-title">Your squad here</span>
-          <span className="sq-note">
-            {isHard(save)
-              ? "Hard mode — every card you own fights, in every region"
-              : "home ground — every card you own fights"}
-          </span>
+          {/* ONE LINE NOW, because there is one rule now: the packing step is
+              gone and the collection travels (see `squadLimitFor`). It used to
+              split on Hard vs home, which were the only two ways to get here. */}
+          <span className="sq-note">every card you own fights, in every region</span>
         </div>
         <div className="sq-row">
           {[...locals].slice(0, 12).map((id) => (

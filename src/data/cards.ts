@@ -5400,23 +5400,35 @@ export const CARDS: CardDef[] = [
     shields: 0,
     // Nothing lands cleanly on something that never stops rolling.
     keywords: { EVASION: true },
+    // Wind-Driven: it does not hold ground, it is BLOWN across it. One random
+    // king-step at the top of every round, which is as often a nuisance as a
+    // gift — the wind has no opinion about where you wanted it. See
+    // `driftEachRound` in types.ts for why it is the START of the round.
+    passiveNames: { driftEachRound: "Wind-Driven" },
+    driftEachRound: 1,
     // Rares carry Talents, not repeatable Specials: free, but once per game.
     talent: {
       name: "Roll Through",
       handler: "strike",
-      // TWO spaces, not one. `rollThrough` is a MINIMUM step count, so this
-      // clears the slot in front rather than settling into it, and keeps going
-      // if that landing is occupied.
-      params: { dmg: 5, rollThrough: 2 },
-      // Hits, THEN rolls THROUGH — past the struck body toward the enemy home.
-      // Plain charge stalled on the target it just hit, which made a talent
-      // named Roll Through do nothing in the common case.
+      // IT ROLLS AT SOMETHING NOW, not past it (owner, 2026-10-27). The old
+      // version struck whatever was already touching it and then rolled two
+      // spaces on (`rollThrough`), which made the movement a flourish after
+      // the fact — the talent could not reach anything it was not already
+      // standing next to, so the "roll" never took it anywhere it mattered.
       //
-      // AND IT ROLLS WITH NOTHING TO HIT. The `strike` handler used to return
-      // the moment it had no target, so a Tumbleweed with an empty board ahead
-      // of it burned its once-per-game Talent standing still — the case where
-      // rolling is the only thing you wanted from it.
-      text: "Once per game: deal 5 DMG, then roll two spaces toward the enemy home — and roll even with nothing to hit.",
+      // `chargeFirst` + `charge: 2` inverts that: the charge is how it ARRIVES,
+      // and `validSpecialTargets` reads the charge as reach, so the talent may
+      // now aim at any opponent within two spaces and close the gap itself.
+      // `chargeDiagonal` because a tumbleweed does not keep to the lanes —
+      // without it a diagonal target inside that radius costs steps the charge
+      // has not got, and the hit lands from one square short.
+      //
+      // `push: 1` is the collision: 180 pounds of dry brush at wind speed moves
+      // what it hits. Through `applyDebuffRiders`, so it is the same shove every
+      // other pushing ability uses and `pushImmune` (Braced Stance) still turns
+      // it away.
+      params: { dmg: 4, charge: 2, chargeFirst: 1, chargeDiagonal: 1, push: 1 },
+      text: "Once per game: roll up to two spaces at an opponent, hit it for 4 DMG and blow it back a space.",
     },
   },
   {
@@ -8477,22 +8489,53 @@ export const CARDS: CardDef[] = [
     shields: 5,
     keywords: {},
     tribe: "Cavernous",
-    // Sand Trap (On Hit by melee): infect the attacker (SLEEP). On Death: leave
-    // the killer poisoned. Toxic Contagion: Venomarch's own basics spread POISON.
+    // Sand Trap (On Hit by melee): the rot ALWAYS, the sleep half the time
+    // (owner, 2026-10-22). It used to be a guaranteed SLEEP 2 and nothing else,
+    // which is a strange thing for a scorpion to be: the whole card is venom,
+    // and the one place it answers a sword it answered with a nap. Now it bites
+    // back — DOT 3 for 2 rounds, every time — and sometimes the venom also puts
+    // the attacker under. Two separate rolls (`chanceStatus`), so the certain
+    // half stays certain.
+    //
+    // 50% is also the honest number for a sleep applied in BATTLE: it ticks
+    // away at that round's Cleanup, so even when it lands it buys one skipped
+    // turn from an attacker that has not acted yet. A guaranteed one read as
+    // stronger than it played.
+    //
+    // On Death: leave the killer poisoned. Toxic Contagion: Venomarch's own
+    // basics spread POISON.
     passiveNames: { onHitByMelee: "Sand Trap", onDeath: "Sand Trap", onHitStatus: "Toxic Contagion" },
-    onHitByMelee: { status: { kind: "SLEEP", duration: 2, power: 0 } },
+    onHitByMelee: {
+      status: { kind: "DOT", duration: 2, power: 3 },
+      chanceStatus: { kind: "SLEEP", duration: 2, power: 0, chance: 50 },
+    },
     onDeath: { dmg: 0, killerStatus: { kind: "DOT", duration: 2, power: 3 } },
     onHitStatus: { kind: "DOT", duration: 2, power: 2 },
-    // Toxic Contagion: SLEEP a target and apply POISON 3 for 2 rounds. If it
-    // dies while still poisoned, the body bursts for 3 to everything adjacent.
+    // Toxic Contagion: SLEEP a target 1 round and rot it for 5. If it dies
+    // while still poisoned, the body bursts for 3 to everything adjacent.
+    //
+    // THE POISON IS THE CARD (owner, 2026-10-22: five rounds, sleep one).
+    // 2 -> 5 rounds is 6 damage -> 15 from one cast, and it buys more than the
+    // damage: the death burst is ARMED for as long as the poison lasts (the
+    // `toxicSplash` mark is only spent if the body drops while still carrying
+    // it), so a five-round rot is the difference between a burst that needs the
+    // kill to land in the next two rounds and one that is simply waiting.
+    //
+    // The SLEEP stays at 1 and is now PRINTED — the text never said how long it
+    // was. One round is also all it can usefully be here: this is cast in
+    // BATTLE and statuses tick away at that round's Cleanup, so the skip only
+    // ever lands on a target still waiting its turn in the speed queue, and
+    // never carries into Prep. A longer sleep would also fight the poison it
+    // comes with — waking on a hit is how a sleeper is meant to be dug out, and
+    // the DOT is what is supposed to be doing the digging.
     special: {
       name: "Toxic Contagion",
       cost: 3,
       handler: "toxicContagion",
-      params: { sleep: 1, dotDuration: 2, dotPower: 3, deathSplash: 3 },
+      params: { sleep: 1, dotDuration: 5, dotPower: 3, deathSplash: 3 },
       targetSide: "enemy",
       ranged: true,
-      text: "SLEEP a target and apply POISON 3 (DOT) for 2 rounds. If it dies while poisoned, it bursts for 3 DMG to every adjacent card.",
+      text: "SLEEP a target for 1 round and apply POISON 3 (DOT) for 5 rounds. If it dies while poisoned, it bursts for 3 DMG to every adjacent card.",
     },
   },
   {
@@ -13978,10 +14021,11 @@ export const CARDS: CardDef[] = [
       // ignore the depth.
       handler: "barrage",
       // ...and it does not stop where it burned. `rollThrough: 2` carries the
-      // bike two slots up its own column afterwards — the same primitive
-      // Tumbleweed rolls on, and the same one `advanceOnBasic` already gives
-      // this card on every ordinary swing. A talent called Peel Out that left
-      // the bike parked was the odd part.
+      // bike two slots up its own column afterwards — the same one
+      // `advanceOnBasic` already gives this card on every ordinary swing. A
+      // talent called Peel Out that left the bike parked was the odd part.
+      // (Tumbleweed shared this primitive until 2026-10-27; Peel Out is the
+      // last card on it, so `rollThrough` lives or dies with this talent.)
       params: {
         dmg: 4, targets: 99, spread: 0, forwardDepth: 2,
         statusKind: "BURN", statusPower: 3, statusDuration: 3, rollThrough: 2,

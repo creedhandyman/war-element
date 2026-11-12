@@ -235,7 +235,7 @@ import { autoPrefFor } from "./auto-prefs";
 import { DOMINATION_7X7, newDomination } from "../data/domination";
 import { FOIL_STATS, foilStatsFromLedger, type FoilStat } from "../data/foils";
 import { deckCodeFromUrl } from "../data/deck-code";
-import { absorbLegacy, loadSquads, type Squad } from "../data/squads";
+import { absorbLegacy, loadSquads, seatRefusal, squadUsableIn, type Squad } from "../data/squads";
 import { STORY_DEADLOCK_ROUNDS, STORY_ROUND_CAP, markSeen, newHero, rawStoredLoadouts } from "../data/story";
 import { EVENT_DECKS, completeEvent, eventForDeck, type GameEvent } from "../data/events";
 import { buildVoidEncounter, voidBossById, voidBossElements } from "../data/void-tower";
@@ -252,8 +252,7 @@ import { tapWords } from "./pointer";
 import { navAttention } from "./nav-attention";
 import { claimGoal, goalEventsFor, recordGoalEvent } from "../data/goals";
 import { shouldConfirmPass } from "./pass-guard";
-import { useMatchSounds } from "./match-sounds";
-import { playLevelUp, playSfx } from "./sfx";
+import { playLevelUp } from "./sfx";
 import { TUT_SKIP, beatIndex, needsFirstRun, type TutorialId, type TutUi } from "./tutorial";
 import { TUTORIALS } from "./tutorials";
 import { track } from "../net/telemetry";
@@ -632,7 +631,13 @@ export function App() {
   // full-screen. My own summon holds the intent and dispatches AFTER the
   // announcement (a true preview); the opponent's resolves outside our dispatch,
   // so those are detected on arrival — see the effect below.
-  const [announce, setAnnounce] = useState<{ defId: string; mine: boolean } | null>(null);
+  // `at` is the square it is landing on — the entrance is LOWERED onto it (see
+  // SummonAnnounce). Known in all three paths: my own summon resolves the same
+  // landing row the engine will, and an opponent's is already placed by the
+  // state the announcement is being played against.
+  const [announce, setAnnounce] = useState<
+    { defId: string; mine: boolean; at?: { row: number; col: number } | null } | null
+  >(null);
   const announceTimerRef = useRef<number | null>(null);
   const seenBigRef = useRef<Set<string>>(new Set());
   // A modal "choice" spell (Chill) awaiting its mode pick (attack vs shield).
@@ -910,7 +915,6 @@ export function App() {
   const [tutorialRun, setTutorialRun] = useState<{ id: TutorialId; from: "first" | "training" } | null>(null);
   const tutDef = tutorialRun ? TUTORIALS[tutorialRun.id] : null;
   // ...and a soft tick when you pick something up, so a tap always answers.
-  useEffect(() => { if (started && sel) playSfx("tap"); }, [sel, started]);
   // ANONYMOUS PLAY EVENTS (net/telemetry.ts): a device's first open — a fresh
   // save or one from before — and one open a day. Read once, at launch.
   useEffect(() => {
@@ -1401,6 +1405,26 @@ export function App() {
    *  A deck that is merely UNFINISHED for THIS board still shows — see
    *  `customDecksFor`. */
   const modeCustoms = customDecksFor(customDecks, boardSize);
+  /** YOUR SIDE FIELDS WHAT YOU OWN (owner, 2026-10-22).
+   *
+   *  The premades are the opposition's decks — every rung the Arena, the
+   *  Gauntlet and the matchmaker pit you against — and they stay exactly that.
+   *  What changed is your seat: it lists your squads, and a squad built before
+   *  the collection was the pool says which cards are not yours instead of
+   *  failing at the start button.
+   *
+   *  A DRAFT is the deliberate exception and always was: its whole premise is
+   *  fielding cards you were dealt rather than ones you own, so a draft seat
+   *  never asks this question (see `ownedGate`). */
+  const unfieldableSquads = useMemo(() => {
+    const owned = story.collection;
+    const out = new Map<string, string>();
+    for (const d of customDecks) {
+      const r = squadUsableIn({ id: d.id, name: d.name, cards: d.cards }, { owned });
+      if (!r.ok && r.missing.length) out.set(d.id, `${r.reason} — ${r.missing.slice(0, 3).map((id: string) => getDef(id).name).join(", ")}${r.missing.length > 3 ? "…" : ""}`);
+    }
+    return out;
+  }, [customDecks, story.collection]);
   // Selectable decks = those + the player's own custom decks. Custom decks have
   // no board size of their own and are offered in both modes; the engine never
   // enforces deck length at match start, so a short deck simply runs out sooner.
@@ -1492,10 +1516,34 @@ export function App() {
    *    nothing against a deck you picked.
    *
    *  Online and hot-seat are neither: the other seat is a person. */
+  /** A SAVED PREMADE IS NOT A SQUAD ANY MORE. Arena prefs from before this
+   *  change hold one, and the player should find their own team selected rather
+   *  than a refusal they did not cause. Only when they have a fieldable squad
+   *  to move to: with none, the refusal is the honest state and the picker's
+   *  "Build a new squad" is one tap from it. */
+  useEffect(() => {
+    if (onlineMode || storyNode || draftSeat || eventRun) return;
+    if (!PREMADE_DECKS.some((d) => d.id === p1DeckId)) return;
+    const mine = modeCustoms.find((d) => d.cards.length > 0 && !unfieldableSquads.has(d.id));
+    if (mine) setP1DeckId(mine.id);
+  }, [p1DeckId, modeCustoms, unfieldableSquads, onlineMode, storyNode, draftSeat, eventRun]);
   const myDeckCheck = validateDeck(resolveDeckCards(mySeatDeckId), boardSize);
   const startGate: { ok: boolean; why?: string; warn?: string } = (() => {
     if (onlineMode || twoPlayer || storyNode) return { ok: true };
     const challenge = arenaGame === "gauntlet" || arenaGame === "streak" || arenaGame === "draft";
+    // OWNERSHIP, BEFORE SIZE. The rule is pure (`seatRefusal`): a premade is
+    // the opposition's deck whatever your collection covers, and a squad
+    // holding cards you have not earned NAMES them — which is the difference
+    // between a rule and a wall. A draft is dealt cards you do not own (that
+    // is the mode) and an event is a designed encounter, so neither is asked.
+    const refusal = seatRefusal({
+      cards: resolveDeckCards(mySeatDeckId),
+      owned: story.collection,
+      premade: PREMADE_DECKS.some((d) => d.id === mySeatDeckId),
+      exempt: !!draftSeat || !!eventRun,
+      nameOf: (id) => getDef(id).name,
+    });
+    if (refusal) return { ok: false, why: refusal };
     if (challenge && !myDeckCheck.ok) {
       return {
         ok: false,
@@ -1687,7 +1735,6 @@ export function App() {
   // when one falls, two soft notes when the move comes back to you — read off the
   // state diff (match-sounds.ts), so it covers the player, the AI, an online
   // opponent and the scripted lessons alike.
-  useMatchSounds(game, started, me !== null);
 
   /** TELL THE DIAL HOW THAT WENT — see `recordSkillMatch` in engine/skill.ts.
    *
@@ -2122,7 +2169,12 @@ export function App() {
       // Marked seen BEFORE it lands, so the opponent-announce effect does not
       // announce it a second time once it is on the board.
       seenBigRef.current.add(show.instanceId);
-      setAnnounce({ defId: show.summonDefId, mine: false });
+      setAnnounce({
+        defId: show.summonDefId, mine: false,
+        // Where it is about to be standing — `next` is the state this
+        // announcement is holding back, so the square is already decided.
+        at: stagedCast.next.cards[show.instanceId]?.pos ?? null,
+      });
     }
     timers.push(window.setTimeout(() => {
       if (isSpell) setCastFlash(null);
@@ -2945,7 +2997,7 @@ export function App() {
     const opps: PlayerId[] = online
       ? seatsOf(game).filter((p) => p !== online.myId)
       : twoPlayer ? [] : ["P2"];
-    let fresh: string | null = null;
+    let fresh: { defId: string; at: { row: number; col: number } | null } | null = null;
     for (const c of Object.values(game.cards)) {
       if (!c.pos) continue;
       // Keyed by instanceId (unique per summon), so a card sitting on the board
@@ -2954,10 +3006,11 @@ export function App() {
       // preview in confirmSummon, and the owner check below skips it regardless.
       if (seenBigRef.current.has(c.instanceId)) continue;
       seenBigRef.current.add(c.instanceId);
-      if (opps.includes(c.owner) && announces(c.defId) && fresh === null) fresh = c.defId;
+      if (opps.includes(c.owner) && announces(c.defId) && fresh === null)
+        fresh = { defId: c.defId, at: c.pos ?? null };
     }
     if (fresh && announceTimerRef.current === null && castTimerRef.current === null) {
-      setAnnounce({ defId: fresh, mine: false });
+      setAnnounce({ defId: fresh.defId, mine: false, at: fresh.at });
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
         setAnnounce(null);
@@ -3468,7 +3521,12 @@ export function App() {
       const defId = card.defId;
       setStaged(null);
       setSel(null);
-      setAnnounce({ defId, mine: true });
+      // The same three-step resolve as the SUMMON reducer (phases.ts): the row
+      // asked for, else the first open one up the column, else the home row.
+      // Reading it here rather than guessing the home row means the card is
+      // lowered onto the square it actually takes when the home row is full.
+      const landing = row ?? summonLandingRow(game, me, col) ?? homeRow(me, game.boardSize);
+      setAnnounce({ defId, mine: true, at: { row: landing, col } });
       setHint(`Summoning <b>${getDef(defId).name}</b>…`);
       announceTimerRef.current = window.setTimeout(() => {
         announceTimerRef.current = null;
@@ -5924,7 +5982,7 @@ export function App() {
 
       {castFlash && <SpellCastFlash spellId={castFlash.spellId} ms={castFlash.ms} />}
       {delivering && <div className="input-shield" aria-hidden="true" />}
-      {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} />}
+      {announce && <SummonAnnounce defId={announce.defId} mine={announce.mine} at={announce.at} />}
 
       {/* REJOIN. A match this device was in when the app closed, offered on
           whatever screen the player lands on — an app reopens where it starts,
@@ -6982,8 +7040,13 @@ export function App() {
                   : (onlineMode ? "Your squad" : twoPlayer ? "Player 2 squad" : "Opponent squad")
               }
               boardSize={boardSize}
+              // YOUR seat, or the other human's in hot-seat — one device, one
+              // collection, so both are yours. An AI seat still fields the
+              // premades: they are the opposition, and that never changed.
+              mine={pickSeat === "p1" || (twoPlayer && pickSeat === "p2")}
               premades={modePremades}
               customs={modeCustoms}
+              unfieldable={unfieldableSquads}
               value={pickSeat === "p1" ? p1DeckId
                 : pickSeat === "p2" ? p2DeckId
                 : pickSeat === "p3" ? p3DeckId : p4DeckId}
@@ -7258,6 +7321,12 @@ export function App() {
         // foil set used to ride on that prop, which is the whole reason a foil
         // went plain here.
         foils={foilIds}
+        // ...AND THE SAME POOL (owner, 2026-10-22). This entrance used to offer
+        // every card in the game, which is what made it a second builder rather
+        // than the same one: a squad built here could hold cards the player had
+        // never earned, and nothing said so until the start button refused it.
+        // What you build with is what you can battle with.
+        owned={story.collection}
         foilStats={myFoilStats}
         incomingCode={linkedDeck}
         onIncomingConsumed={() => setLinkedDeck(null)}

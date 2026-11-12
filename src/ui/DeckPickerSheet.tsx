@@ -143,6 +143,13 @@ export function DeckPickerSheet(props: {
   customs: CustomDeck[];
   /** The id currently set for this seat, marked with a tick. */
   value: string;
+  /** This seat is the PLAYER's. Premades are the opposition's decks now (owner,
+   *  2026-10-22: you battle with the cards you own), so your side lists your
+   *  squads and nothing else, and says why the long list is gone. */
+  mine?: boolean;
+  /** Which of `customs` hold cards the collection does not cover — shown, but
+   *  refused, with what is missing named. */
+  unfieldable?: ReadonlyMap<string, string>;
   onPick: (id: string) => void;
   onClose: () => void;
   onBuild: () => void;
@@ -160,11 +167,17 @@ export function DeckPickerSheet(props: {
   const rows = (d: CustomDeck | PremadeDeck, custom: boolean) => {
     const art = deckArtUrl(d.cards);
     const on = d.id === props.value;
+    /** Built before the collection was the pool, and holding cards that are not
+     *  yours: it stays in the library, says what is missing, and cannot be
+     *  picked — rather than being deleted or quietly failing at the start. */
+    const blocked = props.unfieldable?.get(d.id);
     return (
       <button
         key={d.id}
-        className={`dp-row ${on ? "on" : ""}`}
-        onClick={() => { props.onPick(d.id); props.onClose(); }}
+        className={`dp-row ${on ? "on" : ""}${blocked ? " blocked" : ""}`}
+        disabled={!!blocked}
+        title={blocked}
+        onClick={() => { if (blocked) return; props.onPick(d.id); props.onClose(); }}
       >
         <span className="dp-art">
           {art && (
@@ -184,7 +197,9 @@ export function DeckPickerSheet(props: {
             {custom ? <em className="dp-mark custom">★ CUSTOM</em> : on && <em className="dp-mark">✓</em>}
           </span>
           <span className="dp-note">
-            {"note" in d && d.note
+            {blocked
+              ? blocked
+              : "note" in d && d.note
               ? d.note
               : `${d.cards.length === size ? "Legal" : `${d.cards.length}/${size} — not legal yet`} for ${props.boardSize}×${props.boardSize}`}
           </span>
@@ -204,9 +219,15 @@ export function DeckPickerSheet(props: {
               it is built for the other board, and that is worth saying once
               here rather than leaving as a mystery. */}
           <p>
-            Sized for {props.boardSize}×{props.boardSize} · exactly {size} cards.
-            {" "}{props.premades.length} premade{props.premades.length === 1 ? "" : "s"}
-            {props.customs.length ? " and your own." : "."}
+            {props.mine ? (
+              <>Sized for {props.boardSize}×{props.boardSize} · exactly {size} cards. Built from the cards you own.</>
+            ) : (
+              <>
+                Sized for {props.boardSize}×{props.boardSize} · exactly {size} cards.
+                {" "}{props.premades.length} premade{props.premades.length === 1 ? "" : "s"}
+                {props.customs.length ? " and your own." : "."}
+              </>
+            )}
           </p>
         </div>
 
@@ -219,15 +240,18 @@ export function DeckPickerSheet(props: {
           </button>
         </div>
 
-        <button
+        {/* The premades are the OPPOSITION's now. They are still every deck the
+            Arena pits you against — this is the only place they stopped being
+            offered, because your side fields what you own. */}
+        {props.mine ? null : <button
           className={`dp-group dp-fold ${showPremades ? "on" : ""}`}
           onClick={() => setShowPremades((v) => !v)}
           aria-expanded={showPremades}
         >
           PREMADE <em>{props.premades.length}</em>
           <i aria-hidden="true">{showPremades ? "⌃" : "⌄"}</i>
-        </button>
-        {showPremades && <div className="dp-list">{props.premades.map((d) => rows(d, false))}</div>}
+        </button>}
+        {!props.mine && showPremades && <div className="dp-list">{props.premades.map((d) => rows(d, false))}</div>}
       </div>
     </div>
   );

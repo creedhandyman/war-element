@@ -25,7 +25,7 @@ import type { Signature } from "./types";
 type Box = { x: number; y: number; w: number; h: number };
 
 const TAU = Math.PI * 2;
-const CREAM = 0xf2fbff, PEACH = 0xbfe6ff, APRICOT = 0x7cc8ff, AMBER = 0x3d9bff, RUST = 0x2f7be0;
+const CREAM = 0xf2fffe, PEACH = 0xb8f4ff, APRICOT = 0x6fe2ff, AMBER = 0x22c4f0, RUST = 0x16a2d0;
 /** The bore hole — only ever on the dark layer. */
 const INK = 0x0c0806;
 

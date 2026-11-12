@@ -2,8 +2,8 @@
  *
  *  The result screens were text on a dark card: the biggest beat of every match
  *  arrived as a paragraph. This is the beat itself — a burst of confetti behind
- *  the card, the fanfare, a buzz in the hand — and, for a loss, only the low
- *  three-note sigh: no confetti for a defeat, and no scolding either.
+ *  the card, the fanfare, a buzz in the hand. A loss gets none of it:
+ *  no confetti, no sound, no scolding.
  *
  *  Mounted INSIDE the `.overlay` (beside the modal, not in it): the modal
  *  scrolls, and a burst drawn in it would be clipped by its own edges.
@@ -31,7 +31,6 @@ export function Celebration(props: { kind: "win" | "lose" | "none" }) {
   const { kind } = props;
   useEffect(() => {
     if (kind === "win") { playSfx("win"); buzz([40, 50, 90]); }
-    else if (kind === "lose") { playSfx("lose"); }
   }, [kind]);
 
   if (kind !== "win") return null;

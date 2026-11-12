@@ -60,6 +60,7 @@ import {
   summonLandingRow,
   validTargets,
   domMap,
+  driftSquares,
   aimFor,
   alongOf,
   forwardDir,
@@ -1650,8 +1651,58 @@ function startRound(draft: GameState): void {
     if (risen.length)
       draft.log.push(`${risen.length} of the fallen rise for ${player}.`);
   }
+  driftWithTheWind(draft);
   landOrbitalArrows(draft);
   draft.phase = "draw";
+}
+
+/** Wind-Driven (Tumbleweed): the wind moves what cannot hold itself down.
+ *
+ *  Runs at the TOP of the round, before anyone draws, spends or swings, so the
+ *  board the player is handed is the board they plan on. The alternative —
+ *  Cleanup, beside `roundTick.advance` — moves the card AFTER its owner has
+ *  committed to where it stood, which turns every plan into a die roll they
+ *  never got to see. Same mechanic, opposite feeling.
+ *
+ *  Nothing happens on the round a card arrives: a summon resolves in the
+ *  Resource phase, long after this has run, so the first drift is the round
+ *  after it lands. That falls out of the ordering rather than being checked
+ *  for, which is why there is no `summonedThisRound` guard here.
+ *
+ *  `driftSquares` owns every rule about WHERE (rules.ts, and notably: never
+ *  onto an enemy Home slot, because a random stumble must not hand over the
+ *  win condition). This owns only the roll and the log — and it rolls ONCE
+ *  per step so a two-step drift can turn a corner, rather than committing to
+ *  a straight line it chose before it set off. */
+function driftWithTheWind(draft: GameState): void {
+  for (const card of boardCards(draft)) {
+    const steps = getDef(card.defId).driftEachRound ?? 0;
+    if (steps <= 0 || card.curHp <= 0 || !card.pos) continue;
+    let moved = 0;
+    for (let i = 0; i < steps; i++) {
+      const open = driftSquares(draft, card);
+      if (!open.length) break; // boxed in: the wind pushes and nothing gives
+      const fromRow = card.pos.row;
+      card.pos = open[randInt(draft, open.length)];
+      moved++;
+      // It genuinely arrives somewhere — a mine on that square goes off and an
+      // enemy Wall's row still bites. The same two triggers an ordinary Move
+      // fires (see the "move" intent), and no more: the card is not attacking,
+      // claiming ground or crossing anybody's guard on purpose.
+      //
+      // Measured from THIS step's origin, not the drift's, so a two-step
+      // wander that ends on a wall's row is charged for crossing it once.
+      triggerTrapOnMove(draft, card);
+      triggerWallsOnMove(draft, card, fromRow);
+      if (card.curHp <= 0 || !card.pos) break;
+    }
+    if (moved > 0) {
+      notePassive(draft, card, "driftEachRound");
+      draft.log.push(
+        `The wind takes ${label(draft, card)} — it rolls to row ${card.pos!.row}, slot ${card.pos!.col}.`,
+      );
+    }
+  }
 }
 
 /** Orbital Shot (Zenith): the arrows painted last round fall NOW, at the top of

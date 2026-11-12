@@ -3395,6 +3395,15 @@ function applyOnHitByMelee(
   if (def.status && attacker.curHp > 0 && draft.cards[attacker.instanceId]) {
     applyStatus(draft, attacker, def.status.kind, def.status.duration, def.status.power, getDef(defender.defId).element);
   }
+  // Sand Trap's second half: rolled on its own, so the certain part of the
+  // retaliation stays certain. Rolled only when there is still somebody to
+  // affect — the roll is state-derived at the same point on both sides of an
+  // online match, which is what keeps the replay identical.
+  if (def.chanceStatus && attacker.curHp > 0 && draft.cards[attacker.instanceId]
+      && pctChance(draft, def.chanceStatus.chance)) {
+    const cs = def.chanceStatus;
+    applyStatus(draft, attacker, cs.kind, cs.duration, cs.power, getDef(defender.defId).element);
+  }
   // Fountain (Oxin): the spring saps the attacker's momentum.
   if (def.spDrain && attacker.curHp > 0) {
     attacker.spBonus -= def.spDrain;
@@ -4201,8 +4210,10 @@ export const SPECIAL_HANDLERS: Record<string, SpecialHandler> = {
     if (!target) {
       // NOTHING IN REACH STILL ROLLS. A card whose ability is "hit something and
       // keep going" has two halves, and only one of them needs an opponent —
-      // but this returned before either, so Tumbleweed with an empty board in
+      // but this returned before either, so a roller with an empty board in
       // front of it spent its once-per-game Talent and did not move an inch.
+      // (Tumbleweed was the card that found this; Peel Out is the one that
+      // still rides on it — Roll Through charges AT a target now.)
       //
       // Guarded on `rollThrough` so it is only the cards that actually roll:
       // every other `strike` Special is a hit and nothing else, and firing one

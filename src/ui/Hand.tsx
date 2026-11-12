@@ -1,8 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { GameState, PlayerId } from "../engine";
+import { BattleFace } from "./BattleFace";
 import { getDef, effectiveSummonCost } from "../engine";
-import { cardThumbSrc, EL_ICON } from "./shared";
-import { EdgeName, EdgeRim } from "./EdgeFace";
+import { EL_ICON } from "./shared";
 import { SpIcon } from "./icons";
 import { turnCue } from "./turn-cue";
 
@@ -338,10 +338,6 @@ export function Hand(props: {
           const price = effectiveSummonCost(props.game, props.player, def.id);
           const cut = def.cost - price;
           const unaffordable = price > me.gold && !summonable && !noRoom;
-          const melee = def.attackType === "Melee";
-          // The bar under the stats is the board token's: its width is HP plus
-          // shields, so the grey head is the damage the plating soaks first.
-          const shPct = (def.shields / Math.max(1, def.hp + def.shields)) * 100;
           const off = i - center;
           const rot = off * rotStep; // fan spread (deg)
           const ty = Math.min(tyMax, Math.pow(Math.abs(off), 1.4) * tyStep); // outer cards dip lower (clamped)
@@ -395,51 +391,9 @@ export function Hand(props: {
                 props.onPick(h.handId);
               }}
             >
-              <img
-                className="card-art"
-                src={cardThumbSrc(def)}
-                alt=""
-                onError={(e) => { e.currentTarget.style.display = "none"; }}
-              />
-              <EdgeRim />
-              {/* Cost and element are one mark now. The RING still carries
-                   affordability (gold vs red) — that is a gameplay signal and
-                   it does not move onto the art. */}
-              <div
-                className={`hc-cost${cut > 0 ? " discounted" : ""}`}
-                style={{ backgroundImage: `url(${EL_ICON[def.element]})` }}
-                title={cut > 0 ? `${def.cost} − ${cut} (called up)` : undefined}
-              >
-                <b>{price}</b>
-              </div>
-              {props.foils?.has(def.id) && <i className="foil-tag" title="Foil">✦</i>}
-              {/* The board token's language, so a card reads the same in the
-                  hand as on the board: colour says which number is which —
-                  red damage, green HP, blue speed — and shields are the grey
-                  head of the bar under them. The glyph is Melee or Ranged. */}
-              <div className="hc-plate">
-                <EdgeName name={def.name} className="hc-name" />
-                <div className="hc-type">
-                  <span className={`hc-atk ${melee ? "melee" : "ranged"}`}>{melee ? "🗡" : "🏹"}</span>
-                  {def.cardClass}
-                  <span className="hc-atk-word"> · {def.attackType}</span>
-                </div>
-                <div className="hc-stats ef-stats">
-                  <span className="st-dmg" title={`Damage${def.hits > 1 ? ` ×${def.hits} hits` : ""}`}>
-                    {def.dmg}{def.hits > 1 && <span className="atk-x">×{def.hits}</span>}
-                  </span>
-                  <span className="st-hp" title={`HP${def.shields > 0 ? ` · ${def.shields} shield${def.shields > 1 ? "s" : ""}` : ""}`}>{def.hp}</span>
-                  <span className="st-sp" title="Speed">{def.sp}</span>
-                </div>
-                <div className="hc-bar" aria-hidden="true">
-                  {def.shields > 0 && <span className="hc-bar-sh" style={{ width: `${shPct}%` }} />}
-                  <span className="hc-bar-hp" />
-                </div>
-              </div>
-              {/* The foil's sheen, last so it paints over the plate the way the
-                  card's ::after sheen did — moved by the compositor now, not
-                  repainted (see .foil-sheen). */}
-              {props.foils?.has(def.id) && <span className="hc-foil foil-sheen" aria-hidden="true" />}
+              {/* The face itself — shared with the legendary entrance, so a card
+                  reads the same being played as it does arriving. */}
+              <BattleFace def={def} price={price} cut={cut} foil={props.foils?.has(def.id)} />
             </div>
           );
         })}

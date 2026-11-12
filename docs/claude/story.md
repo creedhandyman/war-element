@@ -2,6 +2,60 @@
 
 Moved out of CLAUDE.md to keep it short. Same text, same rules — read it before working in this area.
 
+## BOLT's red eyes — the thread the art wrote by itself
+
+Owner's note, 2026-10-27: BOLT is the region closest to being able to field a
+robotic AI force; most BOLT card art has a red-eyed machine in it that nobody
+asked the generator for; **ARC** is the faction trying to build the *good* bots.
+
+Checked against all 49 BOLT paintings before writing any of it, and the art says
+something more precise — and more useful — than "evil robot":
+
+- **It is a colour convention, not a character.** ARC's own frames run purple,
+  gold and cyan (the ARC mythic, Jack Arc, GigaVolt, the Police units). RED is
+  what Bolt City fits to the things it issues by the crate and does not expect
+  back — every Drone has one — and to **everything lying in the gutter behind
+  the subject**. Nearly every BOLT painting has a dead machine in it with its
+  optic still lit. The ARC mythic's own card is a sleek cyan-headed frame
+  standing on a floor of red-eyed wrecks, under an ARC INDUSTRIES sign.
+- **So you cannot tell by looking**, which is the actual story. Sentry is an ARC
+  turret wearing the same red optic as the thing it is pointed at.
+- **The city is a corporate state and the art says so**: ARC INDUSTRIES towers,
+  "BUILDING BOLT CITY BETTER", "POWER THE FUTURE" over Voltis Plaza, ARC POLICE
+  cruisers, "DRONE PERIMETER ACTIVE". GEARHOLLOW and the BOLT CITY CASINO are
+  the districts that are not ARC's.
+
+Written up as **VOICE RULE 7** in `src/data/lore/bolt.ts`, stated as a
+specification rather than an omen because that is BOLT's whole register — and
+deliberately as a SECOND thread beside rule 6's Core crack, not a breach of it:
+the Core is something BOLT *admits*, the red eyes are something BOLT has simply
+never been asked about. **Five lines carry it and no more** (`bolt_elecdroid`
+the anchor, then `bolt_sentry`, `bolt_junker`, `bolt_scrapper`,
+`bolt_drone_tok`), the same restraint rule 6 already runs on. `boss_overclock`
+("the line does not stop for losses") and `bolt_static_wisp_tok` ("what is left
+when a Core body fails") were left exactly as they were — they already carry it
+without help, and editing them would have been the thread announcing itself.
+
+The **story node lore in `story.ts` was deliberately not touched.** Those lines
+are each doing a different job (the Scrapyard's "magic is just power no one has
+bothered to wire up yet", the Breaker Yard as an address the city agreed to
+hand its failures) and the thread belongs on the cards, which is where the art
+is.
+
+**The open arc, recorded and NOT built.** It joins up on its own: the Core crack
+is "nobody has explained why ARC draws more power than its conduits should
+allow", and the red eyes in the scrap are still lit. Where that power is going
+is a story BOLT is one step away from. Nothing in the data commits to it yet.
+
+**Loose end found while reading this.** `filters.tsx` says the one-card tribe
+`"Bot"` "has since been folded into the real tribe it was flavour for, or
+replaced by a mechanic that did not need a tribe at all" — the MECHANIC was
+moved (Keeper's Hive Command is `scope: "card"` on the Beebot now), but
+`bolt_keeper` still carries `tribe: "Bot"` and is its only member, so the dead
+pill is still in the tribe filter. Not changed here: retagging Keeper `ARC`
+would put it under Jack Arc's +2 SP and the ARC mythic's +2 DMG / +2 SP auras,
+which is a balance decision, not a cleanup.
+
 ## Story Mode
 
 `src/data/story.ts` is the whole campaign layer: pure data + pure functions, no
@@ -110,12 +164,28 @@ engine runtime and no React, so it stays testable headlessly
   MAP, not the picker: continuing is the common case. A battle takes its board
   size and Blight from the NODE's own region (`regionOfNode`), never from
   whichever map is on screen.
-- **The squad lives under the map** (`StorySquad.tsx`), not only inside prep.
-  It used to surface one tap from a battle, which is the worst moment to learn
-  your only healer is in another region. Locals fight free, so the editor only
-  chooses what you CARRY; at home (`squadCapInRegion` returns null) everything
-  fights and the strip says so instead of showing an editor that can't change
-  anything. It writes through `packSquad`, the same call prep uses.
+- **THE PACKING STEP IS GONE — the collection travels** (owner, 2026-10-22:
+  play Story the way Hard already did, "just to simplify the process").
+  `squadLimitFor(save, region)` returns **null for everyone, everywhere**, and
+  every reader funnels through it: `poolForRegion` is the whole collection,
+  `autoSquad` packs nothing, `squadIsOfferable` is false (so StoryPrep's Squad
+  menu item, its "N/12 carried" readout and the pack panel never render) and
+  `packSquad` is a no-op. The strip under the map (`StorySquad.tsx`) renders
+  its home branch everywhere: "every card you own fights, in every region".
+  What it removes is a WHOLE STEP, not a number — a question asked at every
+  border, before you knew what you were walking into, answered through a second
+  screen, paid for by the one card you forgot. Every softening already made to
+  it said the same thing: it stopped blocking fights, it started packing
+  itself, it moved out of prep and under the map.
+  **The ladder is dormant, not deleted**: `squadCapFor` / `squadCapInRegion`
+  still describe the first run's progression (12 + 2 per Throne, none at home,
+  none once DUSK falls) and are still tested, so bringing the step back is one
+  function. Saves that hold `squads` keep them; they are not consulted, and a
+  test pins that a stale one does not quietly bench the collection.
+  **NOT the deck cap**: `deckCapFor` / `fightCap` still decide how many cards a
+  fight is, for both sides — Hard never lifted that either, and the test "the
+  fight is sized by the ladder" is what keeps the simplification from widening
+  the fight itself.
 - **There is no Leave button on the map.** The bottom nav is on that screen and
   all three of its other tabs already leave; a fifth exit was one more thing in
   a header that had run out of room.
@@ -242,13 +312,13 @@ engine runtime and no React, so it stays testable headlessly
   "Back to Hard mode?" banner on the map that puts it back on Hard WITHOUT
   resetting `cleared`. **Any new field that must outlive old builds needs the
   same treatment** — a copy in a list old loaders pass through.
-  **The whole collection plays everywhere** (owner, same day): `squadLimitFor(
-  save, region)` is null on a Hard run, so every region is home ground from the
-  first node — what the first run only gets once DUSK's Throne falls.
-  `poolForRegion`, `autoSquad`, `packSquad`, `squadIsOfferable`, StoryPrep and
-  StorySquad all read it. `squadCapInRegion(cleared, region)` is the first
-  run's ladder alone: never call it with a save in hand. The deck-size ladder
-  (`deckCapFor`, 6 up to 30) still resets and still applies.
+  **The whole collection plays everywhere** (owner, same day — and since
+  2026-10-22 this is true of the FIRST run too, see "the packing step is gone"
+  above, so it no longer separates the two modes). `squadCapInRegion(cleared,
+  region)` is the dormant first-run ladder: never call it with a save in hand —
+  `squadLimitFor` is what play asks. The deck-size ladder (`deckCapFor`, 6 up
+  to 30) still resets and still applies. What still makes Hard hard: that
+  ladder, the border bosses, the enemy squads and the foils.
   **...and every spell** (owner, same day): `spellsUnlockedIn` treats every
   region as fully walked on a Hard run, so `heroSpellShelf` is all 80 — the
   deck builder's campaign offer (`spellPool`), the automatic book and team

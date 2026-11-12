@@ -160,6 +160,9 @@ interface Style {
    *  bloom (looks/pyro.ts) carries the hit, and two full flashes on a
    *  Special's targets whited out the cards being read. */
   flash?: number;
+  /** False = no expanding rings on a hit. GALE's: ring + glare is the shape
+   *  of a SPLASH, which made a wind hit read as AQUA's water. */
+  rings?: boolean;
 }
 
 const STYLES: Record<Element, Style> = {
@@ -173,8 +176,11 @@ const STYLES: Record<Element, Style> = {
           gravity: 0, drag: 0.02, life: [0.15, 0.4], size: [12, 2], streak: true, arcs: 6 },
   LEAF: { palette: [0xf4ffe6, 0xb6f27a, 0x4caf6d, 0x2c7a45], sparks: 110, speed: [120, 380],
           gravity: 120, drag: 0.3, life: [0.6, 1.3], size: [15, 8], streak: false, swirl: 140 },
-  GALE: { palette: [0xf2fbff, 0xbfe6ff, 0x3d9bff, 0x2f7be0], sparks: 160, speed: [160, 460],
-          gravity: -40, drag: 0.2, life: [0.45, 1.0], size: [13, 3], streak: true, swirl: 900 },
+  // Air, not water: lighter sky-cerulean (AQUA is royal-to-navy), thin fast
+  // streaks bent round by the swirl, a small flash and NO rings — the vortex
+  // in looks/gale.ts impactAccent is the hit.
+  GALE: { palette: [0xf2fffe, 0xb8f4ff, 0x22c4f0, 0x16a2d0], sparks: 90, speed: [220, 560],
+          gravity: -40, drag: 0.2, life: [0.35, 0.8], size: [8, 2], streak: true, swirl: 1300, flash: 0.35, rings: false },
   // Grit, not glow: the solid chunks and dust of BORE's look (looks/bore.ts)
   // carry the hit, and big pale blobs over them read as light, not stone.
   BORE: { palette: [0xe8cfa8, 0xd9b48a, 0xa1887f, 0x5d4a40], sparks: 60, speed: [160, 440],
@@ -934,7 +940,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
       }
       case "GALE":
         vortex(R, T, el);
-        charge(mid, big, 0x3d9bff, 0.18 * k, T);
+        charge(mid, big, 0x22c4f0, 0.18 * k, T);
         return;
       case "BORE":
         // Rocks, heavy and accelerating, onto each card.
@@ -1035,7 +1041,7 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
         return;
       case "GALE":
         // The gust bursts outward from the eye.
-        glow(R, 0xbfe6ff, 0.3 * k, 0.6, 1.3);
+        glow(R, 0xb8f4ff, 0.3 * k, 0.6, 1.3);
         emit({ count: Math.round(120 * k), palette: el.palette, from: { x: mid.x - 12, y: mid.y - 12, w: 24, h: 24 },
           speed: [300, 700], gravity: 0, drag: 0.2, life: [0.4, 0.8], size: [12, 3], streak: true, swirl: 700 });
         return;
@@ -1565,8 +1571,10 @@ export async function createImpactLayer(host?: LayerHost): Promise<ImpactLayer> 
     } else {
       burst(x, y, st, k, Math.round(st.sparks * k));
       addFlash(x, y, st, k);
-      addRing(x, y, st, k);
-      addRing(x, y, st, k * 0.6, 0.08);
+      if (st.rings !== false) {
+        addRing(x, y, st, k);
+        addRing(x, y, st, k * 0.6, 0.08);
+      }
     }
     if (st.arcs) addArcs(x, y, st, k, st.arcs);
     if (st.rays) addRays(x, y, st, k, st.rays);

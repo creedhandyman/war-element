@@ -1758,7 +1758,7 @@ describe("medium-tier passives (audit batch)", () => {
       action: "talent",
       targetId: foe.instanceId,
     });
-    expect(next.cards[foe.instanceId].curHp).toBe(25); // 5 DMG landed
+    expect(next.cards[foe.instanceId].curHp).toBe(26); // 4 DMG landed
     expect(next.players.P1.magicPool).toBe(0); // nothing paid
     expect(next.cards[weed.instanceId].talentUsed).toBe(true);
     expect(canFireTalent(next, weed.instanceId).ok).toBe(false); // gone for the game

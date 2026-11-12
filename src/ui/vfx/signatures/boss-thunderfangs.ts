@@ -31,7 +31,7 @@ import type { Signature, SigMoment } from "./types";
 type Box = { x: number; y: number; w: number; h: number };
 
 const TAU = Math.PI * 2;
-const CREAM = 0xf2fbff, PEACH = 0xbfe6ff, AMBER = 0x3d9bff;
+const CREAM = 0xf2fffe, PEACH = 0xb8f4ff, AMBER = 0x22c4f0;
 /** The storm's light: BOLT's white core and violet halo, and a pale storm-blue
  *  for the wolves' bodies. */
 const WHITE = 0xffffff, LAV = 0xe3d8ff, VIO = 0x9575ff, STORM = 0xc8d4ff;
